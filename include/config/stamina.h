@@ -23,4 +23,8 @@
 // hasta que su stamina vuelva a este % del máximo.
 #define STAMINA_RECOVER_PERCENT         25
 
+// Posición de la barra de stamina respecto a la barra de vida (píxeles hacia abajo).
+// Si no te gusta dónde queda, ajusta este número.
+#define STAMINA_BAR_Y_OFFSET            8
+
 #endif // GUARD_CONFIG_STAMINA_H

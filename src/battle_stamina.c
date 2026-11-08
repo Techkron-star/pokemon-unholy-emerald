@@ -11,7 +11,7 @@
 static u32 CalcMaxStamina(enum BattlerId battler)
 {
     struct Pokemon *mon = GetBattlerMon(battler);
-    u32 level = gBattleMons[battler].level;
+    u32 level = GetMonData(mon, MON_DATA_LEVEL);
     u32 hpEv = GetMonData(mon, MON_DATA_HP_EV);
     u32 hpIv = GetMonData(mon, MON_DATA_HP_IV);
 

@@ -3,6 +3,7 @@
 #include "battle.h"
 #include "pokemon.h"
 #include "battle_controllers.h"
+#include "battle_stamina.h"
 #include "battle_interface.h"
 #include "battle_z_move.h"
 #include "graphics.h"
@@ -187,6 +188,7 @@ static void Task_HidePartyStatusSummary_DuringBattle(u8);
 
 static void SpriteCB_HealthBoxOther(struct Sprite *);
 static void SpriteCB_HealthBar(struct Sprite *);
+static void SpriteCB_StaminaBar(struct Sprite *);
 static void SpriteCB_StatusSummaryBar_Enter(struct Sprite *);
 static void SpriteCB_StatusSummaryBar_Exit(struct Sprite *);
 static void SpriteCB_StatusSummaryBalls_Enter(struct Sprite *);
@@ -307,6 +309,34 @@ static const struct SpriteTemplate sHealthbarSpriteTemplates[MAX_BATTLERS_COUNT]
 /*  v-- Origin
 [0  +  ][1     ]   64x8
 */
+static const struct SpriteTemplate sStaminaBarSpriteTemplates[MAX_BATTLERS_COUNT] =
+{
+    {
+        .tileTag = TAG_STAMINABAR_PLAYER1_TILE,
+        .paletteTag = TAG_HEALTHBAR_PAL,
+        .oam = &sOamData_Healthbar,
+        .callback = SpriteCB_StaminaBar
+    },
+    {
+        .tileTag = TAG_STAMINABAR_OPPONENT1_TILE,
+        .paletteTag = TAG_HEALTHBAR_PAL,
+        .oam = &sOamData_Healthbar,
+        .callback = SpriteCB_StaminaBar
+    },
+    {
+        .tileTag = TAG_STAMINABAR_PLAYER2_TILE,
+        .paletteTag = TAG_HEALTHBAR_PAL,
+        .oam = &sOamData_Healthbar,
+        .callback = SpriteCB_StaminaBar
+    },
+    {
+        .tileTag = TAG_STAMINABAR_OPPONENT2_TILE,
+        .paletteTag = TAG_HEALTHBAR_PAL,
+        .oam = &sOamData_Healthbar,
+        .callback = SpriteCB_StaminaBar
+    }
+};
+
 static const struct Subsprite sHealthBar_Subsprites_Player[] =
 {
     {
@@ -595,6 +625,13 @@ static const union TextColor sHealthBoxTextColor =
 #define hBar_HealthBoxSpriteId      data[5]
 #define hBar_Data6                  data[6]
 
+#define hStam_HealthBoxSpriteId     data[5]
+#define hStam_Data6                 data[6]
+#define hStam_Battler               data[7]
+
+static EWRAM_DATA struct BattleBarInfo sStaminaBars[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA u8 sStaminaBarOwner[MAX_BATTLERS_COUNT] = {0};
+
 // This function is here to cover a specific case - one player's mon in a 2 vs 1 double battle. In this scenario - display singles layout.
 // The same goes for a 2 vs 1 where opponent has only one Pokémon.
 enum BattleCoordTypes GetBattlerCoordsIndex(enum BattlerId battler)
@@ -696,6 +733,21 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
     healthBarSpritePtr->hBar_Data6 = data6;
     healthBarSpritePtr->invisible = TRUE;
 
+    if (STAMINA_ENABLED)
+    {
+        u8 staminaBarSpriteId = CreateSpriteAtEnd(&sStaminaBarSpriteTemplates[gBattlerPositions[battler]], 140, 60, 0);
+        struct Sprite *staminaBarSprite = &gSprites[staminaBarSpriteId];
+
+        SetSubspriteTables(staminaBarSprite, &sHealthBar_SubspriteTables[GetBattlerSide(battler)]);
+        staminaBarSprite->subspriteMode = SUBSPRITES_IGNORE_PRIORITY;
+        staminaBarSprite->oam.priority = 1;
+        staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
+        staminaBarSprite->hStam_Data6 = data6;
+        staminaBarSprite->hStam_Battler = battler;
+        staminaBarSprite->invisible = TRUE;
+        sStaminaBarOwner[battler] = 0; // fuerza a dibujar la barra desde cero
+    }
+
     CreateIndicatorSprite(battler);
 
     gBattleStruct->ballSpriteIds[0] = MAX_SPRITES;
@@ -754,6 +806,82 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
 
     sprite->x2 = gSprites[healthboxSpriteId].x2;
     sprite->y2 = gSprites[healthboxSpriteId].y2;
+}
+
+// Barra de stamina: es un clon de la barra de vida (misma geometría) que se mueve y se
+// anima con la misma maquinaria (CalcNewBarValue / CalcBarFilledPixels), así que baja
+// y sube con la misma animación que la vida.
+
+static void DrawStaminaBar(struct Sprite *sprite, struct BattleBarInfo *bar)
+{
+    u8 array[8];
+
+    CalcBarFilledPixels(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, array, B_HEALTHBAR_PIXELS / 8);
+
+    // La barra usa los gráficos azules de la barra de experiencia.
+    for (u32 i = 0; i < B_HEALTHBAR_PIXELS / 8; i++)
+        CpuCopy32(GetHealthboxElementGfxPtr(HEALTHBOX_GFX_12) + array[i] * 32,
+                  (void *)(OBJ_VRAM0 + (sprite->oam.tileNum + 2 + i) * TILE_SIZE_4BPP), 32);
+}
+
+static void UpdateStaminaBar(struct Sprite *sprite, enum BattlerId battler)
+{
+    struct BattleBarInfo *bar = &sStaminaBars[battler];
+    s32 max = Stamina_GetMax(battler);
+    s32 target = Stamina_GetCurrent(battler);
+    u8 owner = gBattleStruct->staminaOwner[battler];
+
+    if (owner != sStaminaBarOwner[battler])
+    {
+        // Pokémon nuevo en el campo: se dibuja directamente, sin animación.
+        sStaminaBarOwner[battler] = owner;
+        bar->maxValue = max;
+        bar->oldValue = target;
+        bar->receivedValue = 0;
+        bar->currValue = -32768;
+        CalcNewBarValue(bar->maxValue, bar->oldValue, 0, &bar->currValue, B_HEALTHBAR_PIXELS / 8, 1);
+        DrawStaminaBar(sprite, bar);
+        return;
+    }
+
+    if (bar->receivedValue == 0)
+    {
+        if (target == bar->oldValue)
+            return; // en reposo y sin cambios
+
+        // Cambio de stamina: positivo = baja, negativo = sube.
+        bar->receivedValue = bar->oldValue - target;
+        bar->currValue = -32768;
+    }
+
+    u16 fraction = B_FAST_HP_DRAIN == FALSE ? 1 : max(bar->maxValue / (B_HEALTHBAR_PIXELS / 2), 1);
+    s32 ret = CalcNewBarValue(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, B_HEALTHBAR_PIXELS / 8, fraction);
+
+    DrawStaminaBar(sprite, bar);
+
+    if (ret == -1)
+    {
+        bar->oldValue = target;
+        bar->receivedValue = 0;
+    }
+}
+
+static void SpriteCB_StaminaBar(struct Sprite *sprite)
+{
+    u8 healthboxSpriteId = sprite->hStam_HealthBoxSpriteId;
+    enum BattlerId battler = sprite->hStam_Battler;
+
+    sprite->x = gSprites[healthboxSpriteId].x + (sprite->hStam_Data6 == 2 ? 8 : 16);
+    sprite->y = gSprites[healthboxSpriteId].y + STAMINA_BAR_Y_OFFSET;
+    sprite->x2 = gSprites[healthboxSpriteId].x2;
+    sprite->y2 = gSprites[healthboxSpriteId].y2;
+
+    // Sigue la visibilidad de la barra de vida (se oculta en menús, al caer un Pokémon, etc.).
+    sprite->invisible = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible;
+    if (sprite->invisible)
+        return;
+
+    UpdateStaminaBar(sprite, battler);
 }
 
 static void SpriteCB_HealthBoxOther(struct Sprite *sprite)

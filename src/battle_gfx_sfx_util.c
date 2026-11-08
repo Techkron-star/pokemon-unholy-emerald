@@ -81,6 +81,14 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
     {gBlankGfxCompressed, 0x0120, TAG_HEALTHBAR_OPPONENT2_TILE}
 };
 
+static const struct CompressedSpriteSheet sSpriteSheets_StaminaBar[MAX_BATTLERS_COUNT] =
+{
+    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_PLAYER1_TILE},
+    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT1_TILE},
+    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_PLAYER2_TILE},
+    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT2_TILE}
+};
+
 const struct SpritePalette sSpritePalettes_HealthBoxHealthBar[2] =
 {
     {gBattleInterface_BallStatusBarPal, TAG_HEALTHBOX_PAL},
@@ -759,6 +767,9 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 6));
             spriteSheet = &sSpriteSheets_HealthBar[position];
             break;
+        case 10 ... 13:
+            spriteSheet = &sSpriteSheets_StaminaBar[GetBattlerPosition((enum BattlerId)(state - 10))];
+            break;
         default:
             return TRUE;
         }
@@ -777,6 +788,10 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
         case 5:
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 4));
             spriteSheet = &sSpriteSheets_HealthBar[position];
+            break;
+        case 6:
+        case 7:
+            spriteSheet = &sSpriteSheets_StaminaBar[GetBattlerPosition((enum BattlerId)(state - 6))];
             break;
         default:
             return TRUE;
