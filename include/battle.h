@@ -745,6 +745,11 @@ struct BattleStruct
     u8 intimidateActivated:1;
     u8 allowPartingShot:1;
     u8 adrenalineOrbActivated:1; // prevents looping after an adrenaline stat changed
+    // Sistema de stamina (ver src/battle_stamina.c)
+    u16 stamina[MAX_BATTLERS_COUNT];
+    u16 maxStamina[MAX_BATTLERS_COUNT];
+    u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
+    u8 staminaExhausted[MAX_BATTLERS_COUNT];
 };
 
 struct AiBattleData

@@ -9,6 +9,7 @@
 #include "battle_hold_effects.h"
 #include "battle_interface.h"
 #include "battle_main.h"
+#include "battle_stamina.h"
 #include "battle_message.h"
 #include "battle_pyramid.h"
 #include "battle_scripts.h"
@@ -4760,6 +4761,9 @@ static void TurnValuesCleanUp(bool32 endTurn)
 
             if (gBattleMons[i].volatiles.rechargeTimer)
                 gBattleMons[i].volatiles.rechargeTimer--;
+
+            if (IsBattlerAlive(i))
+                Stamina_EndOfTurn(i);
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;
             gBattleStruct->battlerState[i].wasAboveHalfHp = FALSE;

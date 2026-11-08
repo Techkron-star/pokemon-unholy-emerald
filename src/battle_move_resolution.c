@@ -5,6 +5,7 @@
 #include "battle_hold_effects.h"
 #include "battle_ai_record.h"
 #include "battle_util.h"
+#include "battle_stamina.h"
 #include "battle_move_resolution.h"
 #include "battle_script_commands.h"
 #include "battle_stat_change.h"
@@ -1038,6 +1039,7 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
         gBattleMons[cv->battlerAtk].pp[movePosition] = 0;
 
     gLastMoves[cv->battlerAtk] = gChosenMove;
+    Stamina_SpendForMove(cv->battlerAtk, cv->move);
 
     if (MOVE_IS_PERMANENT(cv->battlerAtk, movePosition))
     {
