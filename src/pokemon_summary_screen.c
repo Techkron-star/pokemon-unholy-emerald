@@ -261,7 +261,6 @@ static void PrintMonOTName(void);
 static void PrintMonOTID(void);
 static void PrintMonAbilityName(void);
 static void PrintMonAbilityDescription(void);
-static void PrintMonMutationInfo(void);
 static void BufferMonTrainerMemo(void);
 static void PrintMonTrainerMemo(void);
 static void BufferNatureString(void);
@@ -3530,48 +3529,25 @@ static void PrintMonOTID(void)
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].name, 0, 1, 0, 1);
-    PrintMonMutationInfo();
-}
+    u8 text[64];
+    u8 badges = sMonSummaryScreen->summary.specialBadges;
 
-static void PrintMonMutationInfo(void)
-{
-    static const u8 sMutationPrefix[] = _("MUT: ");
-    static const u8 sMutationNone[] = _("NONE");
-    static const u8 sMutationAlpha[] = _("A ");
-    static const u8 sMutationSuper[] = _("S ");
-    static const u8 sMutationEnraged[] = _("E ");
-    static const u8 sMutationOmega[] = _("O");
-    u8 text[32];
-    u8 *cursor = text;
-    StringCopy(cursor, sMutationPrefix);
-    cursor += StringLength(sMutationPrefix);
-
-    if (sMonSummaryScreen->summary.specialBadges == 0)
+    StringCopy(text, gAbilitiesInfo[ability].name);
+    // Indicadores compactos en la MISMA línea: no tapar la descripción de habilidad.
+    if (badges != 0)
     {
-        StringCopy(cursor, sMutationNone);
+        StringAppend(text, _(" ["));
+        if (badges & POKEMON_BADGE_ALPHA)
+            StringAppend(text, _("A"));
+        if (badges & POKEMON_BADGE_SUPER)
+            StringAppend(text, _("S"));
+        if (badges & POKEMON_BADGE_ENRAGED)
+            StringAppend(text, _("E"));
+        if (badges & POKEMON_BADGE_OMEGA)
+            StringAppend(text, _("O"));
+        StringAppend(text, _("]"));
     }
-    else
-    {
-        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_ALPHA)
-        {
-            StringCopy(cursor, sMutationAlpha);
-            cursor += StringLength(sMutationAlpha);
-        }
-        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_SUPER)
-        {
-            StringCopy(cursor, sMutationSuper);
-            cursor += StringLength(sMutationSuper);
-        }
-        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_ENRAGED)
-        {
-            StringCopy(cursor, sMutationEnraged);
-            cursor += StringLength(sMutationEnraged);
-        }
-        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_OMEGA)
-            StringCopy(cursor, sMutationOmega);
-    }
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 9, 0, 1);
+    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 1, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)

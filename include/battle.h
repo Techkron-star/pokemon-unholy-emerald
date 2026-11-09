@@ -755,6 +755,7 @@ struct BattleStruct
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
     u8 turnActionRole[MAX_BATTLERS_COUNT]; // por acción del turno: 1 = usa el 2º movimiento de la cadena
     u8 numTurnActions;                     // 0 = el normal (gBattlersCount)
+    u8 chainTurnInterrupted;               // un KO cancela las acciones pendientes de esta cadena
 };
 
 struct AiBattleData

@@ -1015,10 +1015,14 @@ void HandleAction_NothingIsFainted(void)
 void HandleAction_ActionFinished(void)
 {
     u32 i, j;
-    bool32 afterYouActive = gSpecialStatuses[gBattlerByTurnOrder[gCurrentTurnActionNumber + 1]].afterYou;
+    bool32 afterYouActive = gCurrentTurnActionNumber + 1 < Chain_GetNumTurnActions()
+                          && gSpecialStatuses[gBattlerByTurnOrder[gCurrentTurnActionNumber + 1]].afterYou;
     gBattleStruct->monToSwitchIntoId[gBattlerByTurnOrder[gCurrentTurnActionNumber]] = gSelectedMonPartyId = PARTY_SIZE;
     gCurrentTurnActionNumber++;
-    gCurrentActionFuncId = gActionsByTurnOrder[gCurrentTurnActionNumber];
+    if (gCurrentTurnActionNumber < Chain_GetNumTurnActions())
+        gCurrentActionFuncId = gActionsByTurnOrder[gCurrentTurnActionNumber];
+    else
+        gCurrentActionFuncId = B_ACTION_FINISHED;
     memset(&gSpecialStatuses, 0, sizeof(gSpecialStatuses));
 
     gCurrentMove = MOVE_NONE;
@@ -1034,6 +1038,7 @@ void HandleAction_ActionFinished(void)
     gBattleResources->battleScriptsStack->size = 0;
 
     if (GetConfig(B_RECALC_TURN_AFTER_ACTIONS) >= GEN_8
+     && gBattleStruct->numTurnActions == 0 // el orden expandido y sus roles no deben reordenarse por separado
      && !afterYouActive
      && gBattleStruct->pledgeState != PLEDGE_COMBO_WAITING
      && !IsPursuitTargetSet())
@@ -11218,6 +11223,7 @@ struct PartyState *GetBattlerPartyState(enum BattlerId battler)
 
 void SetValuesOnFaint(enum BattlerId battler)
 {
+    Chain_MarkKnockout();
     gHitMarker |= HITMARKER_FAINTED(battler);
     gBattleStruct->eventState.faintedAction = 0;
     gBattlerFainted = battler;

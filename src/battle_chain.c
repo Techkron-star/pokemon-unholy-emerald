@@ -104,6 +104,7 @@ void Chain_ExpandTurnOrder(void)
     bool32 rivalChains = gBattleStruct->chainSecondPos[rival] != 0 && Chain_IsAvailable(rival);
 
     gBattleStruct->numTurnActions = 0;
+    gBattleStruct->chainTurnInterrupted = FALSE;
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));
 
     if (!playerChains && !rivalChains)
@@ -175,6 +176,8 @@ static bool32 PickDifferentRivalMove(enum BattlerId battler)
 
 bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex)
 {
+    if (gBattleStruct->chainTurnInterrupted)
+        return TRUE;
     if (turnActionIndex >= MAX_BATTLERS_COUNT)
         return FALSE;
 
@@ -194,10 +197,23 @@ bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex)
     return FALSE;
 }
 
+void Chain_MarkKnockout(void)
+{
+    // Solo alteramos turnos expandidos; el comportamiento original no cambia.
+    if (gBattleStruct->numTurnActions != 0)
+        gBattleStruct->chainTurnInterrupted = TRUE;
+}
+
+bool32 Chain_WasInterrupted(void)
+{
+    return gBattleStruct->numTurnActions != 0 && gBattleStruct->chainTurnInterrupted;
+}
+
 void Chain_Reset(void)
 {
     memset(gBattleStruct->chainFirstPos, 0, sizeof(gBattleStruct->chainFirstPos));
     memset(gBattleStruct->chainSecondPos, 0, sizeof(gBattleStruct->chainSecondPos));
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));
     gBattleStruct->numTurnActions = 0;
+    gBattleStruct->chainTurnInterrupted = FALSE;
 }

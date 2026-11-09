@@ -1,5 +1,16 @@
 EventScript_CraftSuperExpShare::
 	lock
+	message Crafting_Text_MenuPrompt
+	waitmessage
+	dynmultipush Crafting_Text_MenuSuperExpShare, 0
+	dynmultipush Crafting_Text_MenuExit, 1
+	dynmultistack 0, 0, FALSE, 2, 0, 0, DYN_MULTICHOICE_CB_NONE
+	closemessage
+	switch VAR_RESULT
+	case 0, EventScript_CraftSuperExpShare_Recipe
+	goto EventScript_CraftSuperExpShare_End
+
+EventScript_CraftSuperExpShare_Recipe:
 	checkflag FLAG_BADGE01_GET
 	goto_if_unset FLAG_BADGE01_GET, EventScript_CraftSuperExpShare_NoBadge
 	checkitem ITEM_EXP_SHARE, 1
@@ -28,6 +39,15 @@ EventScript_CraftSuperExpShare_NoSpace:
 EventScript_CraftSuperExpShare_End:
 	releaseall
 	end
+
+Crafting_Text_MenuPrompt:
+	.string "CRAFTING - Choose a recipe.$"
+
+Crafting_Text_MenuSuperExpShare:
+	.string "SUPER EXP. SHARE$"
+
+Crafting_Text_MenuExit:
+	.string "EXIT$"
 
 Crafting_Text_ConfirmSuperExpShare:
 	.string "Craft a SUPER EXP. SHARE?\n"

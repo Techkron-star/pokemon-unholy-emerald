@@ -5034,6 +5034,10 @@ static void CheckChangingTurnOrderEffects(void)
 
 static void RunTurnActionsFunctions(void)
 {
+    // Tras cualquier KO, ninguna acción ya encolada puede atacar al sustituto.
+    if (gCurrentActionFuncId == B_ACTION_USE_MOVE && Chain_WasInterrupted())
+        gCurrentActionFuncId = B_ACTION_FINISHED;
+
     if (gBattleOutcome != 0)
         gCurrentActionFuncId = B_ACTION_FINISHED;
 
@@ -5056,7 +5060,9 @@ static void RunTurnActionsFunctions(void)
     }
 
     // Z-move slides appear right before move instead of at the beginning of turn like other gimmicks
-    if (GetActiveGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]) == GIMMICK_Z_MOVE && TryTrainerSlideGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]))
+    if (gCurrentActionFuncId == B_ACTION_USE_MOVE
+     && GetActiveGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]) == GIMMICK_Z_MOVE
+     && TryTrainerSlideGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]))
         return;
 
     sTurnActionsFuncsTable[gCurrentActionFuncId]();

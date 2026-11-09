@@ -26,4 +26,8 @@ u32 Chain_GetNumTurnActions(void);
 // Limpia el estado al final del turno.
 void Chain_Reset(void);
 
+// Cancela las acciones pendientes del turno encadenado si hay un KO.
+void Chain_MarkKnockout(void);
+bool32 Chain_WasInterrupted(void);
+
 #endif // GUARD_BATTLE_CHAIN_H
