@@ -1698,6 +1698,7 @@ static void OpenContextMenu(u8 taskId)
             switch (gBagPosition.pocket)
             {
             case POCKET_ITEMS:
+            case POCKET_BATTLE_ITEMS:
                 gBagMenu->contextMenuItemsPtr = gBagMenu->contextMenuItemsBuffer;
                 gBagMenu->contextMenuNumItems = ARRAY_COUNT(sContextMenuItems_ItemsPocket);
                 memcpy(&gBagMenu->contextMenuItemsBuffer, &sContextMenuItems_ItemsPocket, sizeof(sContextMenuItems_ItemsPocket));
