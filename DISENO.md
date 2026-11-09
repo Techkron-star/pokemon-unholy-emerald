@@ -139,6 +139,22 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
+## Diseño de interfaz — Horizon Nebula (9 noviembre 2026)
+
+Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **diseño aprobado para implementar, no pantalla ya integrada en la ROM**. Consulta [`docs/UI_HORIZON_NEBULA.md`](docs/UI_HORIZON_NEBULA.md) para layouts, navegación, paletas Eclipse/Daylight, persistencia, límites GBA, sprites personalizados y pruebas.
+
+- Horizon Shop abre una **pantalla raíz con cinco pestañas**: Pokémon, Discos, Objetos, Huevos, Movimientos.
+- La lista, el panel de descripción y los botones comparten estructura, pero cada pestaña utiliza reglas y flujos propios.
+- Los temas de interfaz **Eclipse** y **Daylight** se eligen desde Opciones y permanecen guardados; no dependen del ciclo diurno de la partida.
+- Reusar la composición y efectos discretos de los temas Nebulous de esos nombres, no trasladar WebGL o shaders a GBA.
+- Ni variantes mutadas (Alpha, Super, Enraged, Omega) ni Infinity Ball se venden. No se inventan precios ni stocks aún sin definir.
+- Crafting adopta panel de receta, requisitos visibles (poseído / requerido) y confirmación antes de consumir materiales.
+- Movimiento / aprender / olvidar reutiliza el flujo existente; se crea navegación uniforme, no una segunda lógica incompatible.
+
+**Estado:** especificado, pendiente de implementación en C y de validación visual en ROM/emulador.
+
+---
+
 ## 5. Horizon Shop (primera entrega implementada; catálogo avanzado pendiente)
 
 Sistema de compras y servicios accesible desde el menú principal del juego. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
