@@ -8145,6 +8145,7 @@ static void Task_ChoosePartyMon(u8 taskId)
 void ChooseMonForMoveRelearner(void)
 {
     gRelearnMode = RELEARN_MODE_SCRIPT;
+    gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES; // Don't inherit a stale category from a previous relearner script
     LockPlayerFieldControls();
     FadeScreen(FADE_TO_BLACK, 0);
     CreateTask(Task_ChooseMonForMoveRelearner, 10);

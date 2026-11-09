@@ -760,6 +760,7 @@ static bool8 StartMenuHorizonShopCallback(void)
         RemoveExtraStartMenuWindows();
         CleanupOverworldWindowsAndTilemaps();
         CreateHorizonShopMenu();
+        FadeScreen(FADE_FROM_BLACK, 0);
         return TRUE;
     }
 
