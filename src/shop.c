@@ -1,4 +1,6 @@
 #include "global.h"
+#include "event_data.h"
+#include "constants/flags.h"
 #include "bg.h"
 #include "data.h"
 #include "decompress.h"
@@ -112,6 +114,9 @@ struct ShopData
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
+static EWRAM_DATA u8 sHorizonInfoWindowId = 0xFF;
+static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
+static EWRAM_DATA u16 sHorizonSavedPalette[16];
 static EWRAM_DATA struct ShopData *sShopData = NULL;
 static EWRAM_DATA struct ListMenuItem *sListMenuItems = NULL;
 static EWRAM_DATA u8 (*sItemNames)[ITEM_NAME_LENGTH + 2] = {0};
@@ -123,6 +128,9 @@ static void Task_HorizonUnavailable(u8 taskId);
 static void Task_HorizonDiscs(u8 taskId);
 static void Task_HorizonItems(u8 taskId);
 static void Task_HorizonMoves(u8 taskId);
+static void HorizonOpenInfoWindow(void);
+static void HorizonCloseInfoWindow(void);
+static void HorizonDrawInfo(void);
 static void Task_HandleShopMenuQuit(u8 taskId);
 static void CB2_InitBuyMenu(void);
 static void Task_GoToBuyOrSellMenu(u8 taskId);
@@ -178,6 +186,48 @@ static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonNotReady[] = _("This section is not ready yet.");
+static const u8 sHorizonTitle[] = _("HORIZON SHOP");
+static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
+static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
+static const u8 sHorizonTextControls[] = _("L/R TABS  B EXIT");
+static const u8 sHorizonDescPokemon[] = _("Normal Pokemon\\nby badge/time.\\nCOMING SOON");
+static const u8 sHorizonDescDiscs[] = _("Buy TMs.\\nFixed test stock.\\nA: BUY");
+static const u8 sHorizonDescItems[] = _("Basic supplies.\\nFixed test stock.\\nA: BUY");
+static const u8 sHorizonDescEggs[] = _("Mystery eggs.\\nCOMING SOON");
+static const u8 sHorizonDescMoves[] = _("Existing Move\\nManager.\\nA: OPEN");
+static const u8 *const sHorizonDescriptions[] =
+{
+    sHorizonDescPokemon, sHorizonDescDiscs, sHorizonDescItems,
+    sHorizonDescEggs, sHorizonDescMoves,
+};
+static const u8 sHorizonTextColors[] = {1, 2, 3};
+
+static const u16 sHorizonPaletteEclipse[] =
+{
+    RGB(0, 0, 0), RGB(2, 5, 12), RGB(29, 30, 31), RGB(7, 19, 26),
+    RGB(4, 13, 22), RGB(0, 20, 25), RGB(11, 11, 23), RGB(19, 25, 29),
+    RGB(1, 3, 7), RGB(6, 16, 20), RGB(24, 30, 31), RGB(14, 21, 26),
+    RGB(12, 8, 21), RGB(4, 7, 15), RGB(25, 28, 31), RGB(0, 0, 0)
+};
+
+static const u16 sHorizonPaletteDaylight[] =
+{
+    RGB(0, 0, 0), RGB(31, 30, 26), RGB(3, 6, 9), RGB(20, 22, 18),
+    RGB(30, 29, 25), RGB(23, 27, 23), RGB(31, 25, 15), RGB(12, 20, 19),
+    RGB(31, 31, 29), RGB(28, 27, 22), RGB(13, 17, 18), RGB(26, 25, 21),
+    RGB(19, 26, 24), RGB(30, 30, 25), RGB(4, 7, 8), RGB(0, 0, 0)
+};
+
+static const struct WindowTemplate sHorizonInfoTemplate =
+{
+    .bg = 0,
+    .tilemapLeft = 14,
+    .tilemapTop = 1,
+    .width = 15,
+    .height = 13,
+    .paletteNum = 14,
+    .baseBlock = 0xA0,
+};
 
 static const struct MenuAction sHorizonTabs[] =
 {
@@ -423,6 +473,8 @@ static u8 CreateShopMenu(u8 martType)
     InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, numMenuItems, sHorizonActive ? sHorizonSelectedTab : 0);
     PutWindowTilemap(sMartInfo.windowId);
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
+    if (sHorizonActive)
+        HorizonOpenInfoWindow();
 
     return CreateTask(Task_ShopMenu, 8);
 }
@@ -453,6 +505,52 @@ static void SetShopItemsForSale(const u16 *items)
     }
 }
 
+static void HorizonOpenInfoWindow(void)
+{
+    // The field owns palette 14; restore it on exit and before other field UI.
+    CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sHorizonSavedPalette, sizeof(sHorizonSavedPalette));
+    sHorizonPaletteSaved = TRUE;
+    LoadPalette(FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonPaletteDaylight : sHorizonPaletteEclipse,
+                BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+    sHorizonInfoWindowId = AddWindow(&sHorizonInfoTemplate);
+    SetStandardWindowBorderStyle(sHorizonInfoWindowId, FALSE);
+    PutWindowTilemap(sHorizonInfoWindowId);
+    HorizonDrawInfo();
+}
+
+static void HorizonCloseInfoWindow(void)
+{
+    if (sHorizonInfoWindowId != 0xFF)
+    {
+        ClearStdWindowAndFrameToTransparent(sHorizonInfoWindowId, TRUE);
+        RemoveWindow(sHorizonInfoWindowId);
+        sHorizonInfoWindowId = 0xFF;
+    }
+    if (sHorizonPaletteSaved)
+    {
+        LoadPalette(sHorizonSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+        sHorizonPaletteSaved = FALSE;
+    }
+}
+
+static void HorizonDrawInfo(void)
+{
+    const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonTextDaylight : sHorizonTextEclipse;
+
+    if (sHorizonInfoWindowId == 0xFF)
+        return;
+    FillWindowPixelBuffer(sHorizonInfoWindowId, PIXEL_FILL(1));
+    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 3, 0, 0,
+                                sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
+    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
+                                sHorizonTextColors, TEXT_SKIP_DRAW, skin);
+    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 36, 0, 0,
+                                sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonDescriptions[sHorizonSelectedTab]);
+    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
+                                sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
+    CopyWindowToVram(sHorizonInfoWindowId, COPYWIN_FULL);
+}
+
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
@@ -460,11 +558,19 @@ static void Task_ShopMenu(u8 taskId)
     {
         Menu_MoveCursor(JOY_NEW(L_BUTTON) ? -1 : 1);
         sHorizonSelectedTab = Menu_GetCursorPos();
+        HorizonDrawInfo();
         return;
     }
     inputCode = Menu_ProcessInputNoWrap();
     if (sHorizonActive && inputCode == MENU_NOTHING_CHOSEN)
-        sHorizonSelectedTab = Menu_GetCursorPos();
+    {
+        u8 tab = Menu_GetCursorPos();
+        if (tab != sHorizonSelectedTab)
+        {
+            sHorizonSelectedTab = tab;
+            HorizonDrawInfo();
+        }
+    }
     switch (inputCode)
     {
     case MENU_NOTHING_CHOSEN:
@@ -487,6 +593,7 @@ static void Task_ShopMenu(u8 taskId)
 
 static void Task_HorizonUnavailable(u8 taskId)
 {
+    HorizonCloseInfoWindow();
     ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
     RemoveWindow(sMartInfo.windowId);
     DisplayItemMessageOnField(taskId, sHorizonNotReady, ShowShopMenuAfterExitingBuyOrSellMenu);
@@ -506,6 +613,7 @@ static void Task_HorizonItems(u8 taskId)
 
 static void Task_HorizonMoves(u8 taskId)
 {
+    HorizonCloseInfoWindow();
     ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
     RemoveWindow(sMartInfo.windowId);
     UnlockPlayerFieldControls();
@@ -542,6 +650,7 @@ static void Task_HandleShopMenuQuit(u8 taskId)
 {
     if (sHorizonActive)
     {
+        HorizonCloseInfoWindow();
         sHorizonActive = FALSE;
         sHorizonSelectedTab = 0;
     }
