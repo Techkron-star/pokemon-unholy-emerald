@@ -2313,7 +2313,7 @@ static void Cmd_getexp(void)
                         gBattleStruct->battlerExpReward = 0;
 
                     if ((IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled() || IsUnholySuperExpShareEnabled())
-                        && (B_SPLIT_EXP < GEN_6 || gBattleStruct->battlerExpReward == 0)) // only give exp share bonus in later gens if the mon wasn't sent out
+                        && ((B_SPLIT_EXP < GEN_6 && !IsUnholySuperExpShareEnabled()) || gBattleStruct->battlerExpReward == 0)) // Super Share: participants must never receive the full amount twice
                     {
                         gBattleStruct->battlerExpReward += GetSoftLevelCapExpValue(gParties[B_TRAINER_PLAYER][*expMonId].level, gBattleStruct->expShareExpValue);
                     }
