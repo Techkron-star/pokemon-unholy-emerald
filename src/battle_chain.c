@@ -206,7 +206,15 @@ void Chain_MarkKnockout(void)
 
 bool32 Chain_WasInterrupted(void)
 {
-    return gBattleStruct->numTurnActions != 0 && gBattleStruct->chainTurnInterrupted;
+    if (gBattleStruct->numTurnActions == 0)
+        return FALSE;
+
+    // HP can reach zero before SetValuesOnFaint marks the knockout.
+    // Do not let any queued chain action target an empty side in that gap.
+    if (!IsBattlerAlive(B_BATTLER_0) || !IsBattlerAlive(B_BATTLER_1))
+        gBattleStruct->chainTurnInterrupted = TRUE;
+
+    return gBattleStruct->chainTurnInterrupted;
 }
 
 void Chain_Reset(void)
