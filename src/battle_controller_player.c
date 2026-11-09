@@ -1811,9 +1811,12 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
         acc = 0;
     }
 
-    u8 pwr_num[3], acc_num[3], sta_num[4];
+    u8 pwr_num[3], acc_num[3], sta_num[4], current_sta_num[4], max_sta_num[4];
     u8 sta_desc[7] = _("STA: ");
+    u8 current_sta_desc[7] = _("NOW: ");
+    u8 current_sta_separator[] = _("/");
     u8 sta_start[] = _("{CLEAR_TO 162}");
+    u8 current_sta_start[] = _("{CLEAR_TO 3}");
     u8 cat_desc[7] = _("CAT: ");
     u8 pwr_desc[7] = _("PWR: ");
     u8 acc_desc[7] = _("ACC: ");
@@ -1842,6 +1845,13 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     StringAppend(gDisplayedStringBattle, sta_start);
     StringAppend(gDisplayedStringBattle, sta_desc);
     StringAppend(gDisplayedStringBattle, sta_num);
+    ConvertIntToDecimalStringN(current_sta_num, Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    ConvertIntToDecimalStringN(max_sta_num, Stamina_GetMax(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(gDisplayedStringBattle, current_sta_start);
+    StringAppend(gDisplayedStringBattle, current_sta_desc);
+    StringAppend(gDisplayedStringBattle, current_sta_num);
+    StringAppend(gDisplayedStringBattle, current_sta_separator);
+    StringAppend(gDisplayedStringBattle, max_sta_num);
     u8 *descStart = StringAppend(gDisplayedStringBattle, gText_NewLine);
     u8 *descEnd = StringAppend(gDisplayedStringBattle, GetMoveDescription(move));
     WrapFontIdToFit(descStart, descEnd, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_DESCRIPTION));

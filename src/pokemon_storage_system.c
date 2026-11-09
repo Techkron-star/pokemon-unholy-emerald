@@ -552,6 +552,7 @@ EWRAM_DATA static enum Item sMovingItemId = ITEM_NONE;
 EWRAM_DATA static struct Pokemon sSavedMovingMon = {0};
 EWRAM_DATA static s8 sCursorArea = 0;
 EWRAM_DATA static s8 sCursorPosition = 0;
+EWRAM_DATA static u8 sLastCursorPos[TOTAL_BOXES_COUNT] = {0};
 EWRAM_DATA static bool8 sIsMonBeingMoved = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxId = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxPos = 0;
@@ -1665,6 +1666,8 @@ static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
 static void CB2_ExitPokeStorage(void)
 {
     sPreviousBoxOption = GetCurrentBoxOption();
+    if (sCursorArea == CURSOR_AREA_IN_BOX)
+        sLastCursorPos[StorageGetCurrentBox()] = sCursorPosition;
     gFieldCallback = FieldTask_ReturnToPcMenu;
     SetMainCallback2(CB2_ReturnToField);
 }
@@ -5879,7 +5882,16 @@ static void InitCursor(void)
     else
         sCursorArea = CURSOR_AREA_IN_PARTY;
 
-    sCursorPosition = 0;
+    if (sStorage->boxOption != OPTION_DEPOSIT)
+    {
+        sCursorPosition = sLastCursorPos[StorageGetCurrentBox()];
+        if (sCursorPosition >= IN_BOX_COUNT)
+            sCursorPosition = 0;
+    }
+    else
+    {
+        sCursorPosition = 0;
+    }
     sIsMonBeingMoved = FALSE;
     sMovingMonOrigBoxId = 0;
     sMovingMonOrigBoxPos = 0;
