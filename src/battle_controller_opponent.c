@@ -6,6 +6,7 @@
 #include "constants/battle_ai.h"
 #include "battle_anim.h"
 #include "battle_arena.h"
+#include "battle_chain.h"
 #include "battle_controllers.h"
 #include "battle_message.h"
 #include "battle_interface.h"
@@ -451,6 +452,7 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
         }
         else
         {
+            Chain_SelectOpponentMove(battler, gAiBattleData->chosenMoveIndex[battler]);
             SetFinalChosenTarget(battler, FALSE);
         }
         BtlController_Complete(battler);
@@ -468,6 +470,7 @@ static void OpponentHandleChooseMove(enum BattlerId battler)
         } while (move == MOVE_NONE);
 
         enum MoveTarget moveTarget = GetBattlerMoveSelectionTargetType(battler, move);
+        Chain_SelectOpponentMove(battler, chosenMoveIndex);
         if (moveTarget == TARGET_USER || moveTarget == TARGET_USER_OR_ALLY || moveTarget == TARGET_ALLY)
         {
             BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_EXEC_SCRIPT, (chosenMoveIndex) | (GetDefaultSelectionTarget(battler, moveTarget) << 8));
