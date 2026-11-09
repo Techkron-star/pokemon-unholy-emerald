@@ -80,65 +80,111 @@ static void Chain_ShowOpponentSignal(enum BattlerId battler)
     gTasks[taskId].data[1] = 0;
 }
 
+// Rol 0: acción normal. Rol 1: segundo movimiento de una cadena. Rol 3: turno extra del rival,
+// que usa otro movimiento distinto (nunca repite el mismo ataque).
+#define CHAIN_ROLE_NORMAL       0
+#define CHAIN_ROLE_SECOND       1
+#define CHAIN_ROLE_RIVAL_EXTRA  3
+
+static void AddTurnAction(u32 *n, u8 *battlers, u8 *roles, enum BattlerId battler, u8 role)
+{
+    battlers[*n] = battler;
+    roles[*n] = role;
+    (*n)++;
+}
+
 void Chain_ExpandTurnOrder(void)
 {
-    enum BattlerId chainer;
-    enum BattlerId rival;
-    u8 actions[MAX_BATTLERS_COUNT];
-    u8 battlers[MAX_BATTLERS_COUNT];
+    enum BattlerId player = B_BATTLER_0;
+    enum BattlerId rival = B_BATTLER_1;
+    u8 battlers[MAX_BATTLERS_COUNT] = {0};
     u8 roles[MAX_BATTLERS_COUNT] = {0};
+    u32 n = 0;
+    bool32 playerChains = gBattleStruct->chainSecondPos[player] != 0 && Chain_IsAvailable(player);
+    bool32 rivalChains = gBattleStruct->chainSecondPos[rival] != 0 && Chain_IsAvailable(rival);
 
     gBattleStruct->numTurnActions = 0;
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));
 
-    if (gBattleStruct->chainSecondPos[B_BATTLER_0] != 0 && Chain_IsAvailable(B_BATTLER_0))
-        chainer = B_BATTLER_0;
-    else if (gBattleStruct->chainSecondPos[B_BATTLER_1] != 0 && Chain_IsAvailable(B_BATTLER_1))
-        chainer = B_BATTLER_1;
-    else
+    if (!playerChains && !rivalChains)
         return;
-
-    rival = GetBattlerAtPosition(IsOnPlayerSide(chainer) ? B_POSITION_OPPONENT_LEFT : B_POSITION_PLAYER_LEFT);
 
     // Ambos tienen que estar usando un movimiento; si no, la cadena se descarta.
     if (gActionsByTurnOrder[0] != B_ACTION_USE_MOVE || gActionsByTurnOrder[1] != B_ACTION_USE_MOVE)
     {
-        gBattleStruct->chainSecondPos[chainer] = 0;
+        gBattleStruct->chainSecondPos[player] = 0;
+        gBattleStruct->chainSecondPos[rival] = 0;
         return;
     }
 
-    // Conserva el orden normal, inserta el segundo movimiento junto al primero
-    // y concede al rival un turno adicional al final.
-    u32 action = 0;
-    for (u32 i = 0; i < gBattlersCount; i++)
-    {
-        battlers[action] = gBattlerByTurnOrder[i];
-        actions[action++] = B_ACTION_USE_MOVE;
-        if (gBattlerByTurnOrder[i] == chainer)
-        {
-            battlers[action] = chainer;
-            actions[action] = B_ACTION_USE_MOVE;
-            roles[action++] = 1;
-        }
-    }
-    battlers[action] = rival;
-    actions[action++] = B_ACTION_USE_MOVE;
+    // Orden: F1 [F2] S1 [S2]. Al que no encadena le toca un turno extra al final.
+    enum BattlerId first = gBattlerByTurnOrder[0];
+    enum BattlerId second = first == player ? rival : player;
+    bool32 firstChains = first == player ? playerChains : rivalChains;
+    bool32 secondChains = second == player ? playerChains : rivalChains;
 
-    for (u32 i = 0; i < action; i++)
+    AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_NORMAL);
+    if (firstChains)
+        AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_SECOND);
+    AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_NORMAL);
+    if (secondChains)
+        AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_SECOND);
+    if (!firstChains && secondChains)
+        AddTurnAction(&n, battlers, roles, first, first == rival ? CHAIN_ROLE_RIVAL_EXTRA : CHAIN_ROLE_NORMAL);
+    if (firstChains && !secondChains)
+        AddTurnAction(&n, battlers, roles, second, second == rival ? CHAIN_ROLE_RIVAL_EXTRA : CHAIN_ROLE_NORMAL);
+
+    for (u32 i = 0; i < n; i++)
     {
-        gActionsByTurnOrder[i] = actions[i];
+        gActionsByTurnOrder[i] = B_ACTION_USE_MOVE;
         gBattlerByTurnOrder[i] = battlers[i];
         gBattleStruct->turnActionRole[i] = roles[i];
     }
-    gBattleStruct->numTurnActions = action;
+    gBattleStruct->numTurnActions = n;
+}
+
+// Turno extra del rival: elige el movimiento más fuerte que no sea el ya usado ni el mismo nombre.
+// Devuelve FALSE si no hay ninguno (la acción se salta).
+static bool32 PickDifferentRivalMove(enum BattlerId battler)
+{
+    u8 used = gBattleStruct->chosenMovePositions[battler];
+    enum Move usedMove = gBattleMons[battler].moves[used];
+    u32 bestPower = 0;
+    u32 bestPos = MAX_MON_MOVES;
+
+    for (u32 i = 0; i < MAX_MON_MOVES; i++)
+    {
+        enum Move move = gBattleMons[battler].moves[i];
+
+        if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0)
+            continue;
+        if (Stamina_GetMoveCost(move) >= Stamina_GetCurrent(battler))
+            continue;
+        if (bestPos == MAX_MON_MOVES || GetMovePower(move) >= bestPower)
+        {
+            bestPower = GetMovePower(move);
+            bestPos = i;
+        }
+    }
+
+    if (bestPos == MAX_MON_MOVES)
+        return FALSE;
+    gBattleStruct->chosenMovePositions[battler] = bestPos;
+    return TRUE;
 }
 
 bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex)
 {
-    if (turnActionIndex >= MAX_BATTLERS_COUNT || gBattleStruct->turnActionRole[turnActionIndex] != 1)
+    if (turnActionIndex >= MAX_BATTLERS_COUNT)
         return FALSE;
 
-    // Si el primer movimiento lo dejó agotado, el segundo se pierde (y el rival igual tiene su turno extra).
+    if (gBattleStruct->turnActionRole[turnActionIndex] == CHAIN_ROLE_RIVAL_EXTRA)
+        return !PickDifferentRivalMove(battler);
+
+    if (gBattleStruct->turnActionRole[turnActionIndex] != CHAIN_ROLE_SECOND)
+        return FALSE;
+
+    // Si el primer movimiento lo dejó agotado, el segundo se pierde.
     if (Stamina_IsExhausted(battler))
         return TRUE;
 
