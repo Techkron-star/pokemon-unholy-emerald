@@ -1338,7 +1338,7 @@ void CreateHorizonShopMenu(void)
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(sHorizonShopItems);
     ClearItemPurchases();
-    SetShopMenuCallback(ShowStartMenu);
+    SetShopMenuCallback(ShowReturnToFieldStartMenu);
 }
 
 void CreateDecorationShop1Menu(const u16 *itemsForSale)

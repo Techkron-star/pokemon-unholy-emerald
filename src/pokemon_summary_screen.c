@@ -166,6 +166,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
+        u8 specialBadges;
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
@@ -260,6 +261,7 @@ static void PrintMonOTName(void);
 static void PrintMonOTID(void);
 static void PrintMonAbilityName(void);
 static void PrintMonAbilityDescription(void);
+static void PrintMonMutationInfo(void);
 static void BufferMonTrainerMemo(void);
 static void PrintMonTrainerMemo(void);
 static void BufferNatureString(void);
@@ -1531,6 +1533,7 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         sum->exp = GetMonData(mon, MON_DATA_EXP);
         sum->level = GetMonData(mon, MON_DATA_LEVEL);
         sum->abilityNum = GetMonData(mon, MON_DATA_ABILITY_NUM);
+        sum->specialBadges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
         sum->item = GetMonData(mon, MON_DATA_HELD_ITEM);
         sum->pid = GetMonData(mon, MON_DATA_PERSONALITY);
         sum->sanity = GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG);
@@ -3528,6 +3531,47 @@ static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].name, 0, 1, 0, 1);
+    PrintMonMutationInfo();
+}
+
+static void PrintMonMutationInfo(void)
+{
+    static const u8 sMutationPrefix[] = _("MUT: ");
+    static const u8 sMutationNone[] = _("NONE");
+    static const u8 sMutationAlpha[] = _("A ");
+    static const u8 sMutationSuper[] = _("S ");
+    static const u8 sMutationEnraged[] = _("E ");
+    static const u8 sMutationOmega[] = _("O");
+    u8 text[32];
+    u8 *cursor = text;
+    StringCopy(cursor, sMutationPrefix);
+    cursor += StringLength(sMutationPrefix);
+
+    if (sMonSummaryScreen->summary.specialBadges == 0)
+    {
+        StringCopy(cursor, sMutationNone);
+    }
+    else
+    {
+        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_ALPHA)
+        {
+            StringCopy(cursor, sMutationAlpha);
+            cursor += StringLength(sMutationAlpha);
+        }
+        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_SUPER)
+        {
+            StringCopy(cursor, sMutationSuper);
+            cursor += StringLength(sMutationSuper);
+        }
+        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_ENRAGED)
+        {
+            StringCopy(cursor, sMutationEnraged);
+            cursor += StringLength(sMutationEnraged);
+        }
+        if (sMonSummaryScreen->summary.specialBadges & POKEMON_BADGE_OMEGA)
+            StringCopy(cursor, sMutationOmega);
+    }
+    PrintTextOnWindow(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 9, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)

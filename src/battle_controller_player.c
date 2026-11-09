@@ -78,7 +78,7 @@ static void PlayerHandleEndLinkBattle(enum BattlerId battler);
 static void PlayerHandleBattleDebug(enum BattlerId battler);
 
 static void PlayerBufferRunCommand(enum BattlerId battler);
-static const u8 sText_ChainMarked[] = _("x2");
+static const u8 sText_ChainMarked[] = _("▶2");
 
 static void MoveSelectionDisplayPPNumber(enum BattlerId battler);
 static void MoveSelectionDisplayPPString(enum BattlerId battler);
@@ -1815,8 +1815,8 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     u8 sta_desc[7] = _("STA: ");
     u8 current_sta_desc[7] = _("NOW: ");
     u8 current_sta_separator[] = _("/");
-    u8 sta_start[] = _("{CLEAR_TO 162}");
-    u8 current_sta_start[] = _("{CLEAR_TO 3}");
+    u8 sta_start[] = _("{CLEAR_TO 3}");
+    u8 current_sta_start[] = _("{CLEAR_TO 78}");
     u8 cat_desc[7] = _("CAT: ");
     u8 pwr_desc[7] = _("PWR: ");
     u8 acc_desc[7] = _("ACC: ");
@@ -1841,6 +1841,7 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     StringAppend(gDisplayedStringBattle, acc_start);
     StringAppend(gDisplayedStringBattle, acc_desc);
     StringAppend(gDisplayedStringBattle, acc_num);
+    StringAppend(gDisplayedStringBattle, gText_NewLine);
     ConvertIntToDecimalStringN(sta_num, Stamina_GetMoveCost(moveInfo->moves[gMoveSelectionCursor[battler]]), STR_CONV_MODE_LEFT_ALIGN, 3);
     StringAppend(gDisplayedStringBattle, sta_start);
     StringAppend(gDisplayedStringBattle, sta_desc);

@@ -46,6 +46,7 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
     for (u8 movePos = 0; movePos < MAX_MON_MOVES; movePos++)
     {
         if (movePos == firstMovePos
+         || moveInfo->moves[movePos] == moveInfo->moves[firstMovePos]
          || moveInfo->moves[movePos] == MOVE_NONE
          || moveInfo->currentPP[movePos] == 0
          || !Chain_IsMoveChainable(moveInfo->moves[movePos]))

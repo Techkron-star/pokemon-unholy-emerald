@@ -29,6 +29,10 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Renovación automática de repelente | Implementada y configurable: reutiliza el último repelente/cebo disponible al agotarse, consume el objeto y conserva el flujo existente si no está disponible |
 | Sistema de crafteo inicial | Implementada la receta Repartir EXP + Medalla Piedra -> Súper Repartir EXP. La medalla no se consume; el objeto base sí se reemplaza |
 | Progresión de crafteo | Al iniciar se reciben Repartir EXP, correr y bicicleta; el menú de crafteo se desbloquea tras la primera medalla mediante Roxanne |
+| Horizon Shop desde el menú | Corregido el retorno: ya no intenta reabrir el menú principal sobre la tienda y vuelve al campo correctamente |
+| Captura de mutaciones | Corregida la captura de Enraged/Omega: ya no son imposibles; conservan su penalización de probabilidad |
+| Identificación de mutaciones | El resumen del Pokémon muestra `MUT: A S E O` junto a la habilidad; Birch explica los símbolos tras el rescate |
+| Encadenamiento rival | El segundo movimiento no puede repetir el mismo movimiento del primero; la selección muestra `▶2` y el coste de stamina se reorganiza sin solaparse |
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
@@ -308,6 +312,9 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
 - Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
+- HUD de batalla para mutaciones: falta mostrar los símbolos directamente en las cajas de vida de aliado y rival.
+- Acceso contextual `LEARN` desde el menú de acciones del Pokémon: el gestor actual funciona desde el menú principal, pero todavía debe integrarse en esa acción.
+- Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
 - Gears y HUD de sobrecarga/residuo.

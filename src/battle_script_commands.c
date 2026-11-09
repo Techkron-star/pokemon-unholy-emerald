@@ -8056,10 +8056,6 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
         break;
     }
 
-    if (battleMon->specialBadges & (POKEMON_BADGE_ENRAGED | POKEMON_BADGE_OMEGA)
-        && ballId != BALL_OMEGA && ballId != BALL_INFINITY)
-        ball->guaranteedCapture = FALSE;
-
 }
 
 static const u8 sBadgeLevel[] = {
@@ -8095,11 +8091,6 @@ static u32 ComputeCaptureOdds(u32 wildMonBattler, u32 playerBattler)
 
     if (ball.guaranteedCapture && (ballId == BALL_INFINITY || battleMon->specialBadges == 0))
         return CAPTURE_GUARANTEED;
-    if (battleMon->specialBadges & (POKEMON_BADGE_ENRAGED | POKEMON_BADGE_OMEGA))
-    {
-        if (ballId != BALL_OMEGA && ballId != BALL_INFINITY)
-            return 0;
-    }
     u32 odds = (battleMon->maxHP * 3 -  battleMon->hp * 2);
     s32 catchRate;
 
