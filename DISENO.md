@@ -312,8 +312,8 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
 - Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
-- HUD de batalla para mutaciones: falta mostrar los símbolos directamente en las cajas de vida de aliado y rival.
-- Acceso contextual `LEARN` desde el menú de acciones del Pokémon: el gestor actual funciona desde el menú principal, pero todavía debe integrarse en esa acción.
+- HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
+- Acceso contextual `LEARN` desde el menú de acciones del Pokémon: implementado para abrir directamente el gestor con el Pokémon seleccionado; queda pendiente ampliar filtros y acciones avanzadas del gestor.
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.

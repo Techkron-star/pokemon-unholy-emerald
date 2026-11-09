@@ -607,6 +607,11 @@ static const union TextColor sHealthBoxTextColor =
     .accent = 0
 };
 
+static const u8 sMutationAlpha[] = _(" A");
+static const u8 sMutationSuper[] = _(" S");
+static const u8 sMutationEnraged[] = _(" E");
+static const u8 sMutationOmega[] = _(" O");
+
 // Because the healthbox is too large to fit into one sprite, it is divided into two sprites.
 // healthboxLeft  or healthboxMain  is the left part that is used as the 'main' sprite.
 // healthboxRight or healthboxOther is the right part of the healthbox.
@@ -1950,6 +1955,16 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
         StringCopy(ptr, gText_HealthboxGender_Female);
         break;
     }
+
+    ptr += StringLength(ptr);
+    if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_OMEGA)
+        StringCopy(ptr, sMutationOmega);
+    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ENRAGED)
+        StringCopy(ptr, sMutationEnraged);
+    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_SUPER)
+        StringCopy(ptr, sMutationSuper);
+    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ALPHA)
+        StringCopy(ptr, sMutationAlpha);
 
     //  Don't assume that healthbox sprites don't have data in the fields used for sprite printing
     //  and set up temporary values with what's needed
