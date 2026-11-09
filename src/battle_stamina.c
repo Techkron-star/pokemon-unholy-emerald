@@ -54,7 +54,16 @@ bool32 Stamina_IsExhausted(enum BattlerId battler)
 
 u32 Stamina_GetMoveCost(enum Move move)
 {
-    return STAMINA_COST_BASE + GetMovePower(move) / STAMINA_COST_POWER_DIVISOR;
+    // Potencia efectiva = potencia * precisión (los que nunca fallan cuentan como 100%).
+    u32 power = GetMovePower(move);
+    u32 accuracy = GetMoveAccuracy(move);
+
+    if (power < 2)
+        power = 0; // movimientos de estado o de daño variable: solo pagan el costo base
+    if (accuracy == 0)
+        accuracy = 100;
+
+    return STAMINA_COST_BASE + power * accuracy / 100 / STAMINA_COST_POWER_DIVISOR;
 }
 
 void Stamina_SpendForMove(enum BattlerId battler, enum Move move)

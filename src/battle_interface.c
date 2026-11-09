@@ -818,9 +818,21 @@ static void DrawStaminaBar(struct Sprite *sprite, struct BattleBarInfo *bar)
 
     CalcBarFilledPixels(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, array, STAMINA_BAR_PIXELS / 8);
 
-    // La barra usa los gráficos azules de la barra de experiencia.
+    // Azul (barra de experiencia) con stamina alta; amarillo y rojo (barra de vida) al bajar.
+    u32 filledPixels = 0;
+    u32 gfxId;
+
     for (u32 i = 0; i < STAMINA_BAR_PIXELS / 8; i++)
-        CpuCopy32(GetHealthboxElementGfxPtr(HEALTHBOX_GFX_12) + array[i] * 32,
+        filledPixels += array[i];
+    if (filledPixels > STAMINA_BAR_PIXELS / 2)
+        gfxId = HEALTHBOX_GFX_12;
+    else if (filledPixels > STAMINA_BAR_PIXELS / 4)
+        gfxId = HEALTHBOX_GFX_HP_BAR_YELLOW;
+    else
+        gfxId = HEALTHBOX_GFX_HP_BAR_RED;
+
+    for (u32 i = 0; i < STAMINA_BAR_PIXELS / 8; i++)
+        CpuCopy32(GetHealthboxElementGfxPtr(gfxId) + array[i] * 32,
                   (void *)(OBJ_VRAM0 + (sprite->oam.tileNum + 2 + i) * TILE_SIZE_4BPP), 32);
 }
 

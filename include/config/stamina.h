@@ -12,7 +12,9 @@
 #define STAMINA_MAX_EV_DIVISOR          8   // 0-252 EV  -> 0-31
 #define STAMINA_MAX_IV_DIVISOR          2   // 0-31 IV   -> 0-15
 
-// Costo de un movimiento = BASE + potencia / POWER_DIVISOR (los de estado solo pagan BASE)
+// Costo de un movimiento = BASE + (potencia * precisión / 100) / POWER_DIVISOR
+// (los que nunca fallan cuentan como 100% de precisión; los de estado solo pagan BASE).
+// Ejemplos con los valores por defecto: Tackle 40/100 = 11, Thunder 110/70 = 15, Hyper Beam 150/90 = 22.
 #define STAMINA_COST_BASE               6
 #define STAMINA_COST_POWER_DIVISOR      8
 
