@@ -1,6 +1,6 @@
 # Pokémon Unholy Emerald — Documento de diseño
 
-**Estado:** documento de diseño y decisiones; lo descrito aquí no implica implementación o pruebas completadas. Se distinguen reglas definidas, propuestas y puntos pendientes.
+**Estado:** documento de diseño y seguimiento de implementación; las tablas de estado distinguen funciones compiladas, funciones no probadas en hardware/emulador y diseño pendiente.
 
 **Base técnica sugerida:** `pokeemerald-expansion` (ya trae muchas mecánicas hechas, como Mega Evolución) + Porymap para mapas.
 
@@ -15,11 +15,23 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Pieza | Estado |
 |---|---|
 | Menú de debug (ítems, dinero, Pokémon) | Hecho (el de pokeemerald-expansion, activado en el menú de inicio) |
-| Stamina en combate | Hecho. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo = 6 + potencia/8. Recarga 12% por turno. A 0 queda agotado y pierde el turno hasta recuperar 25% |
-| Barra de stamina | Hecho, sin probar en pantalla. Clon de la barra de vida con la misma animación; posición ajustable (`STAMINA_BAR_Y_OFFSET`) |
-| Moxie y habilidades de snowball | Hecho. Restauran 30% de stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
-| Movimientos encadenados | Pendiente: falta decidir cómo se eligen en el menú |
+| Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo basado en potencia y precisión. Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
+| Barra de stamina | Implementada y compilada; clon de la barra de vida con colores y animación. Falta validación visual en emulador/hardware (`STAMINA_BAR_Y_OFFSET`) |
+| Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
+| Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
+| Movimientos encadenados | Implementado en combates individuales: SELECT marca el primer movimiento, A confirma el segundo; el rival obtiene una acción extra y también puede encadenar |
+| Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
+| Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
+| Inicio rápido | Implementado: tras fijar el reloj se omiten TV/casa del rival/habitación y se inicia la secuencia de Route 101 para elegir el inicial |
+| PC: cursor por caja | Implementado durante la sesión: se recuerda la última posición del cursor por caja. No se persiste todavía en el guardado |
 | Balls, Pokémon especiales, gears, Super Liga | Pendiente |
+
+### Cambios recientes verificados
+
+- `0e7f5e3c10`: encadenamiento del rival y señal visual.
+- `e4ab4be0bc`: inicio rápido hasta Route 101 y velocidades NORMAL/FAST/INSTANT.
+- `7216d77fac`: cursor del PC por caja e información actual/máxima de stamina.
+- La ROM `pokeemerald.gba` compiló correctamente después de estos cambios. La compilación muestra advertencias gráficas `libpng` existentes, pero no errores de compilación.
 
 Todos los números de balance están en `include/config/stamina.h`.
 
@@ -248,15 +260,47 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 ---
 
+## Faltantes por prioridad
+
+### P0 — Indispensable antes de una versión jugable
+
+- Correr automáticamente, correr en interiores y opción de movimiento acelerado.
+- Repelente automático/renovable y, si se confirma el balance, modo de repelente infinito.
+- Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
+- PC avanzado: favoritos/protección, filtros, búsqueda y operaciones múltiples. El traslado múltiple y el cambio rápido de caja ya existen en la base.
+- Cambio/reaprendizaje de movimientos desde el equipo y eliminación de la dependencia de enseñar MO.
+- Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes.
+- Guardado fiable, versionado/migraciones y pruebas de persistencia.
+- Validación visual de la barra de stamina, encadenamiento y textos en emulador/hardware.
+
+### P1 — Progresión principal
+
+- Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
+- Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
+- PokéMercado con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
+- Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
+- Gears y HUD de sobrecarga/residuo.
+- Información ampliada de estados, campos, habilidades y registro de combate.
+
+### P2 — Contenido avanzado
+
+- Mutator, reglas de reroll y pérdida de niveles.
+- Presets competitivos y preparación pre-jefe.
+- Super Liga, entrenadores con Omegas y recompensa Infinity Ball.
+- Estadísticas de combate, revancha de entrenadores y herramientas de búsqueda especializadas.
+
+### P3 — Mejoras opcionales
+
+- Personalización estética, Pokémon acompañantes, estadísticas históricas y otras mejoras que no bloquean la versión jugable.
+
 ## Orden de implementación sugerido
 
-1. Stamina (derivada de stats existentes).
-2. Habilidades de snowball.
-3. Movimientos encadenados.
-4. Balls y sistema de captura por tiers.
-5. Gears de sobrecarga cíclica.
-6. QoL, Poké Simulator, Mutator y PokéMercado.
-7. Estados, campos, habilidades y casos límite.
-8. Pokémon especiales, Omega, Super Liga y legendarios Omega.
+1. Cerrar P0 de movimiento, repelentes, PC, movimientos y Pokédex.
+2. Diseñar y probar guardado/migraciones antes de añadir datos persistentes de Pokémon.
+3. Implementar P1: EXP, Poké Simulator, crianza y PokéMercado.
+4. Completar información de combate y Gears.
+5. Implementar Mutator, Pokémon especiales y reglas de captura.
+6. Implementar estados, campos, habilidades adicionales y casos límite.
+7. Implementar Super Liga, Omegas de endgame y contenido P2/P3.
 
 Antes de programar: simular a mano en papel combates con 5 o 6 Pokémon, con sus costos de stamina, para ver si el snowball se descontrola.
