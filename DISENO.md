@@ -62,7 +62,34 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 
 ---
 
-## 5. Post-game
+## 5. PokéMercado (diseño previsto, sin implementar)
+
+Sistema de compras y servicios accesible desde el menú del juego, en la zona donde se consultan/buscan Pokémon. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
+
+### Catálogo y progresión
+- La oferta de **Pokémon y objetos** se selecciona de forma **aleatoria (RNG)** y cambia en función del **ciclo de día y noche** del juego.
+- **Las medallas** determinan qué Pokémon y mercancías pueden aparecer en el catálogo; el contenido disponible progresa junto con la aventura.
+- **Solo se venden Pokémon normales.** No aparecen a la venta variantes **Alpha, Super, Enraged ni Omega**; el PokéMercado **no** es una vía para comprar mutaciones especiales. Esta exclusión no altera las reglas de encuentros y capturas fuera del mercado.
+
+### Secciones del mercado
+| Sección | Contenido / servicio |
+| --- | --- |
+| **Pokémon** | Compra de Pokémon normales, con especies seleccionadas por RNG, medallas y día/noche. |
+| **Objetos** | Inventario aleatorio de objetos normales y especiales. |
+| **Discos** | Venta de discos de movimientos; selección aleatoria dentro del catálogo habilitado. |
+| **Huevos** | Compra de huevos aleatorios; especie por descubrir al eclosionar. |
+| **Movimientos** | Servicio para **aprender y borrar movimientos** de tus Pokémon desde el mismo menú. |
+
+### Decisiones pendientes
+- Precios, cantidades, existencia de unidades limitadas y escalado de costos por medalla.
+- Frecuencia exacta de rotación del catálogo y método para generar/persistir la oferta; **abrir y cerrar el menú no debería convertirse automáticamente en un reroll ilimitado** (propuesta de balance, no regla confirmada).
+- Qué discos, objetos especiales, especies y huevos entran en cada tramo de medallas y período del día.
+- Costos y límites del servicio de aprender/borrar movimientos; posibles condiciones para acceder a determinados movimientos.
+- Mecánica de generación genética de los huevos comprados: no se ha definido aquí ninguna garantía de mutaciones ni de variantes raras.
+
+---
+
+## 6. Post-game
 
 - Para llegar hay que ser **campeón de Hoenn**. La **Super Liga** viene después de la liga normal, no la reemplaza.
 - Antes de ella el jugador ya puede tener Pokémon especiales y con gears.
