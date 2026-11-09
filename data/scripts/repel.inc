@@ -24,11 +24,14 @@ EventScript_SprayWoreOff::
 	lock
 .if I_REPEL_AUTO_RENEW == TRUE
 .if VAR_LAST_REPEL_LURE_USED != 0
+	compare VAR_REPEL_AUTO_RENEW, 2
+	goto_if_ne EventScript_SprayWoreOff_Manual
 	checkitem VAR_LAST_REPEL_LURE_USED, 1
 	compare VAR_RESULT, TRUE
 	goto_if_eq EventScript_AutoRenewSpray
 .endif
 .endif
+EventScript_SprayWoreOff_Manual:
 	call EventScript_BufferSprayName
 	specialvar LOCAL_VAR_NUM_SPRAY_STRENGTH, GetNumberSprayStrength
 	switch LOCAL_VAR_NUM_SPRAY_STRENGTH
@@ -46,6 +49,8 @@ EventScript_AutoRenewSpray::
 
 EventScript_HandleMultipleSprays::
 .if I_REPEL_LURE_MENU == TRUE
+	compare VAR_REPEL_AUTO_RENEW, 2
+	goto_if_eq EventScript_UseLastUsedSpray_Auto
 	goto EventScript_ChooseWhichSpray
 .else
 	goto EventScript_UseSingleSpray
@@ -75,9 +80,16 @@ EventScript_UseSingleSpray_1:
 
 .if VAR_LAST_REPEL_LURE_USED != 0
 EventScript_UseSingleSpray_2:
+	compare VAR_REPEL_AUTO_RENEW, 2
+	goto_if_eq EventScript_UseLastUsedSpray_Auto
 	call EventScript_UseLastUsedSpray
 	goto EventScript_UseSingleSpray_1
 .endif
+
+EventScript_UseLastUsedSpray_Auto:
+	copyvar LOCAL_VAR_SPRAY, VAR_LAST_REPEL_LURE_USED
+	call EventScript_SetSingleSprayAndUse
+	goto EventScript_UseSingleSpray_1
 
 
 EventScript_SetSingleSprayAndUse::
@@ -98,6 +110,7 @@ EventScript_UseDifferentSpray_1:
 EventScript_UseDifferentSpray_2:
 	copyvar LOCAL_VAR_SPRAY, LOCAL_VAR_NEW_SPRAY
 	call EventScript_SetSingleSprayAndUse
+	call EventScript_AskAutoRenew
 	goto EventScript_UseDifferentSpray_1
 
 
@@ -112,8 +125,23 @@ EventScript_UseLastUsedSpray_1:
 EventScript_UseLastUsedSpray_2:
 	copyvar LOCAL_VAR_SPRAY, VAR_LAST_REPEL_LURE_USED
 	call EventScript_SetSingleSprayAndUse
+	call EventScript_AskAutoRenew
 	goto EventScript_UseLastUsedSpray_1
 .endif
+
+EventScript_AskAutoRenew:
+	compare VAR_REPEL_AUTO_RENEW, 0
+	goto_if_ne EventScript_AskAutoRenew_Done
+	msgbox Text_SprayAutoRenewAsk, MSGBOX_YESNO
+	compare VAR_RESULT, YES
+	goto_if_eq EventScript_AskAutoRenew_Yes
+	setvar VAR_REPEL_AUTO_RENEW, 1
+	return
+
+EventScript_AskAutoRenew_Yes:
+	setvar VAR_REPEL_AUTO_RENEW, 2
+EventScript_AskAutoRenew_Done:
+	return
 
 
 .if I_REPEL_LURE_MENU == TRUE
@@ -131,6 +159,7 @@ EventScript_ChooseWhichSpray_1:
 
 EventScript_ChooseWhichSpray_2:
 	call EventScript_UseSpray
+	call EventScript_AskAutoRenew
 	goto EventScript_ChooseWhichSpray_1
 
 EventScript_ChooseWhichSpray_3:
@@ -160,6 +189,10 @@ Text_SprayWoreOffAskUseAnother::
 Text_SprayWoreOffAskUseX::
 	.string "{STR_VAR_1}'s effect wore off…\n"
 	.string "Use a {STR_VAR_2}?$"
+
+Text_SprayAutoRenewAsk::
+	.string "Automatically renew this spray\n"
+	.string "when it wears off?$"
 
 Text_SprayWoreOffUseX::
 	.string "{PLAYER} used the\n"

@@ -23,6 +23,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
 | Inicio rápido | Implementado: tras fijar el reloj se omiten TV/casa del rival/habitación y se inicia la secuencia de Route 101 para elegir el inicial |
+| Repelente renovable | Implementado: recuerda el último repelente y permite activar renovación automática tras el primer uso posterior al desgaste |
 | PC: cursor por caja | Implementado durante la sesión: se recuerda la última posición del cursor por caja. No se persiste todavía en el guardado |
 | Movimiento acelerado | Implementado y configurable: el jugador corre automáticamente en exteriores e interiores; A mantiene el movimiento lento y se respetan los tiles que prohíben correr |
 | Renovación automática de repelente | Implementada y configurable: reutiliza el último repelente/cebo disponible al agotarse, consume el objeto y conserva el flujo existente si no está disponible |
@@ -292,7 +293,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 ### P0 — Indispensable antes de una versión jugable
 
 - Correr automáticamente, correr en interiores y opción de movimiento acelerado. Implementado con `OW_AUTO_RUN`; mantener A permite caminar despacio.
-- Repelente automático/renovable y, si se confirma el balance, modo de repelente infinito.
+- Repelente automático/renovable implementado; falta decidir y balancear el modo de repelente infinito.
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
 - PC avanzado: favoritos/protección, filtros, búsqueda y operaciones múltiples. El traslado múltiple y el cambio rápido de caja ya existen en la base.
 - Cambio/reaprendizaje de movimientos desde el equipo y eliminación de la dependencia de enseñar MO. Implementado mediante **MOVE MANAGEMENT** y el recordador existente.
