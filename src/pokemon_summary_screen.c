@@ -3609,7 +3609,9 @@ static void PrintMonAbilityDescription(void)
         if (count == 0)
             StringCopy(mutationText, gText_None);
 
-        PrintTextOnWindowToFit(windowId, mutationText, 0, 17, 0, 0);
+        // Small text keeps two short rows of full mutation names within
+        // the existing 18x4-tile ability window (no extra UI allocation).
+        PrintTextOnWindowWithFont(windowId, mutationText, 0, 14, 0, 0, FONT_SMALL);
     }
 }
 
