@@ -79,15 +79,22 @@ PlayersHouse_EventScript_SkipIntroToBirch::
 	setvar VAR_LITTLEROOT_HOUSES_STATE_MAY, 2 @ 2: Met Rival's Mom
 	setvar VAR_LITTLEROOT_RIVAL_STATE, 3 @ 3: Met Rival
 	setvar VAR_LITTLEROOT_TOWN_STATE, 1 @ 1: Met Rival
+	setvar VAR_BIRCH_STATE, 2 @ Birch is waiting on Route 101
+	setvar VAR_ROUTE101_STATE, 1 @ Start Birch's rescue/starter sequence
 	checkplayergender
 	goto_if_eq VAR_RESULT, MALE, PlayersHouse_EventScript_SkipIntroMaysHouse
 	setflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_2F_POKE_BALL
 	clearflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_RIVAL_BEDROOM
-	return
+	goto PlayersHouse_EventScript_WarpToStarter
 
 PlayersHouse_EventScript_SkipIntroMaysHouse::
 	setflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_2F_POKE_BALL
 	clearflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_RIVAL_BEDROOM
+	goto PlayersHouse_EventScript_WarpToStarter
+
+PlayersHouse_EventScript_WarpToStarter::
+	warp MAP_ROUTE101, 10, 19
+	waitstate
 	return
 
 PlayersHouse_2F_EventScript_MomComesUpstairsMale::
