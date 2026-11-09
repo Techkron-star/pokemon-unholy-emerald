@@ -223,6 +223,7 @@ enum
 #define STDSTRING_VOLCANO_BADGE    36
 #define STDSTRING_EARTH_BADGE      37
 #define STDSTRING_COINS            38
+#define STDSTRING_BATTLEITEMS       39
 
 // Dynamic Multichoice Callbacks
 
