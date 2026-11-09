@@ -1,4 +1,5 @@
 #include "global.h"
+#include "config/stamina.h"
 #include "main.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -171,6 +172,8 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
+    bool8 showStamina;
+    bool8 showMutations;
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -261,6 +264,7 @@ static void PrintMonOTName(void);
 static void PrintMonOTID(void);
 static void PrintMonAbilityName(void);
 static void PrintMonAbilityDescription(void);
+static void PrintStaminaSummary(void);
 static void BufferMonTrainerMemo(void);
 static void PrintMonTrainerMemo(void);
 static void BufferNatureString(void);
@@ -1716,28 +1720,6 @@ static void ClearStatLabel(u32 length, u32 statsCoordX, u32 statsCoordY)
         FillBgTilemapBufferRect(1, blankStatsBlock, statsCoordX + blankOffset + i, statsCoordY, 1, 1, 2);
 }
 
-static void HandleMoveRelearnerInput(u8 taskId)
-{
-    if (JOY_NEW(START_BUTTON))
-    {
-        sMonSummaryScreen->callback = CB2_InitLearnMove;
-        gRelearnMode = sMonSummaryScreen->currPageIndex;
-        if (sMonSummaryScreen->isBoxMon)
-        {
-            gSpecialVar_0x8004 = PC_MON_CHOSEN;
-            gSpecialVar_MonBoxPos = sMonSummaryScreen->curMonIndex;
-            gSpecialVar_MonBoxId = StorageGetCurrentBox();
-        }
-        else
-        {
-            gSpecialVar_0x8004 = sMonSummaryScreen->curMonIndex;
-        }
-        StopPokemonAnimations();
-        PlaySE(SE_SELECT);
-        BeginCloseSummaryScreen(taskId);
-    }
-}
-
 static void Task_HandleInput(u8 taskId)
 {
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE && !gPaletteFade.active)
@@ -1757,6 +1739,25 @@ static void Task_HandleInput(u8 taskId)
         else if (JOY_NEW(DPAD_RIGHT))
         {
             ChangePage(taskId, 1);
+        }
+        else if (JOY_NEW(L_BUTTON | R_BUTTON))
+        {
+            if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
+            {
+                sMonSummaryScreen->showStamina = !sMonSummaryScreen->showStamina;
+                PrintStaminaSummary();
+                PlaySE(SE_SELECT);
+            }
+            else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
+            {
+                u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+                sMonSummaryScreen->showMutations = !sMonSummaryScreen->showMutations;
+                FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+                PrintMonAbilityName();
+                PrintMonAbilityDescription();
+                CopyWindowToVram(windowId, COPYWIN_FULL);
+                PlaySE(SE_SELECT);
+            }
         }
         else if (JOY_NEW(A_BUTTON))
         {
@@ -1810,10 +1811,6 @@ static void Task_HandleInput(u8 taskId)
             StopPokemonAnimations();
             PlaySE(SE_SELECT);
             CloseSummaryScreen(taskId);
-        }
-        else if (ShouldShowMoveRelearner() && IS_MOVE_PAGE(sMonSummaryScreen->currPageIndex))
-        {
-            HandleMoveRelearnerInput(taskId);
         }
     }
 }
@@ -3320,6 +3317,7 @@ static void PutPageWindowTilemaps(u8 page)
         break;
     case PSS_PAGE_SKILLS:
         PutWindowTilemap(PSS_LABEL_WINDOW_POKEMON_SKILLS_TITLE);
+        PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_RELEARN);
         PutWindowTilemap(PSS_LABEL_WINDOW_POKEMON_SKILLS_STATS_LEFT);
         PutWindowTilemap(PSS_LABEL_WINDOW_POKEMON_SKILLS_STATS_RIGHT);
         PutWindowTilemap(PSS_LABEL_WINDOW_POKEMON_SKILLS_EXP);
@@ -3337,7 +3335,10 @@ static void PutPageWindowTilemaps(u8 page)
         else
         {
             if (ShouldShowMoveRelearner())
+            {
+                UpdateRelearnPrompt();
                 PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_RELEARN);
+            }
         }
         break;
     case PSS_PAGE_CONTEST_MOVES:
@@ -3351,7 +3352,10 @@ static void PutPageWindowTilemaps(u8 page)
         else
         {
             if (ShouldShowMoveRelearner())
+            {
+                UpdateRelearnPrompt();
                 PutWindowTilemap(PSS_LABEL_WINDOW_PROMPT_RELEARN);
+            }
         }
         break;
     }
@@ -3526,39 +3530,63 @@ static void PrintMonOTID(void)
     }
 }
 
+static const u8 sUnholyMutationAlpha[] = _("ALPHA");
+static const u8 sUnholyMutationSuper[] = _("SUPER");
+static const u8 sUnholyMutationEnraged[] = _("ENRAGED");
+static const u8 sUnholyMutationOmega[] = _("OMEGA");
+static const u8 sUnholyMutationSep[] = _(" / ");
+static const u8 sUnholyMutationNewline[] = _("\n");
+static const u8 sUnholyMutationTitle[] = _("MUTATIONS (L/R)");
+
 static void PrintMonAbilityName(void)
 {
-    static const u8 sMutationSpace[] = _(" ");
-    static const u8 sMutationAlpha[] = _("A");
-    static const u8 sMutationSuper[] = _("S");
-    static const u8 sMutationEnraged[] = _("E");
-    static const u8 sMutationOmega[] = _("O");
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    u8 text[64];
-    u8 badges = sMonSummaryScreen->summary.specialBadges;
+    const u8 *title = sMonSummaryScreen->showMutations ? sUnholyMutationTitle : gAbilitiesInfo[ability].name;
 
-    StringCopy(text, gAbilitiesInfo[ability].name);
-    // Indicadores compactos en la MISMA línea: no tapar la descripción de habilidad.
-    if (badges != 0)
-    {
-        StringAppend(text, sMutationSpace);
-        if (badges & POKEMON_BADGE_ALPHA)
-            StringAppend(text, sMutationAlpha);
-        if (badges & POKEMON_BADGE_SUPER)
-            StringAppend(text, sMutationSuper);
-        if (badges & POKEMON_BADGE_ENRAGED)
-            StringAppend(text, sMutationEnraged);
-        if (badges & POKEMON_BADGE_OMEGA)
-            StringAppend(text, sMutationOmega);
-        // El juego no tiene glifos para corchetes en esta fuente.
-    }
-    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 1, 0, 1);
+    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), title, 0, 1, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+
+    if (!sMonSummaryScreen->showMutations)
+    {
+        PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+    }
+    else
+    {
+        const u8 *const names[] = {
+            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged, sUnholyMutationOmega
+        };
+        const u8 masks[] = {
+            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_OMEGA
+        };
+        u8 mutationText[80];
+        u8 count = 0;
+        u8 i;
+
+        mutationText[0] = EOS;
+        for (i = 0; i < ARRAY_COUNT(names); i++)
+        {
+            if (!(sMonSummaryScreen->summary.specialBadges & masks[i]))
+                continue;
+
+            if (count == 2)
+                StringAppend(mutationText, sUnholyMutationNewline);
+            else if (count > 0)
+                StringAppend(mutationText, sUnholyMutationSep);
+            StringAppend(mutationText, names[i]);
+            count++;
+        }
+        if (count == 0)
+            StringCopy(mutationText, gText_None);
+
+        // Small text keeps two short rows of full mutation names within
+        // the existing 18x4-tile ability window (no extra UI allocation).
+        PrintTextOnWindowWithFont(windowId, mutationText, 0, 14, 0, 0, FONT_SMALL);
+    }
 }
 
 static void BufferMonTrainerMemo(void)
@@ -3765,6 +3793,7 @@ static void PrintSkillsPageText(void)
     BufferRightColumnStats();
     PrintRightColumnStats();
     PrintExpPointsNextLevel();
+    PrintStaminaSummary();
 }
 
 static void Task_PrintSkillsPage(u8 taskId)
@@ -3798,10 +3827,46 @@ static void Task_PrintSkillsPage(u8 taskId)
         PrintExpPointsNextLevel();
         break;
     case 9:
+        PrintStaminaSummary();
         DestroyTask(taskId);
         return;
     }
     data[0]++;
+}
+
+// Current stamina lives in battle memory only. The summary displays capacity.
+static void PrintStaminaSummary(void)
+{
+    static const u8 sStaminaHint[] = _("L/R STAMINA");
+    static const u8 sStaminaLabel[] = _("STA MAX ");
+    u8 text[32];
+    u32 maxStamina;
+    u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
+
+    if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
+        return;
+
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    if (sMonSummaryScreen->showStamina)
+    {
+        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
+
+        maxStamina = STAMINA_MAX_BASE
+                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
+                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
+                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
+        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringCopy(text, sStaminaLabel);
+        StringAppend(text, gStringVar1);
+    }
+    else
+    {
+        StringCopy(text, sStaminaHint);
+    }
+
+    PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+    PutWindowTilemap(windowId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
 }
 
 static void PrintHeldItemName(void)
@@ -4764,12 +4829,8 @@ static void KeepMoveSelectorVisible(u8 firstSpriteId)
 
 static inline bool32 ShouldShowMoveRelearner(void)
 {
-    return (P_SUMMARY_SCREEN_MOVE_RELEARNER
-         && !sMonSummaryScreen->lockMovesFlag
-         && sMonSummaryScreen->mode != SUMMARY_MODE_BOX_CURSOR
-         && sMonSummaryScreen->hasRelearnableMoves
-         && !InBattleFactory()
-         && !InSlateportBattleTent());
+    // Move teaching is owned by Horizon; summary only displays existing moves.
+    return FALSE;
 }
 
 static inline bool32 ShouldShowRename(void)

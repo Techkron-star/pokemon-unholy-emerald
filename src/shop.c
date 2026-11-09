@@ -632,7 +632,7 @@ static void Task_HorizonMoves(u8 taskId)
     DestroyTask(taskId);
     sHorizonActive = FALSE;
     sHorizonSelectedTab = 0;
-    ChooseMonForMoveRelearner();
+    ChooseMonForHorizonMoveRelearner();
 }
 
 static void Task_HandleShopMenuBuy(u8 taskId)

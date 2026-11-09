@@ -12,11 +12,15 @@
 #define STAMINA_MAX_EV_DIVISOR          8   // 0-252 EV  -> 0-31
 #define STAMINA_MAX_IV_DIVISOR          2   // 0-31 IV   -> 0-15
 
-// Costo de un movimiento = BASE + (potencia * precisión / 100) / POWER_DIVISOR
-// (los que nunca fallan cuentan como 100% de precisión; los de estado solo pagan BASE).
-// Ejemplos con los valores por defecto: Tackle 40/100 = 11, Thunder 110/70 = 15, Hyper Beam 150/90 = 22.
-#define STAMINA_COST_BASE               6
-#define STAMINA_COST_POWER_DIVISOR      8
+// El costo escala con la stamina máxima del Pokémon, de forma que subir
+// de nivel jamás vuelve gratuito un movimiento. Fórmula:
+//   coste = ceil(maxStamina * (BASE_PERCENT
+//                       + floor(potencia * precision / 100 / POWER_DIVISOR)) / 100)
+// Los movimientos de estado y daño variable usan solo BASE_PERCENT.
+// Ejemplos: potencia 40/100 = 18%; 100/100 = 24%; 150/90 = 27%.
+// Los movimientos infalibles cuentan como 100% de precisión.
+#define STAMINA_COST_BASE_PERCENT      14
+#define STAMINA_COST_POWER_DIVISOR     10
 
 // Recarga al final de cada turno, en % de la stamina máxima.
 #define STAMINA_REGEN_PERCENT           12

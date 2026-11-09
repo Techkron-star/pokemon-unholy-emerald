@@ -159,7 +159,7 @@ static bool32 PickDifferentRivalMove(enum BattlerId battler)
 
         if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0)
             continue;
-        if (Stamina_GetMoveCost(move) >= Stamina_GetCurrent(battler))
+        if (Stamina_GetMoveCost(battler, move) >= Stamina_GetCurrent(battler))
             continue;
         if (bestPos == MAX_MON_MOVES || GetMovePower(move) >= bestPower)
         {

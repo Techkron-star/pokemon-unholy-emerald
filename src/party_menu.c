@@ -110,7 +110,6 @@ enum {
     MENU_CATALOG_MOWER,
     MENU_CHANGE_FORM,
     MENU_CHANGE_ABILITY,
-    MENU_LEARN,
     MENU_FIELD_MOVES
 };
 
@@ -456,7 +455,6 @@ static void ShiftMoveSlot(struct BoxPokemon *, u8, u8);
 static void BlitBitmapToPartyWindow_LeftColumn(u8, u8, u8, u8, u8, bool8);
 static void BlitBitmapToPartyWindow_RightColumn(u8, u8, u8, u8, u8, bool8);
 static void CursorCb_Summary(u8);
-static void CursorCb_Learn(u8);
 static void CursorCb_Switch(u8);
 static void CursorCb_Cancel1(u8);
 static void CursorCb_Item(u8);
@@ -2952,11 +2950,8 @@ static void SetPartyMonSelectionActions(struct Pokemon *mons, u8 slotId, u8 acti
 static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 {
     u8 i, j;
-
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
-    if (!GetMonData(&mons[slotId], MON_DATA_IS_EGG))
-        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
 
     // Add field moves to action list
     for (i = 0; i < MAX_MON_MOVES; i++)
@@ -2983,6 +2978,7 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
         else
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_ITEM);
     }
+
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_CANCEL1);
 }
 
@@ -3134,17 +3130,25 @@ static void CursorCb_Summary(u8 taskId)
     Task_ClosePartyMenu(taskId);
 }
 
-static void CB2_StartMoveRelearnerFromParty(void)
+// Horizon selects a category with actual available moves instead of
+// opening an empty move list.
+static bool8 TrySelectRelearnableCategory(u8 slot)
 {
-    TeachMoveRelearnerMove();
-}
+    u8 state;
 
-static void CursorCb_Learn(u8 taskId)
-{
-    PlaySE(SE_SELECT);
-    gSpecialVar_0x8004 = gPartyMenu.slotId;
-    sPartyMenuInternal->exitCallback = CB2_StartMoveRelearnerFromParty;
-    Task_ClosePartyMenu(taskId);
+    if (slot >= gPartiesCount[B_TRAINER_PLAYER] || slot >= PARTY_SIZE
+     || GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_IS_EGG))
+        return FALSE;
+
+    for (state = 0; state < MOVE_RELEARNER_COUNT; state++)
+    {
+        if (HasMoveToRelearn(&gParties[B_TRAINER_PLAYER][slot].box, state))
+        {
+            gMoveRelearnerState = state;
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static void CB2_ShowPokemonSummaryScreen(void)
@@ -8142,13 +8146,23 @@ static void Task_ChoosePartyMon(u8 taskId)
     }
 }
 
+static EWRAM_DATA bool8 sHorizonRelearnerActive = FALSE;
+
 void ChooseMonForMoveRelearner(void)
 {
+    sHorizonRelearnerActive = FALSE;
     gRelearnMode = RELEARN_MODE_SCRIPT;
     gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES; // Don't inherit a stale category from a previous relearner script
     LockPlayerFieldControls();
     FadeScreen(FADE_TO_BLACK, 0);
     CreateTask(Task_ChooseMonForMoveRelearner, 10);
+}
+
+// Horizon has no event script waiting for a move-learning result.
+void ChooseMonForHorizonMoveRelearner(void)
+{
+    ChooseMonForMoveRelearner();
+    sHorizonRelearnerActive = TRUE;
 }
 
 static void Task_ChooseMonForMoveRelearner(u8 taskId)
@@ -8163,11 +8177,28 @@ static void Task_ChooseMonForMoveRelearner(u8 taskId)
 
 static void CB2_ChooseMonForMoveRelearner(void)
 {
+    bool8 fromHorizon = sHorizonRelearnerActive;
+    sHorizonRelearnerActive = FALSE;
+
     gSpecialVar_0x8004 = GetCursorSelectionMonId();
-    if (gSpecialVar_0x8004 >= PARTY_SIZE)
+    if (gSpecialVar_0x8004 >= PARTY_SIZE
+     || gSpecialVar_0x8004 >= gPartiesCount[B_TRAINER_PLAYER]
+     || GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_IS_EGG))
     {
         gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
     }
+
+    if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
+    {
+        gRelearnMode = RELEARN_MODE_SCRIPT;
+        gFieldCallback2 = CB2_FadeFromPartyMenu;
+        if (TrySelectRelearnableCategory(gSpecialVar_0x8004))
+        {
+            SetMainCallback2(CB2_InitLearnMove);
+            return;
+        }
+    }
+
     gFieldCallback2 = CB2_FadeFromPartyMenu;
     SetMainCallback2(CB2_ReturnToField);
 }
