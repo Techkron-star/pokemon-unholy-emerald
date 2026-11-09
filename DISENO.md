@@ -191,6 +191,14 @@ La primera entrega añade una entrada **HORIZON SHOP** al menú principal y reut
 | **Cuarta medalla** | Repartir EXP Sobrecargado / Overloaded (nombre WIP) | Reparte EXP íntegra, concede EXP adicional, acelera crecimiento de **IVs y EVs** y hace que la **EXP adelante la eclosión de los huevos** del equipo, además de los pasos habituales. |
 | **Cuarta medalla** | Poké Simulator | Máquina para ajustar **IVs y EVs a voluntad en cada stat**, pagando Pokédólares. |
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
+| **Ruta de Ralts (pueblo siguiente, tras la captura guiada por el padre)** | **Pokélocator** | Ítem clave del menú. Muestra todos los Pokémon de la ruta actual y se desbloquean datos según las medallas. Puede **forzar mayor probabilidad de mutación** en los salvajes de esa ruta. |
+
+### Pokélocator (idea nueva, sin implementar)
+- Lo entrega el padre al llegar al siguiente pueblo, después de enseñar a capturar un Ralts.
+- Funciona como el **Pokénav de Pokémon Elite Redux**: se abre desde el menú, muestra la lista de especies de la ruta y su información.
+- **Por medallas:** cada medalla desbloquea más información (especies, tasas de encuentro, probabilidad de mutación).
+- **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
+- Pendiente: qué recurso consume, si el efecto dura una sesión de encuentros o un tiempo fijo, y si las mutaciones forzadas respetan la regla de Omega (sin Omega en el Mutator).
 
 - El reparto sobrecargado se comparó con efectos de **plumas, pesos y Golden Nugget**; falta definir exactamente la contribución de cada uno.
 - Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas, costo del simulador y listado QoL inicial: **sin cuantificar**.
