@@ -190,11 +190,11 @@ static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("L/R TABS  B EXIT");
-static const u8 sHorizonDescPokemon[] = _("Normal Pokemon\\nby badge/time.\\nCOMING SOON");
-static const u8 sHorizonDescDiscs[] = _("Buy TMs.\\nFixed test stock.\\nA: BUY");
-static const u8 sHorizonDescItems[] = _("Basic supplies.\\nFixed test stock.\\nA: BUY");
-static const u8 sHorizonDescEggs[] = _("Mystery eggs.\\nCOMING SOON");
-static const u8 sHorizonDescMoves[] = _("Existing Move\\nManager.\\nA: OPEN");
+static const u8 sHorizonDescPokemon[] = _("Normal Pokemon\nby badge/time.\nCOMING SOON");
+static const u8 sHorizonDescDiscs[] = _("Buy TMs.\nFixed test stock.\nA: BUY");
+static const u8 sHorizonDescItems[] = _("Basic supplies.\nFixed test stock.\nA: BUY");
+static const u8 sHorizonDescEggs[] = _("Mystery eggs.\nCOMING SOON");
+static const u8 sHorizonDescMoves[] = _("Existing Move\nManager.\nA: OPEN");
 static const u8 *const sHorizonDescriptions[] =
 {
     sHorizonDescPokemon, sHorizonDescDiscs, sHorizonDescItems,
