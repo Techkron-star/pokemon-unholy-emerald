@@ -25,6 +25,8 @@ FallarborTown_Mart_Pokemart:
 	.2byte ITEM_X_DEFENSE
 	.2byte ITEM_DIRE_HIT
 	.2byte ITEM_GUARD_SPEC
+	.2byte ITEM_ABILITY_CAPSULE
+	.2byte ITEM_ABILITY_PATCH
 	pokemartlistend
 
 FallarborTown_Mart_EventScript_Woman::
@@ -61,4 +63,3 @@ FallarborTown_Mart_Text_SellNuggetIFound:
 	.string "This NUGGET I found here…\n"
 	.string "I suppose I'll have to sell it, seeing\l"
 	.string "as how it has no other use.$"
-

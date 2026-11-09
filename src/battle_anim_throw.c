@@ -159,6 +159,8 @@ static const struct CaptureStar sCaptureStars[] =
 #define TAG_PARTICLES_PARK_BALL    65055
 #define TAG_PARTICLES_BEAST_BALL   65056
 #define TAG_PARTICLES_CHERISH_BALL 65057
+#define TAG_PARTICLES_OMEGA_BALL   65058
+#define TAG_PARTICLES_INFINITY_BALL 65059
 
 static const union AnimCmd sAnim_RegularBall[] =
 {
@@ -455,6 +457,22 @@ static const struct PokeBallParticles sBallParticles[POKEBALL_COUNT] =
     {
         POKE_BALL_ANIMATION(TAG_PARTICLES_CHERISH_BALL, gBattleAnimSpriteGfx_Particles2, gBattleAnimSpritePal_Particles2),
         .openFadeColor = RGB(25, 4, 3),
+        .animNums = 0,
+        .particleAnimationFunc = MasterBallOpenParticleAnimation,
+    },
+
+    [BALL_OMEGA] =
+    {
+        POKE_BALL_ANIMATION(TAG_PARTICLES_OMEGA_BALL, gBattleAnimSpriteGfx_Particles, gBattleAnimSpritePal_CircleImpact),
+        .openFadeColor = RGB(25, 8, 3),
+        .animNums = 3,
+        .particleAnimationFunc = UltraBallOpenParticleAnimation,
+    },
+
+    [BALL_INFINITY] =
+    {
+        POKE_BALL_ANIMATION(TAG_PARTICLES_INFINITY_BALL, gBattleAnimSpriteGfx_Particles2, gBattleAnimSpritePal_Particles2),
+        .openFadeColor = RGB(31, 31, 31),
         .animNums = 0,
         .particleAnimationFunc = MasterBallOpenParticleAnimation,
     },

@@ -22,6 +22,13 @@ EventScript_BufferSprayName_2:
 
 EventScript_SprayWoreOff::
 	lock
+.if I_REPEL_AUTO_RENEW == TRUE
+.if VAR_LAST_REPEL_LURE_USED != 0
+	checkitem VAR_LAST_REPEL_LURE_USED, 1
+	compare VAR_RESULT, TRUE
+	goto_if_eq EventScript_AutoRenewSpray
+.endif
+.endif
 	call EventScript_BufferSprayName
 	specialvar LOCAL_VAR_NUM_SPRAY_STRENGTH, GetNumberSprayStrength
 	switch LOCAL_VAR_NUM_SPRAY_STRENGTH
@@ -29,6 +36,13 @@ EventScript_SprayWoreOff::
 	case 1, EventScript_UseSingleSpray
 	goto EventScript_HandleMultipleSprays
 	return
+
+EventScript_AutoRenewSpray::
+	copyvar LOCAL_VAR_SPRAY, VAR_LAST_REPEL_LURE_USED
+	call EventScript_UseSpray
+	closemessage
+	releaseall
+	end
 
 EventScript_HandleMultipleSprays::
 .if I_REPEL_LURE_MENU == TRUE

@@ -22,6 +22,8 @@ LavaridgeTown_Mart_Pokemart:
 	.2byte ITEM_REVIVE
 	.2byte ITEM_SUPER_REPEL
 	.2byte ITEM_X_SPEED
+	.2byte ITEM_ABILITY_CAPSULE
+	.2byte ITEM_ABILITY_PATCH
 	pokemartlistend
 
 LavaridgeTown_Mart_EventScript_ExpertM::
@@ -42,4 +44,3 @@ LavaridgeTown_Mart_Text_LocalSpecialtyOnMtChimney:
 	.string "On MT. CHIMNEY's peak, there's a local\n"
 	.string "specialty that you can buy only there.\p"
 	.string "Give it to a POKéMON--it will be elated.$"
-

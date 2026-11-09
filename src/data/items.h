@@ -36,6 +36,38 @@ const struct ItemInfo gItemsInfo[] =
 
 // Poké Balls
 
+    [ITEM_OMEGA_BALL] =
+    {
+        .name = ITEM_NAME("Omega Ball"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "A specialized Ball\n"
+            "for capturing\n"
+            "powerful Pokémon."),
+        .pocket = POCKET_POKE_BALLS,
+        .type = ITEM_USE_BAG_MENU,
+        .battleUsage = EFFECT_ITEM_THROW_BALL,
+        .secondaryId = BALL_OMEGA,
+        .iconPic = gItemIcon_PokeBall,
+        .iconPalette = gItemIconPalette_PokeBall,
+    },
+
+    [ITEM_INFINITY_BALL] =
+    {
+        .name = ITEM_NAME("Infinity Ball"),
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "A post-game Ball\n"
+            "that can capture\n"
+            "any Pokémon."),
+        .pocket = POCKET_POKE_BALLS,
+        .type = ITEM_USE_BAG_MENU,
+        .battleUsage = EFFECT_ITEM_THROW_BALL,
+        .secondaryId = BALL_INFINITY,
+        .iconPic = gItemIcon_PokeBall,
+        .iconPalette = gItemIconPalette_PokeBall,
+    },
+
     [ITEM_STRANGE_BALL] =
     {
         .name = ITEM_NAME("Strange Ball"),

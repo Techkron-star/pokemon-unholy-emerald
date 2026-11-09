@@ -72,6 +72,7 @@
 #include "battle_util.h"
 #include "constants/pokemon.h"
 #include "config/battle.h"
+#include "config/special_badges.h"
 #include "data/battle_move_effects.h"
 #include "test/battle.h"
 #include "follower_npc.h"
@@ -7854,7 +7855,9 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
 
     if (gSpeciesInfo[battleMon->species].isUltraBeast)
     {
-        if (ballId == BALL_BEAST)
+        if (ballId == BALL_INFINITY)
+            ball->guaranteedCapture = TRUE;
+        else if (ballId == BALL_BEAST)
             ball->multiplier = 500;
         else
         {
@@ -7872,6 +7875,12 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
         ball->multiplier = 200;
         break;
     case BALL_MASTER:
+        ball->guaranteedCapture = TRUE;
+        break;
+    case BALL_OMEGA:
+        ball->multiplier = 300;
+        break;
+    case BALL_INFINITY:
         ball->guaranteedCapture = TRUE;
         break;
     case BALL_NET:
@@ -8030,6 +8039,10 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
         break;
     }
 
+    if (battleMon->specialBadges & (POKEMON_BADGE_ENRAGED | POKEMON_BADGE_OMEGA)
+        && ballId != BALL_OMEGA && ballId != BALL_INFINITY)
+        ball->guaranteedCapture = FALSE;
+
 }
 
 static const u8 sBadgeLevel[] = {
@@ -8059,11 +8072,17 @@ static u32 GetBattleMonCatchRate(struct BattlePokemon *battleMon)
 static u32 ComputeCaptureOdds(u32 wildMonBattler, u32 playerBattler)
 {
     struct BallData ball;
+    struct BattlePokemon *battleMon = &gBattleMons[wildMonBattler];
+    enum PokeBall ballId = ItemIdToBallId(gLastUsedItem);
     ComputeBallData(wildMonBattler, playerBattler, &ball);
 
-    if (ball.guaranteedCapture)
+    if (ball.guaranteedCapture && (ballId == BALL_INFINITY || battleMon->specialBadges == 0))
         return CAPTURE_GUARANTEED;
-    struct BattlePokemon *battleMon = &gBattleMons[wildMonBattler];
+    if (battleMon->specialBadges & (POKEMON_BADGE_ENRAGED | POKEMON_BADGE_OMEGA))
+    {
+        if (ballId != BALL_OMEGA && ballId != BALL_INFINITY)
+            return 0;
+    }
     u32 odds = (battleMon->maxHP * 3 -  battleMon->hp * 2);
     s32 catchRate;
 
@@ -8078,6 +8097,15 @@ static u32 ComputeCaptureOdds(u32 wildMonBattler, u32 playerBattler)
 
     odds = odds * catchRate / (battleMon->maxHP * 3);
     odds = odds * ball.multiplier / ball.divider;
+
+    if (battleMon->specialBadges & POKEMON_BADGE_OMEGA)
+        odds = odds * SPECIAL_BADGE_OMEGA_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_ENRAGED)
+        odds = odds * SPECIAL_BADGE_ENRAGED_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_SUPER)
+        odds = odds * SPECIAL_BADGE_SUPER_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_ALPHA)
+        odds = odds * SPECIAL_BADGE_ALPHA_CAPTURE_PERCENT / 100;
 
     u8 badgeCount = 0;
     for (u32 i = FLAG_BADGE01_GET; i < FLAG_BADGE01_GET + NUM_BADGES; i++)

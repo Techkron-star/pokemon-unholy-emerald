@@ -27,6 +27,7 @@
 #include "party_menu.h"
 #include "scanline_effect.h"
 #include "script.h"
+#include "start_menu.h"
 #include "shop.h"
 #include "sound.h"
 #include "sprite.h"
@@ -342,6 +343,19 @@ static const u8 sShopBuyMenuTextColors[][3] =
 };
 
 static const enum Item sShopItemsListDummy[] = { ITEM_NONE };
+
+static const u16 sHorizonShopItems[] =
+{
+    ITEM_POKE_BALL,
+    ITEM_POTION,
+    ITEM_SUPER_POTION,
+    ITEM_REPEL,
+    ITEM_SUPER_REPEL,
+    ITEM_ESCAPE_ROPE,
+    ITEM_ABILITY_CAPSULE,
+    ITEM_ABILITY_PATCH,
+    ITEM_NONE,
+};
 
 static u8 CreateShopMenu(u8 martType)
 {
@@ -1317,6 +1331,14 @@ void CreatePokemartMenu(const u16 *itemsForSale)
     SetShopItemsForSale(itemsForSale);
     ClearItemPurchases();
     SetShopMenuCallback(ScriptContext_Enable);
+}
+
+void CreateHorizonShopMenu(void)
+{
+    CreateShopMenu(MART_TYPE_NORMAL);
+    SetShopItemsForSale(sHorizonShopItems);
+    ClearItemPurchases();
+    SetShopMenuCallback(ShowStartMenu);
 }
 
 void CreateDecorationShop1Menu(const u16 *itemsForSale)

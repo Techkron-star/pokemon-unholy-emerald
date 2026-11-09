@@ -44,6 +44,7 @@
 #include "pokemon_storage_system.h"
 #include "pokerus.h"
 #include "random.h"
+#include "config/special_badges.h"
 #include "random_mon_generation.h"
 #include "recorded_battle.h"
 #include "regions.h"
@@ -735,6 +736,7 @@ UNUSED static const struct BoxPokemon sBoxPokemonConstantsFit =
         .species = NUM_SPECIES - 1,
         .teraType = NUMBER_OF_MON_TYPES - 1,
         .heldItem = ITEMS_COUNT - 1,
+        .specialBadges = POKEMON_BADGES_ALL,
         .pokeball = POKEBALL_COUNT - 1,
     },
     .secure.substructs[1].type1 = {
@@ -2119,6 +2121,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
         case MON_DATA_HELD_ITEM:
             retVal = GetSubstruct0(boxMon)->heldItem;
             break;
+        case MON_DATA_SPECIAL_BADGES:
+            retVal = GetSubstruct0(boxMon)->specialBadges;
+            break;
         case MON_DATA_EXP:
             retVal = GetSubstruct0(boxMon)->experience;
             break;
@@ -2634,6 +2639,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
         case MON_DATA_HELD_ITEM:
             SET16(GetSubstruct0(boxMon)->heldItem);
             break;
+        case MON_DATA_SPECIAL_BADGES:
+            SET8(GetSubstruct0(boxMon)->specialBadges);
+            break;
         case MON_DATA_EXP:
             SET32(GetSubstruct0(boxMon)->experience);
             break;
@@ -2931,6 +2939,42 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
 
     if (field > MON_DATA_ENCRYPT_SEPARATOR)
         boxMon->checksum = CalculateBoxMonChecksumReencrypt(boxMon);
+}
+
+bool32 Pokemon_HasBadge(struct Pokemon *mon, enum PokemonBadge badge)
+{
+    return BoxPokemon_HasBadge(&mon->box, badge);
+}
+
+void Pokemon_SetBadge(struct Pokemon *mon, enum PokemonBadge badge)
+{
+    BoxPokemon_SetBadge(&mon->box, badge);
+}
+
+void Pokemon_ClearBadge(struct Pokemon *mon, enum PokemonBadge badge)
+{
+    BoxPokemon_ClearBadge(&mon->box, badge);
+}
+
+bool32 BoxPokemon_HasBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
+{
+    return (GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES) & badge) == badge;
+}
+
+void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
+{
+    u8 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
+
+    badges |= badge;
+    SetBoxMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
+}
+
+void BoxPokemon_ClearBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
+{
+    u8 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
+
+    badges &= ~badge;
+    SetBoxMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
 }
 
 void CopyMon(void *dest, void *src, size_t size)
@@ -3402,6 +3446,7 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst)
     dst->types[2] = TYPE_MYSTERY;
     dst->isShiny = IsMonShiny(src);
     dst->affectionHearts = GetMonAffectionHearts(src);
+    dst->specialBadges = GetMonData(src, MON_DATA_SPECIAL_BADGES);
     dst->ability = GetAbilityBySpecies(dst->species, dst->abilityNum);
     GetMonData(src, MON_DATA_NICKNAME, nickname);
     StringCopy_Nickname(dst->nickname, nickname);
@@ -3411,6 +3456,23 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst)
         dst->statStages[i] = DEFAULT_STAT_STAGE;
 
     memset(&dst->volatiles, 0, sizeof(struct Volatiles));
+}
+
+void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
+{
+    u8 alphaChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_ALPHA_CHANCE : SPECIAL_BADGE_WILD_ALPHA_CHANCE;
+    u8 superChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_SUPER_CHANCE : SPECIAL_BADGE_WILD_SUPER_CHANCE;
+    u8 enragedChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_ENRAGED_CHANCE : SPECIAL_BADGE_WILD_ENRAGED_CHANCE;
+    u8 omegaChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_OMEGA_CHANCE : SPECIAL_BADGE_WILD_OMEGA_CHANCE;
+
+    if (Random() % 100 < alphaChance)
+        Pokemon_SetBadge(mon, POKEMON_BADGE_ALPHA);
+    if (Random() % 100 < superChance)
+        Pokemon_SetBadge(mon, POKEMON_BADGE_SUPER);
+    if (Random() % 100 < enragedChance)
+        Pokemon_SetBadge(mon, POKEMON_BADGE_ENRAGED);
+    if (Random() % 100 < omegaChance)
+        Pokemon_SetBadge(mon, POKEMON_BADGE_OMEGA);
 }
 
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex)

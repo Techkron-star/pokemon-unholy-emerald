@@ -125,16 +125,33 @@ enum MonData {
     MON_DATA_GIGANTAMAX_FACTOR,
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
+    MON_DATA_SPECIAL_BADGES,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
+
+enum PokemonBadge
+{
+    POKEMON_BADGE_ALPHA   = 1 << 0,
+    POKEMON_BADGE_SUPER   = 1 << 1,
+    POKEMON_BADGE_ENRAGED = 1 << 2,
+    POKEMON_BADGE_OMEGA   = 1 << 3,
+    POKEMON_BADGES_ALL    = POKEMON_BADGE_ALPHA
+                           | POKEMON_BADGE_SUPER
+                           | POKEMON_BADGE_ENRAGED
+                           | POKEMON_BADGE_OMEGA,
+};
+
+struct Pokemon;
+struct BoxPokemon;
 
 struct PokemonSubstruct0
 {
     enum Species species:11; // 2047 species.
     enum Type teraType:5; // 30 types.
     enum Item heldItem:10; // 1023 items.
-    u16 unused_02:6;
+    u16 specialBadges:4;
+    u16 unused_02:2;
     u32 experience:21;
     u32 nickname11:8; // 11th character of nickname.
     u32 unused_04:3;
@@ -228,6 +245,13 @@ struct PokemonSubstruct3
     // Not to be confused with METLOC_FATEFUL_ENCOUNTER.
     u32 modernFatefulEncounter:1;
 };
+
+bool32 Pokemon_HasBadge(struct Pokemon *mon, enum PokemonBadge badge);
+void Pokemon_SetBadge(struct Pokemon *mon, enum PokemonBadge badge);
+void Pokemon_ClearBadge(struct Pokemon *mon, enum PokemonBadge badge);
+bool32 BoxPokemon_HasBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+void BoxPokemon_ClearBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
 
 // Number of bytes in the largest Pokémon substruct.
 // They are assumed to be the same size, and will be padded to
@@ -373,6 +397,7 @@ struct BattlePokemon
     u8 metLevel:7;
     u8 isShiny:1;
     u8 affectionHearts;
+    u8 specialBadges;
 };
 
 struct EvolutionParam
@@ -873,6 +898,7 @@ void RemoveMonPPBonus(struct Pokemon *mon, u8 moveIndex);
 void RemoveBoxMonPPBonus(struct BoxPokemon *mon, u8 moveIndex);
 void RemoveBattleMonPPBonus(struct BattlePokemon *mon, u8 moveIndex);
 void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst);
+void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter);
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex);
 bool8 PokemonUseItemEffects(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex, u8 usedByAI);
 bool8 HealStatusConditions(struct Pokemon *mon, u32 healMask, enum BattlerId battler);

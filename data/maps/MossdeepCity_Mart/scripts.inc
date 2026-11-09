@@ -22,6 +22,8 @@ MossdeepCity_Mart_Pokemart:
 	.2byte ITEM_MAX_REPEL
 	.2byte ITEM_X_ATTACK
 	.2byte ITEM_X_DEFENSE
+	.2byte ITEM_ABILITY_CAPSULE
+	.2byte ITEM_ABILITY_PATCH
 	pokemartlistend
 
 MossdeepCity_Mart_EventScript_Woman::
@@ -55,4 +57,3 @@ MossdeepCity_Mart_Text_NetAndDiveBallsRare:
 	.string "BUG-type and WATER-type POKéMON.\p"
 	.string "A DIVE BALL works best on POKéMON\n"
 	.string "at the bottom of the sea.$"
-

@@ -24,7 +24,14 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
 | Inicio rápido | Implementado: tras fijar el reloj se omiten TV/casa del rival/habitación y se inicia la secuencia de Route 101 para elegir el inicial |
 | PC: cursor por caja | Implementado durante la sesión: se recuerda la última posición del cursor por caja. No se persiste todavía en el guardado |
-| Balls, Pokémon especiales, gears, Super Liga | Pendiente |
+| Movimiento acelerado | Implementado y configurable: el jugador corre automáticamente en exteriores e interiores; A mantiene el movimiento lento y se respetan los tiles que prohíben correr |
+| Renovación automática de repelente | Implementada y configurable: reutiliza el último repelente/cebo disponible al agotarse, consume el objeto y conserva el flujo existente si no está disponible |
+| Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
+| Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
+| Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
+| Horizon Shop | Entrada en el menú principal y catálogo inicial fijo de objetos implementados; Pokémon, huevos, discos, servicios y rotación persistente pendientes |
+| Gestión de movimientos | Implementada desde el menú principal: reutiliza el recordador existente para reaprender movimientos y reemplazarlos cuando el equipo está lleno |
+| Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
 
 ### Cambios recientes verificados
 
@@ -32,6 +39,8 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 - `e4ab4be0bc`: inicio rápido hasta Route 101 y velocidades NORMAL/FAST/INSTANT.
 - `7216d77fac`: cursor del PC por caja e información actual/máxima de stamina.
 - La ROM `pokeemerald.gba` compiló correctamente después de estos cambios. La compilación muestra advertencias gráficas `libpng` existentes, pero no errores de compilación.
+- La renovación automática usa `VAR_LAST_REPEL_LURE_USED` (`0x404E`) y se puede desactivar con `I_REPEL_AUTO_RENEW`.
+- Los badges se almacenan en los bits libres del substruct seguro del Pokémon y pasan por `Get/Set(Box)MonData`, por lo que participan en el checksum normal.
 
 Todos los números de balance están en `include/config/stamina.h`.
 
@@ -69,8 +78,22 @@ Todos los números de balance están en `include/config/stamina.h`.
 - **Omega:** anomalías genéticas excepcionalmente raras, con IVs/EVs máximos en cada stat (incluida la excepción al límite total habitual de EVs) y multiplicadores positivos **individuales por estadística de ×1.2 a ×1.5**, sujetos a la fórmula definitiva. Un Omega con +50 % en sus seis estadísticas base es el extremo superior ilustrado por el Dragonite de Lance.
 - Omega puede encontrarse de manera aleatoria en la naturaleza, con zonas de incidencia mayor (por ejemplo, cueva de Groudon) y mini-jefes. Rareza comparable o superior a shiny; probabilidades exactas pendientes.
 - Se conserva la intención de que los especiales sean amenazas importantes, incluso con ventajas al inicio del encuentro, pero deben concretarse los buffs reales por variante.
-- **No** se venden Pokémon Alpha, Super, Enraged u Omega en el PokéMercado, y el **Mutator no puede crear Omega**.
+- **No** se venden Pokémon Alpha, Super, Enraged u Omega en Horizon Shop, y el **Mutator no puede crear Omega**.
 - *Descartado por ahora:* aumentar la aparición de Omega mediante huevos.
+
+### Cambio de habilidades
+
+- La **Ability Capsule** y el **Ability Patch** están disponibles para comprar en todos los PokéMart estándar desde el primer acceso, sin requisito de medallas.
+- La Capsule alterna entre las dos habilidades normales de la especie y no tiene efecto si no existen dos habilidades normales distintas.
+- El Patch alterna entre una habilidad normal y la habilidad oculta cuando la especie dispone de ella.
+- Ambos objetos se aplican desde el menú del grupo, se consumen solo después de confirmar el cambio y no crean habilidades múltiples para Pokémon Super.
+- Los badges Alpha, Super, Enraged y Omega no cambian estas reglas en esta fase.
+
+### Gestión de movimientos
+
+- **MOVE MANAGEMENT** aparece en el menú principal y abre la selección de Pokémon usando el flujo existente del recordador.
+- El catálogo de movimientos conserva las categorías y restricciones ya configuradas (nivel, MT, tutor y huevo).
+- La pantalla de resumen existente gestiona el reemplazo cuando el Pokémon ya tiene cuatro movimientos; no se crea una ruta paralela para borrar HMs.
 
 ---
 
@@ -83,8 +106,10 @@ Todos los números de balance están en `include/config/stamina.h`.
 | **Omega Ball** | Puede capturar Omegas, pero **no está garantizado**. |
 | **Infinity Ball** | Captura a cualquier Pokémon, incluidos los especiales. Equivalente post-game de la Master Ball. No se compra en tienda; es de post-game (recompensa de la Super Liga) o de cheat codes. |
 
-- La **Master Ball deja de ser 100%** con los especiales: tiene como máximo un 70% de probabilidad contra los super, y baja con cada tier hasta ser prácticamente inviable contra los Omega.
+- La **Master Ball deja de ser 100%** con los especiales: su eficacia queda reducida al 75% contra Alpha, 35% contra Super, 12% contra Enraged y 3% contra Omega, antes de aplicar el resto de la fórmula de captura.
 - Como capturar un Omega exige una ball de end game, encontrarse uno a mitad del juego no sirve de nada intentarlo.
+- Los encuentros salvajes usan tasas bajas (Alpha 4%, Super 2%, Enraged 1%) y los enemigos tasas sustancialmente mayores (20%, 12%, 6%, Omega 2%). Cada badge se tira de forma independiente, por lo que las combinaciones son posibles.
+- Enraged y Omega requieren Omega Ball o Infinity Ball. La Omega Ball no garantiza la captura; Infinity Ball sí. Master Ball nunca garantiza especiales.
 
 ---
 
@@ -107,14 +132,16 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
-## 5. PokéMercado (diseño previsto, sin implementar)
+## 5. Horizon Shop (primera entrega implementada; catálogo avanzado pendiente)
 
-Sistema de compras y servicios accesible desde el menú del juego, en la zona donde se consultan/buscan Pokémon. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
+Sistema de compras y servicios accesible desde el menú principal del juego. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
+
+La primera entrega añade una entrada **HORIZON SHOP** al menú principal y reutiliza la interfaz visual y el flujo de compra del PokéMart. El catálogo inicial es fijo para evitar rerolls ilimitados; la rotación persistente por día/noche y medallas queda para la siguiente fase.
 
 ### Catálogo y progresión
 - La oferta de **Pokémon y objetos** se selecciona de forma **aleatoria (RNG)** y cambia en función del **ciclo de día y noche** del juego.
 - **Las medallas** determinan qué Pokémon y mercancías pueden aparecer en el catálogo; el contenido disponible progresa junto con la aventura.
-- **Solo se venden Pokémon normales.** No aparecen a la venta variantes **Alpha, Super, Enraged ni Omega**; el PokéMercado **no** es una vía para comprar mutaciones especiales. Esta exclusión no altera las reglas de encuentros y capturas fuera del mercado.
+- **Solo se venden Pokémon normales.** No aparecen a la venta variantes **Alpha, Super, Enraged ni Omega**; Horizon Shop **no** es una vía para comprar mutaciones especiales. Esta exclusión no altera las reglas de encuentros y capturas fuera del mercado.
 
 ### Secciones del mercado
 | Sección | Contenido / servicio |
@@ -264,12 +291,12 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 ### P0 — Indispensable antes de una versión jugable
 
-- Correr automáticamente, correr en interiores y opción de movimiento acelerado.
+- Correr automáticamente, correr en interiores y opción de movimiento acelerado. Implementado con `OW_AUTO_RUN`; mantener A permite caminar despacio.
 - Repelente automático/renovable y, si se confirma el balance, modo de repelente infinito.
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
 - PC avanzado: favoritos/protección, filtros, búsqueda y operaciones múltiples. El traslado múltiple y el cambio rápido de caja ya existen en la base.
-- Cambio/reaprendizaje de movimientos desde el equipo y eliminación de la dependencia de enseñar MO.
-- Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes.
+- Cambio/reaprendizaje de movimientos desde el equipo y eliminación de la dependencia de enseñar MO. Implementado mediante **MOVE MANAGEMENT** y el recordador existente.
+- Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes. La interfaz HGSS existente ya está activada; quedan por integrar explícitamente las variantes Alpha/Super/Enraged/Omega y validar textos/pantallas en hardware.
 - Guardado fiable, versionado/migraciones y pruebas de persistencia.
 - Validación visual de la barra de stamina, encadenamiento y textos en emulador/hardware.
 
@@ -277,7 +304,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 - Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
 - Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
-- PokéMercado con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
+- Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
 - Gears y HUD de sobrecarga/residuo.
 - Información ampliada de estados, campos, habilidades y registro de combate.
@@ -297,7 +324,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 1. Cerrar P0 de movimiento, repelentes, PC, movimientos y Pokédex.
 2. Diseñar y probar guardado/migraciones antes de añadir datos persistentes de Pokémon.
-3. Implementar P1: EXP, Poké Simulator, crianza y PokéMercado.
+3. Implementar P1: EXP, Poké Simulator, crianza y catálogo avanzado de Horizon Shop.
 4. Completar información de combate y Gears.
 5. Implementar Mutator, Pokémon especiales y reglas de captura.
 6. Implementar estados, campos, habilidades adicionales y casos límite.
