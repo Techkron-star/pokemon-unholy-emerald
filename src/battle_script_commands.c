@@ -2114,6 +2114,13 @@ static bool32 BattleTypeAllowsExp(void)
         return TRUE;
 }
 
+// El Super Repartir Exp. solo tiene efecto si el jugador lo posee y lo ha encendido.
+static bool32 IsUnholySuperExpShareEnabled(void)
+{
+    return FlagGet(FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED)
+        && CheckBagHasItem(ITEM_SUPER_EXP_SHARE, 1);
+}
+
 static bool32 IsExpShareHoldEffect(enum HoldEffect holdEffect)
 {
     return holdEffect == HOLD_EFFECT_EXP_SHARE
@@ -2180,7 +2187,7 @@ static void Cmd_getexp(void)
             u32 *exp = &gBattleStruct->expValue;
             u32 sentInBits = gSentPokesToOpponent[(gBattlerFainted & 2) >> 1];
             u32 expShareBits = 0;
-            bool32 hasExpSharePlus = FALSE;
+            bool32 hasExpSharePlus = IsUnholySuperExpShareEnabled();
             s32 viaSentIn = 0;
             s32 viaExpShare = 0;
 
@@ -2192,7 +2199,7 @@ static void Cmd_getexp(void)
                     viaSentIn++;
 
                 holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][i]);
-                if (IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled())
+                if (IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled() || hasExpSharePlus)
                 {
                     expShareBits |= 1u << i;
                     viaExpShare++;
@@ -2254,7 +2261,7 @@ static void Cmd_getexp(void)
             else
             {
                 *exp = calculatedExp;
-                gBattleStruct->expShareExpValue = calculatedExp / 2;
+                gBattleStruct->expShareExpValue = hasExpSharePlus ? calculatedExp : calculatedExp / 2;
                 if (gBattleStruct->expShareExpValue == 0)
                     gBattleStruct->expShareExpValue = 1;
             }
@@ -2271,7 +2278,7 @@ static void Cmd_getexp(void)
             bool32 wasSentOut = (gBattleStruct->expSentInMons & (1u << *expMonId)) != 0;
             holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][*expMonId]);
 
-            if ((!IsExpShareHoldEffect(holdEffect) && !wasSentOut && !IsGen6ExpShareEnabled())
+            if ((!IsExpShareHoldEffect(holdEffect) && !wasSentOut && !IsGen6ExpShareEnabled() && !IsUnholySuperExpShareEnabled())
              || GetMonData(&gParties[B_TRAINER_PLAYER][*expMonId], MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG)
             {
                 gBattleScripting.getexpState = 5;
@@ -2305,7 +2312,7 @@ static void Cmd_getexp(void)
                     else
                         gBattleStruct->battlerExpReward = 0;
 
-                    if ((IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled())
+                    if ((IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled() || IsUnholySuperExpShareEnabled())
                         && (B_SPLIT_EXP < GEN_6 || gBattleStruct->battlerExpReward == 0)) // only give exp share bonus in later gens if the mon wasn't sent out
                     {
                         gBattleStruct->battlerExpReward += GetSoftLevelCapExpValue(gParties[B_TRAINER_PLAYER][*expMonId].level, gBattleStruct->expShareExpValue);
@@ -2343,9 +2350,9 @@ static void Cmd_getexp(void)
                     {
                         PrepareStringBattle(STRINGID_PKMNGAINEDEXP, 0);
                     }
-                    else if (IsGen6ExpShareEnabled() && !gBattleStruct->teamGotExpMsgPrinted) // Print 'the rest of your team got exp' message once, when all of the sent-in mons were given experience
+                    else if ((IsGen6ExpShareEnabled() || IsUnholySuperExpShareEnabled()) && !gBattleStruct->teamGotExpMsgPrinted) // Print 'the rest of your team got exp' message once, when all of the sent-in mons were given experience
                     {
-                        gLastUsedItem = ITEM_EXP_SHARE;
+                        gLastUsedItem = IsUnholySuperExpShareEnabled() ? ITEM_SUPER_EXP_SHARE : ITEM_EXP_SHARE;
                         PrepareStringBattle(STRINGID_TEAMGAINEDEXP, 0);
                         gBattleStruct->teamGotExpMsgPrinted = TRUE;
                     }

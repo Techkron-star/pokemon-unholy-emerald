@@ -22,6 +22,8 @@ EventScript_CraftSuperExpShare_Recipe:
 	goto_if_eq EventScript_CraftSuperExpShare_End
 	removeitem ITEM_EXP_SHARE, 1
 	additem ITEM_SUPER_EXP_SHARE, 1
+	clearflag FLAG_UNHOLY_EXP_SHARE_ENABLED
+	setflag FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED
 	msgbox Crafting_Text_SuperExpShareComplete, MSGBOX_SIGN
 	goto EventScript_CraftSuperExpShare_End
 

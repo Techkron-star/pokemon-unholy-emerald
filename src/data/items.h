@@ -9854,14 +9854,13 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_SUPER_EXP_SHARE] =
     {
         .name = ITEM_NAME("Super Exp. Share"),
-        .holdEffect = HOLD_EFFECT_EXP_SHARE_PLUS,
         .description = COMPOUND_STRING(
             "A crafted device that\n"
             "gives 100% EXP to\n"
             "each eligible Pokémon."),
         .price = 0,
-        .pocket = POCKET_ITEMS,
-        .sortType = ITEM_TYPE_HELD_ITEM,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
         .type = ITEM_USE_FIELD,
         .fieldUseFunc = ItemUseOutOfBattle_ExpShare,
         .flingPower = 30,

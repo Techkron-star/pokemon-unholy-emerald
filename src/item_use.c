@@ -250,7 +250,8 @@ STATIC_ASSERT(I_EXP_SHARE_ITEM < GEN_6 || I_EXP_SHARE_FLAG > TEMP_FLAGS_END, You
 void ItemUseOutOfBattle_ExpShare(u8 taskId)
 {
 #if I_EXP_SHARE_ITEM >= GEN_6
-    if (IsGen6ExpShareEnabled())
+    u16 toggleFlag = gSpecialVar_ItemId == ITEM_SUPER_EXP_SHARE ? FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED : I_EXP_SHARE_FLAG;
+    if (FlagGet(toggleFlag))
     {
         PlaySE(SE_PC_OFF);
         if (!gTasks[taskId].data[2]) // to account for pressing select in the overworld
@@ -266,7 +267,7 @@ void ItemUseOutOfBattle_ExpShare(u8 taskId)
         else
             DisplayItemMessage(taskId, FONT_NORMAL, gText_ExpShareOn, CloseItemMessage);
     }
-    FlagToggle(I_EXP_SHARE_FLAG);
+    FlagToggle(toggleFlag);
 #else
     DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
 #endif
