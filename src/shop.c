@@ -114,7 +114,7 @@ struct ShopData
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
-static EWRAM_DATA u8 sHorizonInfoWindowId = 0xFF;
+static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
 static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
 static EWRAM_DATA u16 sHorizonSavedPalette[16];
 static EWRAM_DATA struct ShopData *sShopData = NULL;
