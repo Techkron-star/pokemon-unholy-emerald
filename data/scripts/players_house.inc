@@ -66,8 +66,29 @@ PlayersHouse_2F_EventScript_WallClock::
 	call_if_eq VAR_RESULT, FEMALE, PlayersHouse_2F_EventScript_MomComesUpstairsFemale
 	playse SE_EXIT
 	removeobject VAR_0x8008
+	call PlayersHouse_EventScript_SkipIntroToBirch
 	releaseall
 	end
+
+@ Tras poner el reloj se saltan la escena de la tele, la visita a la casa del rival y su habitación:
+@ se deja el juego en el mismo estado que tras conocerlo, listo para ir directo con el profesor.
+PlayersHouse_EventScript_SkipIntroToBirch::
+	setvar VAR_LITTLEROOT_INTRO_STATE, 7 @ 7: Told to go meet rival
+	setflag FLAG_MET_RIVAL_MOM
+	setvar VAR_LITTLEROOT_HOUSES_STATE_BRENDAN, 2 @ 2: Met Rival's Mom
+	setvar VAR_LITTLEROOT_HOUSES_STATE_MAY, 2 @ 2: Met Rival's Mom
+	setvar VAR_LITTLEROOT_RIVAL_STATE, 3 @ 3: Met Rival
+	setvar VAR_LITTLEROOT_TOWN_STATE, 1 @ 1: Met Rival
+	checkplayergender
+	goto_if_eq VAR_RESULT, MALE, PlayersHouse_EventScript_SkipIntroMaysHouse
+	setflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_2F_POKE_BALL
+	clearflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_RIVAL_BEDROOM
+	return
+
+PlayersHouse_EventScript_SkipIntroMaysHouse::
+	setflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_2F_POKE_BALL
+	clearflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_RIVAL_BEDROOM
+	return
 
 PlayersHouse_2F_EventScript_MomComesUpstairsMale::
 	setvar VAR_0x8008, LOCALID_PLAYERS_HOUSE_2F_MOM
