@@ -518,6 +518,13 @@ static void HorizonOpenInfoWindow(void)
     sHorizonPaletteSaved = TRUE;
     LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     sHorizonInfoWindowId = AddWindow(&sHorizonInfoTemplate);
+    if (sHorizonInfoWindowId == 0xFF)
+    {
+        // Do not leave the shared palette owned by a window that could not open.
+        LoadPalette(sHorizonSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+        sHorizonPaletteSaved = FALSE;
+        return;
+    }
     SetStandardWindowBorderStyle(sHorizonInfoWindowId, FALSE);
     PutWindowTilemap(sHorizonInfoWindowId);
     HorizonDrawInfo();
@@ -624,12 +631,19 @@ static void Task_HorizonMoves(u8 taskId)
     UnlockPlayerFieldControls();
     DestroyTask(taskId);
     sHorizonActive = FALSE;
+    sHorizonSelectedTab = 0;
     ChooseMonForMoveRelearner();
 }
 
 static void Task_HandleShopMenuBuy(u8 taskId)
 {
     s16 *data = gTasks[taskId].data;
+
+    // The next callback resets the field windows. Release Horizon's palette
+    // first so its temporary BG palette never survives into the buy screen.
+    if (sHorizonActive)
+        HorizonCloseInfoWindow();
+
     tCallbackHi = (u32)CB2_InitBuyMenu >> 16;
     tCallbackLo = (u32)CB2_InitBuyMenu;
     gTasks[taskId].func = Task_GoToBuyOrSellMenu;
@@ -659,7 +673,7 @@ static void Task_HandleShopMenuQuit(u8 taskId)
         sHorizonActive = FALSE;
         sHorizonSelectedTab = 0;
     }
-    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, 2); // Incorrect use, making it not copy it to vram.
+    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
     RemoveWindow(sMartInfo.windowId);
     TryPutSmartShopperOnAir();
     UnlockPlayerFieldControls();
@@ -689,7 +703,11 @@ static void Task_ReturnToShopMenu(u8 taskId)
 {
     if (IsWeatherNotFadingIn() == TRUE)
     {
-        if (sMartInfo.martType == MART_TYPE_DECOR2)
+        // Horizon is a player-owned menu: return straight to the selected tab,
+        // without the ordinary PokéMart clerk's "Anything else?" dialogue.
+        if (sHorizonActive)
+            ShowShopMenuAfterExitingBuyOrSellMenu(taskId);
+        else if (sMartInfo.martType == MART_TYPE_DECOR2)
             DisplayItemMessageOnField(taskId, gText_CanIHelpWithAnythingElse, ShowShopMenuAfterExitingBuyOrSellMenu);
         else
             DisplayItemMessageOnField(taskId, gText_AnythingElseICanHelp, ShowShopMenuAfterExitingBuyOrSellMenu);
