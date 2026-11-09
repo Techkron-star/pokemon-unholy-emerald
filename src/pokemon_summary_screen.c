@@ -3528,6 +3528,11 @@ static void PrintMonOTID(void)
 
 static void PrintMonAbilityName(void)
 {
+    static const u8 sMutationSpace[] = _(" ");
+    static const u8 sMutationAlpha[] = _("A");
+    static const u8 sMutationSuper[] = _("S");
+    static const u8 sMutationEnraged[] = _("E");
+    static const u8 sMutationOmega[] = _("O");
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     u8 text[64];
     u8 badges = sMonSummaryScreen->summary.specialBadges;
@@ -3536,15 +3541,15 @@ static void PrintMonAbilityName(void)
     // Indicadores compactos en la MISMA línea: no tapar la descripción de habilidad.
     if (badges != 0)
     {
-        StringAppend(text, _(" "));
+        StringAppend(text, sMutationSpace);
         if (badges & POKEMON_BADGE_ALPHA)
-            StringAppend(text, _("A"));
+            StringAppend(text, sMutationAlpha);
         if (badges & POKEMON_BADGE_SUPER)
-            StringAppend(text, _("S"));
+            StringAppend(text, sMutationSuper);
         if (badges & POKEMON_BADGE_ENRAGED)
-            StringAppend(text, _("E"));
+            StringAppend(text, sMutationEnraged);
         if (badges & POKEMON_BADGE_OMEGA)
-            StringAppend(text, _("O"));
+            StringAppend(text, sMutationOmega);
         // El juego no tiene glifos para corchetes en esta fuente.
     }
     PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 1, 0, 1);
