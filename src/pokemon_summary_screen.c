@@ -3536,7 +3536,7 @@ static void PrintMonAbilityName(void)
     // Indicadores compactos en la MISMA línea: no tapar la descripción de habilidad.
     if (badges != 0)
     {
-        StringAppend(text, _(" ["));
+        StringAppend(text, _(" "));
         if (badges & POKEMON_BADGE_ALPHA)
             StringAppend(text, _("A"));
         if (badges & POKEMON_BADGE_SUPER)
@@ -3545,7 +3545,7 @@ static void PrintMonAbilityName(void)
             StringAppend(text, _("E"));
         if (badges & POKEMON_BADGE_OMEGA)
             StringAppend(text, _("O"));
-        StringAppend(text, _("]"));
+        // El juego no tiene glifos para corchetes en esta fuente.
     }
     PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), text, 0, 1, 0, 1);
 }
