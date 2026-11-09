@@ -365,7 +365,10 @@ static void OpenUnholyCraftingMenu(void)
     sUnholyCraftWindowId = AddWindow(&sUnholyCraftWindow);
     if (sUnholyCraftWindowId == 0xFF)
     {
+        // The start menu was already closed; do not strand the field controls.
         LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
         return;
     }
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
