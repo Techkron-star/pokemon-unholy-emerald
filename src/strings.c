@@ -147,6 +147,7 @@ const u8 *const gPocketNamesStringsTable[] =
     [POCKET_BERRIES]    = COMPOUND_STRING("BERRIES"),
     [POCKET_KEY_ITEMS]  = COMPOUND_STRING("KEY ITEMS"),
     [POCKET_BATTLE_ITEMS] = COMPOUND_STRING("BATTLE ITEMS"),
+    [POCKET_MEDICINE]     = COMPOUND_STRING("MEDICINE"),
 };
 
 const u8 gText_NumberItem_TMBerry[] = _("{NO}{STR_VAR_1}{CLEAR 3}{STR_VAR_2}");
