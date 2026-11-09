@@ -1873,7 +1873,10 @@ bool32 HandleFaintedMonActions(void)
             if (B_FAINT_SWITCH_IN >= GEN_4
                 && gBattleOutcome == 0
                 && !NoAliveMonsForEitherParty()
-                && gCurrentTurnActionNumber != gBattlersCount)
+                // Expanded chains can contain three actions in a two-battler
+                // battle. '<' denotes pending actions, while '!=' incorrectly
+                // defers the replacement forever once the count reaches 3.
+                && gCurrentTurnActionNumber < Chain_GetNumTurnActions())
             {
                 gAbsentBattlerFlags |= 1u << gBattlerFainted;
                 if (gBattleStruct->eventState.faintedAction != FAINTED_ACTIONS_GIVE_EXP)
@@ -1885,7 +1888,10 @@ bool32 HandleFaintedMonActions(void)
             if (B_FAINT_SWITCH_IN >= GEN_4
                 && gBattleOutcome == 0
                 && !NoAliveMonsForEitherParty()
-                && gCurrentTurnActionNumber != gBattlersCount)
+                // Expanded chains can contain three actions in a two-battler
+                // battle. '<' denotes pending actions, while '!=' incorrectly
+                // defers the replacement forever once the count reaches 3.
+                && gCurrentTurnActionNumber < Chain_GetNumTurnActions())
             {
                 return FALSE;
             }
