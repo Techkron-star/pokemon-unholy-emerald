@@ -2952,17 +2952,17 @@ static void SetPartyMonSelectionActions(struct Pokemon *mons, u8 slotId, u8 acti
 static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 {
     u8 i, j;
+    bool8 canLearn = FALSE;
 
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
-    // Do not offer a move-learning action without learnable moves.
     if (!GetMonData(&mons[slotId], MON_DATA_IS_EGG))
     {
         for (j = 0; j < MOVE_RELEARNER_COUNT; j++)
         {
             if (HasMoveToRelearn(&mons[slotId].box, j))
             {
-                AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
+                canLearn = TRUE;
                 break;
             }
         }
@@ -2993,6 +2993,11 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
         else
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_ITEM);
     }
+
+    // Field moves and basic actions have priority over the optional LEARN
+    // shortcut. Reserve one slot for CANCEL: actions[] has only eight entries.
+    if (canLearn && sPartyMenuInternal->numActions < ARRAY_COUNT(sPartyMenuInternal->actions) - 1)
+        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_CANCEL1);
 }
 
@@ -3150,6 +3155,7 @@ static void CB2_StartMoveRelearnerFromParty(void)
     // Do not install the script-resume field callback here.
     gRelearnMode = RELEARN_MODE_SCRIPT;
     gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
+    gFieldCallback2 = CB2_FadeFromPartyMenu;
     SetMainCallback2(CB2_InitLearnMove);
 }
 
@@ -8201,6 +8207,7 @@ static void CB2_ChooseMonForMoveRelearner(void)
     if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
     {
         gRelearnMode = RELEARN_MODE_SCRIPT;
+        gFieldCallback2 = CB2_FadeFromPartyMenu;
         SetMainCallback2(CB2_InitLearnMove);
         return;
     }
