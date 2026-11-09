@@ -15,14 +15,14 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Pieza | Estado |
 |---|---|
 | Menú de debug (ítems, dinero, Pokémon) | Hecho (el de pokeemerald-expansion, activado en el menú de inicio) |
-| Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo basado en potencia y precisión. Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
+| Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo relativo a stamina máxima (14% base + potencia efectiva/10 puntos porcentuales). Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
 | Barra de stamina | Implementada y compilada; clon de la barra de vida con colores y animación. Falta validación visual en emulador/hardware (`STAMINA_BAR_Y_OFFSET`) |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
 | Movimientos encadenados | Implementado en combates individuales: SELECT marca el primer movimiento, A confirma el segundo; el rival obtiene una acción extra y también puede encadenar |
 | Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
-| Inicio rápido | Implementado: tras fijar el reloj se omiten TV/casa del rival/habitación y se inicia la secuencia de Route 101 para elegir el inicial |
+| Inicio rápido | Tras fijar el reloj se omiten TV/casa del rival/habitación, apareciendo en Pueblo Raíz justo detrás de la niña antes de subir hacia la Ruta 101 |
 | Repelente renovable | Implementado: recuerda el último repelente y permite activar renovación automática tras el primer uso posterior al desgaste |
 | PC: cursor por caja | Implementado durante la sesión: se recuerda la última posición del cursor por caja. No se persiste todavía en el guardado |
 | Movimiento acelerado | Implementado y configurable: el jugador corre automáticamente en exteriores e interiores; A mantiene el movimiento lento y se respetan los tiles que prohíben correr |
@@ -37,7 +37,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
 | Horizon Shop | Entrada en el menú principal y catálogo inicial fijo de objetos implementados; Pokémon, huevos, discos, servicios y rotación persistente pendientes |
-| Gestión de movimientos | Implementada desde el menú principal: reutiliza el recordador existente para reaprender movimientos y reemplazarlos cuando el equipo está lleno |
+| Gestión de movimientos | Exclusiva de Horizon Shop: se retiran LEARN del equipo y START RELEARN del resumen; el acceso de Horizon conserva el recordador existente |
 | Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
 
 ### Cambios recientes verificados

@@ -110,7 +110,6 @@ enum {
     MENU_CATALOG_MOWER,
     MENU_CHANGE_FORM,
     MENU_CHANGE_ABILITY,
-    MENU_LEARN,
     MENU_FIELD_MOVES
 };
 
@@ -456,7 +455,6 @@ static void ShiftMoveSlot(struct BoxPokemon *, u8, u8);
 static void BlitBitmapToPartyWindow_LeftColumn(u8, u8, u8, u8, u8, bool8);
 static void BlitBitmapToPartyWindow_RightColumn(u8, u8, u8, u8, u8, bool8);
 static void CursorCb_Summary(u8);
-static void CursorCb_Learn(u8);
 static void CursorCb_Switch(u8);
 static void CursorCb_Cancel1(u8);
 static void CursorCb_Item(u8);
@@ -2952,21 +2950,8 @@ static void SetPartyMonSelectionActions(struct Pokemon *mons, u8 slotId, u8 acti
 static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 {
     u8 i, j;
-    bool8 canLearn = FALSE;
-
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
-    if (!GetMonData(&mons[slotId], MON_DATA_IS_EGG))
-    {
-        for (j = 0; j < MOVE_RELEARNER_COUNT; j++)
-        {
-            if (HasMoveToRelearn(&mons[slotId].box, j))
-            {
-                canLearn = TRUE;
-                break;
-            }
-        }
-    }
 
     // Add field moves to action list
     for (i = 0; i < MAX_MON_MOVES; i++)
@@ -2994,10 +2979,6 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_ITEM);
     }
 
-    // Field moves and basic actions have priority over the optional LEARN
-    // shortcut. Reserve one slot for CANCEL: actions[] has only eight entries.
-    if (canLearn && sPartyMenuInternal->numActions < ARRAY_COUNT(sPartyMenuInternal->actions) - 1)
-        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_CANCEL1);
 }
 
@@ -3149,8 +3130,8 @@ static void CursorCb_Summary(u8 taskId)
     Task_ClosePartyMenu(taskId);
 }
 
-// Pick a category with actual available moves instead of always forcing
-// level-up moves (which may be empty for a newly received Pokémon).
+// Horizon selects a category with actual available moves instead of
+// opening an empty move list.
 static bool8 TrySelectRelearnableCategory(u8 slot)
 {
     u8 state;
@@ -3168,27 +3149,6 @@ static bool8 TrySelectRelearnableCategory(u8 slot)
         }
     }
     return FALSE;
-}
-
-static void CB2_StartMoveRelearnerFromParty(void)
-{
-    // No event script is waiting when LEARN is selected from the party menu.
-    gRelearnMode = RELEARN_MODE_SCRIPT;
-    gFieldCallback2 = CB2_FadeFromPartyMenu;
-    if (!TrySelectRelearnableCategory(gSpecialVar_0x8004))
-    {
-        SetMainCallback2(CB2_ReturnToField);
-        return;
-    }
-    SetMainCallback2(CB2_InitLearnMove);
-}
-
-static void CursorCb_Learn(u8 taskId)
-{
-    PlaySE(SE_SELECT);
-    gSpecialVar_0x8004 = gPartyMenu.slotId;
-    sPartyMenuInternal->exitCallback = CB2_StartMoveRelearnerFromParty;
-    Task_ClosePartyMenu(taskId);
 }
 
 static void CB2_ShowPokemonSummaryScreen(void)

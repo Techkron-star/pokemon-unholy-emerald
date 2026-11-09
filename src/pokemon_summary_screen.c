@@ -1720,28 +1720,6 @@ static void ClearStatLabel(u32 length, u32 statsCoordX, u32 statsCoordY)
         FillBgTilemapBufferRect(1, blankStatsBlock, statsCoordX + blankOffset + i, statsCoordY, 1, 1, 2);
 }
 
-static void HandleMoveRelearnerInput(u8 taskId)
-{
-    if (JOY_NEW(START_BUTTON))
-    {
-        sMonSummaryScreen->callback = CB2_InitLearnMove;
-        gRelearnMode = sMonSummaryScreen->currPageIndex;
-        if (sMonSummaryScreen->isBoxMon)
-        {
-            gSpecialVar_0x8004 = PC_MON_CHOSEN;
-            gSpecialVar_MonBoxPos = sMonSummaryScreen->curMonIndex;
-            gSpecialVar_MonBoxId = StorageGetCurrentBox();
-        }
-        else
-        {
-            gSpecialVar_0x8004 = sMonSummaryScreen->curMonIndex;
-        }
-        StopPokemonAnimations();
-        PlaySE(SE_SELECT);
-        BeginCloseSummaryScreen(taskId);
-    }
-}
-
 static void Task_HandleInput(u8 taskId)
 {
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE && !gPaletteFade.active)
@@ -1833,10 +1811,6 @@ static void Task_HandleInput(u8 taskId)
             StopPokemonAnimations();
             PlaySE(SE_SELECT);
             CloseSummaryScreen(taskId);
-        }
-        else if (ShouldShowMoveRelearner() && IS_MOVE_PAGE(sMonSummaryScreen->currPageIndex))
-        {
-            HandleMoveRelearnerInput(taskId);
         }
     }
 }
@@ -4855,12 +4829,8 @@ static void KeepMoveSelectorVisible(u8 firstSpriteId)
 
 static inline bool32 ShouldShowMoveRelearner(void)
 {
-    return (P_SUMMARY_SCREEN_MOVE_RELEARNER
-         && !sMonSummaryScreen->lockMovesFlag
-         && sMonSummaryScreen->mode != SUMMARY_MODE_BOX_CURSOR
-         && sMonSummaryScreen->hasRelearnableMoves
-         && !InBattleFactory()
-         && !InSlateportBattleTent());
+    // Move teaching is owned by Horizon; summary only displays existing moves.
+    return FALSE;
 }
 
 static inline bool32 ShouldShowRename(void)

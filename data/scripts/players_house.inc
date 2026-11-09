@@ -103,7 +103,9 @@ PlayersHouse_EventScript_SkipIntroMaysHouse::
 	goto PlayersHouse_EventScript_WarpToStarter
 
 PlayersHouse_EventScript_WarpToStarter::
-	warp MAP_ROUTE101, 10, 19
+	@ Spawn one step SOUTH of the girl (10,1) guarding Route 101.
+	@ Never warp directly onto the Route 101 event trigger.
+	warp MAP_LITTLEROOT_TOWN, 10, 2
 	waitstate
 	return
 

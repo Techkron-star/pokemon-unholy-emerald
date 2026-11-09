@@ -52,18 +52,24 @@ bool32 Stamina_IsExhausted(enum BattlerId battler)
     return gBattleStruct->staminaExhausted[battler];
 }
 
-u32 Stamina_GetMoveCost(enum Move move)
+u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
 {
-    // Potencia efectiva = potencia * precisión (los que nunca fallan cuentan como 100%).
+    // Every battler pays the same share of their own capacity. This keeps
+    // cheap moves and status moves relevant even at the level cap.
+    u32 maxStamina = Stamina_GetMax(battler);
     u32 power = GetMovePower(move);
     u32 accuracy = GetMoveAccuracy(move);
+    u32 percent;
 
     if (power < 2)
-        power = 0; // movimientos de estado o de daño variable: solo pagan el costo base
-    if (accuracy == 0)
-        accuracy = 100;
+        power = 0; // status / variable-damage moves: only the base percentage
+    if (accuracy == 0 || accuracy > 100)
+        accuracy = 100; // never-miss and nonstandard accuracy
 
-    return STAMINA_COST_BASE + power * accuracy / 100 / STAMINA_COST_POWER_DIVISOR;
+    percent = STAMINA_COST_BASE_PERCENT
+            + (power * accuracy / 100) / STAMINA_COST_POWER_DIVISOR;
+    // Ceiling prevents tiny fractional costs from disappearing at low levels.
+    return (maxStamina * percent + 99) / 100;
 }
 
 void Stamina_SpendForMove(enum BattlerId battler, enum Move move)
@@ -73,7 +79,7 @@ void Stamina_SpendForMove(enum BattlerId battler, enum Move move)
 
     EnsureInitialized(battler);
 
-    u32 cost = Stamina_GetMoveCost(move);
+    u32 cost = Stamina_GetMoveCost(battler, move);
 
     if (cost >= gBattleStruct->stamina[battler])
     {

@@ -1722,7 +1722,21 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
 
 static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
-    StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
+    // This label is always visible while choosing a move. The adjoining
+    // number window still shows the move's PP, while STA shows energy spent.
+    static const u8 sText_StaminaCost[] = _("STA");
+    struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
+    enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
+
+    if (move == MOVE_NONE)
+        StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
+    else
+    {
+        StringCopy(gDisplayedStringBattle, sText_StaminaCost);
+        ConvertIntToDecimalStringN(gDisplayedStringBattle + StringLength(gDisplayedStringBattle),
+                                   Stamina_GetMoveCost(battler, move),
+                                   STR_CONV_MODE_LEFT_ALIGN, 3);
+    }
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
 }
 
@@ -1734,6 +1748,9 @@ static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
     if (gBattleResources->bufferA[battler][2] == TRUE) // check if we didn't want to display PP number
         return;
 
+    // Update energy on every cursor move; preserve the ▶2 chain marker.
+    if (gBattleStruct->chainFirstPos[battler] == 0)
+        MoveSelectionDisplayPPString(battler);
     SetPPNumbersPaletteInMoveSelection(battler);
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     txtPtr = ConvertIntToDecimalStringN(gDisplayedStringBattle, moveInfo->currentPP[gMoveSelectionCursor[battler]], STR_CONV_MODE_RIGHT_ALIGN, 2);
@@ -1842,7 +1859,7 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     StringAppend(gDisplayedStringBattle, acc_desc);
     StringAppend(gDisplayedStringBattle, acc_num);
     StringAppend(gDisplayedStringBattle, gText_NewLine);
-    ConvertIntToDecimalStringN(sta_num, Stamina_GetMoveCost(moveInfo->moves[gMoveSelectionCursor[battler]]), STR_CONV_MODE_LEFT_ALIGN, 3);
+    ConvertIntToDecimalStringN(sta_num, Stamina_GetMoveCost(battler, moveInfo->moves[gMoveSelectionCursor[battler]]), STR_CONV_MODE_LEFT_ALIGN, 3);
     StringAppend(gDisplayedStringBattle, sta_start);
     StringAppend(gDisplayedStringBattle, sta_desc);
     StringAppend(gDisplayedStringBattle, sta_num);
