@@ -10,7 +10,7 @@ EventScript_CraftSuperExpShare::
 	case 0, EventScript_CraftSuperExpShare_Recipe
 	goto EventScript_CraftSuperExpShare_End
 
-EventScript_CraftSuperExpShare_Recipe:
+EventScript_CraftSuperExpShare_Recipe::
 	lock
 	checkflag FLAG_BADGE01_GET
 	goto_if_unset FLAG_BADGE01_GET, EventScript_CraftSuperExpShare_NoBadge
