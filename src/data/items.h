@@ -48,8 +48,8 @@ const struct ItemInfo gItemsInfo[] =
         .type = ITEM_USE_BAG_MENU,
         .battleUsage = EFFECT_ITEM_THROW_BALL,
         .secondaryId = BALL_OMEGA,
-        .iconPic = gItemIcon_PokeBall,
-        .iconPalette = gItemIconPalette_PokeBall,
+        .iconPic = gItemIcon_OmegaBall,
+        .iconPalette = gItemIconPalette_OmegaBall,
     },
 
     [ITEM_INFINITY_BALL] =
@@ -64,8 +64,8 @@ const struct ItemInfo gItemsInfo[] =
         .type = ITEM_USE_BAG_MENU,
         .battleUsage = EFFECT_ITEM_THROW_BALL,
         .secondaryId = BALL_INFINITY,
-        .iconPic = gItemIcon_PokeBall,
-        .iconPalette = gItemIconPalette_PokeBall,
+        .iconPic = gItemIcon_InfinityBall,
+        .iconPalette = gItemIconPalette_InfinityBall,
     },
 
     [ITEM_STRANGE_BALL] =
@@ -9864,8 +9864,8 @@ const struct ItemInfo gItemsInfo[] =
         .type = ITEM_USE_FIELD,
         .fieldUseFunc = ItemUseOutOfBattle_ExpShare,
         .flingPower = 30,
-        .iconPic = gItemIcon_ExpShare,
-        .iconPalette = gItemIconPalette_ExpShare,
+        .iconPic = gItemIcon_SuperExpShare,
+        .iconPalette = gItemIconPalette_SuperExpShare,
     },
 
     [ITEM_QUICK_CLAW] =

@@ -139,5 +139,5 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - [ ] UI temática funcional de Horizon Shop con 5 pestañas.
 - [ ] Catálogos avanzados y servicios funcionales.
 - [ ] Pantalla de crafting interactiva.
-- [ ] Iconos custom finales y glint Omega conectado al combate.
+- [x] Se agregaron sprites indexados 24x24 con iconos dedicados para Omega Ball, Infinity Ball y Super Exp. Share, y el recurso de estrella Omega. El glint todavía necesita conectarse al combate.
 - [ ] Compilación, QA visual e integración aprobada.

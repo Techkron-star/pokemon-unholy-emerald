@@ -12,6 +12,11 @@ const u16 gItemIconPalette_StrangeBall[] = INCGFX_U16("graphics/items/icon_palet
 const u32 gItemIcon_PokeBall[] = INCGFX_U32("graphics/items/icons/poke_ball.png", ".4bpp.smol");
 const u16 gItemIconPalette_PokeBall[] = INCGFX_U16("graphics/items/icon_palettes/poke_ball.pal", ".gbapal");
 
+const u32 gItemIcon_OmegaBall[] = INCGFX_U32("graphics/items/icons/omega_ball.png", ".4bpp.smol");
+const u16 gItemIconPalette_OmegaBall[] = INCGFX_U16("graphics/items/icon_palettes/omega_ball.pal", ".gbapal");
+const u32 gItemIcon_InfinityBall[] = INCGFX_U32("graphics/items/icons/infinity_ball.png", ".4bpp.smol");
+const u16 gItemIconPalette_InfinityBall[] = INCGFX_U16("graphics/items/icon_palettes/infinity_ball.pal", ".gbapal");
+
 const u32 gItemIcon_GreatBall[] = INCGFX_U32("graphics/items/icons/great_ball.png", ".4bpp.smol");
 const u16 gItemIconPalette_GreatBall[] = INCGFX_U16("graphics/items/icon_palettes/great_ball.pal", ".gbapal");
 
@@ -1358,6 +1363,8 @@ const u16 gItemIconPalette_WhiteHerb[] = INCGFX_U16("graphics/items/icon_palette
 
 const u32 gItemIcon_ExpShare[] = INCGFX_U32("graphics/items/icons/exp_share.png", ".4bpp.smol");
 const u16 gItemIconPalette_ExpShare[] = INCGFX_U16("graphics/items/icon_palettes/exp_share.pal", ".gbapal");
+const u32 gItemIcon_SuperExpShare[] = INCGFX_U32("graphics/items/icons/super_exp_share.png", ".4bpp.smol");
+const u16 gItemIconPalette_SuperExpShare[] = INCGFX_U16("graphics/items/icon_palettes/super_exp_share.pal", ".gbapal");
 
 const u32 gItemIcon_QuickClaw[] = INCGFX_U32("graphics/items/icons/quick_claw.png", ".4bpp.smol");
 const u16 gItemIconPalette_QuickClaw[] = INCGFX_U16("graphics/items/icon_palettes/quick_claw.pal", ".gbapal");
