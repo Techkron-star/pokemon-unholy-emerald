@@ -11,6 +11,7 @@ EventScript_CraftSuperExpShare::
 	goto EventScript_CraftSuperExpShare_End
 
 EventScript_CraftSuperExpShare_Recipe:
+	lock
 	checkflag FLAG_BADGE01_GET
 	goto_if_unset FLAG_BADGE01_GET, EventScript_CraftSuperExpShare_NoBadge
 	checkitem ITEM_EXP_SHARE, 1

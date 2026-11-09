@@ -5,6 +5,7 @@ extern struct ItemSlot gMartPurchaseHistory[3];
 
 void CreatePokemartMenu(const u16 *itemsForSale);
 void CreateHorizonShopMenu(void);
+const u16 *GetUnholyUiPalette(void);
 void CreateDecorationShop1Menu(const u16 *itemsForSale);
 void CreateDecorationShop2Menu(const u16 *itemsForSale);
 void CB2_ExitSellMenu(void);

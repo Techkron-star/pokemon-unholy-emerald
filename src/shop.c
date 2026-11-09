@@ -218,6 +218,12 @@ static const u16 sHorizonPaletteDaylight[] =
     RGB(19, 26, 24), RGB(30, 30, 25), RGB(4, 7, 8), RGB(0, 0, 0)
 };
 
+// Shared GBA palette used by crafting and Horizon. Theme preference lives in save flags.
+const u16 *GetUnholyUiPalette(void)
+{
+    return FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonPaletteDaylight : sHorizonPaletteEclipse;
+}
+
 static const struct WindowTemplate sHorizonInfoTemplate =
 {
     .bg = 0,
@@ -510,8 +516,7 @@ static void HorizonOpenInfoWindow(void)
     // The field owns palette 14; restore it on exit and before other field UI.
     CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sHorizonSavedPalette, sizeof(sHorizonSavedPalette));
     sHorizonPaletteSaved = TRUE;
-    LoadPalette(FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonPaletteDaylight : sHorizonPaletteEclipse,
-                BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+    LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     sHorizonInfoWindowId = AddWindow(&sHorizonInfoTemplate);
     SetStandardWindowBorderStyle(sHorizonInfoWindowId, FALSE);
     PutWindowTilemap(sHorizonInfoWindowId);

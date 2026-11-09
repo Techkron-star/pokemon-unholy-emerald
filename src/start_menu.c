@@ -1,4 +1,5 @@
 #include "global.h"
+#include "item.h"
 #include "config/save.h"
 #include "battle_pike.h"
 #include "battle_pyramid.h"
@@ -90,6 +91,8 @@ COMMON_DATA bool8 (*gMenuCallback)(void) = NULL;
 // EWRAM
 EWRAM_DATA static u8 sSafariBallsWindowId = 0;
 EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
+EWRAM_DATA static u8 sUnholyCraftWindowId = 0;
+EWRAM_DATA static u16 sUnholyCraftSavedPalette[16] = {0};
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
 EWRAM_DATA static u8 sCurrentStartMenuActions[11] = {0};
@@ -118,6 +121,9 @@ static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuMoveManagementCallback(void);
 static bool8 StartMenuCraftingCallback(void);
+static void Task_UnholyCraftingMenu(u8 taskId);
+static void OpenUnholyCraftingMenu(void);
+static void CloseUnholyCraftingMenu(void);
 
 // Menu callbacks
 static bool8 SaveStartCallback(void);
@@ -195,6 +201,23 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 };
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
+static const u8 sUnholyCraftTitle[] = _("CRAFTING");
+static const u8 sUnholyCraftName[] = _("> SUPER EXP. SHARE");
+static const u8 sUnholyCraftExplain[] = _("100% EXP for each\\neligible party Pokemon.");
+static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
+static const u8 sUnholyCraftExpReady[] = _("EXP. SHARE  1/1 OK");
+static const u8 sUnholyCraftExpMissing[] = _("EXP. SHARE  0/1");
+static const u8 sUnholyCraftBadgeReady[] = _("STONE BADGE OK");
+static const u8 sUnholyCraftBadgeMissing[] = _("STONE BADGE LOCKED");
+static const u8 sUnholyCraftControls[] = _("A: CRAFT  B: BACK");
+static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
+static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
+static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
+static const struct WindowTemplate sUnholyCraftWindow =
+{
+    .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
+    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x100,
+};
 
 static const struct MenuAction sStartMenuItems[] =
 {
@@ -327,17 +350,81 @@ static void BuildStartMenuActions(void)
     }
 }
 
+static void OpenUnholyCraftingMenu(void)
+{
+    const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sUnholyCraftSkinDaylight : sUnholyCraftSkinEclipse;
+
+    // Own and restore palette 14; BG0 window 15 remains the standard frame.
+    CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sUnholyCraftSavedPalette, sizeof(sUnholyCraftSavedPalette));
+    LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+    sUnholyCraftWindowId = AddWindow(&sUnholyCraftWindow);
+    SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
+    PutWindowTilemap(sUnholyCraftWindowId);
+    FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
+
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 3, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftTitle);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 137, 3, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, skin);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 24, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftName);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 42, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftExplain);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 75, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftRequirements);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 88, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW,
+                                CheckBagHasItem(ITEM_EXP_SHARE, 1) ? sUnholyCraftExpReady : sUnholyCraftExpMissing);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 103, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW,
+                                FlagGet(FLAG_BADGE01_GET) ? sUnholyCraftBadgeReady : sUnholyCraftBadgeMissing);
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 121, 0, 0,
+                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftControls);
+    CopyWindowToVram(sUnholyCraftWindowId, COPYWIN_FULL);
+    CreateTask(Task_UnholyCraftingMenu, 8);
+    FadeScreen(FADE_FROM_BLACK, 0);
+}
+
+static void CloseUnholyCraftingMenu(void)
+{
+    ClearStdWindowAndFrameToTransparent(sUnholyCraftWindowId, TRUE);
+    RemoveWindow(sUnholyCraftWindowId);
+    LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+}
+
+static void Task_UnholyCraftingMenu(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(B_BUTTON))
+    {
+        CloseUnholyCraftingMenu();
+        DestroyTask(taskId);
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        CloseUnholyCraftingMenu();
+        DestroyTask(taskId);
+        // The script validates badge, materials and space, then requests confirmation.
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+        ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);
+    }
+}
+
 static bool8 StartMenuCraftingCallback(void)
 {
     if (!gPaletteFade.active)
     {
-        ClearDialogWindowAndFrameToTransparent(0, TRUE);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
-        ScriptContext_SetupScript(EventScript_CraftSuperExpShare);
+        RemoveExtraStartMenuWindows();
+        ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
+        RemoveStartMenuWindow();
+        OpenUnholyCraftingMenu();
         return TRUE;
     }
-
     return FALSE;
 }
 
