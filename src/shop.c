@@ -110,6 +110,8 @@ struct ShopData
 };
 
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
+static EWRAM_DATA bool8 sHorizonActive = FALSE;
+static EWRAM_DATA u8 sHorizonSelectedTab = 0;
 static EWRAM_DATA struct ShopData *sShopData = NULL;
 static EWRAM_DATA struct ListMenuItem *sListMenuItems = NULL;
 static EWRAM_DATA u8 (*sItemNames)[ITEM_NAME_LENGTH + 2] = {0};
@@ -117,6 +119,10 @@ static EWRAM_DATA u8 sPurchaseHistoryId = 0;
 EWRAM_DATA struct ItemSlot gMartPurchaseHistory[SMARTSHOPPER_NUM_ITEMS] = {0};
 
 static void Task_ShopMenu(u8 taskId);
+static void Task_HorizonUnavailable(u8 taskId);
+static void Task_HorizonDiscs(u8 taskId);
+static void Task_HorizonItems(u8 taskId);
+static void Task_HorizonMoves(u8 taskId);
 static void Task_HandleShopMenuQuit(u8 taskId);
 static void CB2_InitBuyMenu(void);
 static void Task_GoToBuyOrSellMenu(u8 taskId);
@@ -164,6 +170,22 @@ static const struct YesNoFuncTable sShopPurchaseYesNoFuncs =
 {
     BuyMenuTryMakePurchase,
     BuyMenuReturnToItemList
+};
+
+static const u8 sHorizonTextPokemon[] = _("POKEMON");
+static const u8 sHorizonTextDiscs[] = _("DISCS");
+static const u8 sHorizonTextItems[] = _("ITEMS");
+static const u8 sHorizonTextEggs[] = _("EGGS");
+static const u8 sHorizonTextMoves[] = _("MOVES");
+static const u8 sHorizonNotReady[] = _("This section is not ready yet.");
+
+static const struct MenuAction sHorizonTabs[] =
+{
+    {sHorizonTextPokemon, {.void_u8 = Task_HorizonUnavailable}},
+    {sHorizonTextDiscs, {.void_u8 = Task_HorizonDiscs}},
+    {sHorizonTextItems, {.void_u8 = Task_HorizonItems}},
+    {sHorizonTextEggs, {.void_u8 = Task_HorizonUnavailable}},
+    {sHorizonTextMoves, {.void_u8 = Task_HorizonMoves}},
 };
 
 static const struct MenuAction sShopMenuActions_BuySellQuit[] =
@@ -344,6 +366,12 @@ static const u8 sShopBuyMenuTextColors[][3] =
 
 static const enum Item sShopItemsListDummy[] = { ITEM_NONE };
 
+// Fixed TM stock until rotating offers can persist across visits.
+static const u16 sHorizonDiscItems[] =
+{
+    ITEM_TM01, ITEM_TM05, ITEM_TM10, ITEM_TM17, ITEM_TM32, ITEM_NONE,
+};
+
 static const u16 sHorizonShopItems[] =
 {
     ITEM_POKE_BALL,
@@ -364,7 +392,16 @@ static u8 CreateShopMenu(u8 martType)
     LockPlayerFieldControls();
     sMartInfo.martType = martType;
 
-    if (martType == MART_TYPE_NORMAL)
+    if (sHorizonActive)
+    {
+        struct WindowTemplate winTemplate = sShopMenuWindowTemplates[WIN_BUY_SELL_QUIT];
+        winTemplate.width = 12;
+        winTemplate.height = 11;
+        sMartInfo.windowId = AddWindow(&winTemplate);
+        sMartInfo.menuActions = sHorizonTabs;
+        numMenuItems = ARRAY_COUNT(sHorizonTabs);
+    }
+    else if (martType == MART_TYPE_NORMAL)
     {
         struct WindowTemplate winTemplate = sShopMenuWindowTemplates[WIN_BUY_SELL_QUIT];
         winTemplate.width = GetMaxWidthInMenuTable(sShopMenuActions_BuySellQuit, ARRAY_COUNT(sShopMenuActions_BuySellQuit));
@@ -383,7 +420,7 @@ static u8 CreateShopMenu(u8 martType)
 
     SetStandardWindowBorderStyle(sMartInfo.windowId, FALSE);
     PrintMenuTable(sMartInfo.windowId, numMenuItems, sMartInfo.menuActions);
-    InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, numMenuItems, 0);
+    InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, numMenuItems, sHorizonActive ? sHorizonSelectedTab : 0);
     PutWindowTilemap(sMartInfo.windowId);
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
 
@@ -418,7 +455,16 @@ static void SetShopItemsForSale(const u16 *items)
 
 static void Task_ShopMenu(u8 taskId)
 {
-    s8 inputCode = Menu_ProcessInputNoWrap();
+    s8 inputCode;
+    if (sHorizonActive && JOY_NEW(L_BUTTON | R_BUTTON))
+    {
+        Menu_MoveCursor(JOY_NEW(L_BUTTON) ? -1 : 1);
+        sHorizonSelectedTab = Menu_GetCursorPos();
+        return;
+    }
+    inputCode = Menu_ProcessInputNoWrap();
+    if (sHorizonActive && inputCode == MENU_NOTHING_CHOSEN)
+        sHorizonSelectedTab = Menu_GetCursorPos();
     switch (inputCode)
     {
     case MENU_NOTHING_CHOSEN:
@@ -438,6 +484,35 @@ static void Task_ShopMenu(u8 taskId)
 #define tListTaskId data[7]
 #define tCallbackHi data[8]
 #define tCallbackLo data[9]
+
+static void Task_HorizonUnavailable(u8 taskId)
+{
+    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
+    RemoveWindow(sMartInfo.windowId);
+    DisplayItemMessageOnField(taskId, sHorizonNotReady, ShowShopMenuAfterExitingBuyOrSellMenu);
+}
+
+static void Task_HorizonDiscs(u8 taskId)
+{
+    SetShopItemsForSale(sHorizonDiscItems);
+    Task_HandleShopMenuBuy(taskId);
+}
+
+static void Task_HorizonItems(u8 taskId)
+{
+    SetShopItemsForSale(sHorizonShopItems);
+    Task_HandleShopMenuBuy(taskId);
+}
+
+static void Task_HorizonMoves(u8 taskId)
+{
+    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
+    RemoveWindow(sMartInfo.windowId);
+    UnlockPlayerFieldControls();
+    DestroyTask(taskId);
+    sHorizonActive = FALSE;
+    ChooseMonForMoveRelearner();
+}
 
 static void Task_HandleShopMenuBuy(u8 taskId)
 {
@@ -465,6 +540,11 @@ void CB2_ExitSellMenu(void)
 
 static void Task_HandleShopMenuQuit(u8 taskId)
 {
+    if (sHorizonActive)
+    {
+        sHorizonActive = FALSE;
+        sHorizonSelectedTab = 0;
+    }
     ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, 2); // Incorrect use, making it not copy it to vram.
     RemoveWindow(sMartInfo.windowId);
     TryPutSmartShopperOnAir();
@@ -544,7 +624,7 @@ static void CB2_InitBuyMenu(void)
         sShopData->scrollIndicatorsTaskId = TASK_NONE;
         sShopData->itemSpriteIds[0] = SPRITE_NONE;
         sShopData->itemSpriteIds[1] = SPRITE_NONE;
-        if (sMartInfo.martType == MART_TYPE_NORMAL)
+        if (sMartInfo.martType == MART_TYPE_NORMAL && !sHorizonActive)
             TryBuildDynamicShopItemList(&sMartInfo.itemList, &sMartInfo.itemCount);
         BuyMenuBuildListMenuTemplate();
         BuyMenuInitBgs();
@@ -575,7 +655,7 @@ static void CB2_InitBuyMenu(void)
 
 static void BuyMenuFreeMemory(void)
 {
-    if (sMartInfo.martType == MART_TYPE_NORMAL)
+    if (sMartInfo.martType == MART_TYPE_NORMAL && !sHorizonActive)
         TryFreeDynamicShopItemList(&sMartInfo.itemList);
 
     Free(sShopData);
@@ -1335,6 +1415,8 @@ void CreatePokemartMenu(const u16 *itemsForSale)
 
 void CreateHorizonShopMenu(void)
 {
+    sHorizonActive = TRUE;
+    sHorizonSelectedTab = 0;
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(sHorizonShopItems);
     ClearItemPurchases();
