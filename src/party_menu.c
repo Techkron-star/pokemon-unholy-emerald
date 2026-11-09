@@ -3149,13 +3149,37 @@ static void CursorCb_Summary(u8 taskId)
     Task_ClosePartyMenu(taskId);
 }
 
+// Pick a category with actual available moves instead of always forcing
+// level-up moves (which may be empty for a newly received Pokémon).
+static bool8 TrySelectRelearnableCategory(u8 slot)
+{
+    u8 state;
+
+    if (slot >= gPartiesCount[B_TRAINER_PLAYER] || slot >= PARTY_SIZE
+     || GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_IS_EGG))
+        return FALSE;
+
+    for (state = 0; state < MOVE_RELEARNER_COUNT; state++)
+    {
+        if (HasMoveToRelearn(&gParties[B_TRAINER_PLAYER][slot].box, state))
+        {
+            gMoveRelearnerState = state;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 static void CB2_StartMoveRelearnerFromParty(void)
 {
     // No event script is waiting when LEARN is selected from the party menu.
-    // Do not install the script-resume field callback here.
     gRelearnMode = RELEARN_MODE_SCRIPT;
-    gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
     gFieldCallback2 = CB2_FadeFromPartyMenu;
+    if (!TrySelectRelearnableCategory(gSpecialVar_0x8004))
+    {
+        SetMainCallback2(CB2_ReturnToField);
+        return;
+    }
     SetMainCallback2(CB2_InitLearnMove);
 }
 
@@ -8208,8 +8232,11 @@ static void CB2_ChooseMonForMoveRelearner(void)
     {
         gRelearnMode = RELEARN_MODE_SCRIPT;
         gFieldCallback2 = CB2_FadeFromPartyMenu;
-        SetMainCallback2(CB2_InitLearnMove);
-        return;
+        if (TrySelectRelearnableCategory(gSpecialVar_0x8004))
+        {
+            SetMainCallback2(CB2_InitLearnMove);
+            return;
+        }
     }
 
     gFieldCallback2 = CB2_FadeFromPartyMenu;
