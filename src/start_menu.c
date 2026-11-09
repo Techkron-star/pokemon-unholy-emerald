@@ -72,6 +72,7 @@ enum
     MENU_ACTION_DEXNAV,
     MENU_ACTION_HORIZON_SHOP,
     MENU_ACTION_MOVE_MANAGEMENT,
+    MENU_ACTION_CRAFTING,
 };
 
 // Save status
@@ -116,6 +117,7 @@ static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuMoveManagementCallback(void);
+static bool8 StartMenuCraftingCallback(void);
 
 // Menu callbacks
 static bool8 SaveStartCallback(void);
@@ -213,6 +215,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
     [MENU_ACTION_HORIZON_SHOP]    = {gText_MenuHorizonShop, {.u8_void = StartMenuHorizonShopCallback}},
     [MENU_ACTION_MOVE_MANAGEMENT] = {gText_MenuMoveManagement, {.u8_void = StartMenuMoveManagementCallback}},
+    [MENU_ACTION_CRAFTING]       = {gText_MenuCrafting, {.u8_void = StartMenuCraftingCallback}},
 };
 
 static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
@@ -324,6 +327,20 @@ static void BuildStartMenuActions(void)
     }
 }
 
+static bool8 StartMenuCraftingCallback(void)
+{
+    if (!gPaletteFade.active)
+    {
+        ClearDialogWindowAndFrameToTransparent(0, TRUE);
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+        ScriptContext_SetupScript(EventScript_CraftSuperExpShare);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static void AddStartMenuAction(u8 action)
 {
     AppendToList(sCurrentStartMenuActions, &sNumStartMenuActions, action);
@@ -343,6 +360,7 @@ static void BuildNormalStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
     AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
+    AddStartMenuAction(MENU_ACTION_CRAFTING);
 
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
@@ -363,6 +381,7 @@ static void BuildDebugStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
     AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
+    AddStartMenuAction(MENU_ACTION_CRAFTING);
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
     AddStartMenuAction(MENU_ACTION_PLAYER);

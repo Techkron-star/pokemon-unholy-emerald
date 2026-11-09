@@ -9851,6 +9851,24 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_ExpShare,
     },
 
+    [ITEM_SUPER_EXP_SHARE] =
+    {
+        .name = ITEM_NAME("Super Exp. Share"),
+        .holdEffect = HOLD_EFFECT_EXP_SHARE_PLUS,
+        .description = COMPOUND_STRING(
+            "A crafted device that\n"
+            "gives 100% EXP to\n"
+            "each eligible Pokémon."),
+        .price = 0,
+        .pocket = POCKET_ITEMS,
+        .sortType = ITEM_TYPE_HELD_ITEM,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_ExpShare,
+        .flingPower = 30,
+        .iconPic = gItemIcon_ExpShare,
+        .iconPalette = gItemIconPalette_ExpShare,
+    },
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

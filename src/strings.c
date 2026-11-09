@@ -884,6 +884,7 @@ const u8 gText_MenuRest[] = _("REST");
 const u8 gText_MenuDexNav[] = _("DEXNAV");
 const u8 gText_MenuHorizonShop[] = _("HORIZON SHOP");
 const u8 gText_MenuMoveManagement[] = _("MOVE MANAGEMENT");
+const u8 gText_MenuCrafting[] = _("CRAFTING");
 const u8 gText_SafariBallStock[] = _("SAFARI BALLS\nStock: {STR_VAR_1}");
 const u8 gText_MenuSafariStats[] = _("{STR_VAR_1}/{STR_VAR_2}\nBALLS  {STR_VAR_3}");
 const u8 gText_BattlePyramidFloor[] = _("Battle Pyramid\n{STR_VAR_1}");

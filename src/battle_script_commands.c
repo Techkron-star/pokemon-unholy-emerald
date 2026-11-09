@@ -2114,6 +2114,12 @@ static bool32 BattleTypeAllowsExp(void)
         return TRUE;
 }
 
+static bool32 IsExpShareHoldEffect(enum HoldEffect holdEffect)
+{
+    return holdEffect == HOLD_EFFECT_EXP_SHARE
+        || holdEffect == HOLD_EFFECT_EXP_SHARE_PLUS;
+}
+
 static enum HoldEffect GetMonHoldEffect(struct Pokemon *mon)
 {
     enum Item item = GetMonData(mon, MON_DATA_HELD_ITEM);
@@ -2174,6 +2180,7 @@ static void Cmd_getexp(void)
             u32 *exp = &gBattleStruct->expValue;
             u32 sentInBits = gSentPokesToOpponent[(gBattlerFainted & 2) >> 1];
             u32 expShareBits = 0;
+            bool32 hasExpSharePlus = FALSE;
             s32 viaSentIn = 0;
             s32 viaExpShare = 0;
 
@@ -2185,10 +2192,12 @@ static void Cmd_getexp(void)
                     viaSentIn++;
 
                 holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][i]);
-                if (holdEffect == HOLD_EFFECT_EXP_SHARE || IsGen6ExpShareEnabled())
+                if (IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled())
                 {
                     expShareBits |= 1u << i;
                     viaExpShare++;
+                    if (holdEffect == HOLD_EFFECT_EXP_SHARE_PLUS)
+                        hasExpSharePlus = TRUE;
                 }
             }
             // Get order of mons getting exp: 1. all mons via sent in, 2. all mons via exp share
@@ -2218,13 +2227,21 @@ static void Cmd_getexp(void)
             {
                 if (viaExpShare) // at least one mon is getting exp via exp share
                 {
-                    *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);
-                    if (*exp == 0)
-                        *exp = 1;
+                    if (hasExpSharePlus)
+                    {
+                        *exp = calculatedExp;
+                        gBattleStruct->expShareExpValue = calculatedExp;
+                    }
+                    else
+                    {
+                        *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);
+                        if (*exp == 0)
+                            *exp = 1;
 
-                    gBattleStruct->expShareExpValue = calculatedExp / 2 / viaExpShare;
-                    if (gBattleStruct->expShareExpValue == 0)
-                        gBattleStruct->expShareExpValue = 1;
+                        gBattleStruct->expShareExpValue = calculatedExp / 2 / viaExpShare;
+                        if (gBattleStruct->expShareExpValue == 0)
+                            gBattleStruct->expShareExpValue = 1;
+                    }
                 }
                 else
                 {
@@ -2254,7 +2271,7 @@ static void Cmd_getexp(void)
             bool32 wasSentOut = (gBattleStruct->expSentInMons & (1u << *expMonId)) != 0;
             holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][*expMonId]);
 
-            if ((holdEffect != HOLD_EFFECT_EXP_SHARE && !wasSentOut && !IsGen6ExpShareEnabled())
+            if ((!IsExpShareHoldEffect(holdEffect) && !wasSentOut && !IsGen6ExpShareEnabled())
              || GetMonData(&gParties[B_TRAINER_PLAYER][*expMonId], MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG)
             {
                 gBattleScripting.getexpState = 5;
@@ -2288,7 +2305,7 @@ static void Cmd_getexp(void)
                     else
                         gBattleStruct->battlerExpReward = 0;
 
-                    if ((holdEffect == HOLD_EFFECT_EXP_SHARE || IsGen6ExpShareEnabled())
+                    if ((IsExpShareHoldEffect(holdEffect) || IsGen6ExpShareEnabled())
                         && (B_SPLIT_EXP < GEN_6 || gBattleStruct->battlerExpReward == 0)) // only give exp share bonus in later gens if the mon wasn't sent out
                     {
                         gBattleStruct->battlerExpReward += GetSoftLevelCapExpValue(gParties[B_TRAINER_PLAYER][*expMonId].level, gBattleStruct->expShareExpValue);
@@ -2322,7 +2339,7 @@ static void Cmd_getexp(void)
                     PREPARE_STRING_BUFFER(gBattleTextBuff2, stringId);
                     PREPARE_WORD_NUMBER_BUFFER(gBattleTextBuff3, 6, gBattleStruct->battlerExpReward);
 
-                    if (wasSentOut || holdEffect == HOLD_EFFECT_EXP_SHARE)
+                    if (wasSentOut || IsExpShareHoldEffect(holdEffect))
                     {
                         PrepareStringBattle(STRINGID_PKMNGAINEDEXP, 0);
                     }
