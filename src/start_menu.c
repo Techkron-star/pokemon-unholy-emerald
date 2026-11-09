@@ -1,5 +1,6 @@
 #include "global.h"
 #include "item.h"
+#include "item_icon.h"
 #include "config/save.h"
 #include "battle_pike.h"
 #include "battle_pyramid.h"
@@ -38,6 +39,7 @@
 #include "script.h"
 #include "shop.h"
 #include "sound.h"
+#include "sprite.h"
 #include "start_menu.h"
 #include "strings.h"
 #include "string_util.h"
@@ -92,6 +94,7 @@ COMMON_DATA bool8 (*gMenuCallback)(void) = NULL;
 EWRAM_DATA static u8 sSafariBallsWindowId = 0;
 EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftWindowId = 0;
+EWRAM_DATA static u8 sUnholyCraftIconSpriteId = 0;
 EWRAM_DATA static u16 sUnholyCraftSavedPalette[16] = {0};
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
@@ -201,6 +204,8 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 };
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
+// Dedicated sprite tags; the item icon is loaded only while crafting is open.
+#define TAG_UNHOLY_CRAFT_ICON 9190
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
 static const u8 sUnholyCraftName[] = _("> SUPER EXP. SHARE");
 static const u8 sUnholyCraftExplain[] = _("100% EXP for each\neligible party Pokemon.");
@@ -358,6 +363,11 @@ static void OpenUnholyCraftingMenu(void)
     CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sUnholyCraftSavedPalette, sizeof(sUnholyCraftSavedPalette));
     LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     sUnholyCraftWindowId = AddWindow(&sUnholyCraftWindow);
+    if (sUnholyCraftWindowId == 0xFF)
+    {
+        LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+        return;
+    }
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
     PutWindowTilemap(sUnholyCraftWindowId);
     FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
@@ -381,12 +391,26 @@ static void OpenUnholyCraftingMenu(void)
     AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 121, 0, 0,
                                 sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftControls);
     CopyWindowToVram(sUnholyCraftWindowId, COPYWIN_FULL);
+    sUnholyCraftIconSpriteId = AddItemIconSprite(TAG_UNHOLY_CRAFT_ICON, TAG_UNHOLY_CRAFT_ICON, ITEM_SUPER_EXP_SHARE);
+    if (sUnholyCraftIconSpriteId != MAX_SPRITES)
+    {
+        // Keep the 24x24 icon clear of the recipe text and requirements.
+        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
+        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
+    }
     CreateTask(Task_UnholyCraftingMenu, 8);
     FadeScreen(FADE_FROM_BLACK, 0);
 }
 
 static void CloseUnholyCraftingMenu(void)
 {
+    if (sUnholyCraftIconSpriteId != MAX_SPRITES)
+    {
+        FreeSpriteTilesByTag(TAG_UNHOLY_CRAFT_ICON);
+        FreeSpritePaletteByTag(TAG_UNHOLY_CRAFT_ICON);
+        DestroySprite(&gSprites[sUnholyCraftIconSpriteId]);
+        sUnholyCraftIconSpriteId = MAX_SPRITES;
+    }
     ClearStdWindowAndFrameToTransparent(sUnholyCraftWindowId, TRUE);
     RemoveWindow(sUnholyCraftWindowId);
     LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
