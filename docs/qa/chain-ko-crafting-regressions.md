@@ -19,7 +19,8 @@
 - With no Exp. Share: show missing-ingredient message without corrupting the display.
 - With the Exp. Share, with and without Stone Badge: validate prerequisites and completion.
 - Inspect Pokémon Info with Alpha, Super, Enraged and Omega flags: badges stay on the ability name line; ability description remains readable.
-- Distinct mutation glint (Omega six-point red/black particles), configurable Exp. Share and other toggle items, extra medicine/utility pockets, and dedicated crafting graphics require a separate verified implementation.
+- Omega glint: verify shiny-only, Omega-only, and shiny+Omega entry effects in both wild/trainer and single/double battles; no blocked turns, resource leak or color corruption.
+- Full graphical crafting and advanced Horizon stock still need emulator QA and full implementation.
 
 ## Verification status
 

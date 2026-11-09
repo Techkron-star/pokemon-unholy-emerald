@@ -3317,6 +3317,8 @@ void FreeShinyStars(void)
     }
     FreeSpriteTilesByTag(ANIM_TAG_GOLD_STARS);
     FreeSpritePaletteByTag(ANIM_TAG_GOLD_STARS);
+    FreeSpriteTilesByTag(ANIM_TAG_UNHOLY_OMEGA_GLINT);
+    FreeSpritePaletteByTag(ANIM_TAG_UNHOLY_OMEGA_GLINT);
 }
 
 enum BattleTrainer GetBattlerTrainer(enum BattlerId battler)

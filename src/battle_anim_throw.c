@@ -11,6 +11,7 @@
 #include "main.h"
 #include "palette.h"
 #include "pokeball.h"
+#include "pokemon.h"
 #include "sound.h"
 #include "sprite.h"
 #include "task.h"
@@ -28,6 +29,8 @@
 COMMON_DATA u32 gMonShrinkDuration = 0;
 COMMON_DATA u16 gMonShrinkDelta = 0;
 COMMON_DATA u16 gMonShrinkDistance = 0;
+// One completion signal for a normal, Omega or combined Shiny+Omega entrance.
+EWRAM_DATA static u8 sUnholyPendingGlints[MAX_BATTLERS_COUNT] = {0};
 
 enum {
     BALL_ROLL_1,
@@ -161,6 +164,29 @@ static const struct CaptureStar sCaptureStars[] =
 #define TAG_PARTICLES_CHERISH_BALL 65057
 #define TAG_PARTICLES_OMEGA_BALL   65058
 #define TAG_PARTICLES_INFINITY_BALL 65059
+
+static const struct CompressedSpriteSheet sUnholyOmegaGlintSheet =
+{
+    .data = gBattleAnimSpriteGfx_OmegaGlint,
+    .size = 0x200,
+    .tag = ANIM_TAG_UNHOLY_OMEGA_GLINT,
+};
+
+static const struct SpritePalette sUnholyOmegaGlintPalette =
+{
+    .data = gBattleAnimSpritePal_OmegaGlint,
+    .tag = ANIM_TAG_UNHOLY_OMEGA_GLINT,
+};
+
+static const struct SpriteTemplate sUnholyOmegaGlintTemplate =
+{
+    .tileTag = ANIM_TAG_UNHOLY_OMEGA_GLINT,
+    .paletteTag = ANIM_TAG_UNHOLY_OMEGA_GLINT,
+    .oam = &gOamData_AffineOff_ObjNormal_32x32,
+    .anims = gDummySpriteAnimTable,
+    .affineAnims = gDummySpriteAffineAnimTable,
+    .callback = SpriteCallbackDummy,
+};
 
 static const union AnimCmd sAnim_RegularBall[] =
 {
@@ -2164,25 +2190,51 @@ void AnimTask_SetTargetToEffectBattler(u8 taskId)
 #define tStarIdx   data[11]
 #define tNumStars  data[12]
 #define tTimer     data[13]
+#define tOmega     data[14]
 
 #define sTaskId data[0]
 #define sPhase  data[1] // For encircling stars
 #define sTimer  data[1] // For diagnoal stars
 
+static bool8 StartUnholyGlintPair(enum BattlerId battler, bool8 omega)
+{
+    u8 taskCirc = CreateTask(Task_ShinyStars, 10);
+    u8 taskDgnl;
+    if (taskCirc == TASK_NONE)
+        return FALSE;
+    taskDgnl = CreateTask(Task_ShinyStars, 10);
+    if (taskDgnl == TASK_NONE)
+    {
+        DestroyTask(taskCirc);
+        return FALSE;
+    }
+    gTasks[taskCirc].tBattler = battler;
+    gTasks[taskDgnl].tBattler = battler;
+    gTasks[taskCirc].tStarMove = SHINY_STAR_ENCIRCLE;
+    gTasks[taskDgnl].tStarMove = SHINY_STAR_DIAGONAL;
+    gTasks[taskCirc].tOmega = omega;
+    gTasks[taskDgnl].tOmega = omega;
+    sUnholyPendingGlints[battler]++;
+    return TRUE;
+}
+
 void TryShinyAnimation(enum BattlerId battler, struct Pokemon *mon)
 {
     bool8 isShiny;
-    u8 taskCirc, taskDgnl;
-    struct Pokemon* illusionMon;
+    bool8 isOmega;
+    struct Pokemon *illusionMon = GetIllusionMonPtr(battler);
 
-    isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
     gBattleSpritesDataPtr->healthBoxesData[battler].triedShinyMonAnim = TRUE;
-    illusionMon = GetIllusionMonPtr(battler);
     if (illusionMon != NULL)
         mon = illusionMon;
+    isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
+    isOmega = (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_OMEGA) != 0;
+    sUnholyPendingGlints[battler] = 0;
 
-    if (IsBattlerSpriteVisible(battler) && IsValidForBattle(mon) && (!gTestRunnerHeadless || gBattleTestRunnerState->forceMoveAnim))
+    if (IsBattlerSpriteVisible(battler) && IsValidForBattle(mon)
+     && (!gTestRunnerHeadless || gBattleTestRunnerState->forceMoveAnim))
     {
+        // Preserve the original shiny stars for shiny Pokémon.
         if (isShiny)
         {
             if (GetSpriteTileStartByTag(ANIM_TAG_GOLD_STARS) == 0xFFFF)
@@ -2190,15 +2242,22 @@ void TryShinyAnimation(enum BattlerId battler, struct Pokemon *mon)
                 LoadCompressedSpriteSheetUsingHeap(&gBattleAnimTable[GET_TRUE_SPRITE_INDEX(ANIM_TAG_GOLD_STARS)].pic);
                 LoadSpritePalette(&gBattleAnimTable[GET_TRUE_SPRITE_INDEX(ANIM_TAG_GOLD_STARS)].palette);
             }
-
-            taskCirc = CreateTask(Task_ShinyStars, 10);
-            taskDgnl = CreateTask(Task_ShinyStars, 10);
-            gTasks[taskCirc].tBattler = battler;
-            gTasks[taskDgnl].tBattler = battler;
-            gTasks[taskCirc].tStarMove = SHINY_STAR_ENCIRCLE;
-            gTasks[taskDgnl].tStarMove = SHINY_STAR_DIAGONAL;
-            return;
+            StartUnholyGlintPair(battler, FALSE);
         }
+
+        // Omega is a mutation independent of shininess. Both glints may coexist.
+        if (isOmega)
+        {
+            if (GetSpriteTileStartByTag(ANIM_TAG_UNHOLY_OMEGA_GLINT) == 0xFFFF)
+            {
+                LoadCompressedSpriteSheetUsingHeap(&sUnholyOmegaGlintSheet);
+                LoadSpritePalette(&sUnholyOmegaGlintPalette);
+            }
+            StartUnholyGlintPair(battler, TRUE);
+        }
+
+        if (sUnholyPendingGlints[battler] != 0)
+            return;
     }
 
     gBattleSpritesDataPtr->healthBoxesData[battler].finishedShinyMonAnim = TRUE;
@@ -2232,19 +2291,34 @@ static void Task_ShinyStars(u8 taskId)
     y = GetBattlerSpriteCoord(battler, BATTLER_COORD_Y);
 
     starIdx = gTasks[taskId].tStarIdx;
-    if (starIdx == 0) // Big star
+    if (gTasks[taskId].tOmega)
+    {
+        // Same star orbit/timing as shiny, with custom red-and-black six-point pixels.
+        spriteId = CreateSprite(&sUnholyOmegaGlintTemplate, x, y, 5);
+    }
+    else if (starIdx == 0) // Big shiny star
     {
         spriteId = CreateSprite(&gWishStarSpriteTemplate, x, y, 5);
     }
-    else if (starIdx >= 0 && gTasks[taskId].tStarIdx < 4) // Medium star
+    else if (starIdx >= 0 && starIdx < 4) // Medium shiny star
     {
         spriteId = CreateSprite(&gMiniTwinklingStarSpriteTemplate, x, y, 5);
-        gSprites[spriteId].oam.tileNum += 4;
+        if (spriteId != MAX_SPRITES)
+            gSprites[spriteId].oam.tileNum += 4;
     }
-    else // Small star
+    else // Small shiny star
     {
         spriteId = CreateSprite(&gMiniTwinklingStarSpriteTemplate, x, y, 5);
-        gSprites[spriteId].oam.tileNum += 5;
+        if (spriteId != MAX_SPRITES)
+            gSprites[spriteId].oam.tileNum += 5;
+    }
+
+    if (spriteId == MAX_SPRITES)
+    {
+        // Never index outside gSprites[] if all OAM slots are occupied.
+        if (++gTasks[taskId].tStarIdx >= 5)
+            gTasks[taskId].func = Task_ShinyStars_Wait;
+        return;
     }
 
     if (gTasks[taskId].tStarMove == SHINY_STAR_ENCIRCLE)
@@ -2270,8 +2344,7 @@ static void Task_ShinyStars(u8 taskId)
 
     gSprites[spriteId].sTaskId = taskId;
     gTasks[taskId].tStarIdx++;
-    if (spriteId != MAX_SPRITES)
-        gTasks[taskId].tNumStars++;
+    gTasks[taskId].tNumStars++;
 
     if (gTasks[taskId].tStarIdx == 5)
         gTasks[taskId].func = Task_ShinyStars_Wait;
@@ -2286,7 +2359,8 @@ static void Task_ShinyStars_Wait(u8 taskId)
         if (gTasks[taskId].tStarMove == SHINY_STAR_DIAGONAL)
         {
             battler = gTasks[taskId].tBattler;
-            gBattleSpritesDataPtr->healthBoxesData[battler].finishedShinyMonAnim = TRUE;
+            if (sUnholyPendingGlints[battler] != 0 && --sUnholyPendingGlints[battler] == 0)
+                gBattleSpritesDataPtr->healthBoxesData[battler].finishedShinyMonAnim = TRUE;
         }
 
         DestroyTask(taskId);
@@ -2333,6 +2407,7 @@ static void SpriteCB_ShinyStars_Diagonal(struct Sprite *sprite)
 #undef tStarIdx
 #undef tNumStars
 #undef tTimer
+#undef tOmega
 
 #undef sTaskId
 #undef sPhase

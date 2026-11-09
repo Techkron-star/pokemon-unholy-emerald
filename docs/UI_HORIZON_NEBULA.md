@@ -141,3 +141,5 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - [ ] Pantalla de crafting interactiva.
 - [x] Se agregaron sprites indexados 24x24 con iconos dedicados para Omega Ball, Infinity Ball y Super Exp. Share, y el recurso de estrella Omega. El glint todavía necesita conectarse al combate.
 - [ ] Compilación, QA visual e integración aprobada.
+
+**Glint Omega:** conectado a `TryShinyAnimation` reutilizando órbitas y duración shiny, pero con estrella roja/negra distinta y etiqueta de recurso independiente. La finalización espera ambas animaciones si el Pokémon es shiny y Omega; requiere QA en emulador y CI.
