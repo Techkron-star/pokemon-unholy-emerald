@@ -23,8 +23,15 @@
 // hasta que su stamina vuelva a este % del máximo.
 #define STAMINA_RECOVER_PERCENT         25
 
+// Habilidades de "snowball" (Moxie, Beast Boost, Chilling/Grim Neigh...): al noquear a un
+// Pokémon restauran este % de la stamina máxima por cada KO, además de su subida de stat.
+#define STAMINA_KO_RESTORE_PERCENT      30
+
 // Posición de la barra de stamina respecto a la barra de vida (píxeles hacia abajo).
 // Si no te gusta dónde queda, ajusta este número.
 #define STAMINA_BAR_Y_OFFSET            8
+
+// Ancho de la barra en píxeles (6 tiles, igual que la barra de vida). No cambiar.
+#define STAMINA_BAR_PIXELS              48
 
 #endif // GUARD_CONFIG_STAMINA_H

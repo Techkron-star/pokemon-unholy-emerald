@@ -14,6 +14,9 @@ u32 Stamina_GetMoveCost(enum Move move);
 // Se llama cuando un movimiento se ejecuta (junto con la deducción de PP).
 void Stamina_SpendForMove(enum BattlerId battler, enum Move move);
 
+// Habilidades de snowball: restaura stamina al noquear (numKos = Pokémon noqueados).
+void Stamina_RestoreOnKnockout(enum BattlerId battler, u32 numKos);
+
 // Se llama al final de cada turno: recarga y gestiona el agotamiento.
 void Stamina_EndOfTurn(enum BattlerId battler);
 

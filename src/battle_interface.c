@@ -816,10 +816,10 @@ static void DrawStaminaBar(struct Sprite *sprite, struct BattleBarInfo *bar)
 {
     u8 array[8];
 
-    CalcBarFilledPixels(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, array, B_HEALTHBAR_PIXELS / 8);
+    CalcBarFilledPixels(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, array, STAMINA_BAR_PIXELS / 8);
 
     // La barra usa los gráficos azules de la barra de experiencia.
-    for (u32 i = 0; i < B_HEALTHBAR_PIXELS / 8; i++)
+    for (u32 i = 0; i < STAMINA_BAR_PIXELS / 8; i++)
         CpuCopy32(GetHealthboxElementGfxPtr(HEALTHBOX_GFX_12) + array[i] * 32,
                   (void *)(OBJ_VRAM0 + (sprite->oam.tileNum + 2 + i) * TILE_SIZE_4BPP), 32);
 }
@@ -839,7 +839,7 @@ static void UpdateStaminaBar(struct Sprite *sprite, enum BattlerId battler)
         bar->oldValue = target;
         bar->receivedValue = 0;
         bar->currValue = -32768;
-        CalcNewBarValue(bar->maxValue, bar->oldValue, 0, &bar->currValue, B_HEALTHBAR_PIXELS / 8, 1);
+        CalcNewBarValue(bar->maxValue, bar->oldValue, 0, &bar->currValue, STAMINA_BAR_PIXELS / 8, 1);
         DrawStaminaBar(sprite, bar);
         return;
     }
@@ -854,8 +854,8 @@ static void UpdateStaminaBar(struct Sprite *sprite, enum BattlerId battler)
         bar->currValue = -32768;
     }
 
-    u16 fraction = B_FAST_HP_DRAIN == FALSE ? 1 : max(bar->maxValue / (B_HEALTHBAR_PIXELS / 2), 1);
-    s32 ret = CalcNewBarValue(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, B_HEALTHBAR_PIXELS / 8, fraction);
+    u16 fraction = B_FAST_HP_DRAIN == FALSE ? 1 : max(bar->maxValue / (STAMINA_BAR_PIXELS / 2), 1);
+    s32 ret = CalcNewBarValue(bar->maxValue, bar->oldValue, bar->receivedValue, &bar->currValue, STAMINA_BAR_PIXELS / 8, fraction);
 
     DrawStaminaBar(sprite, bar);
 

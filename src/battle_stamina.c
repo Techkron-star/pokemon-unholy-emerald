@@ -78,6 +78,20 @@ void Stamina_SpendForMove(enum BattlerId battler, enum Move move)
     }
 }
 
+void Stamina_RestoreOnKnockout(enum BattlerId battler, u32 numKos)
+{
+    if (!STAMINA_ENABLED)
+        return;
+
+    EnsureInitialized(battler);
+
+    u32 max = gBattleStruct->maxStamina[battler];
+    u32 stamina = gBattleStruct->stamina[battler] + max * STAMINA_KO_RESTORE_PERCENT / 100 * numKos;
+
+    gBattleStruct->stamina[battler] = stamina > max ? max : stamina;
+    // Si estaba agotado y ya supera el umbral, el chequeo de fin de turno lo recuperará.
+}
+
 void Stamina_EndOfTurn(enum BattlerId battler)
 {
     if (!STAMINA_ENABLED)

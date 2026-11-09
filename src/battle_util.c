@@ -6,6 +6,7 @@
 #include "battle_environment.h"
 #include "battle_pyramid.h"
 #include "battle_util.h"
+#include "battle_stamina.h"
 #include "battle_controllers.h"
 #include "battle_interface.h"
 #include "battle_setup.h"
@@ -4552,6 +4553,9 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
 
                 enum Stat stat = STAT_ATK;
                 u32 numMonsFainted = NumFaintedBattlersByAttacker(battler);
+
+                if (numMonsFainted)
+                    Stamina_RestoreOnKnockout(battler, numMonsFainted);
 
                 if (ability == ABILITY_BEAST_BOOST || ability == ABILITY_EELEVATE)
                     stat = GetHighestStatId(battler);
