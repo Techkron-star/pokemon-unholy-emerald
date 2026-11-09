@@ -28,6 +28,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Movimiento acelerado | Implementado y configurable: el jugador corre automáticamente en exteriores e interiores; A mantiene el movimiento lento y se respetan los tiles que prohíben correr |
 | Renovación automática de repelente | Implementada y configurable: reutiliza el último repelente/cebo disponible al agotarse, consume el objeto y conserva el flujo existente si no está disponible |
 | Sistema de crafteo inicial | Implementada la receta Repartir EXP + Medalla Piedra -> Súper Repartir EXP. La medalla no se consume; el objeto base sí se reemplaza |
+| Progresión de crafteo | Al iniciar se reciben Repartir EXP, correr y bicicleta; el menú de crafteo se desbloquea tras la primera medalla mediante Roxanne |
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |

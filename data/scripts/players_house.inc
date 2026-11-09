@@ -73,6 +73,16 @@ PlayersHouse_2F_EventScript_WallClock::
 @ Tras poner el reloj se saltan la escena de la tele, la visita a la casa del rival y su habitación:
 @ se deja el juego en el mismo estado que tras conocerlo, listo para ir directo con el profesor.
 PlayersHouse_EventScript_SkipIntroToBirch::
+	goto_if_set FLAG_RECEIVED_STARTER_QOL, PlayersHouse_EventScript_StarterQolDone
+	msgbox PlayersHouse_1F_Text_StarterQolGift, MSGBOX_DEFAULT
+	additem ITEM_EXP_SHARE
+	setflag FLAG_RECEIVED_RUNNING_SHOES
+	setflag FLAG_SYS_B_DASH
+	setflag FLAG_GOT_BICYCLE
+	setflag FLAG_RECEIVED_BIKE
+	additem ITEM_BICYCLE
+	setflag FLAG_RECEIVED_STARTER_QOL
+PlayersHouse_EventScript_StarterQolDone::
 	setvar VAR_LITTLEROOT_INTRO_STATE, 7 @ 7: Told to go meet rival
 	setflag FLAG_MET_RIVAL_MOM
 	setvar VAR_LITTLEROOT_HOUSES_STATE_BRENDAN, 2 @ 2: Met Rival's Mom
@@ -122,6 +132,12 @@ PlayersHouse_2F_EventScript_MomComesUpstairsFemale::
 	applymovement VAR_0x8008, PlayersHouse_2F_Movement_MomExitsFemale
 	waitmovement 0
 	return
+
+PlayersHouse_1F_Text_StarterQolGift:
+	.string "MOM: Before you go, I packed a few\n"
+	.string "things to make traveling easier.\p"
+	.string "There's an EXP. SHARE, running shoes,\n"
+	.string "and a BICYCLE in your Bag.$"
 
 PlayersHouse_2F_EventScript_CheckWallClock::
 	incrementgamestat GAME_STAT_CHECKED_CLOCK

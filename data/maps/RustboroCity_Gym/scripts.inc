@@ -17,6 +17,8 @@ RustboroCity_Gym_EventScript_RoxanneDefeated::
 	msgbox RustboroCity_Gym_Text_StoneBadgeInfoTakeThis, MSGBOX_DEFAULT
 	setflag FLAG_DEFEATED_RUSTBORO_GYM
 	setflag FLAG_BADGE01_GET
+	setflag FLAG_CRAFTING_UNLOCKED
+	msgbox RustboroCity_Gym_Text_CraftingUnlocked, MSGBOX_DEFAULT
 	setvar VAR_RUSTBORO_CITY_STATE, 1
 	addvar VAR_PETALBURG_GYM_STATE, 1
 	setvar VAR_0x8008, 1
@@ -136,6 +138,13 @@ RustboroCity_Gym_Text_GymGuidePostVictory:
 	.string "You've climbed the first step on\n"
 	.string "the stairs to the CHAMPIONSHIP!\p"
 	.string "That's got to feel awesome!$"
+
+RustboroCity_Gym_Text_CraftingUnlocked:
+	.string "You know, now that you have your first\n"
+	.string "BADGE, you can improve your items.\p"
+	.string "Check the CRAFTING option in your menu\n"
+	.string "to turn your EXP. SHARE into something\n"
+	.string "even better!$"
 
 RustboroCity_Gym_Text_JoshIntro:
 	.string "Don't take us GYM TRAINERS lightly!\n"

@@ -360,7 +360,8 @@ static void BuildNormalStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
     AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
-    AddStartMenuAction(MENU_ACTION_CRAFTING);
+    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+        AddStartMenuAction(MENU_ACTION_CRAFTING);
 
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
@@ -381,7 +382,8 @@ static void BuildDebugStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
     AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
-    AddStartMenuAction(MENU_ACTION_CRAFTING);
+    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+        AddStartMenuAction(MENU_ACTION_CRAFTING);
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
     AddStartMenuAction(MENU_ACTION_PLAYER);
