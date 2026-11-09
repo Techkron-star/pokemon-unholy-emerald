@@ -7,6 +7,7 @@
 #include "battle_pyramid.h"
 #include "battle_util.h"
 #include "battle_stamina.h"
+#include "battle_chain.h"
 #include "battle_controllers.h"
 #include "battle_interface.h"
 #include "battle_setup.h"
@@ -481,6 +482,12 @@ void HandleAction_UseMove(void)
     gBattlerAttacker = gBattlerByTurnOrder[gCurrentTurnActionNumber];
     if (!IsBattlerAlive(gBattlerAttacker)
      || gBattleStruct->battlerState[gBattlerAttacker].commandingDondozo)
+    {
+        gCurrentActionFuncId = B_ACTION_FINISHED;
+        return;
+    }
+
+    if (Chain_PrepareAction(gBattlerAttacker, gCurrentTurnActionNumber))
     {
         gCurrentActionFuncId = B_ACTION_FINISHED;
         return;

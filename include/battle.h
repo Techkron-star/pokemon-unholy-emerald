@@ -750,6 +750,11 @@ struct BattleStruct
     u16 maxStamina[MAX_BATTLERS_COUNT];
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
     u8 staminaExhausted[MAX_BATTLERS_COUNT];
+    // Encadenado de movimientos (ver src/battle_chain.c)
+    u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
+    u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
+    u8 turnActionRole[MAX_BATTLERS_COUNT]; // por acción del turno: 1 = usa el 2º movimiento de la cadena
+    u8 numTurnActions;                     // 0 = el normal (gBattlersCount)
 };
 
 struct AiBattleData

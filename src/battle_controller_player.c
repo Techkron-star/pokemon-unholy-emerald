@@ -47,6 +47,7 @@
 #include "pokemon_summary_screen.h"
 #include "type_icons.h"
 #include "pokedex.h"
+#include "battle_chain.h"
 #include "test/battle.h"
 
 static void PlayerHandleLoadMonSprite(enum BattlerId battler);
@@ -745,6 +746,25 @@ void HandleInputChooseMove(enum BattlerId battler)
             }
         }
 
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            // Encadenado: el 1er movimiento se marcó con SELECT; el actual es el 2º.
+            u8 first = gBattleStruct->chainFirstPos[battler] - 1;
+
+            if (first == gMoveSelectionCursor[battler]
+             || canSelectTarget != 0
+             || gBattleStruct->gimmick.playerSelect
+             || !Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]]))
+            {
+                PlaySE(SE_FAILURE);
+                return;
+            }
+
+            gBattleStruct->chainSecondPos[battler] = gMoveSelectionCursor[battler] + 1;
+            gMoveSelectionCursor[battler] = first; // se envía el 1º; el 2º queda guardado
+            gMultiUsePlayerCursor = GetDefaultSelectionTarget(battler, GetMoveTarget(moveInfo->moves[first]));
+        }
+
         switch (canSelectTarget)
         {
         case 0:
@@ -779,9 +799,35 @@ void HandleInputChooseMove(enum BattlerId battler)
             break;
         }
     }
+    else if (JOY_NEW(SELECT_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
+          && !gBattleStruct->descriptionSubmenu && !gBattleStruct->gimmick.playerSelect)
+    {
+        struct ChooseMoveStruct *chainMoveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
+
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            gBattleStruct->chainFirstPos[battler] = 0;
+            PlaySE(SE_SELECT);
+            MoveSelectionDisplayPPString(battler);
+        }
+        else if (gNumberOfMovesToChoose >= 2
+              && chainMoveInfo->currentPP[gMoveSelectionCursor[battler]] != 0
+              && Chain_IsMoveChainable(chainMoveInfo->moves[gMoveSelectionCursor[battler]]))
+        {
+            gBattleStruct->chainFirstPos[battler] = gMoveSelectionCursor[battler] + 1;
+            PlaySE(SE_SELECT);
+            StringCopy(gDisplayedStringBattle, sText_ChainMarked);
+            BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
+        }
+        else
+        {
+            PlaySE(SE_FAILURE);
+        }
+    }
     else if ((JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)  && !gBattleStruct->descriptionSubmenu)
     {
         PlaySE(SE_SELECT);
+        gBattleStruct->chainFirstPos[battler] = 0;
         gBattleStruct->gimmick.playerSelect = FALSE;
         if (gBattleStruct->zmove.viewing)
         {
@@ -1671,6 +1717,8 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
     }
 }
 
+static const u8 sText_ChainMarked[] = _("x2");
+
 static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
     StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
@@ -2109,6 +2157,8 @@ void PlayerHandleChooseMove(enum BattlerId battler)
         struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
 
         InitMoveSelectionsVarsAndStrings(battler);
+        gBattleStruct->chainFirstPos[battler] = 0;
+        gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gimmick.playerSelect = FALSE;
         TryToAddMoveInfoWindow();
 

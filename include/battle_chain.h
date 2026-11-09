@@ -1,0 +1,26 @@
+#ifndef GUARD_BATTLE_CHAIN_H
+#define GUARD_BATTLE_CHAIN_H
+
+// Encadenado de movimientos: el jugador puede usar 2 movimientos distintos en un turno
+// a cambio de que el rival actúe una vez extra. Solo en combates individuales y sin enlace.
+#define CHAIN_ENABLED   TRUE
+
+// ¿Puede este combatiente encadenar ahora mismo?
+bool32 Chain_IsAvailable(enum BattlerId battler);
+
+// ¿Este movimiento se puede encadenar? (los de protección no)
+bool32 Chain_IsMoveChainable(enum Move move);
+
+// Reconstruye el orden de turno cuando hay cadena (se llama tras calcular el orden normal).
+void Chain_ExpandTurnOrder(void);
+
+// Se llama al empezar cada acción de movimiento. Devuelve TRUE si la acción debe saltarse.
+bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex);
+
+// Número de acciones del turno actual (normalmente gBattlersCount).
+u32 Chain_GetNumTurnActions(void);
+
+// Limpia el estado al final del turno.
+void Chain_Reset(void);
+
+#endif // GUARD_BATTLE_CHAIN_H

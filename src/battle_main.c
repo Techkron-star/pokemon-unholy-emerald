@@ -10,6 +10,7 @@
 #include "battle_interface.h"
 #include "battle_main.h"
 #include "battle_stamina.h"
+#include "battle_chain.h"
 #include "battle_message.h"
 #include "battle_pyramid.h"
 #include "battle_scripts.h"
@@ -4764,6 +4765,7 @@ static void TurnValuesCleanUp(bool32 endTurn)
 
             if (IsBattlerAlive(i))
                 Stamina_EndOfTurn(i);
+            Chain_Reset();
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;
             gBattleStruct->battlerState[i].wasAboveHalfHp = FALSE;
@@ -5009,6 +5011,8 @@ static void CheckChangingTurnOrderEffects(void)
         }
     }
 
+    Chain_ExpandTurnOrder();
+
     gCurrentTurnActionNumber = 0;
     gCurrentActionFuncId = gActionsByTurnOrder[0];
     gBattleStruct->dynamicMoveType = 0;
@@ -5057,7 +5061,7 @@ static void RunTurnActionsFunctions(void)
 
     sTurnActionsFuncsTable[gCurrentActionFuncId]();
 
-    if (gCurrentTurnActionNumber >= gBattlersCount) // everyone did their actions, turn finished
+    if (gCurrentTurnActionNumber >= Chain_GetNumTurnActions()) // everyone did their actions, turn finished
         gBattleMainFunc = sEndTurnFuncsTable[gBattleOutcome & 0x7F];
 }
 
