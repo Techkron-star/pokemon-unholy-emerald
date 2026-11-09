@@ -2955,8 +2955,18 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
+    // Do not offer a move-learning action without learnable moves.
     if (!GetMonData(&mons[slotId], MON_DATA_IS_EGG))
-        AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
+    {
+        for (j = 0; j < MOVE_RELEARNER_COUNT; j++)
+        {
+            if (HasMoveToRelearn(&mons[slotId].box, j))
+            {
+                AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_LEARN);
+                break;
+            }
+        }
+    }
 
     // Add field moves to action list
     for (i = 0; i < MAX_MON_MOVES; i++)
@@ -3136,7 +3146,11 @@ static void CursorCb_Summary(u8 taskId)
 
 static void CB2_StartMoveRelearnerFromParty(void)
 {
-    TeachMoveRelearnerMove();
+    // No event script is waiting when LEARN is selected from the party menu.
+    // Do not install the script-resume field callback here.
+    gRelearnMode = RELEARN_MODE_SCRIPT;
+    gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
+    SetMainCallback2(CB2_InitLearnMove);
 }
 
 static void CursorCb_Learn(u8 taskId)
@@ -8142,13 +8156,23 @@ static void Task_ChoosePartyMon(u8 taskId)
     }
 }
 
+static EWRAM_DATA bool8 sHorizonRelearnerActive = FALSE;
+
 void ChooseMonForMoveRelearner(void)
 {
+    sHorizonRelearnerActive = FALSE;
     gRelearnMode = RELEARN_MODE_SCRIPT;
     gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES; // Don't inherit a stale category from a previous relearner script
     LockPlayerFieldControls();
     FadeScreen(FADE_TO_BLACK, 0);
     CreateTask(Task_ChooseMonForMoveRelearner, 10);
+}
+
+// Horizon has no event script waiting for a move-learning result.
+void ChooseMonForHorizonMoveRelearner(void)
+{
+    ChooseMonForMoveRelearner();
+    sHorizonRelearnerActive = TRUE;
 }
 
 static void Task_ChooseMonForMoveRelearner(u8 taskId)
@@ -8163,11 +8187,24 @@ static void Task_ChooseMonForMoveRelearner(u8 taskId)
 
 static void CB2_ChooseMonForMoveRelearner(void)
 {
+    bool8 fromHorizon = sHorizonRelearnerActive;
+    sHorizonRelearnerActive = FALSE;
+
     gSpecialVar_0x8004 = GetCursorSelectionMonId();
-    if (gSpecialVar_0x8004 >= PARTY_SIZE)
+    if (gSpecialVar_0x8004 >= PARTY_SIZE
+     || gSpecialVar_0x8004 >= gPartiesCount[B_TRAINER_PLAYER]
+     || GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_IS_EGG))
     {
         gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
     }
+
+    if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
+    {
+        gRelearnMode = RELEARN_MODE_SCRIPT;
+        SetMainCallback2(CB2_InitLearnMove);
+        return;
+    }
+
     gFieldCallback2 = CB2_FadeFromPartyMenu;
     SetMainCallback2(CB2_ReturnToField);
 }

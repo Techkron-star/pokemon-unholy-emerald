@@ -74,7 +74,6 @@ enum
     MENU_ACTION_DEBUG,
     MENU_ACTION_DEXNAV,
     MENU_ACTION_HORIZON_SHOP,
-    MENU_ACTION_MOVE_MANAGEMENT,
     MENU_ACTION_CRAFTING,
 };
 
@@ -122,7 +121,6 @@ static bool8 StartMenuBattlePyramidBagCallback(void);
 static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
-static bool8 StartMenuMoveManagementCallback(void);
 static bool8 StartMenuCraftingCallback(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
 static void OpenUnholyCraftingMenu(void);
@@ -242,7 +240,6 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_DEBUG]           = {sText_MenuDebug,   {.u8_void = StartMenuDebugCallback}},
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
     [MENU_ACTION_HORIZON_SHOP]    = {gText_MenuHorizonShop, {.u8_void = StartMenuHorizonShopCallback}},
-    [MENU_ACTION_MOVE_MANAGEMENT] = {gText_MenuMoveManagement, {.u8_void = StartMenuMoveManagementCallback}},
     [MENU_ACTION_CRAFTING]       = {gText_MenuCrafting, {.u8_void = StartMenuCraftingCallback}},
 };
 
@@ -473,7 +470,6 @@ static void BuildNormalStartMenu(void)
 
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
-    AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
     if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
@@ -495,7 +491,6 @@ static void BuildDebugStartMenu(void)
         AddStartMenuAction(MENU_ACTION_POKEMON);
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
-    AddStartMenuAction(MENU_ACTION_MOVE_MANAGEMENT);
     if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
@@ -875,20 +870,6 @@ static bool8 StartMenuHorizonShopCallback(void)
         CleanupOverworldWindowsAndTilemaps();
         CreateHorizonShopMenu();
         FadeScreen(FADE_FROM_BLACK, 0);
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-static bool8 StartMenuMoveManagementCallback(void)
-{
-    if (!gPaletteFade.active)
-    {
-        PlayRainStoppingSoundEffect();
-        RemoveExtraStartMenuWindows();
-        CleanupOverworldWindowsAndTilemaps();
-        ChooseMonForMoveRelearner();
         return TRUE;
     }
 
