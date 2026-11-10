@@ -1351,6 +1351,14 @@
 #define FLAG_SYS_PC_LANETTE                                         (SYS_FLAGS + 0x34)
 #define FLAG_0x835                                                  (SYS_FLAGS + 0x35)
 #define FLAG_0x836                                                  (SYS_FLAGS + 0x36)
+// Unholy-only persistent flags: FRLG used previously unassigned system slots.
+// Keep these distinct from Emerald's layout; no existing FRLG flags are moved.
+#define FLAG_UNHOLY_EXP_SHARE_ENABLED                                FLAG_0x82A
+#define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED                          FLAG_0x82B
+#define FLAG_UNHOLY_UI_DAYLIGHT                                      FLAG_0x82E
+#define FLAG_CRAFTING_UNLOCKED                                       FLAG_0x831
+// Starter gift script used by Unholy: keep a dedicated persistent unused FRLG flag.
+#define FLAG_RECEIVED_STARTER_QOL                                     FLAG_0x832
 #define FLAG_SYS_RESET_RTC_ENABLE                                   (SYS_FLAGS + 0x37)
 #define FLAG_0x838                                                  (SYS_FLAGS + 0x38) // Set, never read
 #define FLAG_SYS_MYSTERY_GIFT_ENABLE                                (SYS_FLAGS + 0x39)

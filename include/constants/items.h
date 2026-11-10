@@ -1054,6 +1054,14 @@ enum __attribute__((packed)) Item
     ITEM_OMEGA_BALL = 874,
     ITEM_INFINITY_BALL = 875,
     ITEM_SUPER_EXP_SHARE = 876,
+    // Crafted Gears are portable items until installed in a Pokemon's separate Gear slot.
+    // Append-only IDs: do not renumber save-compatible items.
+    ITEM_GEAR_VISOR_COSMICO = 877,
+    ITEM_GEAR_CORAZON_TITAN = 878,
+    ITEM_GEAR_SKI_MASK = 879,
+    ITEM_GEAR_CETRO_SINIESTRO = 880,
+    ITEM_GEAR_IMPULSO_COSMICO = 881,
+    ITEM_GEAR_PERMAFROST_FRAGMENT = 882,
 
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,

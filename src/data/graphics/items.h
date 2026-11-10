@@ -1366,6 +1366,20 @@ const u16 gItemIconPalette_ExpShare[] = INCGFX_U16("graphics/items/icon_palettes
 const u32 gItemIcon_SuperExpShare[] = INCGFX_U32("graphics/items/icons/super_exp_share.png", ".4bpp.smol");
 const u16 gItemIconPalette_SuperExpShare[] = INCGFX_U16("graphics/items/icon_palettes/super_exp_share.pal", ".gbapal");
 
+// Crafted Unholy Gears reuse the already-approved 24x24 concept item sprites.
+const u32 gItemIcon_VisorCosmico[] = INCGFX_U32("graphics/items/icons/visor_cosmico.png", ".4bpp.smol");
+const u16 gItemIconPalette_VisorCosmico[] = INCGFX_U16("graphics/items/icon_palettes/visor_cosmico.pal", ".gbapal");
+const u32 gItemIcon_CorazonTitan[] = INCGFX_U32("graphics/items/icons/corazon_titan.png", ".4bpp.smol");
+const u16 gItemIconPalette_CorazonTitan[] = INCGFX_U16("graphics/items/icon_palettes/corazon_titan.pal", ".gbapal");
+const u32 gItemIcon_SkiMask[] = INCGFX_U32("graphics/items/icons/ski_mask.png", ".4bpp.smol");
+const u16 gItemIconPalette_SkiMask[] = INCGFX_U16("graphics/items/icon_palettes/ski_mask.pal", ".gbapal");
+const u32 gItemIcon_CetroSiniestro[] = INCGFX_U32("graphics/items/icons/cetro_siniestro.png", ".4bpp.smol");
+const u16 gItemIconPalette_CetroSiniestro[] = INCGFX_U16("graphics/items/icon_palettes/cetro_siniestro.pal", ".gbapal");
+const u32 gItemIcon_ImpulsoCosmico[] = INCGFX_U32("graphics/items/icons/impulso_cosmico.png", ".4bpp.smol");
+const u16 gItemIconPalette_ImpulsoCosmico[] = INCGFX_U16("graphics/items/icon_palettes/impulso_cosmico.pal", ".gbapal");
+const u32 gItemIcon_PermafrostFragment[] = INCGFX_U32("graphics/items/icons/permafrost_fragment.png", ".4bpp.smol");
+const u16 gItemIconPalette_PermafrostFragment[] = INCGFX_U16("graphics/items/icon_palettes/permafrost_fragment.pal", ".gbapal");
+
 const u32 gItemIcon_QuickClaw[] = INCGFX_U32("graphics/items/icons/quick_claw.png", ".4bpp.smol");
 const u16 gItemIconPalette_QuickClaw[] = INCGFX_U16("graphics/items/icon_palettes/quick_claw.pal", ".gbapal");
 
