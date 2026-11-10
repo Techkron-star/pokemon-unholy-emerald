@@ -58,7 +58,7 @@ Nueva entrada visible en Opciones: `UI THEME: ECLIPSE / DAYLIGHT`. Guardar una s
 
 Cinco pestañas siempre navegables:
 
-1. `PKMN`: **Pokémon**. Especies normales con oferta elegida mediante RNG, medallas y día/noche. Vista previa de especie, nivel, precio y botón «Comprar»; mostrar destino equipo/caja y qué sucede si están llenos. Ningún Alpha/Super/Enraged/Omega.
+1. `PKMN`: **Pokémon**. Dos ofertas persistentes por RNG, medallas y día/noche, con mutaciones extraordinariamente raras. Omega requiere ocho medallas. La ficha muestra especie, mutación, precio y compra con confirmación; destino al equipo o PC cuando hay espacio.
 2. `DISCS`: **Discos**. Catálogo de MT/discos desbloqueados. Icono de disco, nombre del movimiento, tipo, compatibilidad/información, precio y restricciones. No inventar un tipo nuevo de disco sin definición en diseño.
 3. `ITEMS`: **Objetos**. Consumibles, objetos especiales y mercancía normal permitida según progresión. Mostrar icono, precio y cantidad. Infinity Ball **excluida**: premio posjuego/cheat, no mercancía.
 4. `EGGS`: **Huevos**. Huevos aleatorios con precio y condiciones de entrega. No revelar especie si es misteriosa; no prometer Omega ni mutación rara; sin mecánica especial no definida.
@@ -81,8 +81,8 @@ Cinco pestañas siempre navegables:
 Reglas:
 - B retrocede exactamente un nivel; sin reentradas duplicadas ni pantallas negras.
 - El cursor y scroll de cada pestaña se conservan durante la misma sesión.
-- La mercancía diaria/nocturna se genera y **persiste** una vez por período definido, no se vuelve a tirar al entrar/salir del menú. La periodicidad exacta está pendiente de aprobación.
-- Precios, disponibilidad, cantidades, stock, costo de servicios, especies y tramos de medallas: **pendientes de balance**. En prototipos usar nombres verídicos y precios explícitamente ficticios, nunca presentarlos como canon de DISENO.md.
+- La mercancía de Pokémon se genera y **persiste** por día/período día-noche o nuevo hito de medallas; no se vuelve a tirar al entrar/salir del menú. No se permite usar ajustes regresivos del reloj para regenerar ofertas.
+- Los precios y denominadores en `src/horizon_market.c` y `include/config/special_badges.h` son **valores iniciales sujetos a balance**. Dos plazas, una unidad por plaza; cuando se compra, queda agotada hasta la siguiente rotación válida.
 - En compras con equipo/caja llenos, dinero insuficiente, bolsillo lleno, objeto no permitido o habilidad incompatible, mostrar causa y volver a lista en buen estado.
 - Garantizar que los servicios no cobren si cancelan.
 
@@ -126,7 +126,7 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - Temas con contraste legible: nombres largos, iconos especiales, mensajes de error, saldo de hasta su límite y scroll extenso.
 - A/B/L/R no dejan bloqueada la pantalla; abrir/cerrar diez veces seguidas no consume VRAM ni duplica tareas.
 - El tema persiste al guardar/cargar; cambiar paleta no modifica resultados de RNG.
-- Comprar nunca genera Pokémon mutados ni Infinity Ball; Pokémon adquirido entra exactamente una vez en equipo o PC.
+- Comprar genera exactamente la mutación persistida en la oferta (si la hubiera), nunca una tirada oculta adicional; Infinity Ball no se vende. El Pokémon adquirido entra una sola vez en equipo o PC y el pago se descuenta una sola vez.
 - Craftear comprueba requisitos y consume solo el material permitido, una vez.
 - La versión shiny sin badge conserva brillo normal; Omega usa estrellas rojas de seis puntas incluso sin ser shiny; combinados se prueban expresamente.
 - Build y pruebas reales en mGBA/otro emulador; una imagen generada no equivale a sprite o pantalla ya implementada.
