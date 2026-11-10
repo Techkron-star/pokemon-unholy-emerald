@@ -3,7 +3,7 @@
 
 #include "pokemon.h"
 
-#define HORIZON_MARKET_OFFER_COUNT 2
+#define HORIZON_MARKET_OFFER_COUNT 6
 
 enum HorizonMarketPurchaseResult
 {
