@@ -682,7 +682,7 @@ static void HorizonDrawInfo(void)
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW,
-                                 sHorizonEggBrowsing ? sHorizonTextEggBrowse
+                                 sHorizonEggBrowsing ? (sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse)
                                     : sHorizonPokemonBrowsing ? (sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse)
                                     : skin);
 
