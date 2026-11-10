@@ -88,6 +88,10 @@ Todos los números de balance están en `include/config/stamina.h`.
 - **Actualización del mercado (10/11/2026):** seis ofertas de Pokémon por RNG individual, con mutaciones **hasta Ancestral**. **Titan, Ascendido y Omega están excluidos del catálogo Pokémon**. Los huevos del mercado sí admiten estas mutaciones, incluida Omega y combinaciones múltiples; el **Mutator sigue sin poder crear Omega**.
 - Los huevos de Horizon tienen RNG de especie y mutaciones independiente de los encuentros, con premios Omega extremadamente infrecuentes; esto no aumenta las tasas de Omega en huevos normales de crianza.
 
+### Tiers de mutación (10 noviembre 2026)
+
+Clasificación unificada por **poder/acceso**, distinta de las probabilidades RNG: **C** = Alpha y Hyper; **B** = Super y Overloaded; **A** = Enraged y Ancestral; **S** = Titan y Ascendido; **Ω** = Omega. Horizon Pokémon permite únicamente C/B/A; huevos admiten C/B/A/S/Ω por ruleta. Las combinaciones conservan todas sus mutaciones, el tier principal es el más alto y los bonos siguen siendo **aditivos**. Reglas, código y pruebas en [`docs/MUTATION_TIERS.md`](docs/MUTATION_TIERS.md).
+
 ### Cambio de habilidades
 
 - La **Ability Capsule** y el **Ability Patch** están disponibles para comprar en todos los PokéMart estándar desde el primer acceso, sin requisito de medallas.

@@ -32,6 +32,7 @@
 #include "start_menu.h"
 #include "shop.h"
 #include "horizon_market.h"
+#include "mutation_tiers.h"
 #include "horizon_eggs.h"
 #include "pokemon_icon.h"
 #include "sound.h"
@@ -711,6 +712,8 @@ static void HorizonDrawInfo(void)
         if (mutation != 0)
         {
             StringCopy(gStringVar4, COMPOUND_STRING("!!! "));
+            StringAppend(gStringVar4, MutationTierGetName(MutationTierFromBadge(mutation)));
+            StringAppend(gStringVar4, COMPOUND_STRING(" "));
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
         }
         else

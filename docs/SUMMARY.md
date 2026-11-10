@@ -4,6 +4,7 @@
 - [Unholy Emerald · IA y revanchas de jefes](./IA_JEFES_REVANCHAS_Y_MUTACIONES.md)
 - [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
 - [Unholy Emerald · Horizon Market y alertas mutantes](./HORIZON_MARKET.md)
+- [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
