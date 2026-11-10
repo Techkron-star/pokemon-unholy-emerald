@@ -693,8 +693,15 @@ static void Task_ShopMenu(u8 taskId)
     {
         if (JOY_NEW(B_BUTTON))
         {
-            sHorizonPokemonBrowsing = FALSE;
-            sHorizonPokemonConfirm = FALSE;
+            if (sHorizonPokemonConfirm)
+            {
+                // First B cancels the transaction; the next B returns to tabs.
+                sHorizonPokemonConfirm = FALSE;
+            }
+            else
+            {
+                sHorizonPokemonBrowsing = FALSE;
+            }
             sHorizonPokemonStatus = 0;
             PlaySE(SE_SELECT);
             HorizonDrawInfo();
