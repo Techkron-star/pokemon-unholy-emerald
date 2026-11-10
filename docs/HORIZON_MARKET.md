@@ -1,6 +1,6 @@
 # Horizon Shop — seis ofertas Pokémon y huevos con calidad RNG
 
-**Estado:** PR #12 experimental, apilado sobre #11 → #10 → #9 → #8. No fusionar a `master` antes de compilar, comprobar guardados y pasar QA en emulador.
+**Estado:** PR #13 experimental, apilado sobre #11 → #10 → #9 → #8. No fusionar a `master` antes de compilar, comprobar guardados y pasar QA en emulador.
 
 ## Catálogo Pokémon
 
