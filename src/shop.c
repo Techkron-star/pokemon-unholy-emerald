@@ -592,6 +592,19 @@ static void HorizonCloseInfoWindow(void)
     }
 }
 
+// The red marker uses a reserved color in both Eclipse/Daylight 4bpp palettes.
+// It is a *visualization* of a real saved offer, not a random UI animation.
+static void HorizonDrawNotification(void)
+{
+    if (!sHorizonActive || sMartInfo.windowId == 0xFF)
+        return;
+
+    FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(1), 84, 10, 5, 5);
+    if (HorizonMarketHasUnseenMutation())
+        FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(13), 85, 11, 4, 4);
+    CopyWindowToVram(sMartInfo.windowId, COPYWIN_GFX);
+}
+
 static void HorizonDrawInfo(void)
 {
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonTextDaylight : sHorizonTextEclipse;
@@ -604,10 +617,65 @@ static void HorizonDrawInfo(void)
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW, skin);
-    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 36, 0, 0,
-                                sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonDescriptions[sHorizonSelectedTab]);
-    AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
-                                sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
+
+    if (sHorizonPokemonBrowsing)
+    {
+        for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
+        {
+            StringCopy(gStringVar4, slot == sHorizonPokemonSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
+            if (HorizonMarketOfferSold(slot))
+                StringAppend(gStringVar4, sHorizonTextSold);
+            else
+                StringAppend(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(slot)));
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 35 + slot * 12, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+        }
+
+        const enum PokemonBadge mutation = HorizonMarketGetMutation(sHorizonPokemonSelection);
+        const u32 price = HorizonMarketGetPrice(sHorizonPokemonSelection);
+
+        if (mutation != 0)
+        {
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextRare);
+            FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 109, 64, 4, 4);
+        }
+        else
+        {
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, HorizonMarketMutationName(mutation));
+        }
+
+        if (sHorizonPokemonStatus == 0 && price != 0)
+        {
+            StringCopy(gStringVar4, COMPOUND_STRING("COST "));
+            ConvertIntToDecimalStringN(gStringVar3, price, STR_CONV_MODE_LEFT_ALIGN, 6);
+            StringAppend(gStringVar4, gStringVar3);
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+        }
+        else
+        {
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonPokemonStatuses[sHorizonPokemonStatus]);
+        }
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
+                                    sHorizonTextColors, TEXT_SKIP_DRAW,
+                                    sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
+    }
+    else
+    {
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 36, 0, 0,
+                                    sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonDescriptions[sHorizonSelectedTab]);
+        if (sHorizonSelectedTab == 0 && HorizonMarketHasUnseenMutation())
+        {
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 72, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextRare);
+            FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 110, 75, 4, 4);
+        }
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
+                                    sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
+    }
     CopyWindowToVram(sHorizonInfoWindowId, COPYWIN_FULL);
 }
 
