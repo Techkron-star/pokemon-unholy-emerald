@@ -1,5 +1,6 @@
 #include "global.h"
 #include "horizon_eggs.h"
+#include "mutation_tiers.h"
 #include "config/special_badges.h"
 #include "daycare.h"
 #include "event_data.h"
@@ -205,6 +206,10 @@ static u16 HorizonEggRollMutations(u8 tier, u8 quality)
         const struct HorizonEggMutationOdds *entry = &sEggMutationOdds[i];
         u32 denominator = max(1, entry->denominator / factor);
 
+        // Eggs may roll *every* known tier, including S and Omega. Never
+        // confuse a high egg quality with a guaranteed mutation tier.
+        if (MutationTierFromBadge(entry->badge) == MUTATION_TIER_UNKNOWN)
+            continue;
         if (Random32() % denominator != 0)
             continue;
 
