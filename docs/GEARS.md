@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** el núcleo del sistema está implementado y en revisión; **todavía no hay Gears concretos registrados** (solo `GEAR_NONE`). La rama de mejoras corrige el acceso fuera de rango del HUD al compilar la tabla vacía y evita resets triviales del ciclo al cambiar de Pokémon. Los porcentajes y recargas de cada Gear aún requieren definición; ver `DISENO.md`, sección 4.
+**Estado:** el núcleo está implementado. La rama `feat/unholy-gear-effects-20261110` registra **seis Gears**, incluyendo los temporizadores, potenciadores, cambios de efectividad y curación periódica. Falta la interfaz de equipamiento, iconos de HUD 16×32 y validación completa de CI/emulador. No se ha integrado en `master`.
 
 ## Cómo funciona
 
@@ -139,12 +139,12 @@ Los efectos **ya están especificados**, pero aún no equivalen a Gears funciona
 |---|---|---|
 | **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |
 | **Ancla de Realidad** | Al estar en el campo elimina el clima, campos, salas y trampas, incluso los hechos permanentes mediante Teseracto. Los efectos eliminados **no reaparecen** al marcharse el portador. | Si bloquea nuevas activaciones durante su presencia, reglas de prioridad de habilidades y mensajes. |
-| **Visor Cósmico** | Gear cíclico basado en Gafas Especiales, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto de potencia entre fase de sobrecarga/residual y turnos exactos. |
-| **Corazón de Titán** | Gear cíclico basado en Banda Músculo, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto por fase y turnos exactos. |
-| **Impulso Cósmico** | Movimientos Fantasma del portador son supereficaces contra Normal, Psíquico y Hada. | Cómo cambian la potencia y/o efectos entre fases, y QA con inmunidades. |
-| **Cetro Siniestro** | Movimientos Siniestros del portador son supereficaces contra Psíquico, Hada, Normal y Lucha. En dobles tipos, evaluar **cada tipo**: Lucha/Hada puede ser ×4. | Cómo funcionan sus ciclos sin perder esta identidad. |
-| **Ski Mask** | Bonus pasivo permanente a movimientos Siniestros de **70 % del bono de Gema Siniestra**; no cambia efectividades. | Cómo se presenta el ciclo de sobrecarga adicional manteniendo la base pasiva. |
-| **Permafrost Fragment** | Duplica la probabilidad de congelar o causar Frostbite por instancia de daño de Hielo; basta con usar movimientos de tipo Hielo. Si el portador es Hielo, debe obtener regeneración adicional. | **1/16 o 1/10** de PS (pendiente de confirmar) y frecuencia de curación; bonificación de sobrecarga/residual. |
+| **Visor Cósmico** | +20 % especial durante 1 turno sobrecargado; +10 % residual 3 turnos. | **Implementado en rama**, requiere UI y QA. |
+| **Corazón de Titán** | +20 % físico durante 1 turno sobrecargado; +10 % residual 3 turnos. | **Implementado en rama**, requiere UI y QA. |
+| **Impulso Cósmico** | Ataques Fantasma del portador son supereficaces (×2 por tipo) contra Normal, Psíquico y Hada **en todas las fases**. | **Implementado en rama**; la sobrecarga no agrega daños arbitrarios. |
+| **Cetro Siniestro** | Siniestro es supereficaz contra Psíquico, Hada, Normal y Lucha, por tipo objetivo, **en todas las fases**; Lucha/Hada es ×4. | **Implementado en rama**; no altera la tabla global. |
+| **Ski Mask** | +30 % en ataques Siniestros durante turno sobrecargado; +21 % continuo durante 3 turnos de recarga; sin cambios de efectividad. | **Implementado en rama**, requiere QA. |
+| **Permafrost Fragment** | Doble probabilidad de congelación/Frostbite al dañar con Hielo; si el portador es Hielo cura **1/16 de PS máximos por turno**, sin atacar. | **Implementado en rama**, requiere QA del evento por golpe y curación con Restos. |
 
 ### Promedio de Gear + objeto ordinario
 
@@ -155,5 +155,5 @@ Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspe
 - Guardado: preservar el identificador de Gear (5 bits) al evolucionar, guardar, cargar o mover por PC; limitar la lista a 31 Gears distintos del valor vacío.
 - **Anti-abuso de cambios:** fase y temporizador sobreviven al retirar y reintroducir al Pokémon durante **el mismo combate**; finaliza toda persistencia del ciclo al iniciar otro combate. La primera corrección de motor indexa por ranura de Pokémon y puesto de combate; validar cambios cruzados entre puestos en dobles antes de producción.
 - Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
-- Permafrost: en movimientos multigolpe o en área, cada instancia elegible puede tirar estado; la regeneración del tipo Hielo debe definirse **por turno** o por ataque, para que multigolpe no permita curar PS ilimitados.
+- Permafrost: los movimientos multigolpe o en área deben tirar los estados por cada instancia **solo si el motor normalmente lo permite**. La curación es exactamente **una vez por turno al final**, al estilo Restos, sin depender de golpes. Si se equipa Restos, ambos +1/16 coincidentes se promedian (no se suman).
 - Cetro/Impulso: los cálculos de IA, interfaz de supereficacia, inmunidades y combates reales deben usar el mismo criterio; no editar permanentemente la tabla global de tipos.

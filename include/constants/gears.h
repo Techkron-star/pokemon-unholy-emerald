@@ -12,7 +12,13 @@
 enum Gear
 {
     GEAR_NONE,
-    // --- Añade los Gears nuevos debajo de esta línea ---
+    // Valores persistidos: no reordenar tras publicar partidas guardadas.
+    GEAR_VISOR_COSMICO,
+    GEAR_CORAZON_TITAN,
+    GEAR_SKI_MASK,
+    GEAR_CETRO_SINIESTRO,
+    GEAR_IMPULSO_COSMICO,
+    GEAR_PERMAFROST_FRAGMENT,
     GEAR_COUNT
 };
 

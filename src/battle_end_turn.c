@@ -7,6 +7,7 @@
 #include "battle_ai_record.h"
 #include "battle_stat_change.h"
 #include "battle_gimmick.h"
+#include "gear.h"
 #include "battle_scripts.h"
 #include "constants/battle.h"
 #include "constants/battle_string_ids.h"
@@ -431,6 +432,26 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     case FIRST_EVENT_BLOCK_HEAL_ITEMS:
         if (ItemBattleEffects(battler, 0, GetBattlerHoldEffect(battler), IsLeftoversActivation))
             effect = TRUE;
+        gBattleStruct->eventState.endTurnBlock++;
+        break;
+    case FIRST_EVENT_BLOCK_GEAR_HEAL:
+        // Permafrost es un Restos de 1/16 por turno, no vampirismo.
+        // Si el item ordinario ya cura 1/16 con Restos o Lodo Negro
+        // a un usuario Veneno, el promedio de ambos sigue siendo 1/16.
+        if (IsBattlerPresent(battler)
+         && Gear_GetBattlerGear(battler) == GEAR_PERMAFROST_FRAGMENT
+         && IS_BATTLER_OF_TYPE(battler, TYPE_ICE)
+         && !IsBattlerAtMaxHp(battler)
+         && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battler].volatiles.healBlockTimer)
+         && GetBattlerHoldEffect(battler) != HOLD_EFFECT_LEFTOVERS
+         && !(GetBattlerHoldEffect(battler) == HOLD_EFFECT_BLACK_SLUDGE
+           && IS_BATTLER_OF_TYPE(battler, TYPE_POISON)))
+        {
+            gBattlerAttacker = battler;
+            SetHealAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+            BattleScriptCall(BattleScript_PermafrostHeal);
+            effect = TRUE;
+        }
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler++;
         break;
