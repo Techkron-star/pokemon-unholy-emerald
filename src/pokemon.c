@@ -2122,8 +2122,11 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             retVal = GetSubstruct0(boxMon)->heldItem;
             break;
         case MON_DATA_SPECIAL_BADGES:
-            retVal = GetSubstruct0(boxMon)->specialBadges;
+        {
+            struct PokemonSubstruct0 *extra = GetSubstruct0(boxMon);
+            retVal = extra->specialBadges | (extra->mutationExtraLow << 4) | (extra->mutationExtraHigh << 6);
             break;
+        }
         case MON_DATA_EXP:
             retVal = GetSubstruct0(boxMon)->experience;
             break;
@@ -2640,8 +2643,14 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             SET16(GetSubstruct0(boxMon)->heldItem);
             break;
         case MON_DATA_SPECIAL_BADGES:
-            SET8(GetSubstruct0(boxMon)->specialBadges);
+        {
+            struct PokemonSubstruct0 *extra = GetSubstruct0(boxMon);
+            u16 mask = (data[0] | (data[1] << 8)) & POKEMON_BADGES_ALL;
+            extra->specialBadges = mask & 15;
+            extra->mutationExtraLow = (mask >> 4) & 3;
+            extra->mutationExtraHigh = (mask >> 6) & 7;
             break;
+        }
         case MON_DATA_EXP:
             SET32(GetSubstruct0(boxMon)->experience);
             break;
@@ -2963,7 +2972,7 @@ bool32 BoxPokemon_HasBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
 
 void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
 {
-    u8 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
+    u16 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
 
     badges |= badge;
     SetBoxMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
@@ -2971,7 +2980,7 @@ void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
 
 void BoxPokemon_ClearBadge(struct BoxPokemon *mon, enum PokemonBadge badge)
 {
-    u8 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
+    u16 badges = GetBoxMonData(mon, MON_DATA_SPECIAL_BADGES);
 
     badges &= ~badge;
     SetBoxMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
@@ -3458,21 +3467,91 @@ void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst)
     memset(&dst->volatiles, 0, sizeof(struct Volatiles));
 }
 
+
+static const u16 sMutationBadges[] =
+{
+    POKEMON_BADGE_ALPHA,
+    POKEMON_BADGE_SUPER,
+    POKEMON_BADGE_ENRAGED,
+    POKEMON_BADGE_OMEGA,
+    POKEMON_BADGE_HYPER,
+    POKEMON_BADGE_OVERLOADED,
+    POKEMON_BADGE_TITAN,
+    POKEMON_BADGE_ANCESTRAL,
+    POKEMON_BADGE_ASCENDED,
+};
+
+static const u16 sMutationDenominators[] =
+{
+    SPECIAL_BADGE_ALPHA_DENOMINATOR,
+    SPECIAL_BADGE_SUPER_DENOMINATOR,
+    SPECIAL_BADGE_ENRAGED_DENOMINATOR,
+    SPECIAL_BADGE_OMEGA_DENOMINATOR,
+    SPECIAL_BADGE_HYPER_DENOMINATOR,
+    SPECIAL_BADGE_OVERLOADED_DENOMINATOR,
+    SPECIAL_BADGE_TITAN_DENOMINATOR,
+    SPECIAL_BADGE_ANCESTRAL_DENOMINATOR,
+    SPECIAL_BADGE_ASCENDED_DENOMINATOR,
+};
+
+static u8 CountMutationBits(u16 mask)
+{
+    u8 count = 0;
+    while (mask)
+    {
+        count += mask & 1;
+        mask >>= 1;
+    }
+    return count;
+}
+
 void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
 {
-    u8 alphaChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_ALPHA_CHANCE : SPECIAL_BADGE_WILD_ALPHA_CHANCE;
-    u8 superChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_SUPER_CHANCE : SPECIAL_BADGE_WILD_SUPER_CHANCE;
-    u8 enragedChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_ENRAGED_CHANCE : SPECIAL_BADGE_WILD_ENRAGED_CHANCE;
-    u8 omegaChance = trainerEncounter ? SPECIAL_BADGE_TRAINER_OMEGA_CHANCE : SPECIAL_BADGE_WILD_OMEGA_CHANCE;
+    u16 candidates = 0;
+    u16 accepted = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+    u8 i;
 
-    if (Random() % 100 < alphaChance)
-        Pokemon_SetBadge(mon, POKEMON_BADGE_ALPHA);
-    if (Random() % 100 < superChance)
-        Pokemon_SetBadge(mon, POKEMON_BADGE_SUPER);
-    if (Random() % 100 < enragedChance)
-        Pokemon_SetBadge(mon, POKEMON_BADGE_ENRAGED);
-    if (Random() % 100 < omegaChance)
-        Pokemon_SetBadge(mon, POKEMON_BADGE_OMEGA);
+    // Trainer teams are rolled by the deterministic generator in trainer_util.c.
+    // This function is used for wild and scripted encounters.
+    for (i = 0; i < ARRAY_COUNT(sMutationBadges); i++)
+    {
+        if (trainerEncounter && sMutationBadges[i] == POKEMON_BADGE_OMEGA)
+            continue;
+        if (Random32() % sMutationDenominators[i] == 0)
+            candidates |= sMutationBadges[i];
+    }
+
+    // Randomize which mutation survives collisions, instead of always
+    // privileging the lowest-numbered mutation.
+    while (candidates)
+    {
+        u8 choice = Random32() % CountMutationBits(candidates);
+        u16 selected = 0;
+        u32 gate;
+        u8 currentCount = CountMutationBits(accepted);
+
+        for (i = 0; i < ARRAY_COUNT(sMutationBadges); i++)
+        {
+            if (candidates & sMutationBadges[i] && choice-- == 0)
+            {
+                selected = sMutationBadges[i];
+                break;
+            }
+        }
+        candidates &= ~selected;
+        gate = currentCount == 0 ? 1
+             : currentCount == 1 ? SPECIAL_BADGE_SECOND_GATE
+             : currentCount == 2 ? SPECIAL_BADGE_THIRD_GATE
+             : SPECIAL_BADGE_FOURTH_GATE;
+        if (Random32() % gate == 0)
+            accepted |= selected;
+    }
+
+    if (accepted != GetMonData(mon, MON_DATA_SPECIAL_BADGES))
+    {
+        SetMonData(mon, MON_DATA_SPECIAL_BADGES, &accepted);
+        CalculateMonStats(mon);
+    }
 }
 
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex)
