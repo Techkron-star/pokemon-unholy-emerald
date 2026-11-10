@@ -577,6 +577,34 @@ static void SetShopItemsForSale(const u16 *items)
     }
 }
 
+static void HorizonEggIconShow(void)
+{
+    u8 paletteIndex;
+
+    if (sHorizonEggIconId != MAX_SPRITES)
+        return;
+
+    paletteIndex = GetMonIconPaletteIndexFromSpecies(SPECIES_EGG);
+    sHorizonEggPaletteOwned = IndexOfSpritePaletteTag(gMonIconPaletteTable[paletteIndex].tag) == 0xFF;
+    LoadMonIconPalette(SPECIES_EGG);
+    // The actual Pokémon EGG icon, not a species preview or placeholder text.
+    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 58, 0, 0, TRUE);
+}
+
+static void HorizonEggIconHide(void)
+{
+    if (sHorizonEggIconId != MAX_SPRITES)
+    {
+        FreeAndDestroyMonIconSprite(&gSprites[sHorizonEggIconId]);
+        sHorizonEggIconId = MAX_SPRITES;
+    }
+    if (sHorizonEggPaletteOwned)
+    {
+        FreeMonIconPalette(SPECIES_EGG);
+        sHorizonEggPaletteOwned = FALSE;
+    }
+}
+
 static void HorizonOpenInfoWindow(void)
 {
     // The field owns palette 14; restore it on exit and before other field UI.
@@ -631,17 +659,21 @@ static void HorizonDrawInfo(void)
 
     if (sHorizonInfoWindowId == 0xFF)
         return;
+
     FillWindowPixelBuffer(sHorizonInfoWindowId, PIXEL_FILL(1));
     DrawUnholyUiPanelAccents(sHorizonInfoWindowId, 15 * 8, 13 * 8, 31);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 3, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
-                                sHorizonTextColors, TEXT_SKIP_DRAW, skin);
+                                sHorizonTextColors, TEXT_SKIP_DRAW,
+                                (sHorizonEggBrowsing || sHorizonPokemonBrowsing) ? sHorizonTextBrowse : skin);
 
     if (sHorizonPokemonBrowsing)
     {
+        // Six independent offers fit in a compact 6-row list at native 240x160.
         for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
         {
+            const s32 y = 27 + slot * 10;
             StringCopy(gStringVar4, slot == sHorizonPokemonSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
             if (HorizonMarketOfferSold(slot))
                 StringAppend(gStringVar4, sHorizonTextSold);
@@ -649,43 +681,76 @@ static void HorizonDrawInfo(void)
                 StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
             else
                 StringAppend(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(slot)));
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 35 + slot * 12, 0, 0,
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, y, 0, 0,
                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+            if (HorizonMarketGetMutation(slot) != 0)
+                FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 110, y + 3, 4, 4);
         }
 
         const enum PokemonBadge mutation = HorizonMarketGetMutation(sHorizonPokemonSelection);
         const u32 price = HorizonMarketGetPrice(sHorizonPokemonSelection);
-
         if (mutation != 0)
         {
             StringCopy(gStringVar4, COMPOUND_STRING("!!! "));
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
-            FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 109, 64, 4, 4);
         }
         else
-        {
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, HorizonMarketMutationName(mutation));
-        }
+            StringCopy(gStringVar4, HorizonMarketMutationName(mutation));
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 86, 0, 0,
+                                    sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
 
         if (sHorizonPokemonStatus == 0 && price != 0)
         {
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, price, STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 96, 0, 0,
                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
         }
         else
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW,
+                                        sHorizonPokemonStatuses[sHorizonPokemonStatus]);
+    }
+    else if (sHorizonEggBrowsing)
+    {
+        // These are always EGGS: even a legendary/mutant prize is hidden until
+        // hatching. Every row has a separately rolled visual quality grade.
+        for (u8 tier = 0; tier < HORIZON_EGG_TIER_COUNT; tier++)
         {
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonPokemonStatuses[sHorizonPokemonStatus]);
+            const s32 y = 30 + tier * 10;
+            StringCopy(gStringVar4, tier == sHorizonEggSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
+            if (HorizonEggIsSold(tier))
+                StringAppend(gStringVar4, sHorizonTextEggSold);
+            else
+                StringAppend(gStringVar4, HorizonEggTierName(tier));
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, y, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+            if (!HorizonEggIsSold(tier) && HorizonEggGetQuality(tier) != HORIZON_EGG_STANDARD)
+            {
+                const u8 marker = HorizonEggGetQuality(tier) == HORIZON_EGG_PRISMATIC ? 13 : 7;
+                FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(marker), 83, y + 2, 4, 4);
+            }
         }
-        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
+
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 82, 0, 0,
                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                    sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
+                                    HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
+        if (sHorizonEggStatus == 0 && !HorizonEggIsSold(sHorizonEggSelection))
+        {
+            StringCopy(gStringVar4, COMPOUND_STRING("COST "));
+            ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
+                                       STR_CONV_MODE_LEFT_ALIGN, 6);
+            StringAppend(gStringVar4, gStringVar3);
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+        }
+        else
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW,
+                                        sHorizonEggStatus == 2 ? sHorizonTextPrize : sHorizonPokemonStatuses[sHorizonEggStatus]);
     }
     else
     {
@@ -700,6 +765,7 @@ static void HorizonDrawInfo(void)
         AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
     }
+
     CopyWindowToVram(sHorizonInfoWindowId, COPYWIN_FULL);
 }
 
