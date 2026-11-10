@@ -372,6 +372,7 @@ static void OpenUnholyCraftingMenu(void)
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
     PutWindowTilemap(sUnholyCraftWindowId);
     FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
+    DrawUnholyUiPanelAccents(sUnholyCraftWindowId, 26 * 8, 17 * 8, 19);
 
     AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 3, 0, 0,
                                 sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftTitle);
