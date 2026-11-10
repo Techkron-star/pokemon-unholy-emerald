@@ -10,6 +10,7 @@
 #include "battle_interface.h"
 #include "battle_main.h"
 #include "battle_stamina.h"
+#include "gear.h"
 #include "battle_chain.h"
 #include "battle_message.h"
 #include "battle_pyramid.h"
@@ -4764,7 +4765,10 @@ static void TurnValuesCleanUp(bool32 endTurn)
                 gBattleMons[i].volatiles.rechargeTimer--;
 
             if (IsBattlerAlive(i))
+            {
                 Stamina_EndOfTurn(i);
+                Gear_EndOfTurn(i);
+            }
             Chain_Reset();
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;

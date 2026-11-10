@@ -137,6 +137,10 @@ Todos los números de balance están en `include/config/stamina.h`.
 - Afinidades tentativas —**no confirmadas por el autor**—: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
+### Estado de implementación (10 noviembre 2026)
+- **El sistema de Gears ya está en el código** (ciclo de sobrecarga/recarga, slot guardado en el Pokémon y icono en la esquina de la caja de vida), **sin ningún Gear definido**. Cómo crearlos: [`docs/GEARS.md`](docs/GEARS.md).
+- Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
+
 ---
 
 ## Diseño de interfaz — Horizon Nebula (9 noviembre 2026)
@@ -341,7 +345,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears y HUD de sobrecarga/residuo.
+- Gears: sistema y icono de esquina hechos (`docs/GEARS.md`); faltan Gears concretos, interfaz de equipar, obtención, entrenadores y HUD del turno de recarga.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

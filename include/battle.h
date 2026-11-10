@@ -750,6 +750,13 @@ struct BattleStruct
     u16 maxStamina[MAX_BATTLERS_COUNT];
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
     u8 staminaExhausted[MAX_BATTLERS_COUNT];
+    // Sistema de Gears (ver src/gear.c)
+    u8 gearOwner[MAX_BATTLERS_COUNT];        // índice de equipo + 1 del Pokémon dueño del estado
+    u8 gearId[MAX_BATTLERS_COUNT];           // Gear equipado (enum Gear)
+    u8 gearPhase[MAX_BATTLERS_COUNT];        // enum GearPhase
+    u8 gearTimer[MAX_BATTLERS_COUNT];        // turnos que faltan en la fase actual
+    u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
+    u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
     // Encadenado de movimientos (ver src/battle_chain.c)
     u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)

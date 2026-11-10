@@ -2215,6 +2215,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             retVal = extra->specialBadges | (extra->mutationExtraLow << 4) | (extra->mutationExtraHigh << 6);
             break;
         }
+        case MON_DATA_GEAR:
+            retVal = GetSubstruct1(boxMon)->gear;
+            break;
         case MON_DATA_EXP:
             retVal = GetSubstruct0(boxMon)->experience;
             break;
@@ -2739,6 +2742,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             extra->mutationExtraHigh = (mask >> 6) & 7;
             break;
         }
+        case MON_DATA_GEAR:
+            SET8(GetSubstruct1(boxMon)->gear);
+            break;
         case MON_DATA_EXP:
             SET32(GetSubstruct0(boxMon)->experience);
             break;

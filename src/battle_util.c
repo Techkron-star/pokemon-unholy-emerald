@@ -7,6 +7,7 @@
 #include "battle_pyramid.h"
 #include "battle_util.h"
 #include "battle_stamina.h"
+#include "gear.h"
 #include "battle_chain.h"
 #include "battle_controllers.h"
 #include "battle_interface.h"
@@ -6798,6 +6799,9 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     default:
         break;
     }
+
+    // Gear equipado: sobrecarga o bonificación residual (ver src/gear.c).
+    modifier = uq4_12_multiply(modifier, Gear_GetPowerModifier(battlerAtk, move, moveType));
 
     // Terastallization boosts weak, non-priority, non-multi hit moves after modifiers to 60 BP.
     if (GetActiveGimmick(battlerAtk) == GIMMICK_TERA

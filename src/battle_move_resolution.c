@@ -6,6 +6,7 @@
 #include "battle_ai_record.h"
 #include "battle_util.h"
 #include "battle_stamina.h"
+#include "gear.h"
 #include "battle_move_resolution.h"
 #include "battle_script_commands.h"
 #include "battle_stat_change.h"
@@ -1040,6 +1041,7 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
 
     gLastMoves[cv->battlerAtk] = gChosenMove;
     Stamina_SpendForMove(cv->battlerAtk, cv->move);
+    Gear_OnMoveUsed(cv->battlerAtk, cv->move, GetBattleMoveType(cv->move));
 
     if (MOVE_IS_PERMANENT(cv->battlerAtk, movePosition))
     {
