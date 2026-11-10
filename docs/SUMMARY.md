@@ -152,6 +152,8 @@
         - [Version 1.0.0](changelogs/1.0.x/1.0.0.md)
     - [Pre-1.0.x]()
         - [Version 0.9.0](changelogs/0.9.x/0.9.0.md)
+- [Unholy Emerald · Sprite QA]()
+    - [Five-sprite quality gate and Super Exp. Share fixes](qa/unholy-sprite-polish-5-items.md)
 - [Team Procedures]()
     - [How to make an Expansion version](team_procedures/expansion_versions.md)
     - [Release Schedule and Process](team_procedures/schedule.md)
