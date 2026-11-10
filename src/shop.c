@@ -224,6 +224,30 @@ const u16 *GetUnholyUiPalette(void)
     return FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonPaletteDaylight : sHorizonPaletteEclipse;
 }
 
+// The UI is rendered as native 4bpp window pixels: no fake full-screen bitmap.
+// Accent colors are read from the active save preference and need no extra VRAM.
+void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY)
+{
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 accent = daylight ? 6 : 7;       // soft gold / cool silver
+    const u8 edge = daylight ? 7 : 5;         // turquoise / deep cyan
+
+    if (width < 12 || height < 24 || dividerY >= height - 19)
+        return;
+
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, 0, width, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, height - 2, width, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, 2, 2, height - 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), width - 2, 2, 2, height - 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 5, dividerY, width - 10, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 5, height - 19, width - 10, 1);
+    // Three-pixel corner highlights keep the motif crisp at 240x160.
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, 2, 3, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, 2, 3, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, height - 4, 3, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, height - 4, 3, 2);
+}
+
 static const struct WindowTemplate sHorizonInfoTemplate =
 {
     .bg = 0,
@@ -453,6 +477,7 @@ static u8 CreateShopMenu(u8 martType)
         struct WindowTemplate winTemplate = sShopMenuWindowTemplates[WIN_BUY_SELL_QUIT];
         winTemplate.width = 12;
         winTemplate.height = 11;
+        winTemplate.paletteNum = 14; // Same Eclipse/Daylight text palette as the details panel.
         sMartInfo.windowId = AddWindow(&winTemplate);
         sMartInfo.menuActions = sHorizonTabs;
         numMenuItems = ARRAY_COUNT(sHorizonTabs);
@@ -552,6 +577,7 @@ static void HorizonDrawInfo(void)
     if (sHorizonInfoWindowId == 0xFF)
         return;
     FillWindowPixelBuffer(sHorizonInfoWindowId, PIXEL_FILL(1));
+    DrawUnholyUiPanelAccents(sHorizonInfoWindowId, 15 * 8, 13 * 8, 31);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 3, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
