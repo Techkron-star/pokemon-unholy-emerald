@@ -3,7 +3,7 @@
 Paquete visual de **19 iconos originales de 24×24** con paletas JASC-PAL de 16 entradas y transparencia de índice 0. Se generaron y revisaron a escala nativa, con previews Eclipse/Daylight en el paquete entregado al usuario.
 
 ## Esferas (2)
-- **Overdrive Ball**: núcleo de sobrecarga y disipadores de energía naranja. En `DISENO.md` sustituye al nombre Hyper Ball; efecto aún no definido.
+- **Overdrive Ball**: núcleo de sobrecarga y disipadores de energía naranja. Se sitúa entre Ultra Ball y Master Ball sin reemplazar ninguna esfera existente. Multiplicador, obtención y límites frente a mutaciones especiales pendientes de decisión (×4 es una propuesta no aprobada).
 - **Alpha Ball**: cierre plateado, núcleo azul y geometría de sellos. Efecto sin definir.
 
 **Omega Ball e Infinity Ball**: arte aprobado previamente y conservado, sin alteraciones en esta entrega; Infinity es recompensa posjuego y no debe venderse en Horizon.
