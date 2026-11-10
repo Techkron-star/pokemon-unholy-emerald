@@ -53,7 +53,7 @@ Los entrenadores de ruta deben ofrecer una resistencia razonable, pero los rival
 
 ## 5. Revanchas escaladas por medallas
 
-**Regla solicitada:** al desafiar de nuevo a un líder, **todo su equipo** se ajusta al **nivel máximo de la última medalla que tiene el jugador** (no al nivel del Pokémon más fuerte del jugador). Ajustar el nivel al crear el equipo, antes de calcular PS, stats, stamina y formas; conservar cada Pokémon, sus ataques apropiados y su identidad mutante.
+**Implementado en la generación de equipos, pendiente de QA:** al desafiar de nuevo a un líder, **todo su equipo** se ajusta al **nivel máximo de la última medalla que tiene el jugador** (no al nivel del Pokémon más fuerte del jugador). `src/battle_setup.c` detecta `isRematch` en líderes y ajusta la experiencia, recalcula estadísticas y recupera PS completos a ese cap. Los encuentros iniciales permanecen a nivel original y la identidad mutante se calcula aparte. **Todavía falta probarlo con revanchas reales y confirmar su disponibilidad antes de la Liga.**
 
 Referencia para un primer pase, basada en los ases actuales de los ocho gimnasios; es una **tabla de diseño por validar**, no un límite global del juego:
 
@@ -121,7 +121,7 @@ El contador significa **mutaciones adicionales**, no bonificación de estadísti
 
 **Hecho en esta rama (sujeto a QA):** refuerzo de perfiles AI para entrenadores y jefes; un legendario o seudolegendario en los ocho primeros equipos de gimnasio (Pupitar, Hakamo-o, Dragonair, Shelgon, Type: Null, Salamence, Metang, Sliggoo) y una megapiedra adecuada en el quinto equipo de revancha de cada líder.
 
-**Pendiente:** pruebas y balance de equipos, confirmar activación real de Megas, escalado dinámico de nivel por medallas, validación/ajuste de rareza 2× determinista, ampliación de nueve mutaciones, persistencia estricta por oportunidad de revancha y sprite de insignia con contador.
+**Pendiente:** probar y balancear equipos, confirmar activación real de Megas, QA de escalado dinámico por medallas, validación de rareza 2× determinista, ampliar a nueve mutaciones, persistencia estricta por oportunidad de revancha y sprite de insignia con contador.
 
 No fusionar automáticamente a main hasta que CI y pruebas de emulador validen este primer paquete; las especificaciones pendientes no autorizan implementar sistemas ficticios.
 

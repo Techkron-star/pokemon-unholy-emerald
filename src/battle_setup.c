@@ -29,6 +29,7 @@
 #include "load_save.h"
 #include "malloc.h"
 #include "metatile_behavior.h"
+#include "pokemon.h"
 #include "mirage_tower.h"
 #include "palette.h"
 #include "random.h"
@@ -53,6 +54,7 @@
 #include "constants/battle_frontier.h"
 #include "constants/battle_special.h"
 #include "constants/event_objects.h"
+#include "constants/flags.h"
 #include "constants/game_stat.h"
 #include "constants/items.h"
 #include "constants/songs.h"
@@ -2188,10 +2190,49 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
 
+
+// The cap is taken from the latest badge obtained, never from the player's
+// strongest Pokemon. Index zero means no badge: no rematch scaling available.
+static u8 GetLastEarnedBadgeLevelCap(void)
+{
+    static const u8 sBadgeLevelCaps[NUM_BADGES + 1] = {0, 15, 19, 24, 29, 31, 33, 42, 46};
+    u8 highestBadge = 0;
+    u8 i;
+
+    for (i = 0; i < NUM_BADGES; i++)
+        if (FlagGet(FLAG_BADGE01_GET + i))
+            highestBadge = i + 1;
+
+    return sBadgeLevelCaps[highestBadge];
+}
+
+static void ScaleGymRematchMonToBadgeCap(struct Pokemon *mon, u8 level)
+{
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 experience = gExperienceTables[gSpeciesInfo[species].growthRate][level];
+    u32 fullHp;
+
+    // CalculateMonStats obtains the level from EXP: setting only MON_DATA_LEVEL
+    // would be reverted on recalculation.
+    SetMonData(mon, MON_DATA_EXP, &experience);
+    CalculateMonStats(mon);
+    fullHp = GetMonData(mon, MON_DATA_MAX_HP);
+    SetMonData(mon, MON_DATA_HP, &fullHp);
+}
+
 void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer *trainer)
 {
     s32 i;
     u8 monsCount;
+    u8 badgeRematchCap = 0;
+
+    // Keep the initial gym encounter untouched. Only explicit rematches are
+    // normalized, and every member is scaled to the same badge ceiling.
+    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+     && TRAINER_BATTLE_PARAM.isRematch
+     && trainer->trainerClass == TRAINER_CLASS_LEADER
+     && party != gParties[B_TRAINER_PLAYER])
+        badgeRematchCap = GetLastEarnedBadgeLevelCap();
 
     ZeroPartyMons(party);
 
@@ -2211,6 +2252,8 @@ void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Traine
     {
         u32 monIndex = monIndices[i];
         GenerateMonFromTrainerMon(&party[i], &trainer->party[monIndex], trainerGen);
+        if (badgeRematchCap != 0)
+            ScaleGymRematchMonToBadgeCap(&party[i], badgeRematchCap);
     }
     Free(trainerGen);
 }
