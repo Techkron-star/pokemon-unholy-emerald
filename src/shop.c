@@ -630,6 +630,7 @@ static void Task_ShopMenu(u8 taskId)
 
 static void Task_HorizonUnavailable(u8 taskId)
 {
+    (void)taskId;
     // Keep the existing Horizon task, menu window and palette intact.
     // Rebuilding the shop from a field-message callback here could leave
     // stale menu ownership and break navigation on unfinished tabs.
