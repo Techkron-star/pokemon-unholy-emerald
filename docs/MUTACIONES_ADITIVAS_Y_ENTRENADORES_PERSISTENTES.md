@@ -71,6 +71,26 @@ semilla_de_partida + ID_estable_entrenador + ID_estable_linea_del_Pokemon
 
 **Salvajes y raids:** conservar el sistema de rarezas o reglas específicas del contenido; la restricción anterior se refiere **a entrenadores** y no prohíbe futuros Omega salvajes, de cuevas especiales o de incursiones autorizadas por diseño.
 
+### Probabilidades naturales de las nueve mutaciones
+
+**Alcance:** tiradas base por cada Pokémon salvaje individual, independientemente de la especie. Una tasa 1/100 significa *una probabilidad del 1 % por encuentro de esa especie*, no que cada bloque de 100 individuos garantice un Alpha. Las tiradas se aplican solo en circunstancias donde la mutación sea elegible.
+
+| Mutación | Frecuencia base por encuentro | Porcentaje | Estado |
+| --- | ---: | ---: | --- |
+| **Enraged** | **1/90** | **1.111 %** | **Confirmada por el autor** |
+| **Alpha** | **1/100** | **1.000 %** | **Confirmada por el autor** |
+| Super | 1/180 | 0.556 % | Propuesta |
+| Hyper | 1/250 | 0.400 % | Propuesta |
+| Overloaded | 1/350 | 0.286 % | Propuesta |
+| Titan | 1/500 | 0.200 % | Propuesta |
+| Ancestral | 1/750 | 0.133 % | Propuesta |
+| Ascendido | 1/2500 | 0.040 % | Propuesta |
+| Omega natural | 1/12000 | 0.0083 % | Propuesta; menor frecuencia que shiny base |
+
+**No confundir Omega salvaje (1/12000 propuesto) con Omega del Mutator (10/65536 ≈ 1/6554 propuesto), ni con Omega en rivales y jefes (tabla especial por definir).** Los intentos del Mutator son comprados; las tiradas naturales son encuentros.
+
+**Estado real del código:** `include/config/special_badges.h` aún fija Alpha salvaje en 4 %, Enraged salvaje en 1 % y Omega salvaje en 0 %, y solo soporta las cuatro mutaciones antiguas. Esta tabla es de **diseño**, no ha alterado la ROM ni las probabilidades actuales.
+
 ### Rareza extrema de acumulaciones naturales (regla confirmada)
 
 Las mutaciones individuales pueden combinarse, pero **cada mutación adicional debe ser muchísimo más difícil de obtener naturalmente**. No basta con nueve probabilidades independientes de valor moderado, porque producirían demasiados Pokémon con dos o tres mutaciones.
@@ -81,9 +101,11 @@ Las mutaciones individuales pueden combinarse, pero **cada mutación adicional d
 - **Cuatro o más mutaciones:** aún posibles, sin cap arbitrario, pero cada nivel adicional debe disminuir drásticamente la posibilidad. No confundir *teóricamente posible* con *frecuente*.
 - Las raids o jefes pueden aplicar tablas especiales, **sin que eso vuelva comunes las acumulaciones**. La identidad persistente de los Pokémon rivales debe cubrir también la cantidad de mutaciones.
 
-**Implementación sugerida:** resolver primero si el Pokémon obtiene una mutación y cuál. Después, pasar puertas de probabilidad condicionales progresivamente más exigentes para cada mutación adicional, sorteando solo mutaciones que aún no tenga. Alternativamente, utilizar una distribución explícita por cantidad de mutaciones, igualmente muy concentrada en cero o una. La selección definitiva y los porcentajes exactos **quedan pendientes de balance**, no deben inventarse.
+**Mecánica de combinación propuesta para simulación (todavía no aprobada):** realizar primero las nueve tiradas base; si salen varias, ordenarlas aleatoriamente con una semilla reproducible y asignar la primera. Para conservar una segunda, superar una puerta adicional de **1/12**; para la tercera, una puerta de **1/40**; para la cuarta, **1/100**, y puertas progresivamente más exigentes para las siguientes. Si una puerta falla, detener la acumulación. Estas puertas son **adicionales** a la rareza de cada mutación, no la sustituyen.
 
-No reutilizar ciegamente las tasas anteriores de Alpha/Super/Enraged/Omega como tiradas completamente independientes; revisar primero la frecuencia real de combinaciones. Las nuevas tasas de Hyper, Overloaded, Titan, Ancestral y Ascendido tampoco están definidas.
+Como referencia aproximada, con la tabla propuesta y tiradas independientes **antes** de las puertas, dos o más mutaciones candidatas aparecerían cada ~1,830 encuentros y tres o más cada ~238,500. Las puertas 1/12 y 1/40 harían los resultados efectivos muchísimo más raros (orden de 1 en ~22,000 para dos o más y 1 en ~114 millones para tres o más, antes de matices por reordenación y puertas posteriores). **Estas cifras son estimaciones de diseño, no estadísticas verificadas de la ROM; confirmar con una simulación y tests del algoritmo final.** Las tasas base declaradas se refieren a la tirada inicial; la frecuencia final de cada mutación puede variar ligeramente cuando se resuelven colisiones.
+
+No reutilizar las tasas anteriores en código como si fueran las nuevas: hacen falta nuevos rangos RNG, bitmask ampliada, compatibilidad de guardado y pruebas de balance. Los entrenadores especiales y raids utilizarán reglas contextualizadas, sin hacer triviales las combinaciones.
 
 ### Mutator del endgame: acumulación conseguida mediante inversión
 
@@ -161,7 +183,7 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 
 - Reducción exacta de Velocidad de Titan.
 - Cómo se sortean valores dentro del rango de Titan y Ancestral: por instancia o por stat.
-- Tablas de probabilidad por mutación, medallas, tipo de encuentro y dificultad; frecuencia natural extremadamente baja de dos, tres y más mutaciones.
+- **Enraged 1/90 y Alpha 1/100 confirmados**. Las otras siete tasas de la tabla y las puertas extra (1/12, 1/40, 1/100) siguen siendo **propuestas** sujetas a simulación, además de las modificaciones por medallas, raids, tipo de encuentro y dificultad.
 - Escalado de coste del Mutator por intento y por cantidad de mutaciones, posibilidades de éxito y tratamiento de las mutaciones ya existentes.
 - Qué entrenadores especiales quedan incluidos además del rival/líderes/Alto Mando/campeón.
 - Qué mutaciones de las cinco nuevas puede producir el Mutator y la **tasa definitiva de Omega** (debe ser ligeramente mayor que la shiny base); determinar si se mide por intento total o por resultado válido de mutación, garantizando que la UI explique esa diferencia.
