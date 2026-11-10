@@ -18,6 +18,7 @@ void HorizonMarketRefresh(void);
 bool8 HorizonMarketHasUnseenMutation(void);
 void HorizonMarketMarkPokemonSeen(void);
 enum Species HorizonMarketGetSpecies(u8 slot);
+bool8 HorizonMarketOfferSold(u8 slot);
 enum PokemonBadge HorizonMarketGetMutation(u8 slot);
 u32 HorizonMarketGetPrice(u8 slot);
 enum HorizonMarketPurchaseResult HorizonMarketPurchase(u8 slot);
