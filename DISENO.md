@@ -111,7 +111,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 | **Overdrive Ball** | Captura **×4** contra objetivos ordinarios. Está situada entre Ultra Ball y Master Ball; NO sustituye ninguna otra. El ×4 no elimina restricciones de mutaciones. **Programada en rama experimental** items/unholy-phase1-balls-20261110; precio y acceso pendientes. |
 | **Alpha Ball** | La menos potente de las esferas especiales. Es la vía recomendada para Alpha y Enraged, pero **ambos pueden capturarse con esferas normales**. Multiplicador exacto pendiente. |
 | **Omega Ball** | Esfera mínima obligatoria para mutaciones de categoría **superior a Super** (Ascendido, Ancestral y las demás que se clasifiquen allí). Nunca garantiza captura. Falta cerrar lista completa y multiplicador. |
-| **Infinity Ball** | Captura **garantizada de cualquier Pokémon**, sin excepción por mutación o especie. Cualquier Pokémon que esté dentro de esta esfera recupera **todos sus PS y PP al terminar cada combate**. Restauración pendiente de implementar/probar; NO se ha autorizado curar estados ni revivir durante el combate. Recompensa Super Liga/posjuego o códigos; no se vende en Horizon. |
+| **Infinity Ball** | Captura **garantizada de cualquier Pokémon**, sin excepción por mutación o especie. Cualquier Pokémon que esté dentro de esta esfera recupera **todos sus PS y PP al terminar cada combate**. Restauración pendiente de implementar/probar; al finalizar la batalla el Pokémon **también revive si cayó debilitado**. No requiere que participe en combate. Aclarar acceso a Pokémon almacenados en PC para evitar iterar por todos los boxes sin necesidad; los estados alterados siguen pendientes. Recompensa Super Liga/posjuego o códigos; no se vende en Horizon. |
 
 - La Master Ball conserva sus funciones ordinarias. La tabla antigua de porcentajes contra mutaciones (75 % Alpha, 35 % Super, 12 % Enraged, 3 % Omega) **está pendiente de conciliarse con la nueva restricción por categorías**: no usarla como regla final.
 - Los encuentros salvajes usan tasas bajas (Alpha 4 %, Super 2 %, Enraged 1 %) y entrenadores tasas mayores (20 %, 12 %, 6 %, Omega 2 %); estos son porcentajes de aparición de mutaciones, NO de captura.
@@ -124,25 +124,25 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 - Los Gears tienen un **slot de equipamiento separado** del objeto equipado ordinario. Ese slot todavía no está implementado: no simularlo con el slot normal como solución definitiva.
 - La vieja regla de sobrecarga periódica aplica solo a Gears que realmente la necesiten. Teseracto es consumible de uso único; Ski Mask da bonificación constante.
-- Dos ataques encadenados cuentan como **un turno** para efectos medidos en turnos.
+- Dos ataques encadenados cuentan como **un turno** para efectos medidos en turnos. El motor de ciclo y la ranura de Gear están en `feat/gears-system`; la corrección de recarga tras cambios está en `items/unholy-gears-phase1-20261110` (PR #6).
 
 | Reliquia | Función establecida |
 |---|---|
-| **Teseracto** | **Uso único**. Desde su activación, clima, terreno/campo, trampas y salas no expiran naturalmente, salvo eliminación explícita. Por definir: momento de consumo, duración de persistencia y conflicto con Ancla de Realidad. |
+| **Teseracto** | **Uso único**. Desde su activación, clima, terreno/campo, trampas y salas no expiran naturalmente, salvo eliminación explícita. Excepción a los ciclos de Gear: **consumible equipado que se gasta una sola vez, como una gema**. La permanencia se limita al combate, hasta que los efectos sean eliminados expresamente. **Ancla de Realidad puede eliminarlos**; no reaparecen luego. Pendiente determinar cuándo se activa por primera vez. |
 | **Visor Cósmico** | Duplica la **bonificación** de Gafas Especiales, no el daño total. Si Gafas dan +10 %, Visor da **+20 % a movimientos especiales**. |
 | **Corazón de Titán** | Duplica la **bonificación** de Banda Músculo, no el daño total. Si Banda da +10 %, Corazón da **+20 % a movimientos físicos**. |
-| **Ancla de Realidad** | Elimina instantáneamente clima, campos, trampas y salas mientras el portador esté en combate. Falta definir si impide nuevas activaciones y cómo reaccionan habilidades climáticas. |
+| **Ancla de Realidad** | Elimina instantáneamente clima, campos, trampas y salas mientras el portador esté en combate. **Destruye incluso efectos permanentes del Teseracto**, que ya no reaparecen al retirar el Ancla. Pendiente definir si impide nuevas activaciones y cómo reaccionan habilidades climáticas. |
 | **Impulso Cósmico** | Los movimientos **Fantasma del portador** son supereficaces contra Normal, Psíquico y Hada, sin alterar tabla de tipos global. |
 | **Cetro Siniestro** | Los movimientos **Siniestros del portador** son supereficaces contra Psíquico, Hada, Normal **y Lucha**. Ejemplo: Gengar con Pulso Umbrío contra un objetivo Lucha. **No es una bonificación porcentual**: esa es Ski Mask. |
 | **Ski Mask** | Bonificación permanente en movimientos Siniestros de un **70 % de la bonificación de Gema Siniestra** (30 % menos de bono, no 30 puntos menos). Si la Gema ofrece +30 %, Ski Mask ofrece +21 %. **No altera efectividades**. |
-| **Permafrost Fragment** | **Duplica la probabilidad de congelación o Frostbite por instancia de daño de tipo Hielo**, respetando inmunidades y tope de 100 %. |
+| **Permafrost Fragment** | **Duplica la probabilidad de congelación o Frostbite por instancia de daño de tipo Hielo**, respetando inmunidades y tope de 100 %. No exige que el portador sea de tipo Hielo. Si sí es tipo Hielo, aporta una curación adicional pendiente de fijar entre **1/16 y 1/10** de PS y una frecuencia aún no confirmada. |
 
 ### Interacciones pendientes
 
-1. **Propuesta, no confirmada:** contra dobles tipos, evaluar cada tipo independientemente (Cetro contra Lucha/Hada podría ser ×4). Un golpe supereficaz no asegura OHKO.
+1. **Confirmado:** contra dobles tipos, evaluar cada tipo independientemente (Cetro contra Lucha/Hada puede ser ×4). Un golpe supereficaz no asegura OHKO.
 2. Cambios de efectividad solo mientras Gear esté activo; no convertir la tabla global. Verificar Teracristalización, cambios de tipo, habilidades, inmunidades y combates dobles.
-3. Decidir si Ancla anula nuevos intentos de clima/campo y si un efecto eliminado puede reaparecer tras retirar Ancla. Su interacción con Teseracto requiere prioridad clara.
-4. Confirmar cómo persistirá el slot de Gear y cómo reacciona a cambio, robo, anulación, guardado y carga.
+3. **Ancla vence al Teseracto:** la eliminación es definitiva. Queda por definir si Ancla bloquea nuevos intentos de crear clima/campo o los elimina inmediatamente al activarse.
+4. **Promedio confirmado:** si Gear y objeto normal potencian el mismo atributo, promediar **sus bonificaciones** (p. ej., +20 % y +10 % → +15 %), nunca sumar ni multiplicar; con fase residual, promediar la bonificación de esa fase. El slot independiente ya existe en la rama `feat/gears-system`, pero falta validarlo e integrarlo. Revisar cambios, robo, anulación, guardado y carga.
 
 **Colmillo de Rayquaza:** +10 % de estadísticas para Pokémon Volador/Dragón, obtenido al derrotar a Rayquaza; falta concretar su clasificación como Gear y la relación con sobrecargas.
 
