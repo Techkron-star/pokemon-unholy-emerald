@@ -129,3 +129,31 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 - Entrenadores que usen Gears (campo nuevo en los datos de equipo del entrenador).
 - Mostrar el turno restante de recarga y el Gear en el resumen en combate.
 - Casos abiertos del diseño: sobrecarga con dos movimientos encadenados compatibles, y si cambiar de Pokémon debe reiniciar el ciclo.
+
+
+## Decisiones confirmadas por el autor — 10 de noviembre de 2026
+
+Los efectos **ya están especificados**, pero aún no equivalen a Gears funcionales en la ROM. En esta rama solo está reparado el motor base.
+
+| Gear | Efecto confirmado | Qué falta |
+|---|---|---|
+| **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |
+| **Ancla de Realidad** | Al estar en el campo elimina el clima, campos, salas y trampas, incluso los hechos permanentes mediante Teseracto. Los efectos eliminados **no reaparecen** al marcharse el portador. | Si bloquea nuevas activaciones durante su presencia, reglas de prioridad de habilidades y mensajes. |
+| **Visor Cósmico** | Gear cíclico basado en Gafas Especiales, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto de potencia entre fase de sobrecarga/residual y turnos exactos. |
+| **Corazón de Titán** | Gear cíclico basado en Banda Músculo, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto por fase y turnos exactos. |
+| **Impulso Cósmico** | Movimientos Fantasma del portador son supereficaces contra Normal, Psíquico y Hada. | Cómo cambian la potencia y/o efectos entre fases, y QA con inmunidades. |
+| **Cetro Siniestro** | Movimientos Siniestros del portador son supereficaces contra Psíquico, Hada, Normal y Lucha. En dobles tipos, evaluar **cada tipo**: Lucha/Hada puede ser ×4. | Cómo funcionan sus ciclos sin perder esta identidad. |
+| **Ski Mask** | Bonus pasivo permanente a movimientos Siniestros de **70 % del bono de Gema Siniestra**; no cambia efectividades. | Cómo se presenta el ciclo de sobrecarga adicional manteniendo la base pasiva. |
+| **Permafrost Fragment** | Duplica la probabilidad de congelar o causar Frostbite por instancia de daño de Hielo; basta con usar movimientos de tipo Hielo. Si el portador es Hielo, debe obtener regeneración adicional. | **1/16 o 1/10** de PS (pendiente de confirmar) y frecuencia de curación; bonificación de sobrecarga/residual. |
+
+### Promedio de Gear + objeto ordinario
+
+Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspecto**, se usa la media aritmética de sus **bonificaciones en la fase actual**, nunca se suman ni se multiplican ambos factores. Ejemplo: Gear +20 % y Gafas Especiales +10 % → **+15 % total**, multiplicador ×1.15. En la fase residual se recalcula la media con el bono residual correspondiente. Objetos distintos que afecten otros aspectos del combate conservan sus efectos normales; no promediar con cero si no existe una bonificación coincidente. La implementación deberá modificar conjuntamente la contribución Gear y el modificador del objeto normal; aplicar ×1.20 y luego ×1.10 **sería un bug**.
+
+### Riesgos y pruebas antes de registrar Gears
+
+- Guardado: preservar el identificador de Gear (5 bits) al evolucionar, guardar, cargar o mover por PC; limitar la lista a 31 Gears distintos del valor vacío.
+- **Anti-abuso de cambios:** fase y temporizador sobreviven al retirar y reintroducir al Pokémon durante **el mismo combate**; finaliza toda persistencia del ciclo al iniciar otro combate. La primera corrección de motor indexa por ranura de Pokémon y puesto de combate; validar cambios cruzados entre puestos en dobles antes de producción.
+- Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
+- Permafrost: en movimientos multigolpe o en área, cada instancia elegible puede tirar estado; la regeneración del tipo Hielo debe definirse **por turno** o por ataque, para que multigolpe no permita curar PS ilimitados.
+- Cetro/Impulso: los cálculos de IA, interfaz de supereficacia, inmunidades y combates reales deben usar el mismo criterio; no editar permanentemente la tabla global de tipos.
