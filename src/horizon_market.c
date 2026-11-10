@@ -1,5 +1,6 @@
 #include "global.h"
 #include "horizon_market.h"
+#include "mutation_tiers.h"
 #include "horizon_eggs.h"
 #include "config/special_badges.h"
 #include "event_data.h"
@@ -14,7 +15,7 @@
 // Six independently rolled, persistent offers. Each 16-bit mutation word stores
 // three 4-bit codes; sold flags and the read-notification bit live separately.
 // Existing save variables only: no SaveBlock expansion or accidental stock rerolls.
-#define HORIZON_STOCK_VERSION       0x484E
+#define HORIZON_STOCK_VERSION       0x484F // New centralized tier policy
 #define HORIZON_MARKET_SOLD(slot)   (1 << (slot))
 #define HORIZON_MARKET_SEEN_BIT     (1 << 6)
 #define HORIZON_MARKET_MUT_SHIFT(slot) (((slot) % 3) * 4)
@@ -65,6 +66,10 @@ static const struct HorizonMutationRoll sHorizonMutationRolls[] =
     {POKEMON_BADGE_HYPER,      SPECIAL_BADGE_HYPER_DENOMINATOR, 1},
     {POKEMON_BADGE_OVERLOADED, SPECIAL_BADGE_OVERLOADED_DENOMINATOR, 2},
     {POKEMON_BADGE_ANCESTRAL,  SPECIAL_BADGE_ANCESTRAL_DENOMINATOR, 5},
+    // Declared centrally but blocked from the standard market by tier policy.
+    {POKEMON_BADGE_TITAN,      SPECIAL_BADGE_TITAN_DENOMINATOR, 3},
+    {POKEMON_BADGE_ASCENDED,   SPECIAL_BADGE_ASCENDED_DENOMINATOR, 7},
+    {POKEMON_BADGE_OMEGA,      SPECIAL_BADGE_OMEGA_DENOMINATOR, 8},
 };
 
 static const u8 sHorizonNameNormal[] = _("NORMAL");
@@ -77,14 +82,6 @@ static const u8 sHorizonNameOverloaded[] = _("OVERLOADED");
 static const u8 sHorizonNameTitan[] = _("TITAN");
 static const u8 sHorizonNameAncestral[] = _("ANCESTRAL");
 static const u8 sHorizonNameAscended[] = _("ASCENDED");
-static const u8 *const sHorizonMutationNames[] =
-{
-    sHorizonNameNormal, sHorizonNameAlpha, sHorizonNameSuper,
-    sHorizonNameEnraged, sHorizonNameOmega, sHorizonNameHyper,
-    sHorizonNameOverloaded, sHorizonNameTitan,
-    sHorizonNameAncestral, sHorizonNameAscended,
-};
-
 static u8 HorizonMarketBadgeCount(void)
 {
     u8 count = 0;
@@ -135,15 +132,23 @@ static enum Species HorizonMarketRollSpecies(u8 badges, u8 period)
 static u8 HorizonMarketRollMutation(u8 badges)
 {
     u8 result = 0;
+    enum MutationTier highestTier = MUTATION_TIER_NONE;
     u16 highestRarity = 0;
 
     for (u8 i = 0; i < ARRAY_COUNT(sHorizonMutationRolls); i++)
     {
         const struct HorizonMutationRoll *entry = &sHorizonMutationRolls[i];
-        if (badges >= entry->minBadges && Random32() % entry->denominator == 0
-         && entry->denominator > highestRarity)
+        enum MutationTier tier = MutationTierFromBadge(entry->mutation);
+
+        // Tier A is the hard limit, even after adding new mutation types.
+        if (!MutationTierCanAppearInMarket(entry->mutation) || badges < entry->minBadges)
+            continue;
+
+        if (Random32() % entry->denominator == 0
+         && (tier > highestTier || (tier == highestTier && entry->denominator > highestRarity)))
         {
             result = i + 1;
+            highestTier = tier;
             highestRarity = entry->denominator;
         }
     }
@@ -251,17 +256,29 @@ enum PokemonBadge HorizonMarketGetMutation(u8 slot)
 
     if (code == 0 || code > ARRAY_COUNT(sHorizonMutationRolls))
         return (enum PokemonBadge)0;
+
+    // Do not expose unsupported tiers from corrupted or old saved stock.
+    if (!MutationTierCanAppearInMarket(sHorizonMutationRolls[code - 1].mutation))
+        return (enum PokemonBadge)0;
     return sHorizonMutationRolls[code - 1].mutation;
 }
 
 const u8 *HorizonMarketMutationName(enum PokemonBadge mutation)
 {
-    for (u8 i = 0; i < ARRAY_COUNT(sHorizonMutationRolls); i++)
+    // Match by badge, not by lottery index: index ordering is not stable.
+    switch (mutation)
     {
-        if (sHorizonMutationRolls[i].mutation == mutation)
-            return sHorizonMutationNames[i + 1];
+    case POKEMON_BADGE_ALPHA: return sHorizonNameAlpha;
+    case POKEMON_BADGE_SUPER: return sHorizonNameSuper;
+    case POKEMON_BADGE_ENRAGED: return sHorizonNameEnraged;
+    case POKEMON_BADGE_HYPER: return sHorizonNameHyper;
+    case POKEMON_BADGE_OVERLOADED: return sHorizonNameOverloaded;
+    case POKEMON_BADGE_ANCESTRAL: return sHorizonNameAncestral;
+    case POKEMON_BADGE_TITAN: return sHorizonNameTitan;
+    case POKEMON_BADGE_ASCENDED: return sHorizonNameAscended;
+    case POKEMON_BADGE_OMEGA: return sHorizonNameOmega;
+    default: return sHorizonNameNormal;
     }
-    return sHorizonMutationNames[0];
 }
 
 bool8 HorizonMarketHasUnseenMutation(void)
@@ -272,7 +289,7 @@ bool8 HorizonMarketHasUnseenMutation(void)
 
     for (u8 i = 0; i < HORIZON_MARKET_OFFER_COUNT; i++)
     {
-        if (HorizonMarketGetSpecies(i) != SPECIES_NONE && HorizonMarketGetMutationCode(i) != 0)
+        if (HorizonMarketGetSpecies(i) != SPECIES_NONE && HorizonMarketGetMutation(i) != 0)
             return TRUE;
     }
     return FALSE;
