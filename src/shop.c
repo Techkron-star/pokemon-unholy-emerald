@@ -210,9 +210,7 @@ static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
 static const u8 sHorizonTextEggBrowse[] = _("EGG  A: BUY B: BACK");
-static const u8 sHorizonTextEggQuality[] = _("QUALITY");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
-static const u8 sHorizonTextEggHidden[] = _("Mystery egg");
 static const u8 sHorizonTextPrize[] = _("Egg secured!");
 static const u8 *const sHorizonPokemonStatuses[] =
 {
@@ -666,7 +664,9 @@ static void HorizonDrawInfo(void)
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW,
-                                (sHorizonEggBrowsing || sHorizonPokemonBrowsing) ? sHorizonTextBrowse : skin);
+                                 sHorizonEggBrowsing ? sHorizonTextEggBrowse
+                                    : sHorizonPokemonBrowsing ? (sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse)
+                                    : skin);
 
     if (sHorizonPokemonBrowsing)
     {
@@ -772,6 +772,73 @@ static void HorizonDrawInfo(void)
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+    if (sHorizonActive && sHorizonEggBrowsing)
+    {
+        if (JOY_NEW(B_BUTTON))
+        {
+            if (sHorizonEggConfirm)
+                sHorizonEggConfirm = FALSE;
+            else
+            {
+                sHorizonEggBrowsing = FALSE;
+                HorizonEggIconHide();
+            }
+            sHorizonEggStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
+        {
+            if (JOY_NEW(DPAD_UP))
+                sHorizonEggSelection = (sHorizonEggSelection + HORIZON_EGG_TIER_COUNT - 1) % HORIZON_EGG_TIER_COUNT;
+            else
+                sHorizonEggSelection = (sHorizonEggSelection + 1) % HORIZON_EGG_TIER_COUNT;
+            sHorizonEggConfirm = FALSE;
+            sHorizonEggStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(A_BUTTON))
+        {
+            enum HorizonMarketPurchaseResult outcome;
+
+            if (!sHorizonEggConfirm)
+            {
+                if (HorizonEggIsSold(sHorizonEggSelection))
+                    sHorizonEggStatus = 5;
+                else if (IsPlayerPartyAndPokemonStorageFull())
+                    sHorizonEggStatus = 4;
+                else if (!IsEnoughMoney(&gSaveBlock1Ptr->money, HorizonEggGetPrice(sHorizonEggSelection)))
+                    sHorizonEggStatus = 3;
+                else
+                {
+                    sHorizonEggConfirm = TRUE;
+                    sHorizonEggStatus = 1;
+                }
+                PlaySE(sHorizonEggConfirm ? SE_SELECT : SE_FAILURE);
+            }
+            else
+            {
+                outcome = HorizonEggPurchase(sHorizonEggSelection);
+                sHorizonEggConfirm = FALSE;
+                switch (outcome)
+                {
+                case HORIZON_MARKET_PURCHASE_OK: sHorizonEggStatus = 2; break;
+                case HORIZON_MARKET_PURCHASE_NO_MONEY: sHorizonEggStatus = 3; break;
+                case HORIZON_MARKET_PURCHASE_NO_SPACE: sHorizonEggStatus = 4; break;
+                case HORIZON_MARKET_PURCHASE_SOLD_OUT: sHorizonEggStatus = 5; break;
+                default: sHorizonEggStatus = 6; break;
+                }
+                PlaySE(outcome == HORIZON_MARKET_PURCHASE_OK ? SE_SUCCESS : SE_FAILURE);
+            }
+            HorizonDrawInfo();
+            return;
+        }
+        return;
+    }
+
     if (sHorizonActive && sHorizonPokemonBrowsing)
     {
         if (JOY_NEW(B_BUTTON))
@@ -792,7 +859,10 @@ static void Task_ShopMenu(u8 taskId)
         }
         if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
         {
-            sHorizonPokemonSelection ^= 1; // Exactly two stock slots.
+            if (JOY_NEW(DPAD_UP))
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + HORIZON_MARKET_OFFER_COUNT - 1) % HORIZON_MARKET_OFFER_COUNT;
+            else
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HORIZON_MARKET_OFFER_COUNT;
             sHorizonPokemonConfirm = FALSE;
             sHorizonPokemonStatus = 0;
             PlaySE(SE_SELECT);
@@ -898,6 +968,21 @@ static void Task_HorizonPokemon(u8 taskId)
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
     HorizonDrawNotification();
+    HorizonDrawInfo();
+}
+
+static void Task_HorizonEggs(u8 taskId)
+{
+    (void)taskId;
+    if (sHorizonInfoWindowId == 0xFF)
+        return;
+
+    HorizonMarketRefresh();
+    sHorizonEggBrowsing = TRUE;
+    sHorizonEggSelection = 0;
+    sHorizonEggStatus = 0;
+    sHorizonEggConfirm = FALSE;
+    HorizonEggIconShow();
     HorizonDrawInfo();
 }
 
@@ -1852,6 +1937,10 @@ void CreateHorizonShopMenu(void)
     sHorizonActive = TRUE;
     sHorizonSelectedTab = 0;
     sHorizonPokemonBrowsing = FALSE;
+    sHorizonEggBrowsing = FALSE;
+    sHorizonEggConfirm = FALSE;
+    sHorizonEggSelection = 0;
+    sHorizonEggStatus = 0;
     sHorizonPokemonConfirm = FALSE;
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
