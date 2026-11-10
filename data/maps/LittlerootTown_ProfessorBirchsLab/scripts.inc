@@ -130,6 +130,9 @@ LittlerootTown_ProfessorBirchsLab_EventScript_GoSeeRival::
 
 LittlerootTown_ProfessorBirchsLab_EventScript_AgreeToSeeRival::
 	msgbox LittlerootTown_ProfessorBirchsLab_Text_GetRivalToTeachYou, MSGBOX_DEFAULT
+	@ Explain advanced mechanics here, at the end of the lab handoff,
+	@ not when the player first touches Birch's bag for the starter.
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_BattleSystemsIntro, MSGBOX_DEFAULT
 	clearflag FLAG_HIDE_ROUTE_101_BOY
 	setvar VAR_BIRCH_LAB_STATE, 3
 	releaseall
@@ -992,3 +995,16 @@ LittlerootTown_ProfessorBirchsLab_Text_ScottAboardSSTidalCall:
 	.string "we meet. I'll be waiting!\p"
 	.string "… … … … … …\n"
 	.string "… … … … … Click!$"
+
+LittlerootTown_ProfessorBirchsLab_Text_BattleSystemsIntro:
+	.string "That battle showed you more than just\n"
+	.string "how to protect a POKéMON.\p"
+	.string "Some POKéMON have special mutations.\n"
+	.string "Look for the A, S, E, or O symbol to\n"
+	.string "see ALPHA, SUPER, ENRAGED, or OMEGA.\p"
+	.string "You can also chain two different moves\n"
+	.string "when you have enough STAMINA.\p"
+	.string "The first move spends STAMINA, and the\n"
+	.string "second move follows immediately.\n"
+	.string "Choose your attacks carefully!$"
+

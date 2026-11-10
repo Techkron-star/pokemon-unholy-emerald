@@ -185,7 +185,6 @@ static const u8 sHorizonTextDiscs[] = _("DISCS");
 static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
-static const u8 sHorizonNotReady[] = _("This section is not ready yet.");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
@@ -605,10 +604,11 @@ static void Task_ShopMenu(u8 taskId)
 
 static void Task_HorizonUnavailable(u8 taskId)
 {
-    HorizonCloseInfoWindow();
-    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
-    RemoveWindow(sMartInfo.windowId);
-    DisplayItemMessageOnField(taskId, sHorizonNotReady, ShowShopMenuAfterExitingBuyOrSellMenu);
+    // These tabs already say COMING SOON in the shop's info window.
+    // A field-message transition destroys the shop's tilemaps and palettes;
+    // keep the cursor and both windows alive instead.
+    (void)taskId;
+    PlaySE(SE_FAILURE);
 }
 
 static void Task_HorizonDiscs(u8 taskId)

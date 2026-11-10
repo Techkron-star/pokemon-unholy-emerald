@@ -2550,22 +2550,63 @@ static void CB2_QuizLadyExitBagMenu(void)
     SetMainCallback2(CB2_ReturnToField);
 }
 
+static const u8 sPocketItems[] = _("ITEMS");
+static const u8 sPocketBalls[] = _("BALLS");
+static const u8 sPocketTms[] = _("TMS");
+static const u8 sPocketBerries[] = _("BERRIES");
+static const u8 sPocketKey[] = _("KEY");
+static const u8 sPocketBattle[] = _("BATTLE");
+static const u8 sPocketMeds[] = _("MEDS");
+static const u8 *const sBagShortPocketNames[] = {
+    sPocketItems, sPocketBalls, sPocketTms, sPocketBerries,
+    sPocketKey, sPocketBattle, sPocketMeds
+};
+static const u8 sPocketNum1[] = _(" 1/7");
+static const u8 sPocketNum2[] = _(" 2/7");
+static const u8 sPocketNum3[] = _(" 3/7");
+static const u8 sPocketNum4[] = _(" 4/7");
+static const u8 sPocketNum5[] = _(" 5/7");
+static const u8 sPocketNum6[] = _(" 6/7");
+static const u8 sPocketNum7[] = _(" 7/7");
+static const u8 *const sBagPocketNumbers[] = {
+    sPocketNum1, sPocketNum2, sPocketNum3, sPocketNum4,
+    sPocketNum5, sPocketNum6, sPocketNum7
+};
+
 static void PrintPocketNames(const u8 *pocketName1, const u8 *pocketName2)
 {
     struct WindowTemplate window = {0};
     u16 windowId;
     int offset;
+    u8 label[32];
 
     window.width = 16;
     window.height = 2;
     windowId = AddWindow(&window);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName1, 0x40);
-    BagMenu_Print(windowId, FONT_NORMAL, pocketName1, offset, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
-    if (pocketName2)
+
+    // Both halves are used during the sliding animation. Show current
+    // pocket and total in each half so tabs 6/7 and 7/7 are discoverable.
+    for (u32 half = 0; half < 2; half++)
     {
-        offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName2, 0x40);
-        BagMenu_Print(windowId, FONT_NORMAL, pocketName2, offset + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
+        const u8 *name = half == 0 ? pocketName1 : pocketName2;
+        u8 pocket;
+
+        if (name == NULL)
+            continue;
+        for (pocket = 0; pocket < POCKETS_COUNT; pocket++)
+            if (name == gPocketNamesStringsTable[pocket])
+                break;
+        if (pocket < POCKETS_COUNT)
+        {
+            StringCopy(label, sBagShortPocketNames[pocket]);
+            StringAppend(label, sBagPocketNumbers[pocket]);
+        }
+        else
+            StringCopy(label, name);
+
+        offset = GetStringCenterAlignXOffset(FONT_SMALL, label, 0x40);
+        BagMenu_Print(windowId, FONT_SMALL, label, offset + half * 0x40, 3, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     }
     CpuCopy32((u8 *)GetWindowAttribute(windowId, WINDOW_TILE_DATA), gBagMenu->pocketNameBuffer, sizeof(gBagMenu->pocketNameBuffer));
     RemoveWindow(windowId);

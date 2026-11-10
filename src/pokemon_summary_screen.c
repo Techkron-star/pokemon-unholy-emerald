@@ -279,7 +279,6 @@ static void PrintEggMemo(void);
 static void Task_PrintSkillsPage(u8);
 static void PrintHeldItemName(void);
 static void PrintSkillsPageText(void);
-static void PrintRibbonCount(void);
 static void BufferLeftColumnStats(void);
 static void PrintLeftColumnStats(void);
 static void BufferRightColumnStats(void);
@@ -580,12 +579,13 @@ static const struct WindowTemplate sSummaryTemplate[] =
         .baseBlock = 367,
     },
     [PSS_LABEL_WINDOW_PROMPT_RELEARN] = {
+        // Draw the secondary stat panel entirely within the old ribbon area.
         .bg = 0,
-        .tilemapLeft = 18,
-        .tilemapTop = 2,
-        .width = 11,
-        .height = 2,
-        .paletteNum = 15,
+        .tilemapLeft = 20,
+        .tilemapTop = 3,
+        .width = 10,
+        .height = 3,
+        .paletteNum = 6,
         .baseBlock = 800,
     },
     [PSS_LABEL_WINDOW_PORTRAIT_DEX_NUMBER] = {
@@ -3785,7 +3785,6 @@ static void PrintEggMemo(void)
 static void PrintSkillsPageText(void)
 {
     PrintHeldItemName();
-    PrintRibbonCount();
     if (ShouldShowIvEvPrompt())
         ShowUtilityPrompt(SUMMARY_SKILLS_MODE_STATS);
     BufferLeftColumnStats();
@@ -3806,7 +3805,7 @@ static void Task_PrintSkillsPage(u8 taskId)
         PrintHeldItemName();
         break;
     case 2:
-        PrintRibbonCount();
+        PrintStaminaSummary();
         break;
     case 3:
         ChangeStatLabel(SUMMARY_SKILLS_MODE_STATS);
@@ -3835,36 +3834,35 @@ static void Task_PrintSkillsPage(u8 taskId)
 }
 
 // Current stamina lives in battle memory only. The summary displays capacity.
+// Upper-right Skills panel: stamina by default, ribbons on L/R.
+// All content stays in the 10-tile ribbon region; no header overlap.
 static void PrintStaminaSummary(void)
 {
-    static const u8 sStaminaHint[] = _("L/R STAMINA");
-    static const u8 sStaminaLabel[] = _("STA MAX ");
-    u8 text[32];
-    u32 maxStamina;
+    static const u8 sStaminaLabel[] = _("STAMINA");
+    static const u8 sRibbonLabel[] = _("RIBBONS");
+    u32 value;
     u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
 
     if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
         return;
 
-    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
     if (sMonSummaryScreen->showStamina)
     {
-        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
-
-        maxStamina = STAMINA_MAX_BASE
-                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
-        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
-        StringCopy(text, sStaminaLabel);
-        StringAppend(text, gStringVar1);
+        value = sMonSummaryScreen->summary.ribbonCount;
     }
     else
     {
-        StringCopy(text, sStaminaHint);
+        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
+        value = STAMINA_MAX_BASE
+              + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
+              + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
+              + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
     }
 
-    PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    PrintTextOnWindowWithFont(windowId, sMonSummaryScreen->showStamina ? sRibbonLabel : sStaminaLabel, 0, 0, 0, 0, FONT_SMALL);
+    ConvertIntToDecimalStringN(gStringVar1, value, STR_CONV_MODE_LEFT_ALIGN, 3);
+    PrintTextOnWindowWithFont(windowId, gStringVar1, 0, 12, 0, 0, FONT_SMALL);
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
 }
@@ -3894,26 +3892,6 @@ static void PrintHeldItemName(void)
     fontId = GetFontIdToFit(text, FONT_NORMAL, 0, WindowTemplateWidthPx(&sPageSkillsTemplate[PSS_DATA_WINDOW_SKILLS_HELD_ITEM]) - 8);
     x = GetStringCenterAlignXOffset(fontId, text, 72) + 6;
     PrintTextOnWindowWithFont(AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_HELD_ITEM), text, x, 1, 0, 0, fontId);
-}
-
-static void PrintRibbonCount(void)
-{
-    const u8 *text;
-    int x;
-
-    if (sMonSummaryScreen->summary.ribbonCount == 0)
-    {
-        text = gText_None;
-    }
-    else
-    {
-        ConvertIntToDecimalStringN(gStringVar1, sMonSummaryScreen->summary.ribbonCount, STR_CONV_MODE_RIGHT_ALIGN, 2);
-        StringExpandPlaceholders(gStringVar4, gText_RibbonsVar1);
-        text = gStringVar4;
-    }
-
-    x = GetStringCenterAlignXOffset(FONT_NORMAL, text, 70) + 6;
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_RIBBON_COUNT), text, x, 1, 0, 0);
 }
 
 static void BufferStat(u8 *dst, enum Stat statIndex, u32 stat, u32 strId, u32 n)
