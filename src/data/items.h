@@ -9855,9 +9855,9 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("Super Exp. Share"),
         .description = COMPOUND_STRING(
-            "A crafted device that\n"
-            "gives 100% EXP to\n"
-            "each eligible Pokémon."),
+            "100% EXP for\n"
+            "each eligible\n"
+            "Pokémon."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9940,7 +9940,7 @@ const struct ItemInfo gItemsInfo[] =
 
     [ITEM_GEAR_PERMAFROST_FRAGMENT] =
     {
-        .name = ITEM_NAME("Permafrost Fragment"),
+        .name = ITEM_NAME("Permafrost Frag."),
         .description = COMPOUND_STRING("Ice attacks freeze\nmore; Ice users heal.\nEquip in Crafting."),
         .price = 0,
         .importance = 1,
