@@ -79,6 +79,7 @@ static enum PokeBall GetBattlerPokeballItemId(enum BattlerId battler);
 #define GFX_TAG_CHERISH_BALL 55027
 #define GFX_TAG_OMEGA_BALL   55028
 #define GFX_TAG_INFINITY_BALL 55029
+#define GFX_TAG_OVERDRIVE_BALL 55030
 
 static const struct OamData sBallOamData =
 {
@@ -392,6 +393,13 @@ const struct PokeBallSprite gPokeBalls[POKEBALL_COUNT] =
     {
         POKE_BALL_SPRITE(GFX_TAG_INFINITY_BALL, gBallGfx_Poke, gBallPal_Poke),
         .itemId = ITEM_INFINITY_BALL,
+    },
+
+    // 24x24 item icon is distinct from the 16x16 animated throw asset.
+    [BALL_OVERDRIVE] =
+    {
+        POKE_BALL_SPRITE(GFX_TAG_OVERDRIVE_BALL, gBallGfx_Ultra, gBallPal_Ultra),
+        .itemId = ITEM_OVERDRIVE_BALL,
     },
 };
 

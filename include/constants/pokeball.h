@@ -33,6 +33,7 @@ enum PokeBall
     BALL_CHERISH = 27,
     BALL_OMEGA = 28,
     BALL_INFINITY = 29,
+    BALL_OVERDRIVE = 30,
     POKEBALL_COUNT
 };
 

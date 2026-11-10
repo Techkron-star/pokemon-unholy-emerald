@@ -7904,6 +7904,9 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
     case BALL_OMEGA:
         ball->multiplier = 300;
         break;
+    case BALL_OVERDRIVE:
+        ball->multiplier = 400;
+        break;
     case BALL_INFINITY:
         ball->guaranteedCapture = TRUE;
         break;
