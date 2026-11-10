@@ -628,6 +628,8 @@ static void HorizonDrawInfo(void)
             StringCopy(gStringVar4, slot == sHorizonPokemonSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
             if (HorizonMarketOfferSold(slot))
                 StringAppend(gStringVar4, sHorizonTextSold);
+            else if (HorizonMarketGetSpecies(slot) == SPECIES_NONE)
+                StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
             else
                 StringAppend(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(slot)));
             AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 35 + slot * 12, 0, 0,
@@ -639,8 +641,10 @@ static void HorizonDrawInfo(void)
 
         if (mutation != 0)
         {
+            StringCopy(gStringVar4, COMPOUND_STRING("!!! "));
+            StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
             AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextRare);
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
             FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 109, 64, 4, 4);
         }
         else
