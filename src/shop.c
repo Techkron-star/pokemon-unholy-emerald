@@ -121,7 +121,7 @@ static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
 static EWRAM_DATA u8 sHorizonEggSelection = 0;
 static EWRAM_DATA u8 sHorizonEggStatus = 0;
-static EWRAM_DATA u8 sHorizonEggIconId = MAX_SPRITES;
+static EWRAM_DATA u8 sHorizonEggIconId = 0;
 static EWRAM_DATA bool8 sHorizonEggPaletteOwned = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonConfirm = FALSE;
 static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
@@ -137,7 +137,6 @@ static EWRAM_DATA u8 sPurchaseHistoryId = 0;
 EWRAM_DATA struct ItemSlot gMartPurchaseHistory[SMARTSHOPPER_NUM_ITEMS] = {0};
 
 static void Task_ShopMenu(u8 taskId);
-static void Task_HorizonUnavailable(u8 taskId);
 static void Task_HorizonPokemon(u8 taskId);
 static void Task_HorizonEggs(u8 taskId);
 static void HorizonEggIconShow(void);
@@ -983,17 +982,6 @@ static void Task_HorizonEggs(u8 taskId)
     sHorizonEggStatus = 0;
     sHorizonEggConfirm = FALSE;
     HorizonEggIconShow();
-    HorizonDrawInfo();
-}
-
-static void Task_HorizonUnavailable(u8 taskId)
-{
-    (void)taskId;
-    // Keep the existing Horizon task, menu window and palette intact.
-    // Rebuilding the shop from a field-message callback here could leave
-    // stale menu ownership and break navigation on unfinished tabs.
-    // The details panel already labels these entries COMING SOON.
-    PlaySE(SE_FAILURE);
     HorizonDrawInfo();
 }
 
@@ -1941,6 +1929,8 @@ void CreateHorizonShopMenu(void)
     sHorizonEggConfirm = FALSE;
     sHorizonEggSelection = 0;
     sHorizonEggStatus = 0;
+    sHorizonEggIconId = MAX_SPRITES;
+    sHorizonEggPaletteOwned = FALSE;
     sHorizonPokemonConfirm = FALSE;
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
