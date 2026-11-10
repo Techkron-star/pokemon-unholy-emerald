@@ -92,11 +92,14 @@ El **Mutator** es una máquina desbloqueada en el tramo final del juego para int
 - El Mutator no regala combinaciones ni permite obtenerlas sin pagar: cada intento sigue siendo costoso y sujeto al azar.
 - Buscar una segunda, tercera o cuarta mutación exige **una inversión muy grande**, que debe crecer significativamente con la dificultad del objetivo.
 - No convertir la inversión en una garantía automática ni en una forma trivial de conseguir un Pokémon con todas las mutaciones.
-- Se conserva la prohibición ya acordada de **crear Omega mediante el Mutator**; encontrar un Omega natural no significa que la máquina pueda generar uno nuevo.
+- **Omega SÍ puede salir del Mutator.** Su probabilidad en **cada intento pagado** debe ser **ligeramente superior a la probabilidad shiny configurada en la ROM**, sin convertirse en una recompensa garantizada.
+- **Referencia verificada de la ROM actual:** `SHINY_ODDS = 8` y la fórmula de shiny es `SHINY_ODDS / 65536`, es decir, **1/8192** sin modificadores. Como **propuesta de balance**, usar `10 / 65536` para Omega del Mutator (1.25 veces la tasa shiny; aproximadamente **1 entre 6554** intentos). Es un punto inicial **pendiente de aprobación**, no una probabilidad final acordada.
+- La tirada Omega debe basarse en la tasa shiny **base**, no en bonificaciones temporales, amuletos u otros modificadores de shiny que pudieran crear un exploit.
+- No permitir reiniciar o cancelar el mismo intento para volver a lanzar esa tirada gratuitamente; asociar cada intento a su pago y resultado persistentes.
 - Los detalles de la operación —rerollear solo una mutación, sustituir una existente, añadir una nueva, proteger mutaciones anteriores o arriesgarse a perderlas— **no están cerrados**. Diseñar la UI y la transacción sin inventar ese comportamiento.
 - Mantener las otras restricciones previamente contempladas para la máquina, incluida la penalización máxima de 15 niveles cuando corresponda, hasta que se ajuste el diseño.
 
-**Objetivo del balance:** ver un Pokémon natural con dos mutaciones debe sorprender; con tres debe ser un acontecimiento extraordinario. El Mutator ofrece una ruta deliberada de progreso caro, nunca una distribución natural alterada ni un atajo gratuito.
+**Objetivo del balance:** ver un Pokémon natural con dos mutaciones debe sorprender; con tres debe ser un acontecimiento extraordinario. El Mutator ofrece una ruta deliberada de progreso caro y una posibilidad remota pero real de obtener Omega, nunca una distribución natural alterada ni un atajo gratuito.
 
 ## 4. HFC Watch, incursiones y presentación
 
@@ -152,7 +155,7 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 8. HUD, resúmenes, bolsas/íconos y daño soportan números grandes sin solapamientos, truncamientos o corrupciones.
 9. HFC Watch y raids aparecen como **pendientes**, nunca como funciones falsas hasta que tengan flujo real.
 10. En simulaciones de encuentros naturales, las tasas de dos y tres mutaciones descienden fuertemente; no se trata de mutaciones sorteadas sin restricciones que accidentalmente produzcan combinaciones comunes.
-11. El Mutator puede llegar a producir acumulaciones mediante intentos costosos y persistentes, **sin crear Omega** ni alterar retroactivamente las probabilidades naturales.
+11. El Mutator puede llegar a producir acumulaciones mediante intentos costosos y persistentes; **Omega está permitido**, con una probabilidad por intento apenas superior a la tasa shiny base, sin alterar retroactivamente las probabilidades naturales ni duplicar intentos gratis.
 
 ## 7. Decisiones abiertas (no asignar valores arbitrarios)
 
@@ -161,7 +164,7 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 - Tablas de probabilidad por mutación, medallas, tipo de encuentro y dificultad; frecuencia natural extremadamente baja de dos, tres y más mutaciones.
 - Escalado de coste del Mutator por intento y por cantidad de mutaciones, posibilidades de éxito y tratamiento de las mutaciones ya existentes.
 - Qué entrenadores especiales quedan incluidos además del rival/líderes/Alto Mando/campeón.
-- Si el Mutator puede producir alguna de las cinco mutaciones nuevas; **Omega sigue excluido**, incluso cuando se buscan combinaciones.
+- Qué mutaciones de las cinco nuevas puede producir el Mutator y la **tasa definitiva de Omega** (debe ser ligeramente mayor que la shiny base); determinar si se mide por intento total o por resultado válido de mutación, garantizando que la UI explique esa diferencia.
 - Política exacta de persistencia/rotación de raids de HFC Watch.
 - Precedencia e interacción con Alpha, Super y Enraged cuando sus multiplicadores finales se concreten.
 
