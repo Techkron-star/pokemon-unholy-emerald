@@ -39,7 +39,7 @@ def check_png(path):
             if "IHDR" in seen or length != 13:
                 raise ValueError("invalid IHDR")
             header = struct.unpack(">IIBBBBB", payload)
-            if header != (24, 24, 8, 3, 0, 0, 0):
+            if header != (24, 24, 4, 3, 0, 0, 0):
                 raise ValueError(f"expected 24x24 indexed PNG, got {header}")
         if kind == b"PLTE":
             if plte is not None or length != 48:
@@ -61,7 +61,7 @@ def check_png(path):
         raise ValueError("missing PNG chunks")
     if transparency != bytes((0,)):
         raise ValueError("palette index 0 must be transparent")
-    if len(zlib.decompress(compressed)) != 24 * 25:
+    if len(zlib.decompress(compressed)) != 24 * 13:
         raise ValueError("unexpected decompressed pixel data size")
     return plte
 
