@@ -33,3 +33,7 @@ Referencia: `DISENO.md`, secciones Poké Balls, Gears y Progresión/QoL; `docs/U
 El usuario aprobó el diseño de los cuatro Gears de esta tanda y corrigió el nombre a **Impulso Cósmico** (NO Motor Warp Cósmico / Impulsor Cósmico). Se redibujaron **Corazón de Titán, Ancla de Realidad, Impulso Cósmico y Cetro Siniestro** a **24 × 24 píxeles reales**, en PNG **indexado de 4 bpp (16 entradas de paleta, índice 0 transparente)** con paletas JASC-PAL. Se sustituyeron los cuatro bocetos anteriores, sin modificar las otras 15 reliquias ni los sprites aprobados Infinity, Omega y Super Exp. Share. El diseño visual de Impulso Cósmico representa un **motor warp en miniatura** con núcleo azul, pero su **nombre de objeto sigue siendo Impulso Cósmico**.
 
 Estos cuatro sprites son assets visuales que NO se han conectado todavía a `src/data/items.h`, lógica de batalla ni interfaz final. Compilación y QA en emulador siguen pendientes.
+
+## Tanda 2 — redibujo fiel a la ilustración (2026-11-09)
+
+Los cuatro Gears (Corazón de Titán, Ancla de Realidad, Impulso Cósmico, Cetro Siniestro) se redibujaron a mano a 24 × 24 siguiendo la ilustración original: cristal púrpura con grieta rosa y banda dorada; lente dorada con estrella azul y anillos cruzados; motor warp en miniatura con núcleo azul y órbita púrpura; maza de espinas con ojo rojo y cinta carmesí. Mismo formato: PNG indexado, 16 entradas (índice 0 transparente, índice 1 contorno oscuro) y JASC-PAL. Siguen siendo solo visuales; QA en emulador pendiente.
