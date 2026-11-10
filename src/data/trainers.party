@@ -4842,12 +4842,12 @@ IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
 - Seismic Toss
 - Bulk Up
 
-Meditite
-Level: 16
+Hakamo-o
+Level: 17
 IVs: 12 HP / 12 Atk / 12 Def / 12 SpA / 12 SpD / 12 Spe
-- Focus Punch
-- Light Screen
-- Reflect
+- Rock Smash
+- Dragon Breath
+- Protect
 - Bulk Up
 
 Makuhita @ Sitrus Berry
@@ -4876,13 +4876,13 @@ IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Self Destruct
 - Shock Wave
 
-Electrike
-Level: 20
+Dragonair
+Level: 21
 IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Shock Wave
-- Leer
-- Quick Attack
-- Howl
+- Dragon Breath
+- Thunder Wave
+- Wrap
 
 Magneton
 Level: 22
@@ -4918,13 +4918,13 @@ IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Magnitude
 - Sunny Day
 
-Slugma
-Level: 24
+Shelgon
+Level: 25
 IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
-- Overheat
-- Smog
-- Light Screen
-- Sunny Day
+- Dragon Breath
+- Fire Fang
+- Rock Tomb
+- Protect
 
 Camerupt
 Level: 26
@@ -4952,13 +4952,13 @@ Items: Hyper Potion / Hyper Potion
 Double Battle: No
 AI: Basic Trainer / Try To 2HKO / HP Aware / Smart Switching / PP Stall Prevention / Ace Pokemon
 
-Spinda
-Level: 27
+Type: Null
+Level: 28
 IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
-- Teeter Dance
-- Psybeam
-- Facade
-- Encore
+- Tackle
+- Pursuit
+- Protect
+- Scary Face
 
 Vigoroth
 Level: 27
@@ -4994,13 +4994,13 @@ Items: Hyper Potion / Hyper Potion
 Double Battle: No
 AI: Basic Trainer / Try To 2HKO / HP Aware / Smart Switching / PP Stall Prevention / Ace Pokemon
 
-Swablu
-Level: 29
+Salamence
+Level: 32
 IVs: 25 HP / 25 Atk / 25 Def / 25 SpA / 25 SpD / 25 Spe
-- Perish Song
-- Mirror Move
-- Safeguard
-- Aerial Ace
+- Wing Attack
+- Dragon Breath
+- Rock Tomb
+- Protect
 
 Tropius
 Level: 29
@@ -5052,13 +5052,13 @@ IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
 - Psychic
 - Light Screen
 
-Xatu
+Metang
 Level: 41
 IVs: 30 HP / 30 Atk / 30 Def / 30 SpA / 30 SpD / 30 Spe
 - Psychic
-- Sunny Day
-- Confuse Ray
-- Calm Mind
+- Metal Claw
+- Light Screen
+- Protect
 
 Lunatone @ Sitrus Berry
 Level: 42
@@ -5086,13 +5086,13 @@ Items: Hyper Potion / Hyper Potion
 Double Battle: No
 AI: Basic Trainer / Try To 2HKO / HP Aware / Smart Switching / PP Stall Prevention / Ace Pokemon
 
-Luvdisc
-Level: 41
+Sliggoo
+Level: 42
 IVs: 24 HP / 24 Atk / 24 Def / 24 SpA / 24 SpD / 24 Spe
 - Water Pulse
-- Attract
-- Sweet Kiss
-- Flail
+- Dragon Breath
+- Rain Dance
+- Protect
 
 Whiscash
 Level: 41

@@ -32,15 +32,15 @@ Los entrenadores de ruta deben ofrecer una resistencia razonable, pero los rival
 | Gimnasio | Ancla extraordinaria | Concepto táctico |
 | --- | --- | --- |
 | Roxanne | **Pupitar** (implementado, nivel 13, sustituye un Geodude) | Roca/Arena; vulnerable a Agua/Planta, conserva Nosepass como as |
-| Brawly | **Hakamo-o** (propuesta) | Lucha/Dragón con Bulk Up y contraataque controlado |
-| Wattson | **Dragonair** (propuesta) | Thunder Wave y cobertura eléctrica; conserva Manectric como as |
-| Flannery | **Shelgon** (propuesta) | Dragón resiste Agua; golpes de Fuego limitados y apoyo de sol |
-| Norman | **Type: Null** (propuesta; legendario de tipo Normal) | Potencia física contenida, intercambio de tempo; Slaking sigue siendo su as |
-| Winona | **Salamence** (propuesta, con set contenido) | Volador/Dragón, presión aérea con ventanas reales de respuesta |
-| Tate y Liza | **Metang** (propuesta) | Psíquico/Acero y cooperación en doble combate |
-| Juan | **Dragonair** (propuesta) | Agua/Dragón resistiendo Agua, con apoyo de lluvia; Kingdra sigue siendo su as |
+| Brawly | **Hakamo-o** (primer pase implementado) | Lucha/Dragón con Bulk Up y contraataque controlado |
+| Wattson | **Dragonair** (primer pase implementado) | Thunder Wave y cobertura eléctrica; conserva Manectric como as |
+| Flannery | **Shelgon** (primer pase implementado) | Dragón resiste Agua; golpes de Fuego limitados y apoyo de sol |
+| Norman | **Type: Null** (primer pase implementado; legendario de tipo Normal) | Potencia física contenida, intercambio de tempo; Slaking sigue siendo su as |
+| Winona | **Salamence** (primer pase implementado, set contenido) | Volador/Dragón, presión aérea con ventanas reales de respuesta |
+| Tate y Liza | **Metang** (primer pase implementado) | Psíquico/Acero y cooperación en doble combate |
+| Juan | **Sliggoo** (primer pase implementado) | Dragón con apoyo de lluvia; Kingdra sigue siendo su as |
 
-No fijar especies o movimientos de los siete equipos restantes sin probar legalidad del parser, debilidades efectivas y nivel de amenaza. **Solo Roxanne tiene un cambio de equipo hecho en esta rama.** Los jefes conservan movimientos propios y un plan de combate con al menos una respuesta clara del jugador.
+**Primer pase implementado en esta rama para los ocho gimnasios**: se ha sustituido un miembro por el ejemplar de la tabla y se han asignado sets de cuatro movimientos simples y niveles próximos al resto. **Siguen pendientes la compilación, las pruebas reales en emulador y el balance fino**; no se ha aplicado a sus revanchas ni se han añadido Megas por defecto. Los ases originales siguen presentes.
 
 ## 4. Megapiedras de entrenadores
 
@@ -116,9 +116,9 @@ El contador significa **mutaciones adicionales**, no bonificación de estadísti
 
 ## 8. Estado y secuencia recomendada
 
-**Hecho en esta rama:** refuerzo inicial de perfiles AI para entrenadores y principales jefes; Pupitar de Roxanne.
+**Hecho en esta rama (sujeto a QA):** refuerzo inicial de perfiles AI para entrenadores y principales jefes; un legendario o Pokémon de familia seudolegendaria en los ocho primeros equipos de gimnasio (Pupitar, Hakamo-o, Dragonair, Shelgon, Type: Null, Salamence, Metang, Sliggoo).
 
-**Pendiente:** siete equipos de gimnasios, balance de sus coberturas, megapiedras operativas, sistema de revancha por medallas, rareza 2× persistente, migración de guardados, ampliación de nueve mutaciones y sprite de insignia con contador.
+**Pendiente:** pruebas y balance de esos ocho equipos, sus variantes de revancha, megapiedras operativas, sistema de revancha por medallas, rareza 2× persistente, migración de guardados, ampliación de nueve mutaciones y sprite de insignia con contador.
 
 No fusionar automáticamente a main hasta que CI y pruebas de emulador validen este primer paquete; las especificaciones pendientes no autorizan implementar sistemas ficticios.
 
