@@ -85,9 +85,9 @@ semilla_de_partida + ID_estable_entrenador + ID_estable_linea_del_Pokemon
 | Titan | 1/500 | 0.200 % | Propuesta |
 | Ancestral | 1/750 | 0.133 % | Propuesta |
 | Ascendido | 1/2500 | 0.040 % | Propuesta |
-| Omega natural | 1/12000 | 0.0083 % | Propuesta; menor frecuencia que shiny base |
+| **Omega natural** | **1/9000** | **0.0111 %** | **Confirmada por el autor; ligeramente más raro que shiny base** |
 
-**No confundir Omega salvaje (1/12000 propuesto) con Omega del Mutator (10/65536 ≈ 1/6554 propuesto), ni con Omega en rivales y jefes (tabla especial por definir).** Los intentos del Mutator son comprados; las tiradas naturales son encuentros.
+**No confundir Omega salvaje (1/9000 confirmado) con Omega del Mutator (10/65536 ≈ 1/6554 propuesto), ni con Omega en rivales y jefes (tabla especial por definir).** Los intentos del Mutator son comprados; las tiradas naturales son encuentros. La tasa shiny base de esta ROM es 1/8192: **Omega natural (1/9000) es aproximadamente un 9 % menos frecuente que shiny**, no más frecuente.
 
 **Estado real del código:** `include/config/special_badges.h` aún fija Alpha salvaje en 4 %, Enraged salvaje en 1 % y Omega salvaje en 0 %, y solo soporta las cuatro mutaciones antiguas. Esta tabla es de **diseño**, no ha alterado la ROM ni las probabilidades actuales.
 
@@ -103,7 +103,7 @@ Las mutaciones individuales pueden combinarse, pero **cada mutación adicional d
 
 **Mecánica de combinación propuesta para simulación (todavía no aprobada):** realizar primero las nueve tiradas base; si salen varias, ordenarlas aleatoriamente con una semilla reproducible y asignar la primera. Para conservar una segunda, superar una puerta adicional de **1/12**; para la tercera, una puerta de **1/40**; para la cuarta, **1/100**, y puertas progresivamente más exigentes para las siguientes. Si una puerta falla, detener la acumulación. Estas puertas son **adicionales** a la rareza de cada mutación, no la sustituyen.
 
-Como referencia aproximada, con la tabla propuesta y tiradas independientes **antes** de las puertas, dos o más mutaciones candidatas aparecerían cada ~1,830 encuentros y tres o más cada ~238,500. Las puertas 1/12 y 1/40 harían los resultados efectivos muchísimo más raros (orden de 1 en ~22,000 para dos o más y 1 en ~114 millones para tres o más, antes de matices por reordenación y puertas posteriores). **Estas cifras son estimaciones de diseño, no estadísticas verificadas de la ROM; confirmar con una simulación y tests del algoritmo final.** Las tasas base declaradas se refieren a la tirada inicial; la frecuencia final de cada mutación puede variar ligeramente cuando se resuelven colisiones.
+Con la tabla combinada (Alpha, Enraged y Omega confirmados; las otras seis tasas propuestas) y tiradas independientes **antes** de las puertas, dos o más mutaciones candidatas aparecerían cada ~1,826 encuentros y tres o más cada ~237,645. Las puertas 1/12 y 1/40 darían resultados efectivos del orden de 1 en ~21,918 para dos o más y 1 en ~114 millones para tres o más. **Son cálculos teóricos para esta propuesta de distribución, no resultados verificados en la ROM; confirmar con simulaciones y tests del algoritmo final.** Las tasas base declaradas se refieren a la tirada inicial; la frecuencia final de cada mutación puede variar ligeramente cuando se resuelven colisiones.
 
 No reutilizar las tasas anteriores en código como si fueran las nuevas: hacen falta nuevos rangos RNG, bitmask ampliada, compatibilidad de guardado y pruebas de balance. Los entrenadores especiales y raids utilizarán reglas contextualizadas, sin hacer triviales las combinaciones.
 
@@ -128,6 +128,9 @@ El **Mutator** es una máquina desbloqueada en el tramo final del juego para int
 **HFC Watch** (nombre provisional), inspirada en el sistema de búsqueda del PokéNav de Elite Redux:
 
 - Localizador de Pokémon por zona, con filtros y progresión dependiente de medallas.
+- **PC portátil integrada en HFC Watch:** abrir las cajas reales del jugador, consultar sus Pokémon, moverlos, depositar, retirar y reorganizar equipo y cajas desde el menú del dispositivo. No será una PC paralela ni un catálogo ficticio: usa el almacenamiento persistente existente.
+- La PC remota estará accesible fuera de combate y siempre que el mapa o una secuencia argumental no prohíban gestionar el equipo. No permitir abrirla durante batallas, selecciones forzadas del inicial, escenas guiadas ni transiciones críticas. La adquisición del dispositivo habilita la función; no se inventa un bloqueo por medallas para la PC sin decisión posterior.
+- **Seguridad y calidad:** impedir depositar al último Pokémon utilizable cuando la lógica original lo prohíba, evitar duplicación de individuos, respetar objetos equipados y mutaciones persistentes, y restaurar correctamente la interfaz al cerrar. Aprovechar la interfaz actual de PC/almacenamiento, ampliada solo donde haga falta.
 - Modificadores de probabilidad de mutaciones según medallas/recursos; no otorgar mutaciones garantizadas salvo decisión expresa.
 - Acceso a **raids** con Pokémon muy fuertes, IA agresiva y posibilidad de múltiples mutaciones.
 - El conjunto de mutaciones del Pokémon de una incursión se fija **al generar la instancia** y no se modifica para recompensar reinicios o reabrir el mismo menú.
@@ -175,7 +178,7 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 6. Un entrenador corriente no recibe Omega; rival, líderes y jefes sí pueden.
 7. Cinco mutaciones adicionales caben en equipo, PC, batalla y guardado; la combinación no se pierde al capturar ni evolucionar.
 8. HUD, resúmenes, bolsas/íconos y daño soportan números grandes sin solapamientos, truncamientos o corrupciones.
-9. HFC Watch y raids aparecen como **pendientes**, nunca como funciones falsas hasta que tengan flujo real.
+9. HFC Watch, PC remota y raids aparecen como **pendientes**, nunca como funciones falsas hasta que tengan flujo real; la PC remota debe operar sobre cajas reales sin duplicar ni perder Pokémon.
 10. En simulaciones de encuentros naturales, las tasas de dos y tres mutaciones descienden fuertemente; no se trata de mutaciones sorteadas sin restricciones que accidentalmente produzcan combinaciones comunes.
 11. El Mutator puede llegar a producir acumulaciones mediante intentos costosos y persistentes; **Omega está permitido**, con una probabilidad por intento apenas superior a la tasa shiny base, sin alterar retroactivamente las probabilidades naturales ni duplicar intentos gratis.
 
@@ -183,7 +186,7 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 
 - Reducción exacta de Velocidad de Titan.
 - Cómo se sortean valores dentro del rango de Titan y Ancestral: por instancia o por stat.
-- **Enraged 1/90 y Alpha 1/100 confirmados**. Las otras siete tasas de la tabla y las puertas extra (1/12, 1/40, 1/100) siguen siendo **propuestas** sujetas a simulación, además de las modificaciones por medallas, raids, tipo de encuentro y dificultad.
+- **Enraged 1/90, Alpha 1/100 y Omega salvaje 1/9000 confirmados**. Las otras seis tasas de la tabla y las puertas extra (1/12, 1/40, 1/100) siguen siendo **propuestas** sujetas a simulación, además de las modificaciones por medallas, raids, tipo de encuentro y dificultad.
 - Escalado de coste del Mutator por intento y por cantidad de mutaciones, posibilidades de éxito y tratamiento de las mutaciones ya existentes.
 - Qué entrenadores especiales quedan incluidos además del rival/líderes/Alto Mando/campeón.
 - Qué mutaciones de las cinco nuevas puede producir el Mutator y la **tasa definitiva de Omega** (debe ser ligeramente mayor que la shiny base); determinar si se mide por intento total o por resultado válido de mutación, garantizando que la UI explique esa diferencia.
