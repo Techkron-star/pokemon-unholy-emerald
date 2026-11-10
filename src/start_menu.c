@@ -41,6 +41,7 @@
 #include "scanline_effect.h"
 #include "script.h"
 #include "shop.h"
+#include "horizon_market.h"
 #include "sound.h"
 #include "sprite.h"
 #include "start_menu.h"
@@ -996,6 +997,14 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
         {
             StringExpandPlaceholders(gStringVar4, sStartMenuItems[sCurrentStartMenuActions[index]].text);
             AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
+        }
+
+        if (sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
+        {
+            // The standard menu palette already includes saturated red in color 4.
+            // A three-pixel notification dot fits in the seven-tile START menu.
+            FillWindowPixelRect(GetStartMenuWindowId(), PIXEL_FILL(4), 51, (index << 4) + 13, 3, 3);
+            CopyWindowToVram(GetStartMenuWindowId(), COPYWIN_GFX);
         }
 
         index++;
