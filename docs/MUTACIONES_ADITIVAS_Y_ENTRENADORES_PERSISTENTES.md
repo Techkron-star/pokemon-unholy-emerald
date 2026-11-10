@@ -71,7 +71,32 @@ semilla_de_partida + ID_estable_entrenador + ID_estable_linea_del_Pokemon
 
 **Salvajes y raids:** conservar el sistema de rarezas o reglas específicas del contenido; la restricción anterior se refiere **a entrenadores** y no prohíbe futuros Omega salvajes, de cuevas especiales o de incursiones autorizadas por diseño.
 
-**Probabilidades:** conservar independientes las tiradas de cada mutación; **todavía no** se fijan probabilidades para Hyper, Overloaded, Titan, Ancestral y Ascendido, ni la probabilidad Omega por subcategoría de jefe. No reutilizar ciegamente el 2 % que hoy figura para todos los entrenadores.
+### Rareza extrema de acumulaciones naturales (regla confirmada)
+
+Las mutaciones individuales pueden combinarse, pero **cada mutación adicional debe ser muchísimo más difícil de obtener naturalmente**. No basta con nueve probabilidades independientes de valor moderado, porque producirían demasiados Pokémon con dos o tres mutaciones.
+
+- **Una mutación:** rara o poco frecuente según la especie, zona, jefe y tipo de mutación.
+- **Dos mutaciones:** una combinación extremadamente afortunada y excepcional entre salvajes o Pokémon de entrenadores.
+- **Tres mutaciones:** extraordinariamente improbable; el encuentro debe sentirse como un hallazgo casi irrepetible.
+- **Cuatro o más mutaciones:** aún posibles, sin cap arbitrario, pero cada nivel adicional debe disminuir drásticamente la posibilidad. No confundir *teóricamente posible* con *frecuente*.
+- Las raids o jefes pueden aplicar tablas especiales, **sin que eso vuelva comunes las acumulaciones**. La identidad persistente de los Pokémon rivales debe cubrir también la cantidad de mutaciones.
+
+**Implementación sugerida:** resolver primero si el Pokémon obtiene una mutación y cuál. Después, pasar puertas de probabilidad condicionales progresivamente más exigentes para cada mutación adicional, sorteando solo mutaciones que aún no tenga. Alternativamente, utilizar una distribución explícita por cantidad de mutaciones, igualmente muy concentrada en cero o una. La selección definitiva y los porcentajes exactos **quedan pendientes de balance**, no deben inventarse.
+
+No reutilizar ciegamente las tasas anteriores de Alpha/Super/Enraged/Omega como tiradas completamente independientes; revisar primero la frecuencia real de combinaciones. Las nuevas tasas de Hyper, Overloaded, Titan, Ancestral y Ascendido tampoco están definidas.
+
+### Mutator del endgame: acumulación conseguida mediante inversión
+
+El **Mutator** es una máquina desbloqueada en el tramo final del juego para intentar rerollear mutaciones gastando cantidades elevadas de Pokédólares. Mediante uso repetido, el jugador puede llegar a obtener **varias mutaciones en un mismo Pokémon**, en contraste con su rareza natural extrema.
+
+- El Mutator no regala combinaciones ni permite obtenerlas sin pagar: cada intento sigue siendo costoso y sujeto al azar.
+- Buscar una segunda, tercera o cuarta mutación exige **una inversión muy grande**, que debe crecer significativamente con la dificultad del objetivo.
+- No convertir la inversión en una garantía automática ni en una forma trivial de conseguir un Pokémon con todas las mutaciones.
+- Se conserva la prohibición ya acordada de **crear Omega mediante el Mutator**; encontrar un Omega natural no significa que la máquina pueda generar uno nuevo.
+- Los detalles de la operación —rerollear solo una mutación, sustituir una existente, añadir una nueva, proteger mutaciones anteriores o arriesgarse a perderlas— **no están cerrados**. Diseñar la UI y la transacción sin inventar ese comportamiento.
+- Mantener las otras restricciones previamente contempladas para la máquina, incluida la penalización máxima de 15 niveles cuando corresponda, hasta que se ajuste el diseño.
+
+**Objetivo del balance:** ver un Pokémon natural con dos mutaciones debe sorprender; con tres debe ser un acontecimiento extraordinario. El Mutator ofrece una ruta deliberada de progreso caro, nunca una distribución natural alterada ni un atajo gratuito.
 
 ## 4. HFC Watch, incursiones y presentación
 
@@ -126,14 +151,17 @@ Aceptamos encuentros deliberadamente extremos —por ejemplo Chansey con PS de c
 7. Cinco mutaciones adicionales caben en equipo, PC, batalla y guardado; la combinación no se pierde al capturar ni evolucionar.
 8. HUD, resúmenes, bolsas/íconos y daño soportan números grandes sin solapamientos, truncamientos o corrupciones.
 9. HFC Watch y raids aparecen como **pendientes**, nunca como funciones falsas hasta que tengan flujo real.
+10. En simulaciones de encuentros naturales, las tasas de dos y tres mutaciones descienden fuertemente; no se trata de mutaciones sorteadas sin restricciones que accidentalmente produzcan combinaciones comunes.
+11. El Mutator puede llegar a producir acumulaciones mediante intentos costosos y persistentes, **sin crear Omega** ni alterar retroactivamente las probabilidades naturales.
 
 ## 7. Decisiones abiertas (no asignar valores arbitrarios)
 
 - Reducción exacta de Velocidad de Titan.
 - Cómo se sortean valores dentro del rango de Titan y Ancestral: por instancia o por stat.
-- Tablas de probabilidad por mutación, medallas, tipo de encuentro y dificultad.
+- Tablas de probabilidad por mutación, medallas, tipo de encuentro y dificultad; frecuencia natural extremadamente baja de dos, tres y más mutaciones.
+- Escalado de coste del Mutator por intento y por cantidad de mutaciones, posibilidades de éxito y tratamiento de las mutaciones ya existentes.
 - Qué entrenadores especiales quedan incluidos además del rival/líderes/Alto Mando/campeón.
-- Si el Mutator puede producir alguna de las cinco mutaciones nuevas; **Omega sigue excluido**.
+- Si el Mutator puede producir alguna de las cinco mutaciones nuevas; **Omega sigue excluido**, incluso cuando se buscan combinaciones.
 - Política exacta de persistencia/rotación de raids de HFC Watch.
 - Precedencia e interacción con Alpha, Super y Enraged cuando sus multiplicadores finales se concreten.
 
