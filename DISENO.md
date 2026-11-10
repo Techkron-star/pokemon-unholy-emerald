@@ -104,38 +104,55 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
-## 3. Poké Balls
+## 3. Esferas de captura — acuerdos del 10/11/2026
 
-| Ball | Notas |
+| Esfera | Efecto decidido y condiciones |
 |---|---|
-| **Overdrive Ball** | Esfera de captura de categoría intermedia entre Ultra Ball y Master Ball. No reemplaza a ninguna Ball existente. Su multiplicador de captura y compatibilidad con mutaciones especiales están pendientes de confirmar; ×4 es solo una propuesta. |
-| **Alpha Ball** | Idea propia; efecto por definir. |
-| **Omega Ball** | Puede capturar Omegas, pero **no está garantizado**. |
-| **Infinity Ball** | Captura a cualquier Pokémon, incluidos los especiales. Equivalente post-game de la Master Ball. No se compra en tienda; es de post-game (recompensa de la Super Liga) o de cheat codes. |
+| **Overdrive Ball** | Captura **×4** contra objetivos ordinarios. Está situada entre Ultra Ball y Master Ball; NO sustituye ninguna otra. El ×4 no elimina restricciones de mutaciones. **Programada en rama experimental** items/unholy-phase1-balls-20261110; precio y acceso pendientes. |
+| **Alpha Ball** | La menos potente de las esferas especiales. Es la vía recomendada para Alpha y Enraged, pero **ambos pueden capturarse con esferas normales**. Multiplicador exacto pendiente. |
+| **Omega Ball** | Esfera mínima obligatoria para mutaciones de categoría **superior a Super** (Ascendido, Ancestral y las demás que se clasifiquen allí). Nunca garantiza captura. Falta cerrar lista completa y multiplicador. |
+| **Infinity Ball** | Captura **garantizada de cualquier Pokémon**, sin excepción por mutación o especie. Cualquier Pokémon que esté dentro de esta esfera recupera **todos sus PS y PP al terminar cada combate**. Restauración pendiente de implementar/probar; NO se ha autorizado curar estados ni revivir durante el combate. Recompensa Super Liga/posjuego o códigos; no se vende en Horizon. |
 
-- La **Master Ball deja de ser 100%** con los especiales: su eficacia queda reducida al 75% contra Alpha, 35% contra Super, 12% contra Enraged y 3% contra Omega, antes de aplicar el resto de la fórmula de captura.
-- Como capturar un Omega exige una ball de end game, encontrarse uno a mitad del juego no sirve de nada intentarlo.
-- Los encuentros salvajes usan tasas bajas (Alpha 4%, Super 2%, Enraged 1%) y los enemigos tasas sustancialmente mayores (20%, 12%, 6%, Omega 2%). Cada badge se tira de forma independiente, por lo que las combinaciones son posibles.
-- Enraged y Omega requieren Omega Ball o Infinity Ball. La Omega Ball no garantiza la captura; Infinity Ball sí. Master Ball nunca garantiza especiales.
+- La Master Ball conserva sus funciones ordinarias. La tabla antigua de porcentajes contra mutaciones (75 % Alpha, 35 % Super, 12 % Enraged, 3 % Omega) **está pendiente de conciliarse con la nueva restricción por categorías**: no usarla como regla final.
+- Los encuentros salvajes usan tasas bajas (Alpha 4 %, Super 2 %, Enraged 1 %) y entrenadores tasas mayores (20 %, 12 %, 6 %, Omega 2 %); estos son porcentajes de aparición de mutaciones, NO de captura.
+- Con **múltiples mutaciones**, el requisito de esfera debe seguir la mutación de **mayor categoría**.
+- Pendientes: tabla completa de jerarquía, reglas de Master Ball para mutantes, número y obtención de esferas, Ultraentes, capturas críticas y alcance del efecto curativo Infinity (equipo, PC, guardados y combates especiales).
 
 ---
 
-## 4. Gears
-- Equipamiento en un **slot distinto del objeto equipado ordinario**. Habrá relativamente pocos, con identidades marcadas.
-- **Funcionamiento general:** cada Gear concede una **bonificación potente de sobrecarga cada X turnos**, seguida de una **bonificación residual modesta** mientras se recarga. El Gear no se consume y puede reactivarse cíclicamente.
-- **Dos ataques encadenados cuentan como un solo turno** para la recarga. Valores como ×1.6/×1.1 o 4 turnos fueron ejemplos, **no cifras confirmadas**.
-- **Colmillo de Rayquaza:** +10 % a las estadísticas de Pokémon Volador/Dragón, obtenido al **derrotar** a Rayquaza; su relación exacta con la nueva pauta cíclica está pendiente.
-- **Nombres de Gears:** Teseracto; Visor cósmico; Corazón de titán; Ancla de realidad; Impulso cósmico; Cetro siniestro; **Ski Mask**; Permafrost Fragment.
-- **Ski Mask:** potencia los **movimientos de tipo Siniestro**. Multiplicador y recarga sin definir.
-- Los otros siete nombres **no tienen habilidades concretas confirmadas**: cualquier interpretación anterior era una sugerencia.
+## 4. Gears y reliquias — acuerdos del 10/11/2026
 
-### Familia de Gears: Inyecciones sanguíneas
-- Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
-- Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
-- La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
-- **Nombres establecidos:** Sangre flamígera; Sangre demoníaca; Sangre divina; Sangre escamada.
-- Afinidades tentativas —**no confirmadas por el autor**—: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
-- Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
+- Los Gears tienen un **slot de equipamiento separado** del objeto equipado ordinario. Ese slot todavía no está implementado: no simularlo con el slot normal como solución definitiva.
+- La vieja regla de sobrecarga periódica aplica solo a Gears que realmente la necesiten. Teseracto es consumible de uso único; Ski Mask da bonificación constante.
+- Dos ataques encadenados cuentan como **un turno** para efectos medidos en turnos.
+
+| Reliquia | Función establecida |
+|---|---|
+| **Teseracto** | **Uso único**. Desde su activación, clima, terreno/campo, trampas y salas no expiran naturalmente, salvo eliminación explícita. Por definir: momento de consumo, duración de persistencia y conflicto con Ancla de Realidad. |
+| **Visor Cósmico** | Duplica la **bonificación** de Gafas Especiales, no el daño total. Si Gafas dan +10 %, Visor da **+20 % a movimientos especiales**. |
+| **Corazón de Titán** | Duplica la **bonificación** de Banda Músculo, no el daño total. Si Banda da +10 %, Corazón da **+20 % a movimientos físicos**. |
+| **Ancla de Realidad** | Elimina instantáneamente clima, campos, trampas y salas mientras el portador esté en combate. Falta definir si impide nuevas activaciones y cómo reaccionan habilidades climáticas. |
+| **Impulso Cósmico** | Los movimientos **Fantasma del portador** son supereficaces contra Normal, Psíquico y Hada, sin alterar tabla de tipos global. |
+| **Cetro Siniestro** | Los movimientos **Siniestros del portador** son supereficaces contra Psíquico, Hada, Normal **y Lucha**. Ejemplo: Gengar con Pulso Umbrío contra un objetivo Lucha. **No es una bonificación porcentual**: esa es Ski Mask. |
+| **Ski Mask** | Bonificación permanente en movimientos Siniestros de un **70 % de la bonificación de Gema Siniestra** (30 % menos de bono, no 30 puntos menos). Si la Gema ofrece +30 %, Ski Mask ofrece +21 %. **No altera efectividades**. |
+| **Permafrost Fragment** | **Duplica la probabilidad de congelación o Frostbite por instancia de daño de tipo Hielo**, respetando inmunidades y tope de 100 %. |
+
+### Interacciones pendientes
+
+1. **Propuesta, no confirmada:** contra dobles tipos, evaluar cada tipo independientemente (Cetro contra Lucha/Hada podría ser ×4). Un golpe supereficaz no asegura OHKO.
+2. Cambios de efectividad solo mientras Gear esté activo; no convertir la tabla global. Verificar Teracristalización, cambios de tipo, habilidades, inmunidades y combates dobles.
+3. Decidir si Ancla anula nuevos intentos de clima/campo y si un efecto eliminado puede reaparecer tras retirar Ancla. Su interacción con Teseracto requiere prioridad clara.
+4. Confirmar cómo persistirá el slot de Gear y cómo reacciona a cambio, robo, anulación, guardado y carga.
+
+**Colmillo de Rayquaza:** +10 % de estadísticas para Pokémon Volador/Dragón, obtenido al derrotar a Rayquaza; falta concretar su clasificación como Gear y la relación con sobrecargas.
+
+### Familia de Gears: inyecciones sanguíneas (sin cambios de diseño)
+
+- Inspiradas en gemas de tipo, sin reemplazarlas literalmente.
+- Gran bonus al primer ataque compatible y bonus residual menor hasta la siguiente sobrecarga cada X turnos.
+- Sangre flamígera; Sangre demoníaca; Sangre divina; Sangre escamada.
+- Afinidades **tentativas y no confirmadas**: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
+- Pendientes: multiplicadores, recargas y bonificación si se encadenan dos ataques en un único turno.
 
 ---
 
