@@ -125,7 +125,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 - **Funcionamiento general:** cada Gear concede una **bonificación potente de sobrecarga cada X turnos**, seguida de una **bonificación residual modesta** mientras se recarga. El Gear no se consume y puede reactivarse cíclicamente.
 - **Dos ataques encadenados cuentan como un solo turno** para la recarga. Valores como ×1.6/×1.1 o 4 turnos fueron ejemplos, **no cifras confirmadas**.
 - **Colmillo de Rayquaza:** +10 % a las estadísticas de Pokémon Volador/Dragón, obtenido al **derrotar** a Rayquaza; su relación exacta con la nueva pauta cíclica está pendiente.
-- **Nombres de Gears:** Teseracto; Visor cósmico; Corazón de titán; Ancla de realidad; Impulsor cósmico; Cetro siniestro; **Ski Mask**; Permafrost Fragment.
+- **Nombres de Gears:** Teseracto; Visor cósmico; Corazón de titán; Ancla de realidad; Impulso cósmico; Cetro siniestro; **Ski Mask**; Permafrost Fragment.
 - **Ski Mask:** potencia los **movimientos de tipo Siniestro**. Multiplicador y recarga sin definir.
 - Los otros siete nombres **no tienen habilidades concretas confirmadas**: cualquier interpretación anterior era una sugerencia.
 
