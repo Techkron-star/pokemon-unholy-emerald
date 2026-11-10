@@ -397,8 +397,10 @@ static void OpenUnholyCraftingMenu(void)
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
         // Keep the 24x24 icon clear of the recipe text and requirements.
-        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
-        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
+        gSprites[sUnholyCraftIconSpriteId].x = 190;
+        gSprites[sUnholyCraftIconSpriteId].y = 58;
+        gSprites[sUnholyCraftIconSpriteId].x2 = 0;
+        gSprites[sUnholyCraftIconSpriteId].y2 = 0;
     }
     CreateTask(Task_UnholyCraftingMenu, 8);
     FadeScreen(FADE_FROM_BLACK, 0);
