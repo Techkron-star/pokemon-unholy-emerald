@@ -83,7 +83,9 @@ Al ganar una medalla nueva, la siguiente revancha se actualiza al nuevo tramo. *
 
 Usar `saveSeed + stableTrainerId + stablePokemonLineageId + rematchTier` para decidir la **oportunidad nueva**, conservar en el guardado lo obtenido, y mantener los mismos modificadores concretos de Omega/Titan/Ancestral. La identidad del Pokémon sobrevive a nuevas posiciones, evolución y reordenamientos de equipo.
 
-**Hallazgo técnico importante:** ahora `GenerateMonFromTrainerMon` ejecuta `Pokemon_AssignEncounterBadges(mon, TRUE)`, que usa `Random()` global en `src/pokemon.c`. Eso hace que una revancha pueda asignar mutaciones nuevas indiscriminadamente. **No está corregido por la primera fase de IA**: exige almacenamiento/versionado, claves estables y migración segura.
+**Implementación inicial de persistencia (cuatro badges actuales):** `src/trainer_util.c` reemplaza `Pokemon_AssignEncounterBadges(mon, TRUE)` para Pokémon de entrenadores por una ruleta reproducible derivada del OTID de la partida + identidad de entrenador (nombre y clase) + especie base de la línea evolutiva + ordinal de duplicados de esa línea. Las revanchas de gimnasio usan el número de medallas como tramo estable: las tiradas anteriores se conservan matemáticamente y el nuevo tramo puede añadir mutaciones con las oportunidades 2× acordadas. Repetir el mismo tramo no vuelve a sortear nada; la generación NO consume el RNG global. **No se añaden campos al guardado.**
+
+**Limitaciones explícitas de esta fase:** solo soporta Alpha, Super, Enraged y Omega (4 bits). Las probabilidades numéricas siguen siendo las configuradas actualmente; todavía hay que migrar la tabla de nueve mutaciones. Si el Pokémon de un equipo se sustituye por otra familia evolutiva en una revancha, se trata como otra identidad; si su especie evoluciona dentro de la misma familia, conserva su conjunto. Un miembro duplicado de la misma familia se distingue por su ordinal dentro de esa familia. Las nuevas posibilidades de revancha se derivan de los tramos de medallas, incluso si no se combatió en todos los tramos anteriores. Una política estricta de «solo una oportunidad cuando se solicita una revancha» requerirá un registro adicional en guardado.
 
 ## 6. HUD de varias mutaciones
 
@@ -119,7 +121,7 @@ El contador significa **mutaciones adicionales**, no bonificación de estadísti
 
 **Hecho en esta rama (sujeto a QA):** refuerzo de perfiles AI para entrenadores y jefes; un legendario o seudolegendario en los ocho primeros equipos de gimnasio (Pupitar, Hakamo-o, Dragonair, Shelgon, Type: Null, Salamence, Metang, Sliggoo) y una megapiedra adecuada en el quinto equipo de revancha de cada líder.
 
-**Pendiente:** pruebas y balance de equipos, confirmar activación real de Megas, sistema dinámico de revancha por medallas, rareza 2× persistente, migración de guardados, ampliación de nueve mutaciones y sprite de insignia con contador.
+**Pendiente:** pruebas y balance de equipos, confirmar activación real de Megas, escalado dinámico de nivel por medallas, validación/ajuste de rareza 2× determinista, ampliación de nueve mutaciones, persistencia estricta por oportunidad de revancha y sprite de insignia con contador.
 
 No fusionar automáticamente a main hasta que CI y pruebas de emulador validen este primer paquete; las especificaciones pendientes no autorizan implementar sistemas ficticios.
 

@@ -1,6 +1,13 @@
 #include "global.h"
 #include "main.h"
 #include "data.h"
+#include "battle.h"
+#include "battle_setup.h"
+#include "event_data.h"
+#include "pokemon.h"
+#include "config/special_badges.h"
+#include "constants/flags.h"
+#include "constants/trainers.h"
 #include "move.h"
 #include "random.h"
 #include "string_util.h"
@@ -14,6 +21,209 @@ rng_value_t GeneratePartySeed(const struct Trainer *trainer)
 {
     u32 seed = Crc32B((const u8 *)trainer, sizeof(struct Trainer)) ^ READ_OTID_FROM_SAVE;
     return LocalRandomSeed(seed);
+}
+
+
+// Stable trainer-mutation RNG: it NEVER consumes the global battle or encounter RNG.
+// Derive every member's roll from the saved player OTID, the trainer's stable name,
+// its evolution family and the occurrence within that family, not its party slot.
+static u32 MixTrainerMutationSeed(u32 value)
+{
+    value ^= value >> 16;
+    value *= 0x7FEB352D;
+    value ^= value >> 15;
+    value *= 0x846CA68B;
+    value ^= value >> 16;
+    return value;
+}
+
+static bool8 IsImportantMutationTrainer(u32 trainerClass)
+{
+    switch (trainerClass)
+    {
+    case TRAINER_CLASS_LEADER:
+    case TRAINER_CLASS_LEADER_FRLG:
+    case TRAINER_CLASS_ELITE_FOUR:
+    case TRAINER_CLASS_ELITE_FOUR_FRLG:
+    case TRAINER_CLASS_CHAMPION:
+    case TRAINER_CLASS_CHAMPION_FRLG:
+    case TRAINER_CLASS_RIVAL:
+    case TRAINER_CLASS_RIVAL_EARLY_FRLG:
+    case TRAINER_CLASS_RIVAL_LATE_FRLG:
+    case TRAINER_CLASS_AQUA_LEADER:
+    case TRAINER_CLASS_MAGMA_LEADER:
+    case TRAINER_CLASS_AQUA_ADMIN:
+    case TRAINER_CLASS_MAGMA_ADMIN:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static u32 GetPersistentMutationTrainerSeed(const struct Trainer *trainer)
+{
+    u32 seed = 2166136261u ^ READ_OTID_FROM_SAVE;
+    u32 i;
+
+    seed = MixTrainerMutationSeed(seed ^ trainer->trainerClass);
+    for (i = 0; i < TRAINER_NAME_LENGTH && trainer->trainerName[i] != EOS && trainer->trainerName[i] != 0; i++)
+        seed = (seed ^ trainer->trainerName[i]) * 16777619u;
+
+    return MixTrainerMutationSeed(seed);
+}
+
+static enum Species GetMutationFamily(enum Species species)
+{
+    u32 depth;
+
+    species = GET_BASE_SPECIES_ID(species);
+    // A bounded walk also protects us against malformed evolution tables.
+    for (depth = 0; depth < 5; depth++)
+    {
+        enum Species previous = GetSpeciesPreEvolution(species);
+        if (previous == SPECIES_NONE || previous == species)
+            break;
+        species = previous;
+    }
+    return species;
+}
+
+static u8 MutationCount(u8 mask)
+{
+    u8 n = 0;
+
+    while (mask != 0)
+    {
+        n += mask & 1;
+        mask >>= 1;
+    }
+    return n;
+}
+
+static u8 GetGymRematchMutationTier(const struct TrainerGenerator *trainer)
+{
+    u8 i, count = 0;
+
+    if (trainer->trainerClass != TRAINER_CLASS_LEADER
+     && trainer->trainerClass != TRAINER_CLASS_LEADER_FRLG)
+        return 0;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER) || !TRAINER_BATTLE_PARAM.isRematch)
+        return 0;
+
+    for (i = 0; i < NUM_BADGES; i++)
+        if (FlagGet(FLAG_BADGE01_GET + i))
+            count++;
+
+    return count;
+}
+
+// A deterministic rematch tier can be replayed without obtaining new rolls.
+// Earlier tiers are replayed as a prefix, so existing badges never disappear
+// when the player earns the next badge. This uses no new save layout fields.
+static u8 RollStableTrainerMutations(u32 seed, bool8 important, u8 rematchTier)
+{
+    static const u8 sMutationFlags[] =
+    {
+        POKEMON_BADGE_ALPHA,
+        POKEMON_BADGE_SUPER,
+        POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA,
+    };
+    u8 result = 0;
+    u8 tier;
+
+    for (tier = 0; tier <= rematchTier; tier++)
+    {
+        rng_value_t rng = LocalRandomSeed(MixTrainerMutationSeed(seed ^ (0x9E3779B9u * (tier + 1))));
+        u8 rates[] =
+        {
+            important ? SPECIAL_BADGE_TRAINER_ALPHA_CHANCE : SPECIAL_BADGE_WILD_ALPHA_CHANCE,
+            important ? SPECIAL_BADGE_TRAINER_SUPER_CHANCE : SPECIAL_BADGE_WILD_SUPER_CHANCE,
+            important ? SPECIAL_BADGE_TRAINER_ENRAGED_CHANCE : SPECIAL_BADGE_WILD_ENRAGED_CHANCE,
+            important ? SPECIAL_BADGE_TRAINER_OMEGA_CHANCE : 0,
+        };
+        u8 alreadyHad = MutationCount(result);
+        u8 candidates = 0;
+        u8 i;
+
+        // A gym rematch doubles the chance of a FIRST mutation if none
+        // was present; with one existing mutation it doubles the gate
+        // for a SECOND instead. Three or more are never boosted.
+        if (tier != 0 && alreadyHad == 0)
+        {
+            for (i = 0; i < ARRAY_COUNT(rates); i++)
+                rates[i] = min(100, rates[i] * 2);
+        }
+
+        for (i = 0; i < ARRAY_COUNT(sMutationFlags); i++)
+        {
+            if (rates[i] != 0 && LocalRandom32(&rng) % 100 < rates[i]
+             && !(result & sMutationFlags[i]))
+                candidates |= sMutationFlags[i];
+        }
+
+        while (candidates != 0)
+        {
+            u8 choice = LocalRandom32(&rng) % MutationCount(candidates);
+            u8 flag = 0;
+            u32 gate;
+            u8 accepted = MutationCount(result);
+
+            for (i = 0; i < ARRAY_COUNT(sMutationFlags); i++)
+            {
+                if (candidates & sMutationFlags[i])
+                {
+                    if (choice-- == 0)
+                    {
+                        flag = sMutationFlags[i];
+                        break;
+                    }
+                }
+            }
+
+            candidates &= ~flag;
+            // Multi-mutants stay exceptionally rare in natural encounters.
+            gate = accepted == 0 ? 1 : accepted == 1 ? 12 : accepted == 2 ? 40 : 100;
+            if (tier != 0 && alreadyHad == 1 && accepted == 1)
+                gate = 6; // 2x chance for a second mutation on rematches.
+
+            if (LocalRandom32(&rng) % gate == 0)
+                result |= flag;
+        }
+    }
+
+    return result;
+}
+
+static void AssignStableTrainerMutations(struct Pokemon *mon, const struct TrainerMon *entry, struct TrainerGenerator *trainer)
+{
+    u32 occurrence = 0;
+    enum Species family = GetMutationFamily(entry->species);
+    u8 i, mask;
+    u32 seed;
+
+    for (i = 0; i < trainer->generatedMutationCount; i++)
+        if (trainer->mutationLineages[i] == family)
+            occurrence++;
+
+    if (trainer->generatedMutationCount < ARRAY_COUNT(trainer->mutationLineages))
+        trainer->mutationLineages[trainer->generatedMutationCount++] = family;
+
+    seed = MixTrainerMutationSeed(trainer->mutationSeed
+                               ^ (u32)family * 0x85EBCA6Bu
+                               ^ (occurrence + 1) * 0xC2B2AE35u);
+    mask = RollStableTrainerMutations(seed, trainer->isImportantTrainer, GetGymRematchMutationTier(trainer));
+    for (i = 0; i < 4; i++)
+        if (mask & (1 << i))
+            Pokemon_SetBadge(mon, 1 << i);
+}
+
+static void InitTrainerMutationIdentity(struct TrainerGenerator *trainerGen, const struct Trainer *trainer)
+{
+    trainerGen->mutationSeed = GetPersistentMutationTrainerSeed(trainer);
+    trainerGen->generatedMutationCount = 0;
+    memset(trainerGen->mutationLineages, 0, sizeof(trainerGen->mutationLineages));
+    trainerGen->isImportantTrainer = IsImportantMutationTrainer(trainer->trainerClass);
 }
 
 static void CustomTrainerPartyAssignMoves(struct Pokemon *mon, const struct TrainerMon *partyEntry)
@@ -104,6 +314,7 @@ void MakeTrainerGenerator(struct TrainerGenerator *trainerGen, const struct Trai
     trainerGen->trainerClass = trainer->trainerClass;
     trainerGen->otID = OTID_STRUCT_RANDOM_NO_SHINY;
     trainerGen->localRngState = GeneratePartySeed(trainer);
+    InitTrainerMutationIdentity(trainerGen, trainer);
 }
 
 void MakePartnerGenerator(struct TrainerGenerator *trainerGen, const struct Trainer *partner)
@@ -118,6 +329,7 @@ void MakePartnerGenerator(struct TrainerGenerator *trainerGen, const struct Trai
     otID = Crc32B((const u8 *)partner, sizeof(struct Trainer));
     trainerGen->otID = OTID_STRUCT_PRESET(otID);
     trainerGen->localRngState = LocalRandomSeed(otID);
+    InitTrainerMutationIdentity(trainerGen, partner);
 }
 
 void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *trainerMon, struct TrainerGenerator *trainer)
@@ -136,7 +348,7 @@ void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *tra
     personality |= genderValue;
     ModifyPersonalityForNature(&personality, trainerMon->nature);
     CreateMon(mon, trainerMon->species, trainerMon->lvl, personality, trainer->otID);
-    Pokemon_AssignEncounterBadges(mon, TRUE);
+    AssignStableTrainerMutations(mon, trainerMon, trainer);
     if (trainerMon->nickname != NULL)
         SetMonData(mon, MON_DATA_NICKNAME, trainerMon->nickname);
     if (trainerMon->ev) //ev in struct TrainerMon are stored in Showdown order not vanilla Emerald order
