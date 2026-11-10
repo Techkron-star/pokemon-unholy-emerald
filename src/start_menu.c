@@ -4,6 +4,7 @@
 #include "battle_pyramid.h"
 #include "battle_pyramid_bag.h"
 #include "bg.h"
+#include "crafting_menu.h"
 #include "debug.h"
 #include "event_data.h"
 #include "event_object_movement.h"
@@ -331,10 +332,9 @@ static bool8 StartMenuCraftingCallback(void)
 {
     if (!gPaletteFade.active)
     {
-        ClearDialogWindowAndFrameToTransparent(0, TRUE);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
-        ScriptContext_SetupScript(EventScript_CraftSuperExpShare);
+        RemoveExtraStartMenuWindows();
+        HideStartMenu();
+        CreateCraftingMenu();
         return TRUE;
     }
 

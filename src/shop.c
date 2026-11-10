@@ -553,8 +553,8 @@ static u8 CreateHorizonKiosk(void)
     PutWindowTilemap(sKioskInfoWindowId);
     PutWindowTilemap(sKioskMoneyWindowId);
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
-    CopyWindowToVram(sKioskInfoWindowId, COPYWIN_MAP);
-    CopyWindowToVram(sKioskMoneyWindowId, COPYWIN_MAP);
+    CopyWindowToVram(sKioskInfoWindowId, COPYWIN_FULL);
+    CopyWindowToVram(sKioskMoneyWindowId, COPYWIN_FULL);
 
     return CreateTask(Task_HorizonKiosk, 8);
 }
