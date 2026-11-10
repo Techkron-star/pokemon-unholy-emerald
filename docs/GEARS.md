@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** el *sistema* está implementado; **todavía no existe ningún Gear** (solo `GEAR_NONE`). Los valores de balance de cada Gear son decisión de diseño y no se inventan aquí (ver `DISENO.md`, sección 4).
+**Estado:** el núcleo del sistema está implementado y en revisión; **todavía no hay Gears concretos registrados** (solo `GEAR_NONE`). La rama de mejoras corrige el acceso fuera de rango del HUD al compilar la tabla vacía y evita resets triviales del ciclo al cambiar de Pokémon. Los porcentajes y recargas de cada Gear aún requieren definición; ver `DISENO.md`, sección 4.
 
 ## Cómo funciona
 
@@ -17,7 +17,7 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 
 **Guardado.** El Gear equipado ocupa 5 bits antes sin usar de la subestructura de movimientos del Pokémon (`PokemonSubstruct1.gear`), accesible con `MON_DATA_GEAR`. No cambia el tamaño de la estructura ni el formato del guardado; las partidas existentes lo leen como `GEAR_NONE`. Límite: **31 Gears** (`GEAR_MAX_COUNT` = 32 con el vacío).
 
-**Ciclo en combate.** El estado vive en `gBattleStruct` y se reinicia cada vez que el Pokémon entra al campo (igual que la stamina; cambiar de Pokémon reinicia el ciclo, punto de balance abierto).
+**Ciclo en combate.** El estado vive en `gBattleStruct` y se reinicia al comenzar cada combate. Los estados de recarga se recuerdan al retirar y regresar al Pokémon en el **mismo puesto de combate**, para evitar reinicios gratuitos. La migración entre puestos en combates dobles y los cambios por transformaciones aún necesitan pruebas específicas.
 
 1. **Armado / sobrecarga.** Según `trigger`:
    - `GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE`: queda armado y se gasta en el **primer movimiento de daño compatible**.
@@ -117,7 +117,9 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 - [ ] La ROM compila y el icono aparece en la esquina en el emulador, en el lado del jugador y del rival, en singles y dobles.
 - [ ] La sobrecarga se aplica una sola vez y el residual aparece al recargar; el icono cambia de fotograma.
 - [ ] Dos movimientos encadenados avanzan el ciclo **una** vez.
-- [ ] Cambiar de Pokémon y volver reinicia el ciclo como se espera.
+- [ ] Cambiar de Pokémon y regresar al mismo puesto **conserva** la fase de recarga (no recupera sobrecarga gratis); probar también U-turn y Volt Switch.
+- [ ] El ciclo se reinicia al iniciar una batalla nueva, sin persistir temporizadores al guardar.
+- [ ] Cambios de posición en dobles o múltiples entrenadores no mezclan estados de Pokémon distintos.
 - [ ] Guardar, cargar y mover el Pokémon por el PC conserva el Gear.
 
 ## Pendiente (fuera de este sistema)

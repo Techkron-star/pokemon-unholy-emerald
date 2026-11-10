@@ -757,6 +757,12 @@ struct BattleStruct
     u8 gearTimer[MAX_BATTLERS_COUNT];        // turnos que faltan en la fase actual
     u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
     u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
+    // Recordar el ciclo al retirar y regresar al mismo puesto de combate.
+    // Estado efímero: se reinicia al empezar cada batalla, NO afecta al save.
+    u8 gearPartyInitialized[MAX_BATTLERS_COUNT][PARTY_SIZE];
+    u8 gearPartyId[MAX_BATTLERS_COUNT][PARTY_SIZE];
+    u8 gearPartyPhase[MAX_BATTLERS_COUNT][PARTY_SIZE];
+    u8 gearPartyTimer[MAX_BATTLERS_COUNT][PARTY_SIZE];
     // Encadenado de movimientos (ver src/battle_chain.c)
     u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
