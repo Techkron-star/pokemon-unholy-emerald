@@ -270,7 +270,7 @@ u32 HorizonMarketGetPrice(u8 slot)
 {
     enum PokemonBadge badge;
 
-    if (HorizonMarketGetSpecies(slot) == SPECIES_NONE)
+    if (HorizonMarketGetSpecies(slot) == SPECIES_NONE || HorizonMarketOfferSold(slot))
         return 0;
 
     badge = HorizonMarketGetMutation(slot);
