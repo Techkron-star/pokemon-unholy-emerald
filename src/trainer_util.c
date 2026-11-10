@@ -191,24 +191,31 @@ static u16 RollStableTrainerMutations(u32 seed, bool8 important, u8 rematchTier)
     return result;
 }
 
-static void AssignStableTrainerMutations(struct Pokemon *mon, const struct TrainerMon *entry, struct TrainerGenerator *trainer)
+
+static u32 GetTrainerMutationIndividualSeed(struct TrainerGenerator *trainer, enum Species species)
 {
+    enum Species family = GetMutationFamily(species);
     u32 occurrence = 0;
-    enum Species family = GetMutationFamily(entry->species);
-    u8 i;
-    u16 mask;
-    u32 seed;
+    u32 i;
 
     for (i = 0; i < trainer->generatedMutationCount; i++)
         if (trainer->mutationLineages[i] == family)
             occurrence++;
 
+    return MixTrainerMutationSeed(trainer->mutationSeed
+                               ^ (u32)family * 0x85EBCA6Bu
+                               ^ (occurrence + 1) * 0xC2B2AE35u);
+}
+
+static void AssignStableTrainerMutations(struct Pokemon *mon, const struct TrainerMon *entry, struct TrainerGenerator *trainer)
+{
+    enum Species family = GetMutationFamily(entry->species);
+    u16 mask;
+    u32 seed = GetTrainerMutationIndividualSeed(trainer, entry->species);
+
     if (trainer->generatedMutationCount < ARRAY_COUNT(trainer->mutationLineages))
         trainer->mutationLineages[trainer->generatedMutationCount++] = family;
 
-    seed = MixTrainerMutationSeed(trainer->mutationSeed
-                               ^ (u32)family * 0x85EBCA6Bu
-                               ^ (occurrence + 1) * 0xC2B2AE35u);
     mask = RollStableTrainerMutations(seed, trainer->isImportantTrainer, GetGymRematchMutationTier(trainer));
     SetMonData(mon, MON_DATA_SPECIAL_BADGES, &mask);
 }
@@ -330,8 +337,22 @@ void MakePartnerGenerator(struct TrainerGenerator *trainerGen, const struct Trai
 void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *trainerMon, struct TrainerGenerator *trainer)
 {
     u32 data;
-    u32 personality = (LocalRandom32(&trainer->localRngState) & 0xFFFFDF00) + 0x1000;
-    u32 genderValue = LocalRandom32(&trainer->localRngState);
+    u32 personality;
+    u32 genderValue;
+
+    if (trainer->isImportantTrainer)
+    {
+        // The rival's evolved starter retains a stable personality across
+        // different trainer parties; mutation stat ranges are derived from it.
+        rng_value_t identityRng = LocalRandomSeed(GetTrainerMutationIndividualSeed(trainer, trainerMon->species));
+        personality = (LocalRandom32(&identityRng) & 0xFFFFDF00) + 0x1000;
+        genderValue = LocalRandom32(&identityRng);
+    }
+    else
+    {
+        personality = (LocalRandom32(&trainer->localRngState) & 0xFFFFDF00) + 0x1000;
+        genderValue = LocalRandom32(&trainer->localRngState);
+    }
     if (trainerMon->gender == TRAINER_MON_RANDOM_GENDER)
         genderValue = genderValue & 0x000000FF;
     else if (trainerMon->gender == TRAINER_MON_MALE)
