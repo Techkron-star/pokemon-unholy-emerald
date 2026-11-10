@@ -208,6 +208,13 @@ enum Species HorizonMarketGetSpecies(u8 slot)
     return VarGet(HorizonMarketSpeciesVar(slot));
 }
 
+bool8 HorizonMarketOfferSold(u8 slot)
+{
+    if (slot >= HORIZON_MARKET_OFFER_COUNT)
+        return TRUE;
+    return (VarGet(VAR_HORIZON_MARKET_MUTATIONS) & HORIZON_MARKET_SOLD(slot)) != 0;
+}
+
 static u8 HorizonMarketGetMutationCode(u8 slot)
 {
     u16 codes;
