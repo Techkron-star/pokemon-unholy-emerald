@@ -252,7 +252,6 @@ static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
 static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
 static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
-static const u8 sUnholyCraftExitControls[] = _("B: EXIT");
 static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
