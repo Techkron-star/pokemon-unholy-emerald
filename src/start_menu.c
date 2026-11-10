@@ -473,8 +473,12 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
     sUnholyCraftIconSpriteId = AddItemIconSprite(TAG_UNHOLY_CRAFT_ICON, TAG_UNHOLY_CRAFT_ICON, itemId);
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
-        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
-        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
+        // Item sprites start near (0, 0); x2/y2 are relative offsets.
+        // Use absolute screen coordinates so the item remains visible.
+        gSprites[sUnholyCraftIconSpriteId].x = 190;
+        gSprites[sUnholyCraftIconSpriteId].y = 58;
+        gSprites[sUnholyCraftIconSpriteId].x2 = 0;
+        gSprites[sUnholyCraftIconSpriteId].y2 = 0;
     }
 }
 
