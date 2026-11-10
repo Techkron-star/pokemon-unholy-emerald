@@ -159,6 +159,7 @@ static void Task_HandleShopMenuBuy(u8 taskId);
 static void Task_HandleShopMenuSell(u8 taskId);
 static void BuyMenuPrintItemDescriptionAndShowItemIcon(s32 item, bool8 onInit, struct ListMenu *list);
 static void BuyMenuPrintPriceInList(u8 windowId, u32 itemId, u8 y);
+static void SetShopItemsForSale(const u16 *items);
 
 static const struct YesNoFuncTable sShopPurchaseYesNoFuncs =
 {
@@ -344,18 +345,219 @@ static const u8 sShopBuyMenuTextColors[][3] =
 
 static const enum Item sShopItemsListDummy[] = { ITEM_NONE };
 
-static const u16 sHorizonShopItems[] =
-{
-    ITEM_POKE_BALL,
-    ITEM_POTION,
-    ITEM_SUPER_POTION,
-    ITEM_REPEL,
-    ITEM_SUPER_REPEL,
-    ITEM_ESCAPE_ROPE,
-    ITEM_ABILITY_CAPSULE,
-    ITEM_ABILITY_PATCH,
-    ITEM_NONE,
+// Horizon Shop: kiosk-style screen. Pick a category, then buy from its item list.
+#define KIOSK_ICON_TAG TAG_ITEM_ICON_BASE
+
+enum {
+    KIOSK_CAT_BALLS,
+    KIOSK_CAT_MEDICINE,
+    KIOSK_CAT_FIELD,
+    KIOSK_CAT_ABILITY,
+    KIOSK_NUM_CATEGORIES,
+    KIOSK_ROW_SELL = KIOSK_NUM_CATEGORIES,
+    KIOSK_ROW_QUIT,
+    KIOSK_NUM_ROWS,
 };
+
+enum {
+    KIOSK_WIN_LIST,
+    KIOSK_WIN_INFO,
+    KIOSK_WIN_MONEY,
+};
+
+struct KioskCategory
+{
+    const u8 *desc;
+    const u16 *items;
+};
+
+static const u8 sText_KioskBalls[] = _("POKé BALLS");
+static const u8 sText_KioskMedicine[] = _("MEDICINE");
+static const u8 sText_KioskField[] = _("FIELD ITEMS");
+static const u8 sText_KioskAbility[] = _("ABILITIES");
+
+static const u8 sText_KioskBallsDesc[] = _("For catching wild\nPOKéMON.");
+static const u8 sText_KioskMedicineDesc[] = _("Restore your team's\nHP.");
+static const u8 sText_KioskFieldDesc[] = _("Repels and ropes\nfor travelling.");
+static const u8 sText_KioskAbilityDesc[] = _("Change a POKéMON's\nABILITY.");
+static const u8 sText_KioskSellDesc[] = _("Sell items from\nyour BAG.");
+static const u8 sText_KioskQuitDesc[] = _("Leave the shop.");
+
+static const u16 sKioskBalls[] = { ITEM_POKE_BALL, ITEM_NONE };
+static const u16 sKioskMedicine[] = { ITEM_POTION, ITEM_SUPER_POTION, ITEM_NONE };
+static const u16 sKioskField[] = { ITEM_REPEL, ITEM_SUPER_REPEL, ITEM_ESCAPE_ROPE, ITEM_NONE };
+static const u16 sKioskAbility[] = { ITEM_ABILITY_CAPSULE, ITEM_ABILITY_PATCH, ITEM_NONE };
+
+static const struct KioskCategory sKioskCategories[KIOSK_NUM_CATEGORIES] =
+{
+    [KIOSK_CAT_BALLS]   = { sText_KioskBallsDesc, sKioskBalls },
+    [KIOSK_CAT_MEDICINE] = { sText_KioskMedicineDesc, sKioskMedicine },
+    [KIOSK_CAT_FIELD]   = { sText_KioskFieldDesc, sKioskField },
+    [KIOSK_CAT_ABILITY] = { sText_KioskAbilityDesc, sKioskAbility },
+};
+
+static const struct MenuAction sKioskMenuActions[KIOSK_NUM_ROWS] =
+{
+    [KIOSK_CAT_BALLS]    = { sText_KioskBalls },
+    [KIOSK_CAT_MEDICINE] = { sText_KioskMedicine },
+    [KIOSK_CAT_FIELD]    = { sText_KioskField },
+    [KIOSK_CAT_ABILITY]  = { sText_KioskAbility },
+    [KIOSK_ROW_SELL]     = { gText_ShopSell },
+    [KIOSK_ROW_QUIT]     = { gText_ShopQuit },
+};
+
+static const struct WindowTemplate sKioskWindowTemplates[] =
+{
+    [KIOSK_WIN_LIST] = {
+        .bg = 0,
+        .tilemapLeft = 1,
+        .tilemapTop = 1,
+        .width = 12,
+        .height = 12,
+        .paletteNum = 15,
+        .baseBlock = 0x0008,
+    },
+    [KIOSK_WIN_INFO] = {
+        .bg = 0,
+        .tilemapLeft = 14,
+        .tilemapTop = 1,
+        .width = 15,
+        .height = 12,
+        .paletteNum = 15,
+        .baseBlock = 0x0098,
+    },
+    [KIOSK_WIN_MONEY] = {
+        .bg = 0,
+        .tilemapLeft = 1,
+        .tilemapTop = 14,
+        .width = 10,
+        .height = 2,
+        .paletteNum = 15,
+        .baseBlock = 0x014C,
+    },
+};
+
+static EWRAM_DATA bool8 sHorizonKiosk = FALSE;
+static EWRAM_DATA u8 sKioskInfoWindowId = 0;
+static EWRAM_DATA u8 sKioskMoneyWindowId = 0;
+static EWRAM_DATA u8 sKioskIconSpriteId = 0;
+static EWRAM_DATA u8 sKioskLastPos = 0;
+
+static void KioskRemoveIcon(void)
+{
+    if (sKioskIconSpriteId == SPRITE_NONE)
+        return;
+
+    FreeSpriteTilesByTag(KIOSK_ICON_TAG);
+    FreeSpritePaletteByTag(KIOSK_ICON_TAG);
+    DestroySprite(&gSprites[sKioskIconSpriteId]);
+    sKioskIconSpriteId = SPRITE_NONE;
+}
+
+static void KioskShowPreview(u8 row)
+{
+    const u8 *title = sKioskMenuActions[row].text;
+    const u8 *desc;
+    enum Item icon = ITEM_NONE;
+
+    if (row < KIOSK_NUM_CATEGORIES)
+    {
+        desc = sKioskCategories[row].desc;
+        icon = sKioskCategories[row].items[0];
+    }
+    else
+    {
+        desc = (row == KIOSK_ROW_SELL) ? sText_KioskSellDesc : sText_KioskQuitDesc;
+    }
+
+    KioskRemoveIcon();
+    if (icon != ITEM_NONE)
+    {
+        u8 spriteId = AddItemIconSprite(KIOSK_ICON_TAG, KIOSK_ICON_TAG, icon);
+        if (spriteId != MAX_SPRITES)
+        {
+            sKioskIconSpriteId = spriteId;
+            gSprites[spriteId].x2 = 172;
+            gSprites[spriteId].y2 = 34;
+        }
+    }
+
+    FillWindowPixelBuffer(sKioskInfoWindowId, PIXEL_FILL(1));
+    AddTextPrinterParameterized(sKioskInfoWindowId, FONT_NORMAL, title, 4, 44, TEXT_SKIP_DRAW, NULL);
+    AddTextPrinterParameterized(sKioskInfoWindowId, FONT_NARROW, desc, 4, 62, TEXT_SKIP_DRAW, NULL);
+    CopyWindowToVram(sKioskInfoWindowId, COPYWIN_GFX);
+}
+
+static void KioskClose(void)
+{
+    KioskRemoveIcon();
+    ClearStdWindowAndFrameToTransparent(sKioskInfoWindowId, TRUE);
+    ClearStdWindowAndFrameToTransparent(sKioskMoneyWindowId, TRUE);
+    RemoveWindow(sKioskInfoWindowId);
+    RemoveWindow(sKioskMoneyWindowId);
+}
+
+static void Task_HorizonKiosk(u8 taskId)
+{
+    s8 inputCode = Menu_ProcessInputNoWrap();
+    u8 pos = Menu_GetCursorPos();
+
+    if (pos != sKioskLastPos)
+    {
+        sKioskLastPos = pos;
+        KioskShowPreview(pos);
+    }
+
+    switch (inputCode)
+    {
+    case MENU_NOTHING_CHOSEN:
+        break;
+    case MENU_B_PRESSED:
+        PlaySE(SE_SELECT);
+        KioskClose();
+        Task_HandleShopMenuQuit(taskId);
+        break;
+    case KIOSK_ROW_QUIT:
+        KioskClose();
+        Task_HandleShopMenuQuit(taskId);
+        break;
+    case KIOSK_ROW_SELL:
+        KioskRemoveIcon();
+        Task_HandleShopMenuSell(taskId);
+        break;
+    default:
+        KioskRemoveIcon();
+        SetShopItemsForSale(sKioskCategories[inputCode].items);
+        Task_HandleShopMenuBuy(taskId);
+        break;
+    }
+}
+
+static u8 CreateHorizonKiosk(void)
+{
+    sMartInfo.windowId = AddWindow(&sKioskWindowTemplates[KIOSK_WIN_LIST]);
+    sKioskInfoWindowId = AddWindow(&sKioskWindowTemplates[KIOSK_WIN_INFO]);
+    sKioskMoneyWindowId = AddWindow(&sKioskWindowTemplates[KIOSK_WIN_MONEY]);
+    sMartInfo.menuActions = sKioskMenuActions;
+    sKioskIconSpriteId = SPRITE_NONE;
+    sKioskLastPos = 0;
+
+    SetStandardWindowBorderStyle(sMartInfo.windowId, FALSE);
+    SetStandardWindowBorderStyle(sKioskInfoWindowId, FALSE);
+    SetStandardWindowBorderStyle(sKioskMoneyWindowId, FALSE);
+    PrintMenuTable(sMartInfo.windowId, KIOSK_NUM_ROWS, sKioskMenuActions);
+    InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, KIOSK_NUM_ROWS, 0);
+    PrintMoneyAmountInMoneyBox(sKioskMoneyWindowId, GetMoney(&gSaveBlock1Ptr->money), 0);
+    KioskShowPreview(0);
+    PutWindowTilemap(sMartInfo.windowId);
+    PutWindowTilemap(sKioskInfoWindowId);
+    PutWindowTilemap(sKioskMoneyWindowId);
+    CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
+    CopyWindowToVram(sKioskInfoWindowId, COPYWIN_MAP);
+    CopyWindowToVram(sKioskMoneyWindowId, COPYWIN_MAP);
+
+    return CreateTask(Task_HorizonKiosk, 8);
+}
 
 static u8 CreateShopMenu(u8 martType)
 {
@@ -363,6 +565,9 @@ static u8 CreateShopMenu(u8 martType)
 
     LockPlayerFieldControls();
     sMartInfo.martType = martType;
+
+    if (sHorizonKiosk && martType == MART_TYPE_NORMAL)
+        return CreateHorizonKiosk();
 
     if (martType == MART_TYPE_NORMAL)
     {
@@ -1327,6 +1532,7 @@ static void RecordItemPurchase(u8 taskId)
 
 void CreatePokemartMenu(const u16 *itemsForSale)
 {
+    sHorizonKiosk = FALSE;
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(itemsForSale);
     ClearItemPurchases();
@@ -1335,8 +1541,9 @@ void CreatePokemartMenu(const u16 *itemsForSale)
 
 void CreateHorizonShopMenu(void)
 {
+    sHorizonKiosk = TRUE;
     CreateShopMenu(MART_TYPE_NORMAL);
-    SetShopItemsForSale(sHorizonShopItems);
+    SetShopItemsForSale(sKioskBalls);
     ClearItemPurchases();
     SetShopMenuCallback(ShowReturnToFieldStartMenu);
 }
