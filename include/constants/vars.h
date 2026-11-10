@@ -283,10 +283,16 @@
 #define VAR_HORIZON_MARKET_PERIOD                      VAR_UNUSED_0x40F8
 #define VAR_HORIZON_MARKET_SPECIES_0                   VAR_UNUSED_0x40F9
 #define VAR_HORIZON_MARKET_SPECIES_1                   VAR_UNUSED_0x40FA
-#define VAR_HORIZON_MARKET_MUTATIONS                   VAR_UNUSED_0x40FB
-#define VAR_HORIZON_MARKET_SEEN                        VAR_UNUSED_0x40FC
+#define VAR_HORIZON_MARKET_MUTATIONS_0                 VAR_UNUSED_0x40FB
+#define VAR_HORIZON_MARKET_STATUS                      VAR_UNUSED_0x40FC // sold bits 0..5; seen bit 6
 #define VAR_HORIZON_MARKET_VERSION                     VAR_UNUSED_0x40FD
 #define VAR_HORIZON_MARKET_BADGES                      VAR_UNUSED_0x40FE
+#define VAR_HORIZON_MARKET_SPECIES_2                   VAR_UNUSED_0x40FF
+#define VAR_HORIZON_MARKET_SPECIES_3                   VAR_UNUSED_0x40DB
+#define VAR_HORIZON_MARKET_SPECIES_4                   VAR_UNUSED_0x40DC
+#define VAR_HORIZON_MARKET_SPECIES_5                   VAR_UNUSED_0x40E5
+#define VAR_HORIZON_MARKET_MUTATIONS_1                 VAR_UNUSED_0x40A1
+#define VAR_HORIZON_EGG_QUALITIES                      VAR_UNUSED_0x40A8 // five 2-bit grades + five sold flags
 
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)

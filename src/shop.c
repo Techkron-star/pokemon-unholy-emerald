@@ -32,6 +32,8 @@
 #include "start_menu.h"
 #include "shop.h"
 #include "horizon_market.h"
+#include "horizon_eggs.h"
+#include "pokemon_icon.h"
 #include "sound.h"
 #include "sprite.h"
 #include "string_util.h"
@@ -115,6 +117,12 @@ struct ShopData
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonBrowsing = FALSE;
+static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
+static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
+static EWRAM_DATA u8 sHorizonEggSelection = 0;
+static EWRAM_DATA u8 sHorizonEggStatus = 0;
+static EWRAM_DATA u8 sHorizonEggIconId = 0;
+static EWRAM_DATA bool8 sHorizonEggPaletteOwned = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonConfirm = FALSE;
 static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
 static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
@@ -129,8 +137,10 @@ static EWRAM_DATA u8 sPurchaseHistoryId = 0;
 EWRAM_DATA struct ItemSlot gMartPurchaseHistory[SMARTSHOPPER_NUM_ITEMS] = {0};
 
 static void Task_ShopMenu(u8 taskId);
-static void Task_HorizonUnavailable(u8 taskId);
 static void Task_HorizonPokemon(u8 taskId);
+static void Task_HorizonEggs(u8 taskId);
+static void HorizonEggIconShow(void);
+static void HorizonEggIconHide(void);
 static void HorizonDrawNotification(void);
 static void Task_HorizonDiscs(u8 taskId);
 static void Task_HorizonItems(u8 taskId);
@@ -198,6 +208,9 @@ static const u8 sHorizonTextNeedSpace[] = _("Party/PC is full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
+static const u8 sHorizonTextEggBrowse[] = _("EGG  A: BUY B: BACK");
+static const u8 sHorizonTextEggSold[] = _("SOLD");
+static const u8 sHorizonTextPrize[] = _("Egg secured!");
 static const u8 *const sHorizonPokemonStatuses[] =
 {
     sHorizonTextReady, sHorizonTextConfirmBuy, sHorizonTextBought,
@@ -215,7 +228,7 @@ static const u8 sHorizonTextControls[] = _("L/R TABS  B EXIT");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Buy TMs.\nFixed test stock.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies.\nFixed test stock.\nA: BUY");
-static const u8 sHorizonDescEggs[] = _("Mystery eggs.\nCOMING SOON");
+static const u8 sHorizonDescEggs[] = _("Five egg grades.\nRare quality RNG.\nA: OPEN EGGS");
 static const u8 sHorizonDescMoves[] = _("Existing Move\nManager.\nA: OPEN");
 static const u8 *const sHorizonDescriptions[] =
 {
@@ -286,7 +299,7 @@ static const struct MenuAction sHorizonTabs[] =
     {sHorizonTextPokemon, {.void_u8 = Task_HorizonPokemon}},
     {sHorizonTextDiscs, {.void_u8 = Task_HorizonDiscs}},
     {sHorizonTextItems, {.void_u8 = Task_HorizonItems}},
-    {sHorizonTextEggs, {.void_u8 = Task_HorizonUnavailable}},
+    {sHorizonTextEggs, {.void_u8 = Task_HorizonEggs}},
     {sHorizonTextMoves, {.void_u8 = Task_HorizonMoves}},
 };
 
@@ -561,6 +574,34 @@ static void SetShopItemsForSale(const u16 *items)
     }
 }
 
+static void HorizonEggIconShow(void)
+{
+    u8 paletteIndex;
+
+    if (sHorizonEggIconId != MAX_SPRITES)
+        return;
+
+    paletteIndex = GetMonIconPaletteIndexFromSpecies(SPECIES_EGG);
+    sHorizonEggPaletteOwned = IndexOfSpritePaletteTag(gMonIconPaletteTable[paletteIndex].tag) == 0xFF;
+    LoadMonIconPalette(SPECIES_EGG);
+    // The actual Pokémon EGG icon, not a species preview or placeholder text.
+    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 58, 0, 0, TRUE);
+}
+
+static void HorizonEggIconHide(void)
+{
+    if (sHorizonEggIconId != MAX_SPRITES)
+    {
+        FreeAndDestroyMonIconSprite(&gSprites[sHorizonEggIconId]);
+        sHorizonEggIconId = MAX_SPRITES;
+    }
+    if (sHorizonEggPaletteOwned)
+    {
+        FreeMonIconPalette(SPECIES_EGG);
+        sHorizonEggPaletteOwned = FALSE;
+    }
+}
+
 static void HorizonOpenInfoWindow(void)
 {
     // The field owns palette 14; restore it on exit and before other field UI.
@@ -582,6 +623,7 @@ static void HorizonOpenInfoWindow(void)
 
 static void HorizonCloseInfoWindow(void)
 {
+    HorizonEggIconHide();
     if (sHorizonInfoWindowId != 0xFF)
     {
         ClearStdWindowAndFrameToTransparent(sHorizonInfoWindowId, TRUE);
@@ -608,23 +650,48 @@ static void HorizonDrawNotification(void)
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_GFX);
 }
 
+// Small native 4bpp egg thumbnails, one per tier; the selected entry also
+// gets the full Pokémon EGG icon. Quality changes the shell accent, not species.
+static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
+{
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 shell = daylight ? 4 : 2;
+    const u8 outline = quality == HORIZON_EGG_PRISMATIC ? 13
+                     : quality == HORIZON_EGG_RADIANT ? 7
+                     : daylight ? 10 : 3;
+
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y, 4, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 1, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(shell), x + 1, y + 2, 6, 5);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x, y + 3, 1, 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 7, y + 3, 1, 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 7, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 8, 4, 1);
+}
+
 static void HorizonDrawInfo(void)
 {
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonTextDaylight : sHorizonTextEclipse;
 
     if (sHorizonInfoWindowId == 0xFF)
         return;
+
     FillWindowPixelBuffer(sHorizonInfoWindowId, PIXEL_FILL(1));
     DrawUnholyUiPanelAccents(sHorizonInfoWindowId, 15 * 8, 13 * 8, 31);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 3, 0, 0,
                                 sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTitle);
     AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 19, 0, 0,
-                                sHorizonTextColors, TEXT_SKIP_DRAW, skin);
+                                sHorizonTextColors, TEXT_SKIP_DRAW,
+                                 sHorizonEggBrowsing ? (sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse)
+                                    : sHorizonPokemonBrowsing ? (sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse)
+                                    : skin);
 
     if (sHorizonPokemonBrowsing)
     {
+        // Six independent offers fit in a compact 6-row list at native 240x160.
         for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
         {
+            const s32 y = 27 + slot * 10;
             StringCopy(gStringVar4, slot == sHorizonPokemonSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
             if (HorizonMarketOfferSold(slot))
                 StringAppend(gStringVar4, sHorizonTextSold);
@@ -632,43 +699,77 @@ static void HorizonDrawInfo(void)
                 StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
             else
                 StringAppend(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(slot)));
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 35 + slot * 12, 0, 0,
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, y, 0, 0,
                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+            if (HorizonMarketGetMutation(slot) != 0)
+                FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 110, y + 3, 4, 4);
         }
 
         const enum PokemonBadge mutation = HorizonMarketGetMutation(sHorizonPokemonSelection);
         const u32 price = HorizonMarketGetPrice(sHorizonPokemonSelection);
-
         if (mutation != 0)
         {
             StringCopy(gStringVar4, COMPOUND_STRING("!!! "));
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
-            FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(13), 109, 64, 4, 4);
         }
         else
-        {
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 60, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, HorizonMarketMutationName(mutation));
-        }
+            StringCopy(gStringVar4, HorizonMarketMutationName(mutation));
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 86, 0, 0,
+                                    sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
 
         if (sHorizonPokemonStatus == 0 && price != 0)
         {
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, price, STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 96, 0, 0,
                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
         }
         else
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW,
+                                        sHorizonPokemonStatuses[sHorizonPokemonStatus]);
+    }
+    else if (sHorizonEggBrowsing)
+    {
+        // These are always EGGS: even a legendary/mutant prize is hidden until
+        // hatching. Every row has a separately rolled visual quality grade.
+        for (u8 tier = 0; tier < HORIZON_EGG_TIER_COUNT; tier++)
         {
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 74, 0, 0,
-                                        sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonPokemonStatuses[sHorizonPokemonStatus]);
+            const s32 y = 30 + tier * 10;
+            HorizonDrawSmallEgg(sHorizonInfoWindowId, 5, y, HorizonEggGetQuality(tier));
+            StringCopy(gStringVar4, tier == sHorizonEggSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
+            if (HorizonEggIsSold(tier))
+                StringAppend(gStringVar4, sHorizonTextEggSold);
+            else
+                StringAppend(gStringVar4, HorizonEggTierName(tier));
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 16, y, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+
+            if (!HorizonEggIsSold(tier) && HorizonEggGetQuality(tier) != HORIZON_EGG_STANDARD)
+            {
+                const u8 marker = HorizonEggGetQuality(tier) == HORIZON_EGG_PRISMATIC ? 13 : 7;
+                FillWindowPixelRect(sHorizonInfoWindowId, PIXEL_FILL(marker), 83, y + 2, 4, 4);
+            }
         }
-        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
+
+        AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 82, 0, 0,
                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                    sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
+                                    HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
+        if (sHorizonEggStatus == 0 && !HorizonEggIsSold(sHorizonEggSelection))
+        {
+            StringCopy(gStringVar4, COMPOUND_STRING("COST "));
+            ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
+                                       STR_CONV_MODE_LEFT_ALIGN, 6);
+            StringAppend(gStringVar4, gStringVar3);
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+        }
+        else
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 95, 0, 0,
+                                        sHorizonTextColors, TEXT_SKIP_DRAW,
+                                        sHorizonEggStatus == 2 ? sHorizonTextPrize : sHorizonPokemonStatuses[sHorizonEggStatus]);
     }
     else
     {
@@ -683,12 +784,80 @@ static void HorizonDrawInfo(void)
         AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, 88, 0, 0,
                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
     }
+
     CopyWindowToVram(sHorizonInfoWindowId, COPYWIN_FULL);
 }
 
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+    if (sHorizonActive && sHorizonEggBrowsing)
+    {
+        if (JOY_NEW(B_BUTTON))
+        {
+            if (sHorizonEggConfirm)
+                sHorizonEggConfirm = FALSE;
+            else
+            {
+                sHorizonEggBrowsing = FALSE;
+                HorizonEggIconHide();
+            }
+            sHorizonEggStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
+        {
+            if (JOY_NEW(DPAD_UP))
+                sHorizonEggSelection = (sHorizonEggSelection + HORIZON_EGG_TIER_COUNT - 1) % HORIZON_EGG_TIER_COUNT;
+            else
+                sHorizonEggSelection = (sHorizonEggSelection + 1) % HORIZON_EGG_TIER_COUNT;
+            sHorizonEggConfirm = FALSE;
+            sHorizonEggStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(A_BUTTON))
+        {
+            enum HorizonMarketPurchaseResult outcome;
+
+            if (!sHorizonEggConfirm)
+            {
+                if (HorizonEggIsSold(sHorizonEggSelection))
+                    sHorizonEggStatus = 5;
+                else if (IsPlayerPartyAndPokemonStorageFull())
+                    sHorizonEggStatus = 4;
+                else if (!IsEnoughMoney(&gSaveBlock1Ptr->money, HorizonEggGetPrice(sHorizonEggSelection)))
+                    sHorizonEggStatus = 3;
+                else
+                {
+                    sHorizonEggConfirm = TRUE;
+                    sHorizonEggStatus = 1;
+                }
+                PlaySE(sHorizonEggConfirm ? SE_SELECT : SE_FAILURE);
+            }
+            else
+            {
+                outcome = HorizonEggPurchase(sHorizonEggSelection);
+                sHorizonEggConfirm = FALSE;
+                switch (outcome)
+                {
+                case HORIZON_MARKET_PURCHASE_OK: sHorizonEggStatus = 2; break;
+                case HORIZON_MARKET_PURCHASE_NO_MONEY: sHorizonEggStatus = 3; break;
+                case HORIZON_MARKET_PURCHASE_NO_SPACE: sHorizonEggStatus = 4; break;
+                case HORIZON_MARKET_PURCHASE_SOLD_OUT: sHorizonEggStatus = 5; break;
+                default: sHorizonEggStatus = 6; break;
+                }
+                PlaySE(outcome == HORIZON_MARKET_PURCHASE_OK ? SE_SUCCESS : SE_FAILURE);
+            }
+            HorizonDrawInfo();
+            return;
+        }
+        return;
+    }
+
     if (sHorizonActive && sHorizonPokemonBrowsing)
     {
         if (JOY_NEW(B_BUTTON))
@@ -709,7 +878,10 @@ static void Task_ShopMenu(u8 taskId)
         }
         if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
         {
-            sHorizonPokemonSelection ^= 1; // Exactly two stock slots.
+            if (JOY_NEW(DPAD_UP))
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + HORIZON_MARKET_OFFER_COUNT - 1) % HORIZON_MARKET_OFFER_COUNT;
+            else
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HORIZON_MARKET_OFFER_COUNT;
             sHorizonPokemonConfirm = FALSE;
             sHorizonPokemonStatus = 0;
             PlaySE(SE_SELECT);
@@ -818,14 +990,18 @@ static void Task_HorizonPokemon(u8 taskId)
     HorizonDrawInfo();
 }
 
-static void Task_HorizonUnavailable(u8 taskId)
+static void Task_HorizonEggs(u8 taskId)
 {
     (void)taskId;
-    // Keep the existing Horizon task, menu window and palette intact.
-    // Rebuilding the shop from a field-message callback here could leave
-    // stale menu ownership and break navigation on unfinished tabs.
-    // The details panel already labels these entries COMING SOON.
-    PlaySE(SE_FAILURE);
+    if (sHorizonInfoWindowId == 0xFF)
+        return;
+
+    HorizonMarketRefresh();
+    sHorizonEggBrowsing = TRUE;
+    sHorizonEggSelection = 0;
+    sHorizonEggStatus = 0;
+    sHorizonEggConfirm = FALSE;
+    HorizonEggIconShow();
     HorizonDrawInfo();
 }
 
@@ -1769,6 +1945,12 @@ void CreateHorizonShopMenu(void)
     sHorizonActive = TRUE;
     sHorizonSelectedTab = 0;
     sHorizonPokemonBrowsing = FALSE;
+    sHorizonEggBrowsing = FALSE;
+    sHorizonEggConfirm = FALSE;
+    sHorizonEggSelection = 0;
+    sHorizonEggStatus = 0;
+    sHorizonEggIconId = MAX_SPRITES;
+    sHorizonEggPaletteOwned = FALSE;
     sHorizonPokemonConfirm = FALSE;
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;

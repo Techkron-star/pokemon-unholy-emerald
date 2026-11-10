@@ -58,10 +58,10 @@ Nueva entrada visible en Opciones: `UI THEME: ECLIPSE / DAYLIGHT`. Guardar una s
 
 Cinco pestañas siempre navegables:
 
-1. `PKMN`: **Pokémon**. Dos ofertas persistentes por RNG, medallas y día/noche, con mutaciones extraordinariamente raras. Omega requiere ocho medallas. La ficha muestra especie, mutación, precio y compra con confirmación; destino al equipo o PC cuando hay espacio.
+1. `PKMN`: **Pokémon**. Seis ofertas persistentes, cada una con RNG propio. Máximo Ancestral: **sin Titan, Ascendido ni Omega**. La ficha muestra especie, mutación, precio y compra con confirmación; entrega a equipo o PC.
 2. `DISCS`: **Discos**. Catálogo de MT/discos desbloqueados. Icono de disco, nombre del movimiento, tipo, compatibilidad/información, precio y restricciones. No inventar un tipo nuevo de disco sin definición en diseño.
 3. `ITEMS`: **Objetos**. Consumibles, objetos especiales y mercancía normal permitida según progresión. Mostrar icono, precio y cantidad. Infinity Ball **excluida**: premio posjuego/cheat, no mercancía.
-4. `EGGS`: **Huevos**. Huevos aleatorios con precio y condiciones de entrega. No revelar especie si es misteriosa; no prometer Omega ni mutación rara; sin mecánica especial no definida.
+4. `EGGS`: **Huevos**. Cinco rangos Básico, Medio, Alto, Mítico y Legendario, visualizados como **huevos** con icono nativo. Cada uno tiene calidad visible Estándar/Radiante/Prismática tirada por RNG de forma independiente, guardada durante el período. Al comprar se realiza una ruleta de premios oculta con posibles legendarios, míticos, Omega y hasta tres mutaciones; ninguna recompensa garantizada.
 5. `MOVES`: **Movimientos**. Dos acciones internas, `LEARN` y `FORGET`; primero elegir Pokémon, después movimiento. Reutilizar lógica del recordador/borrador y comprobaciones de HM y compatibilidad ya existentes.
 
 ### Layout interno propuesto (coordenadas indicativas, validar con fuente real)
@@ -82,7 +82,7 @@ Reglas:
 - B retrocede exactamente un nivel; sin reentradas duplicadas ni pantallas negras.
 - El cursor y scroll de cada pestaña se conservan durante la misma sesión.
 - La mercancía de Pokémon se genera y **persiste** por día/período día-noche o nuevo hito de medallas; no se vuelve a tirar al entrar/salir del menú. No se permite usar ajustes regresivos del reloj para regenerar ofertas.
-- Los precios y denominadores en `src/horizon_market.c` y `include/config/special_badges.h` son **valores iniciales sujetos a balance**. Dos plazas, una unidad por plaza; cuando se compra, queda agotada hasta la siguiente rotación válida.
+- Los precios y denominadores en `src/horizon_market.c`, `src/horizon_eggs.c` y `include/config/special_badges.h` son **valores provisionales**. Seis plazas Pokémon y cinco de huevos, una unidad por plaza; cada compra agota esa plaza hasta la siguiente rotación válida.
 - En compras con equipo/caja llenos, dinero insuficiente, bolsillo lleno, objeto no permitido o habilidad incompatible, mostrar causa y volver a lista en buen estado.
 - Garantizar que los servicios no cobren si cancelan.
 
@@ -126,7 +126,7 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - Temas con contraste legible: nombres largos, iconos especiales, mensajes de error, saldo de hasta su límite y scroll extenso.
 - A/B/L/R no dejan bloqueada la pantalla; abrir/cerrar diez veces seguidas no consume VRAM ni duplica tareas.
 - El tema persiste al guardar/cargar; cambiar paleta no modifica resultados de RNG.
-- Comprar genera exactamente la mutación persistida en la oferta (si la hubiera), nunca una tirada oculta adicional; Infinity Ball no se vende. El Pokémon adquirido entra una sola vez en equipo o PC y el pago se descuenta una sola vez.
+- Comprar un Pokémon entrega exactamente su mutación visible persistida; comprar un huevo realiza un roll de contenido distinto de la calidad visual y conserva especie/badges hasta eclosión. Infinity Ball nunca se vende. Un pedido entrega y cobra una sola vez.
 - Craftear comprueba requisitos y consume solo el material permitido, una vez.
 - La versión shiny sin badge conserva brillo normal; Omega usa estrellas rojas de seis puntas incluso sin ser shiny; combinados se prueban expresamente.
 - Build y pruebas reales en mGBA/otro emulador; una imagen generada no equivale a sprite o pantalla ya implementada.
