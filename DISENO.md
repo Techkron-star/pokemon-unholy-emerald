@@ -120,14 +120,21 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
-## 4. Gears
-- Equipamiento en un **slot distinto del objeto equipado ordinario**. Habrá relativamente pocos, con identidades marcadas.
-- **Funcionamiento general:** cada Gear concede una **bonificación potente de sobrecarga cada X turnos**, seguida de una **bonificación residual modesta** mientras se recarga. El Gear no se consume y puede reactivarse cíclicamente.
-- **Dos ataques encadenados cuentan como un solo turno** para la recarga. Valores como ×1.6/×1.1 o 4 turnos fueron ejemplos, **no cifras confirmadas**.
-- **Colmillo de Rayquaza:** +10 % a las estadísticas de Pokémon Volador/Dragón, obtenido al **derrotar** a Rayquaza; su relación exacta con la nueva pauta cíclica está pendiente.
-- **Nombres de Gears:** Teseracto; Visor cósmico; Corazón de titán; Ancla de realidad; Impulso cósmico; Cetro siniestro; **Ski Mask**; Permafrost Fragment.
-- **Ski Mask:** potencia los **movimientos de tipo Siniestro**. Multiplicador y recarga sin definir.
-- Los otros siete nombres **no tienen habilidades concretas confirmadas**: cualquier interpretación anterior era una sugerencia.
+## 4. Gears — decisiones y código (10/11/2026)
+
+- **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. Base del sistema: `feat/gears-system`.
+- **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Visor, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
+- **Visor Cósmico:** +20 % a ataques especiales al sobrecargarse, +10 % residual; evolución de Gafas Especiales.
+- **Corazón de Titán:** +20 % a ataques físicos al sobrecargarse, +10 % residual; evolución de Banda Músculo.
+- **Ski Mask:** +30 % a ataques Siniestros al sobrecargarse y **+21 % constante durante recarga**. No altera efectividades.
+- **Cetro Siniestro:** efectividad Siniestro ×2 por cada tipo objetivo Psíquico, Hada, Normal o Lucha. Siempre activo, sin afectar la tabla global. Contra Lucha/Hada, ×4.
+- **Impulso Cósmico:** efectividad Fantasma ×2 por cada tipo objetivo Normal, Psíquico o Hada. Siempre activo.
+- **Permafrost Fragment:** los movimientos de daño Hielo duplican la probabilidad de congelar o Frostbite. Si el portador es tipo Hielo, cura **1/16 de los PS máximos al final de cada turno**, incluso sin atacar, como Restos. La curación no es vampirismo.
+- **Promedio de bonos coincidentes:** Gear +20 % y Gafas/Banda normal +10 % => **+15 %** total (no +32 %). Con fase residual +10 % y objeto +10 % => +10 %. Restos y Permafrost simultáneos de la misma magnitud no duplican curación.
+- **Teseracto:** consumo único, como Gema equipada. Vuelve permanentes clima, campos, salas y trampas mientras no se eliminen explícitamente; NO se implementa sin cerrar disparador y todas las interacciones.
+- **Ancla de Realidad:** elimina clima, campos, salas y trampas, **incluso los hechos permanentes por Teseracto**; lo eliminado no reaparece. Pendiente si bloquea nueva activación durante la presencia.
+- **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
+- **Alcance real en código:** seis Gears con IDs, fases, daño y efectividades definidos en `feat/unholy-gear-effects-20261110`; aún falta UI de equipamiento y sprite HUD 16×32. No están integrados Teseracto/Ancla, y la evolución del sistema exige QA de combates dobles y guardados.
 
 ### Familia de Gears: Inyecciones sanguíneas
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
@@ -138,7 +145,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
 ### Estado de implementación (10 noviembre 2026)
-- **El sistema de Gears ya está en el código** (ciclo de sobrecarga/recarga, slot guardado en el Pokémon y icono en la esquina de la caja de vida), **sin ningún Gear definido**. Cómo crearlos: [`docs/GEARS.md`](docs/GEARS.md).
+- El sistema base está en `feat/gears-system`; **seis Gears tienen lógica registrada en rama experimental**, sin UI de equipamiento ni arte HUD 16×32; detalles en [`docs/GEARS.md`](docs/GEARS.md).
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
