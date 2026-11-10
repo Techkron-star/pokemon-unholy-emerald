@@ -616,6 +616,7 @@ static const u8 sMutationOverloaded[] = _("V");
 static const u8 sMutationTitan[] = _("T");
 static const u8 sMutationAncestral[] = _("N");
 static const u8 sMutationAscended[] = _("X");
+static const u8 sMutationPlus[] = _("+");
 
 // Because the healthbox is too large to fit into one sprite, it is divided into two sprites.
 // healthboxLeft  or healthboxMain  is the left part that is used as the 'main' sprite.
@@ -1996,7 +1997,7 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     else if (mutationMask & POKEMON_BADGE_ALPHA)
         primary = sMutationAlpha;
 
-    mutationCountText[0] = '+';
+    StringCopy(mutationCountText, sMutationPlus);
     ConvertIntToDecimalStringN(mutationCountText + 1, mutationCount > 0 ? mutationCount - 1 : 0, STR_CONV_MODE_LEFT_ALIGN, 1);
 
     //  Don't assume that healthbox sprites don't have data in the fields used for sprite printing

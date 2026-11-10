@@ -33,6 +33,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokenav.h"
+#include "pokemon_storage_system.h"
 #include "safari_zone.h"
 #include "save.h"
 #include "scanline_effect.h"
@@ -95,6 +96,9 @@ EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftIconSpriteId = 0;
 EWRAM_DATA static u16 sUnholyCraftSavedPalette[16] = {0};
+EWRAM_DATA static u8 sHfcWindowId = 0xFF;
+EWRAM_DATA static u8 sHfcCursor = 0;
+EWRAM_DATA static u16 sHfcSavedPalette[16] = {0};
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
 EWRAM_DATA static u8 sCurrentStartMenuActions[11] = {0};
@@ -122,6 +126,9 @@ static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuCraftingCallback(void);
+static void Task_HFCWatchMenu(u8 taskId);
+static void OpenHFCWatchMenu(void);
+static void CloseHFCWatchMenu(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
 static void OpenUnholyCraftingMenu(void);
 static void CloseUnholyCraftingMenu(void);
@@ -203,6 +210,7 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
 static const u8 sText_MenuHorizonCompact[] = _("HORIZON");
+static const u8 sText_MenuHFCWatch[] = _("HFC WATCH");
 // Dedicated sprite tags; the item icon is loaded only while crafting is open.
 #define TAG_UNHOLY_CRAFT_ICON 9190
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
@@ -228,7 +236,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_POKEDEX]         = {gText_MenuPokedex, {.u8_void = StartMenuPokedexCallback}},
     [MENU_ACTION_POKEMON]         = {gText_MenuPokemon, {.u8_void = StartMenuPokemonCallback}},
     [MENU_ACTION_BAG]             = {gText_MenuBag,     {.u8_void = StartMenuBagCallback}},
-    [MENU_ACTION_POKENAV]         = {gText_MenuPokenav, {.u8_void = StartMenuPokeNavCallback}},
+    [MENU_ACTION_POKENAV]         = {sText_MenuHFCWatch, {.u8_void = StartMenuPokeNavCallback}},
     [MENU_ACTION_PLAYER]          = {gText_MenuPlayer,  {.u8_void = StartMenuPlayerNameCallback}},
     [MENU_ACTION_SAVE]            = {gText_MenuSave,    {.u8_void = StartMenuSaveCallback}},
     [MENU_ACTION_OPTION]          = {gText_MenuOption,  {.u8_void = StartMenuOptionCallback}},
@@ -451,6 +459,135 @@ static bool8 StartMenuCraftingCallback(void)
         return TRUE;
     }
     return FALSE;
+}
+
+
+static const u8 sHfcTitle[] = _("HFC WATCH");
+static const u8 sHfcPc[] = _("PC STORAGE");
+static const u8 sHfcLocator[] = _("POKELOCATOR");
+static const u8 sHfcPokenav[] = _("POKENAV");
+static const u8 sHfcRaids[] = _("RAIDS - LOCKED");
+static const u8 sHfcBack[] = _("EXIT");
+static const u8 sHfcCursorMark[] = _(">");
+static const u8 sHfcHints[] = _("A: SELECT   B: BACK");
+static const u8 *const sHfcEntries[] = {
+    sHfcPc, sHfcLocator, sHfcPokenav, sHfcRaids, sHfcBack,
+};
+static const struct WindowTemplate sHfcWindowTemplate =
+{
+    .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
+    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x100,
+};
+
+static void DrawHFCWatchMenu(void)
+{
+    u32 i;
+
+    FillWindowPixelBuffer(sHfcWindowId, PIXEL_FILL(1));
+    AddTextPrinterParameterized4(sHfcWindowId, FONT_NARROW, 5, 3, 0, 0,
+                                  sUnholyCraftTextColors, TEXT_SKIP_DRAW, sHfcTitle);
+    for (i = 0; i < ARRAY_COUNT(sHfcEntries); i++)
+    {
+        u32 y = 27 + i * 19;
+        if (sHfcCursor == i)
+            AddTextPrinterParameterized4(sHfcWindowId, FONT_NARROW, 5, y, 0, 0,
+                                          sUnholyCraftTextColors, TEXT_SKIP_DRAW, sHfcCursorMark);
+        AddTextPrinterParameterized4(sHfcWindowId, FONT_NARROW, 20, y, 0, 0,
+                                      sUnholyCraftTextColors, TEXT_SKIP_DRAW, sHfcEntries[i]);
+    }
+    AddTextPrinterParameterized4(sHfcWindowId, FONT_NARROW, 5, 122, 0, 0,
+                                  sUnholyCraftTextColors, TEXT_SKIP_DRAW, sHfcHints);
+    CopyWindowToVram(sHfcWindowId, COPYWIN_FULL);
+}
+
+static void OpenHFCWatchMenu(void)
+{
+    CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sHfcSavedPalette, sizeof(sHfcSavedPalette));
+    LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+    sHfcWindowId = AddWindow(&sHfcWindowTemplate);
+    if (sHfcWindowId == 0xFF)
+    {
+        LoadPalette(sHfcSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+        return;
+    }
+
+    sHfcCursor = 0;
+    SetStandardWindowBorderStyle(sHfcWindowId, FALSE);
+    PutWindowTilemap(sHfcWindowId);
+    DrawHFCWatchMenu();
+    CreateTask(Task_HFCWatchMenu, 8);
+    FadeScreen(FADE_FROM_BLACK, 0);
+}
+
+static void CloseHFCWatchMenu(void)
+{
+    ClearStdWindowAndFrameToTransparent(sHfcWindowId, TRUE);
+    RemoveWindow(sHfcWindowId);
+    sHfcWindowId = 0xFF;
+    LoadPalette(sHfcSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
+}
+
+static void Task_HFCWatchMenu(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(DPAD_UP))
+    {
+        sHfcCursor = (sHfcCursor + ARRAY_COUNT(sHfcEntries) - 1) % ARRAY_COUNT(sHfcEntries);
+        DrawHFCWatchMenu();
+        PlaySE(SE_SELECT);
+        return;
+    }
+    if (JOY_NEW(DPAD_DOWN))
+    {
+        sHfcCursor = (sHfcCursor + 1) % ARRAY_COUNT(sHfcEntries);
+        DrawHFCWatchMenu();
+        PlaySE(SE_SELECT);
+        return;
+    }
+    if (!JOY_NEW(A_BUTTON | B_BUTTON))
+        return;
+
+    if (JOY_NEW(B_BUTTON) || sHfcCursor == 4)
+    {
+        CloseHFCWatchMenu();
+        DestroyTask(taskId);
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+        return;
+    }
+
+    // "RAIDS - LOCKED" remains deliberately disabled rather than
+    // opening a nonfunctional Coming Soon screen.
+    if (sHfcCursor == 3)
+    {
+        PlaySE(SE_SELECT);
+        return;
+    }
+
+    CloseHFCWatchMenu();
+    DestroyTask(taskId);
+    if (sHfcCursor == 0)
+    {
+        // The actual PC engine owns this interface and enforces party limits.
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+        ShowPokemonStorageSystemPC();
+    }
+    else if (sHfcCursor == 1)
+    {
+        // Pokelocator v1 delegates to the existing, functioning DexNav.
+        // The HFC mutation filters and raids are separate future layers.
+        CreateTask(Task_OpenDexNavFromStartMenu, 0);
+    }
+    else
+    {
+        CleanupOverworldWindowsAndTilemaps();
+        SetMainCallback2(CB2_InitPokeNav);
+    }
 }
 
 static void AddStartMenuAction(u8 action)
@@ -883,12 +1020,11 @@ static bool8 StartMenuPokeNavCallback(void)
     {
         PlayRainStoppingSoundEffect();
         RemoveExtraStartMenuWindows();
-        CleanupOverworldWindowsAndTilemaps();
-        SetMainCallback2(CB2_InitPokeNav);  // Display PokéNav
-
+        ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
+        RemoveStartMenuWindow();
+        OpenHFCWatchMenu();
         return TRUE;
     }
-
     return FALSE;
 }
 

@@ -1745,6 +1745,7 @@ static void Task_HandleInput(u8 taskId)
             if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
             {
                 sMonSummaryScreen->showStamina = !sMonSummaryScreen->showStamina;
+                PrintRibbonCount();
                 PrintStaminaSummary();
                 PlaySE(SE_SELECT);
             }
@@ -3864,33 +3865,16 @@ static void Task_PrintSkillsPage(u8 taskId)
 static void PrintStaminaSummary(void)
 {
     static const u8 sStaminaHint[] = _("L/R STAMINA");
-    static const u8 sStaminaLabel[] = _("STA MAX ");
-    u8 text[32];
-    u32 maxStamina;
+    static const u8 sRibbonHint[] = _("L/R RIBBONS");
     u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
 
     if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
         return;
 
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    if (sMonSummaryScreen->showStamina)
-    {
-        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
-
-        maxStamina = STAMINA_MAX_BASE
-                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
-        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
-        StringCopy(text, sStaminaLabel);
-        StringAppend(text, gStringVar1);
-    }
-    else
-    {
-        StringCopy(text, sStaminaHint);
-    }
-
-    PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+    PrintTextOnWindowWithFont(windowId,
+                              sMonSummaryScreen->showStamina ? sStaminaHint : sRibbonHint,
+                              0, 4, 0, 0, FONT_SMALL);
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
 }
@@ -3925,9 +3909,26 @@ static void PrintHeldItemName(void)
 static void PrintRibbonCount(void)
 {
     const u8 *text;
-    int x;
+    u8 staminaText[32];
+    u32 fontId = FONT_SMALL;
+    u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_RIBBON_COUNT);
+    u32 maxStamina;
 
-    if (sMonSummaryScreen->summary.ribbonCount == 0)
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    if (!sMonSummaryScreen->showStamina)
+    {
+        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
+        maxStamina = STAMINA_MAX_BASE
+                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
+                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
+                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
+        maxStamina = maxStamina * (100 + Pokemon_GetMutationStaminaBonusPercent(mon)) / 100;
+        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 4);
+        StringCopy(staminaText, _("STA MAX "));
+        StringAppend(staminaText, gStringVar1);
+        text = staminaText;
+    }
+    else if (sMonSummaryScreen->summary.ribbonCount == 0)
     {
         text = gText_None;
     }
@@ -3936,10 +3937,11 @@ static void PrintRibbonCount(void)
         ConvertIntToDecimalStringN(gStringVar1, sMonSummaryScreen->summary.ribbonCount, STR_CONV_MODE_RIGHT_ALIGN, 2);
         StringExpandPlaceholders(gStringVar4, gText_RibbonsVar1);
         text = gStringVar4;
+        fontId = FONT_NORMAL;
     }
 
-    x = GetStringCenterAlignXOffset(FONT_NORMAL, text, 70) + 6;
-    PrintTextOnWindow(AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_RIBBON_COUNT), text, x, 1, 0, 0);
+    PrintTextOnWindowWithFont(windowId, text, 4, 1, 0, 0, fontId);
+    CopyWindowToVram(windowId, COPYWIN_FULL);
 }
 
 static void BufferStat(u8 *dst, enum Stat statIndex, u32 stat, u32 strId, u32 n)
