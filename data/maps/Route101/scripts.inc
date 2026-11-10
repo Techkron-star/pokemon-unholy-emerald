@@ -337,7 +337,7 @@ Route101_Text_RouteSign:
 	.string "{UP_ARROW} OLDALE TOWN$"
 
 Route101_Text_AlphaMimicWarning:
-	.string "The POKé BALL is shaking…\\p"
+	.string "The POKé BALL is shaking…\p"
 	.string "Something furious is inside!$"
 
 Route101_Text_AlphaMimicEmpty:
