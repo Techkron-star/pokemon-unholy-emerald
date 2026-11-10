@@ -9871,7 +9871,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_VISOR_COSMICO] =
     {
         .name = ITEM_NAME("Visor Cosmico"),
-        .description = COMPOUND_STRING("Amplifies special\nmoves through cycles.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Sp. moves +20%.\nThen +10%."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9885,7 +9885,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_CORAZON_TITAN] =
     {
         .name = ITEM_NAME("Corazon Titan"),
-        .description = COMPOUND_STRING("Amplifies physical\nmoves through cycles.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Physical +20%.\nThen +10%."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9899,7 +9899,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_SKI_MASK] =
     {
         .name = ITEM_NAME("Ski Mask"),
-        .description = COMPOUND_STRING("Boosts Dark attacks\nthrough power cycles.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Dark moves +30%.\nThen +21%."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9913,7 +9913,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_CETRO_SINIESTRO] =
     {
         .name = ITEM_NAME("Cetro Siniestro"),
-        .description = COMPOUND_STRING("Changes Dark attack\ntype matchups.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Dark gains new\nsuper matchups."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9927,7 +9927,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_IMPULSO_COSMICO] =
     {
         .name = ITEM_NAME("Impulso Cosmico"),
-        .description = COMPOUND_STRING("Changes Ghost attack\ntype matchups.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Ghost gains new\nsuper matchups."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9941,7 +9941,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_PERMAFROST_FRAGMENT] =
     {
         .name = ITEM_NAME("Permafrost Frag."),
-        .description = COMPOUND_STRING("Ice attacks freeze\nmore; Ice users heal.\nEquip in Crafting."),
+        .description = COMPOUND_STRING("Ice boost + freeze.\nIce users heal."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
