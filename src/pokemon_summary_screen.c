@@ -167,13 +167,13 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
-        u8 specialBadges;
+        u16 specialBadges;
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
     bool8 showStamina;
-    bool8 showMutations;
+    u8 mutationView; // 0 = ability; 1-3 = three mutation detail pages
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -1751,7 +1751,7 @@ static void Task_HandleInput(u8 taskId)
             else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
             {
                 u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
-                sMonSummaryScreen->showMutations = !sMonSummaryScreen->showMutations;
+                sMonSummaryScreen->mutationView = (sMonSummaryScreen->mutationView + 1) % 4;
                 FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
                 PrintMonAbilityName();
                 PrintMonAbilityDescription();
@@ -3534,14 +3534,34 @@ static const u8 sUnholyMutationAlpha[] = _("ALPHA");
 static const u8 sUnholyMutationSuper[] = _("SUPER");
 static const u8 sUnholyMutationEnraged[] = _("ENRAGED");
 static const u8 sUnholyMutationOmega[] = _("OMEGA");
+static const u8 sUnholyMutationHyper[] = _("HYPER");
+static const u8 sUnholyMutationOverloaded[] = _("OVERLOADED");
+static const u8 sUnholyMutationTitan[] = _("TITAN");
+static const u8 sUnholyMutationAncestral[] = _("ANCESTRAL");
+static const u8 sUnholyMutationAscended[] = _("ASCENDIDO");
 static const u8 sUnholyMutationSep[] = _(" / ");
 static const u8 sUnholyMutationNewline[] = _("\n");
-static const u8 sUnholyMutationTitle[] = _("MUTATIONS (L/R)");
+static const u8 sUnholyMutationTitle1[] = _("MUTATIONS 1/3");
+static const u8 sUnholyMutationTitle2[] = _("MUTATIONS 2/3");
+static const u8 sUnholyMutationTitle3[] = _("MUTATIONS 3/3");
 
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    const u8 *title = sMonSummaryScreen->showMutations ? sUnholyMutationTitle : gAbilitiesInfo[ability].name;
+    const u8 *title = gAbilitiesInfo[ability].name;
+
+    switch (sMonSummaryScreen->mutationView)
+    {
+    case 1:
+        title = sUnholyMutationTitle1;
+        break;
+    case 2:
+        title = sUnholyMutationTitle2;
+        break;
+    case 3:
+        title = sUnholyMutationTitle3;
+        break;
+    }
 
     PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), title, 0, 1, 0, 1);
 }
@@ -3551,24 +3571,30 @@ static void PrintMonAbilityDescription(void)
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
 
-    if (!sMonSummaryScreen->showMutations)
+    if (sMonSummaryScreen->mutationView == 0)
     {
         PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
     }
     else
     {
+
         const u8 *const names[] = {
-            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged, sUnholyMutationOmega
+            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged,
+            sUnholyMutationOmega, sUnholyMutationHyper, sUnholyMutationOverloaded,
+            sUnholyMutationTitan, sUnholyMutationAncestral, sUnholyMutationAscended
         };
-        const u8 masks[] = {
-            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_OMEGA
+        const u16 masks[] = {
+            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+            POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+            POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
         };
         u8 mutationText[80];
         u8 count = 0;
         u8 i;
+        u8 pageStart = (sMonSummaryScreen->mutationView - 1) * 3;
 
         mutationText[0] = EOS;
-        for (i = 0; i < ARRAY_COUNT(names); i++)
+        for (i = pageStart; i < pageStart + 3; i++)
         {
             if (!(sMonSummaryScreen->summary.specialBadges & masks[i]))
                 continue;
@@ -3583,8 +3609,8 @@ static void PrintMonAbilityDescription(void)
         if (count == 0)
             StringCopy(mutationText, gText_None);
 
-        // Small text keeps two short rows of full mutation names within
-        // the existing 18x4-tile ability window (no extra UI allocation).
+        // Display all nine fully named mutations in three compact pages.
+        // This preserves the 18x4-tile ability window without overlaps.
         PrintTextOnWindowWithFont(windowId, mutationText, 0, 14, 0, 0, FONT_SMALL);
     }
 }
