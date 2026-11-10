@@ -277,6 +277,17 @@
 #define VAR_UNUSED_0x40FE                                0x40FE // Unused Var
 #define VAR_UNUSED_0x40FF                                0x40FF // Unused Var
 
+// Unholy Horizon Shop: persistent stock in reserved, existing 16-bit vars.
+// No SaveBlock layout changes. Never repurpose these slots for other features.
+#define VAR_HORIZON_MARKET_DAY                         VAR_UNUSED_0x40F7
+#define VAR_HORIZON_MARKET_PERIOD                      VAR_UNUSED_0x40F8
+#define VAR_HORIZON_MARKET_SPECIES_0                   VAR_UNUSED_0x40F9
+#define VAR_HORIZON_MARKET_SPECIES_1                   VAR_UNUSED_0x40FA
+#define VAR_HORIZON_MARKET_MUTATIONS                   VAR_UNUSED_0x40FB
+#define VAR_HORIZON_MARKET_SEEN                        VAR_UNUSED_0x40FC
+#define VAR_HORIZON_MARKET_VERSION                     VAR_UNUSED_0x40FD
+#define VAR_HORIZON_MARKET_BADGES                      VAR_UNUSED_0x40FE
+
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)
 
