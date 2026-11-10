@@ -3909,6 +3909,7 @@ static void PrintHeldItemName(void)
 static void PrintRibbonCount(void)
 {
     const u8 *text;
+    static const u8 sTextStaMax[] = _("STA MAX ");
     u8 staminaText[32];
     u32 fontId = FONT_SMALL;
     u8 windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_SKILLS_RIBBON_COUNT);
@@ -3924,7 +3925,7 @@ static void PrintRibbonCount(void)
                    + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
         maxStamina = maxStamina * (100 + Pokemon_GetMutationStaminaBonusPercent(mon)) / 100;
         ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 4);
-        StringCopy(staminaText, _("STA MAX "));
+        StringCopy(staminaText, sTextStaMax);
         StringAppend(staminaText, gStringVar1);
         text = staminaText;
     }
