@@ -787,7 +787,11 @@ static bool8 SetupBagMenu(void)
     case 13:
         PrintPocketNames(gPocketNamesStringsTable[gBagPosition.pocket], 0);
         CopyPocketNameToWindow(0);
-        DrawPocketIndicatorSquare(gBagPosition.pocket, TRUE);
+        // Seven saved pockets exist; show all seven markers from the first
+        // frame rather than only the five drawn by the original backdrop.
+        // This makes Medicine and Battle Items discoverable with L/R.
+        for (u32 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+            DrawPocketIndicatorSquare(pocket, pocket == gBagPosition.pocket);
         gMain.state++;
         break;
     case 14:

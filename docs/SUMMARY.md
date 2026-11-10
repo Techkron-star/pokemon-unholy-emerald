@@ -1,6 +1,9 @@
 # Summary
 
 - [README](./README.md)
+- [Unholy Emerald · IA y revanchas de jefes](./IA_JEFES_REVANCHAS_Y_MUTACIONES.md)
+- [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
+- [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
 - [FEATURES](./FEATURES.md)
 - [Installation](./INSTALL.md)
     - [Setting up WSL1 (Legacy Portion)](./legacy_WSL1_INSTALL.md)

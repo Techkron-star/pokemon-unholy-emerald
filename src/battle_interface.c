@@ -607,10 +607,16 @@ static const union TextColor sHealthBoxTextColor =
     .accent = 0
 };
 
-static const u8 sMutationAlpha[] = _(" A");
-static const u8 sMutationSuper[] = _(" S");
-static const u8 sMutationEnraged[] = _(" E");
-static const u8 sMutationOmega[] = _(" O");
+static const u8 sMutationAlpha[] = _("A");
+static const u8 sMutationSuper[] = _("S");
+static const u8 sMutationEnraged[] = _("E");
+static const u8 sMutationOmega[] = _("O");
+static const u8 sMutationHyper[] = _("H");
+static const u8 sMutationOverloaded[] = _("V");
+static const u8 sMutationTitan[] = _("T");
+static const u8 sMutationAncestral[] = _("N");
+static const u8 sMutationAscended[] = _("X");
+static const u8 sMutationPlus[] = _("+");
 
 // Because the healthbox is too large to fit into one sprite, it is divided into two sprites.
 // healthboxLeft  or healthboxMain  is the left part that is used as the 'main' sprite.
@@ -1956,15 +1962,43 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
         break;
     }
 
-    ptr += StringLength(ptr);
-    if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_OMEGA)
-        StringCopy(ptr, sMutationOmega);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ENRAGED)
-        StringCopy(ptr, sMutationEnraged);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_SUPER)
-        StringCopy(ptr, sMutationSuper);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ALPHA)
-        StringCopy(ptr, sMutationAlpha);
+
+    // Prefixed mutation indicator instead of a suffix that clips the name.
+    // The primary badge uses stable rarity priority, and +N means extra
+    // permanent mutations (not battle stat stages).
+    u16 mutationMask = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+    const u8 *primary = NULL;
+    u8 mutationCount = 0;
+    u16 remaining = mutationMask;
+    u8 mutationCountText[4];
+
+    while (remaining)
+    {
+        mutationCount += remaining & 1;
+        remaining >>= 1;
+    }
+
+    if (mutationMask & POKEMON_BADGE_OMEGA)
+        primary = sMutationOmega;
+    else if (mutationMask & POKEMON_BADGE_ASCENDED)
+        primary = sMutationAscended;
+    else if (mutationMask & POKEMON_BADGE_TITAN)
+        primary = sMutationTitan;
+    else if (mutationMask & POKEMON_BADGE_ANCESTRAL)
+        primary = sMutationAncestral;
+    else if (mutationMask & POKEMON_BADGE_HYPER)
+        primary = sMutationHyper;
+    else if (mutationMask & POKEMON_BADGE_OVERLOADED)
+        primary = sMutationOverloaded;
+    else if (mutationMask & POKEMON_BADGE_ENRAGED)
+        primary = sMutationEnraged;
+    else if (mutationMask & POKEMON_BADGE_SUPER)
+        primary = sMutationSuper;
+    else if (mutationMask & POKEMON_BADGE_ALPHA)
+        primary = sMutationAlpha;
+
+    StringCopy(mutationCountText, sMutationPlus);
+    ConvertIntToDecimalStringN(mutationCountText + 1, mutationCount > 0 ? mutationCount - 1 : 0, STR_CONV_MODE_LEFT_ALIGN, 1);
 
     //  Don't assume that healthbox sprites don't have data in the fields used for sprite printing
     //  and set up temporary values with what's needed
@@ -1973,17 +2007,20 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     gSprites[healthboxSpriteId].data[1] = healthboxSpriteId2;
     gSprites[healthboxSpriteId2].data[1] = SPRITE_NONE;
 
-    u32 fontId = GetFontIdToFit(gDisplayedStringBattle, FONT_SMALL, 0, 55);
 
-    if (IsOnPlayerSide(gSprites[healthboxSpriteId].data[6]))
+    u8 textX = IsOnPlayerSide(gSprites[healthboxSpriteId].data[6]) ? 16 : 8;
+    u8 nameX = textX + (primary != NULL ? 15 : 0);
+    u32 fontId = GetFontIdToFit(gDisplayedStringBattle, FONT_SMALL, 0, 55 - (primary != NULL ? 15 : 0));
+
+    FillSpriteRectColor(healthboxSpriteId, textX, 5, 55, 11, HEALTHBOX_BG_INDEX);
+    AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nameX, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
+    if (primary != NULL)
     {
-        FillSpriteRectColor(healthboxSpriteId, 16, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 16, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
-    }
-    else
-    {
-        FillSpriteRectColor(healthboxSpriteId, 8, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 8, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
+        // Badge in the left edge of the name strip. The tiny +N occupies
+        // its upper-right side; the main text starts beyond the badge.
+        AddSpriteTextPrinterParameterized6(healthboxSpriteId, FONT_SMALL, textX, 3, 0, 0, sHealthBoxTextColor, 0, primary);
+        if (mutationCount > 1)
+            AddSpriteTextPrinterParameterized6(healthboxSpriteId, FONT_SMALL, textX + 6, 2, 0, 0, sHealthBoxTextColor, 0, mutationCountText);
     }
 
     gSprites[healthboxSpriteId].data[1] = savedValue1;

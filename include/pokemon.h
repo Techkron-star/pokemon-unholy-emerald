@@ -135,11 +135,13 @@ enum PokemonBadge
     POKEMON_BADGE_ALPHA   = 1 << 0,
     POKEMON_BADGE_SUPER   = 1 << 1,
     POKEMON_BADGE_ENRAGED = 1 << 2,
-    POKEMON_BADGE_OMEGA   = 1 << 3,
-    POKEMON_BADGES_ALL    = POKEMON_BADGE_ALPHA
-                           | POKEMON_BADGE_SUPER
-                           | POKEMON_BADGE_ENRAGED
-                           | POKEMON_BADGE_OMEGA,
+    POKEMON_BADGE_OMEGA      = 1 << 3,
+    POKEMON_BADGE_HYPER      = 1 << 4,
+    POKEMON_BADGE_OVERLOADED = 1 << 5,
+    POKEMON_BADGE_TITAN      = 1 << 6,
+    POKEMON_BADGE_ANCESTRAL  = 1 << 7,
+    POKEMON_BADGE_ASCENDED   = 1 << 8,
+    POKEMON_BADGES_ALL = (1 << 9) - 1,
 };
 
 struct Pokemon;
@@ -150,11 +152,11 @@ struct PokemonSubstruct0
     enum Species species:11; // 2047 species.
     enum Type teraType:5; // 30 types.
     enum Item heldItem:10; // 1023 items.
-    u16 specialBadges:4;
-    u16 unused_02:2;
+    u16 specialBadges:4; // Keep legacy bits 0-3 in their exact original position.
+    u16 mutationExtraLow:2; // Bits 4-5, repurposed padding.
     u32 experience:21;
     u32 nickname11:8; // 11th character of nickname.
-    u32 unused_04:3;
+    u32 mutationExtraHigh:3; // Bits 6-8, repurposed padding.
     u8 ppBonuses;
     u8 friendship;
     u16 pokeball:6; // 63 balls.
@@ -252,6 +254,8 @@ void Pokemon_ClearBadge(struct Pokemon *mon, enum PokemonBadge badge);
 bool32 BoxPokemon_HasBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
 void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
 void BoxPokemon_ClearBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+s32 Pokemon_GetMutationStatBonusPercent(struct Pokemon *mon, u32 statIndex);
+s32 Pokemon_GetMutationStaminaBonusPercent(struct Pokemon *mon);
 
 // Number of bytes in the largest Pokémon substruct.
 // They are assumed to be the same size, and will be padded to
@@ -397,7 +401,7 @@ struct BattlePokemon
     u8 metLevel:7;
     u8 isShiny:1;
     u8 affectionHearts;
-    u8 specialBadges;
+    u16 specialBadges;
 };
 
 struct EvolutionParam

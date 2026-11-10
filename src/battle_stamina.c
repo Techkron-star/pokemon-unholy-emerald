@@ -15,10 +15,13 @@ static u32 CalcMaxStamina(enum BattlerId battler)
     u32 hpEv = GetMonData(mon, MON_DATA_HP_EV);
     u32 hpIv = GetMonData(mon, MON_DATA_HP_IV);
 
-    return STAMINA_MAX_BASE
-         + level / STAMINA_MAX_LEVEL_DIVISOR
-         + hpEv / STAMINA_MAX_EV_DIVISOR
-         + hpIv / STAMINA_MAX_IV_DIVISOR;
+    u32 raw = STAMINA_MAX_BASE
+            + level / STAMINA_MAX_LEVEL_DIVISOR
+            + hpEv / STAMINA_MAX_EV_DIVISOR
+            + hpIv / STAMINA_MAX_IV_DIVISOR;
+    s32 bonus = Pokemon_GetMutationStaminaBonusPercent(mon);
+
+    return (raw * (100 + bonus) + 50) / 100;
 }
 
 static void EnsureInitialized(enum BattlerId battler)

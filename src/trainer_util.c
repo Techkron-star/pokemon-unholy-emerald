@@ -1,6 +1,12 @@
 #include "global.h"
 #include "main.h"
 #include "data.h"
+#include "battle_setup.h"
+#include "event_data.h"
+#include "pokemon.h"
+#include "config/special_badges.h"
+#include "constants/flags.h"
+#include "constants/trainers.h"
 #include "move.h"
 #include "random.h"
 #include "string_util.h"
@@ -14,6 +20,212 @@ rng_value_t GeneratePartySeed(const struct Trainer *trainer)
 {
     u32 seed = Crc32B((const u8 *)trainer, sizeof(struct Trainer)) ^ READ_OTID_FROM_SAVE;
     return LocalRandomSeed(seed);
+}
+
+
+// Stable trainer-mutation RNG: it NEVER consumes the global battle or encounter RNG.
+// Derive every member's roll from the saved player OTID, the trainer's stable name,
+// its evolution family and the occurrence within that family, not its party slot.
+static u32 MixTrainerMutationSeed(u32 value)
+{
+    value ^= value >> 16;
+    value *= 0x7FEB352D;
+    value ^= value >> 15;
+    value *= 0x846CA68B;
+    value ^= value >> 16;
+    return value;
+}
+
+static bool8 IsImportantMutationTrainer(u32 trainerClass)
+{
+    switch (trainerClass)
+    {
+    case TRAINER_CLASS_LEADER:
+    case TRAINER_CLASS_LEADER_FRLG:
+    case TRAINER_CLASS_ELITE_FOUR:
+    case TRAINER_CLASS_ELITE_FOUR_FRLG:
+    case TRAINER_CLASS_CHAMPION:
+    case TRAINER_CLASS_CHAMPION_FRLG:
+    case TRAINER_CLASS_RIVAL:
+    case TRAINER_CLASS_RIVAL_EARLY_FRLG:
+    case TRAINER_CLASS_RIVAL_LATE_FRLG:
+    case TRAINER_CLASS_AQUA_LEADER:
+    case TRAINER_CLASS_MAGMA_LEADER:
+    case TRAINER_CLASS_AQUA_ADMIN:
+    case TRAINER_CLASS_MAGMA_ADMIN:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static u32 GetPersistentMutationTrainerSeed(const struct Trainer *trainer)
+{
+    u32 seed = 2166136261u ^ READ_OTID_FROM_SAVE;
+    u32 i;
+
+    seed = MixTrainerMutationSeed(seed ^ trainer->trainerClass);
+    for (i = 0; i < TRAINER_NAME_LENGTH && trainer->trainerName[i] != EOS && trainer->trainerName[i] != 0; i++)
+        seed = (seed ^ trainer->trainerName[i]) * 16777619u;
+
+    // Trainers sharing a generic name/class ("GRUNT", "HIKER") should
+    // not share the same mutations throughout the entire game.
+    if (!IsImportantMutationTrainer(trainer->trainerClass))
+        seed ^= Crc32B((const u8 *)trainer, sizeof(*trainer));
+    return MixTrainerMutationSeed(seed);
+}
+
+static enum Species GetMutationFamily(enum Species species)
+{
+    u32 depth;
+
+    species = GET_BASE_SPECIES_ID(species);
+    // A bounded walk also protects us against malformed evolution tables.
+    for (depth = 0; depth < 5; depth++)
+    {
+        enum Species previous = GetSpeciesPreEvolution(species);
+        if (previous == SPECIES_NONE || previous == species)
+            break;
+        species = previous;
+    }
+    return species;
+}
+
+
+static u8 MutationCount(u16 mask)
+{
+    u8 n = 0;
+    while (mask)
+    {
+        n += mask & 1;
+        mask >>= 1;
+    }
+    return n;
+}
+
+static u8 GetGymRematchMutationTier(const struct TrainerGenerator *trainer)
+{
+    u8 i, count = 0;
+
+    if (trainer->trainerClass != TRAINER_CLASS_LEADER
+     && trainer->trainerClass != TRAINER_CLASS_LEADER_FRLG)
+        return 0;
+    if (!TRAINER_BATTLE_PARAM.isRematch)
+        return 0;
+
+    for (i = 0; i < NUM_BADGES; i++)
+        if (FlagGet(FLAG_BADGE01_GET + i))
+            count++;
+
+    return count;
+}
+
+// Replay deterministic, independent badge tiers: old mutations persist,
+// while the new badge tier offers precisely one new opportunity.
+static u16 RollStableTrainerMutations(u32 seed, bool8 important, u8 rematchTier)
+{
+    static const u16 sFlags[] =
+    {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED,
+    };
+    static const u16 sDenoms[] =
+    {
+        SPECIAL_BADGE_ALPHA_DENOMINATOR, SPECIAL_BADGE_SUPER_DENOMINATOR,
+        SPECIAL_BADGE_ENRAGED_DENOMINATOR, SPECIAL_BADGE_OMEGA_DENOMINATOR,
+        SPECIAL_BADGE_HYPER_DENOMINATOR, SPECIAL_BADGE_OVERLOADED_DENOMINATOR,
+        SPECIAL_BADGE_TITAN_DENOMINATOR, SPECIAL_BADGE_ANCESTRAL_DENOMINATOR,
+        SPECIAL_BADGE_ASCENDED_DENOMINATOR,
+    };
+    u16 result = 0;
+    u8 tier;
+
+    for (tier = 0; tier <= rematchTier; tier++)
+    {
+        rng_value_t rng = LocalRandomSeed(MixTrainerMutationSeed(seed ^ (0x9E3779B9u * (tier + 1))));
+        u16 candidates = 0;
+        u8 alreadyHad = MutationCount(result);
+        u8 i;
+
+        for (i = 0; i < ARRAY_COUNT(sFlags); i++)
+        {
+            u8 weight = (tier != 0 && alreadyHad == 0) ? 2 : 1;
+
+            // Omega only appears in important trainer parties.
+            if (!important && sFlags[i] == POKEMON_BADGE_OMEGA)
+                continue;
+            if (!(result & sFlags[i]) && LocalRandom32(&rng) % sDenoms[i] < weight)
+                candidates |= sFlags[i];
+        }
+
+        while (candidates)
+        {
+            u8 choice = LocalRandom32(&rng) % MutationCount(candidates);
+            u16 flag = 0;
+            u8 accepted = MutationCount(result);
+            u32 gate;
+
+            for (i = 0; i < ARRAY_COUNT(sFlags); i++)
+            {
+                if (candidates & sFlags[i] && choice-- == 0)
+                {
+                    flag = sFlags[i];
+                    break;
+                }
+            }
+            candidates &= ~flag;
+            gate = accepted == 0 ? 1
+                 : accepted == 1 ? SPECIAL_BADGE_SECOND_GATE
+                 : accepted == 2 ? SPECIAL_BADGE_THIRD_GATE
+                 : SPECIAL_BADGE_FOURTH_GATE;
+
+            // When exactly one mutation existed entering a gym rematch,
+            // the extra chance to acquire a second is doubled.
+            if (tier != 0 && alreadyHad == 1 && accepted == 1)
+                gate = SPECIAL_BADGE_SECOND_GATE / 2;
+            if (LocalRandom32(&rng) % gate == 0)
+                result |= flag;
+        }
+    }
+    return result;
+}
+
+
+static u32 GetTrainerMutationIndividualSeed(struct TrainerGenerator *trainer, enum Species species)
+{
+    enum Species family = GetMutationFamily(species);
+    u32 occurrence = 0;
+    u32 i;
+
+    for (i = 0; i < trainer->generatedMutationCount; i++)
+        if (trainer->mutationLineages[i] == family)
+            occurrence++;
+
+    return MixTrainerMutationSeed(trainer->mutationSeed
+                               ^ (u32)family * 0x85EBCA6Bu
+                               ^ (occurrence + 1) * 0xC2B2AE35u);
+}
+
+static void AssignStableTrainerMutations(struct Pokemon *mon, const struct TrainerMon *entry, struct TrainerGenerator *trainer)
+{
+    enum Species family = GetMutationFamily(entry->species);
+    u16 mask;
+    u32 seed = GetTrainerMutationIndividualSeed(trainer, entry->species);
+
+    if (trainer->generatedMutationCount < ARRAY_COUNT(trainer->mutationLineages))
+        trainer->mutationLineages[trainer->generatedMutationCount++] = family;
+
+    mask = RollStableTrainerMutations(seed, trainer->isImportantTrainer, GetGymRematchMutationTier(trainer));
+    SetMonData(mon, MON_DATA_SPECIAL_BADGES, &mask);
+}
+
+static void InitTrainerMutationIdentity(struct TrainerGenerator *trainerGen, const struct Trainer *trainer)
+{
+    trainerGen->mutationSeed = GetPersistentMutationTrainerSeed(trainer);
+    trainerGen->generatedMutationCount = 0;
+    memset(trainerGen->mutationLineages, 0, sizeof(trainerGen->mutationLineages));
+    trainerGen->isImportantTrainer = IsImportantMutationTrainer(trainer->trainerClass);
 }
 
 static void CustomTrainerPartyAssignMoves(struct Pokemon *mon, const struct TrainerMon *partyEntry)
@@ -104,6 +316,7 @@ void MakeTrainerGenerator(struct TrainerGenerator *trainerGen, const struct Trai
     trainerGen->trainerClass = trainer->trainerClass;
     trainerGen->otID = OTID_STRUCT_RANDOM_NO_SHINY;
     trainerGen->localRngState = GeneratePartySeed(trainer);
+    InitTrainerMutationIdentity(trainerGen, trainer);
 }
 
 void MakePartnerGenerator(struct TrainerGenerator *trainerGen, const struct Trainer *partner)
@@ -118,13 +331,28 @@ void MakePartnerGenerator(struct TrainerGenerator *trainerGen, const struct Trai
     otID = Crc32B((const u8 *)partner, sizeof(struct Trainer));
     trainerGen->otID = OTID_STRUCT_PRESET(otID);
     trainerGen->localRngState = LocalRandomSeed(otID);
+    InitTrainerMutationIdentity(trainerGen, partner);
 }
 
 void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *trainerMon, struct TrainerGenerator *trainer)
 {
     u32 data;
-    u32 personality = (LocalRandom32(&trainer->localRngState) & 0xFFFFDF00) + 0x1000;
-    u32 genderValue = LocalRandom32(&trainer->localRngState);
+    u32 personality;
+    u32 genderValue;
+
+    if (trainer->isImportantTrainer)
+    {
+        // The rival's evolved starter retains a stable personality across
+        // different trainer parties; mutation stat ranges are derived from it.
+        rng_value_t identityRng = LocalRandomSeed(GetTrainerMutationIndividualSeed(trainer, trainerMon->species));
+        personality = (LocalRandom32(&identityRng) & 0xFFFFDF00) + 0x1000;
+        genderValue = LocalRandom32(&identityRng);
+    }
+    else
+    {
+        personality = (LocalRandom32(&trainer->localRngState) & 0xFFFFDF00) + 0x1000;
+        genderValue = LocalRandom32(&trainer->localRngState);
+    }
     if (trainerMon->gender == TRAINER_MON_RANDOM_GENDER)
         genderValue = genderValue & 0x000000FF;
     else if (trainerMon->gender == TRAINER_MON_MALE)
@@ -136,7 +364,7 @@ void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *tra
     personality |= genderValue;
     ModifyPersonalityForNature(&personality, trainerMon->nature);
     CreateMon(mon, trainerMon->species, trainerMon->lvl, personality, trainer->otID);
-    Pokemon_AssignEncounterBadges(mon, TRUE);
+    AssignStableTrainerMutations(mon, trainerMon, trainer);
     if (trainerMon->nickname != NULL)
         SetMonData(mon, MON_DATA_NICKNAME, trainerMon->nickname);
     if (trainerMon->ev) //ev in struct TrainerMon are stored in Showdown order not vanilla Emerald order
