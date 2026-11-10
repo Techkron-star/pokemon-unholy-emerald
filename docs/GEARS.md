@@ -157,3 +157,21 @@ Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspe
 - Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
 - Permafrost: los movimientos multigolpe o en área deben tirar los estados por cada instancia **solo si el motor normalmente lo permite**. La curación es exactamente **una vez por turno al final**, al estilo Restos, sin depender de golpes. Si se equipa Restos, ambos +1/16 coincidentes se promedian (no se suman).
 - Cetro/Impulso: los cálculos de IA, interfaz de supereficacia, inmunidades y combates reales deben usar el mismo criterio; no editar permanentemente la tabla global de tipos.
+
+
+## Fabricacion y equipamiento de Gears (rama de integracion de 10/11/2026)
+
+El panel **Crafting** conserva Eclipse/Daylight y ahora incorpora siete recetas (Super Exp. Share + seis Gears). Navegacion: L/R cambia receta; A verifica materiales y vuelve a pulsarse para confirmar; SELECT abre **EQUIP**; en EQUIP, L/R selecciona el Gear, ARRIBA/ABAJO el Pokemon y A cambia o retira el Gear. B cancela una confirmacion o sale.
+
+Cada receta consume varias unidades de materiales existentes en la mochila y entrega un **item Gear en Objetos Clave**, con el sprite pixel art preparado. No son buffs gratis: la interfaz EQUIP retira una copia del Gear de la mochila, guarda su ID en el slot persistente separado del objeto equipado y devuelve el Gear anterior a la mochila. Para quitarlo se selecciona REMOVE GEAR. Si la mochila no tiene espacio para devolver el viejo, el cambio no se aplica. Multiples unidades fabricadas permiten equipar varios Pokemon.
+
+| Receta | Materiales consumidos | Requisito no consumible |
+| --- | --- | --- |
+| Visor Cosmico | 1 Gafas Especiales, 2 Trozos Estrella, 1 Piedra Lunar | Ninguno |
+| Corazon de Titan | 1 Banda Musculo, 2 Revestimientos Metalicos, 2 Piedras Duras | Ninguno |
+| Ski Mask | 1 Gafas de Sol, 3 Gemas Siniestras, 1 Piedra Noche | Ninguno |
+| Cetro Siniestro | 1 Gafas de Sol, 2 Hechizos | Medalla Mente (7.a) |
+| Impulso Cosmico | 2 Hechizos, 2 Piedras Lunares, 1 Trozo Estrella | Ninguno |
+| Fragmento de Permafrost | **2 Piedras Hielo, 1 Hielo Eterno y 1 Agua Mistica** | Ninguno |
+
+La Super Exp. Share conserva su receta original y su comprobacion por script: 1 Exp. Share + Medalla Piedra. Los IDs de item se agregan al final de la enumeracion para respetar partidas anteriores. Los Gears sin efectos implementados (Teseracto, Ancla y Colmillo) **no** se ofrecen como fabricables.

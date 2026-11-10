@@ -2,6 +2,7 @@
 #include "item.h"
 #include "item_icon.h"
 #include "config/save.h"
+#include "battle.h"
 #include "battle_pike.h"
 #include "battle_pyramid.h"
 #include "battle_pyramid_bag.h"
@@ -16,6 +17,7 @@
 #include "field_player_avatar.h"
 #include "field_specials.h"
 #include "field_weather.h"
+#include "gear.h"
 #include "field_screen_effect.h"
 #include "frontier_pass.h"
 #include "frontier_util.h"
@@ -32,6 +34,7 @@
 #include "palette.h"
 #include "party_menu.h"
 #include "pokedex.h"
+#include "pokemon.h"
 #include "pokenav.h"
 #include "safari_zone.h"
 #include "save.h"
@@ -95,6 +98,12 @@ EWRAM_DATA static u8 sBattlePyramidFloorWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftIconSpriteId = 0;
 EWRAM_DATA static u16 sUnholyCraftSavedPalette[16] = {0};
+EWRAM_DATA static u8 sUnholyCraftRecipeCursor = 0;
+EWRAM_DATA static u8 sUnholyCraftGearCursor = 1;
+EWRAM_DATA static u8 sUnholyCraftPartyCursor = 0;
+EWRAM_DATA static u8 sUnholyCraftMode = 0; // 0 = fabricate, 1 = equip
+EWRAM_DATA static u8 sUnholyCraftStatus = 0;
+EWRAM_DATA static bool8 sUnholyCraftConfirm = FALSE;
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
 EWRAM_DATA static u8 sCurrentStartMenuActions[11] = {0};
@@ -203,20 +212,116 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
 static const u8 sText_MenuHorizonCompact[] = _("HORIZON");
-// Dedicated sprite tags; the item icon is loaded only while crafting is open.
 #define TAG_UNHOLY_CRAFT_ICON 9190
+#define UNHOLY_CRAFT_MATERIAL_LIMIT 3
+#define UNHOLY_CRAFT_RECIPE_COUNT 7
+
+enum UnholyCraftStatus
+{
+    CRAFT_STATUS_READY,
+    CRAFT_STATUS_CONFIRM,
+    CRAFT_STATUS_MATERIALS,
+    CRAFT_STATUS_BADGE,
+    CRAFT_STATUS_SPACE,
+    CRAFT_STATUS_COMPLETED,
+    CRAFT_STATUS_EMPTY_SLOT,
+    CRAFT_STATUS_NO_GEAR,
+    CRAFT_STATUS_EQUIPPED,
+    CRAFT_STATUS_ALREADY,
+    CRAFT_STATUS_ERROR,
+};
+
+struct UnholyCraftMaterial
+{
+    enum Item itemId;
+    u8 quantity;
+};
+
+struct UnholyCraftRecipe
+{
+    enum Item result;
+    const u8 *description;
+    u16 badgeFlag; // Zero = no badge requirement.
+    u8 materialCount;
+    struct UnholyCraftMaterial materials[UNHOLY_CRAFT_MATERIAL_LIMIT];
+};
+
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
-static const u8 sUnholyCraftName[] = _("> SUPER EXP. SHARE");
-static const u8 sUnholyCraftExplain[] = _("100% EXP for each\neligible party Pokemon.");
-static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
-static const u8 sUnholyCraftExpReady[] = _("EXP. SHARE  1/1 OK");
-static const u8 sUnholyCraftExpMissing[] = _("EXP. SHARE  0/1");
-static const u8 sUnholyCraftBadgeReady[] = _("STONE BADGE OK");
-static const u8 sUnholyCraftBadgeMissing[] = _("STONE BADGE LOCKED");
-static const u8 sUnholyCraftControls[] = _("A: CRAFT  B: BACK");
+static const u8 sUnholyCraftRequirements[] = _("MATERIALS / UNLOCK");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
+static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
+static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
+static const u8 sUnholyCraftExitControls[] = _("B: EXIT");
 static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
+
+static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
+static const u8 sUnholyRecipeVisor[] = _("Special attack gear.\nAlternates overload.");
+static const u8 sUnholyRecipeHeart[] = _("Physical attack gear.\nAlternates overload.");
+static const u8 sUnholyRecipeMask[] = _("Dark damage gear.\nPowerful even recharging.");
+static const u8 sUnholyRecipeScepter[] = _("Dark type matchups.\nRequires Mind Badge.");
+static const u8 sUnholyRecipeImpulse[] = _("Ghost type matchups.\nBuilt from astral relics.");
+static const u8 sUnholyRecipeIce[] = _("Ice attacks freeze more.\nIce Pokemon regenerate.");
+static const u8 sUnholyCraftReady[] = _("Select a recipe.");
+static const u8 sUnholyCraftConfirmText[] = _("Press A again to make it.");
+static const u8 sUnholyCraftNeedMats[] = _("Missing materials.");
+static const u8 sUnholyCraftNeedBadge[] = _("Badge not yet earned.");
+static const u8 sUnholyCraftNoSpace[] = _("No room in the Bag.");
+static const u8 sUnholyCraftDone[] = _("Crafted! Gear added to Bag.");
+static const u8 sUnholyCraftNoMon[] = _("Empty party slot.");
+static const u8 sUnholyCraftNoGear[] = _("That Gear is not in Bag.");
+static const u8 sUnholyCraftEquipped[] = _("Gear installed in own slot.");
+static const u8 sUnholyCraftAlready[] = _("Already equipped.");
+static const u8 sUnholyCraftError[] = _("Unable to finish. Try again.");
+
+static const u8 *const sUnholyCraftStatuses[] =
+{
+    [CRAFT_STATUS_READY] = sUnholyCraftReady,
+    [CRAFT_STATUS_CONFIRM] = sUnholyCraftConfirmText,
+    [CRAFT_STATUS_MATERIALS] = sUnholyCraftNeedMats,
+    [CRAFT_STATUS_BADGE] = sUnholyCraftNeedBadge,
+    [CRAFT_STATUS_SPACE] = sUnholyCraftNoSpace,
+    [CRAFT_STATUS_COMPLETED] = sUnholyCraftDone,
+    [CRAFT_STATUS_EMPTY_SLOT] = sUnholyCraftNoMon,
+    [CRAFT_STATUS_NO_GEAR] = sUnholyCraftNoGear,
+    [CRAFT_STATUS_EQUIPPED] = sUnholyCraftEquipped,
+    [CRAFT_STATUS_ALREADY] = sUnholyCraftAlready,
+    [CRAFT_STATUS_ERROR] = sUnholyCraftError,
+};
+
+// Every ingredient is consumed; badges only unlock specific recipes.
+// The resulting Gear item can be installed via the EQUIP tab without
+// replacing a held item. Repeating a recipe creates another physical copy.
+static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_COUNT] =
+{
+    { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE01_GET, 1,
+      {{ ITEM_EXP_SHARE, 1 }} },
+    { ITEM_GEAR_VISOR_COSMICO, sUnholyRecipeVisor, 0, 3,
+      {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
+    { ITEM_GEAR_CORAZON_TITAN, sUnholyRecipeHeart, 0, 3,
+      {{ ITEM_MUSCLE_BAND, 1 }, { ITEM_METAL_COAT, 2 }, { ITEM_HARD_STONE, 2 }} },
+    { ITEM_GEAR_SKI_MASK, sUnholyRecipeMask, 0, 3,
+      {{ ITEM_BLACK_GLASSES, 1 }, { ITEM_DARK_GEM, 3 }, { ITEM_DUSK_STONE, 1 }} },
+    { ITEM_GEAR_CETRO_SINIESTRO, sUnholyRecipeScepter, FLAG_BADGE07_GET, 2,
+      {{ ITEM_BLACK_GLASSES, 1 }, { ITEM_SPELL_TAG, 2 }} },
+    { ITEM_GEAR_IMPULSO_COSMICO, sUnholyRecipeImpulse, 0, 3,
+      {{ ITEM_SPELL_TAG, 2 }, { ITEM_MOON_STONE, 2 }, { ITEM_STAR_PIECE, 1 }} },
+    { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
+      {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
+};
+
+// IDs 1..6 match the stable Gear enum values. A Gear is a tangible item in
+// the Bag, but lives in a separate Pokemon field after being installed.
+static const enum Item sUnholyGearItems[GEAR_COUNT] =
+{
+    [GEAR_NONE] = ITEM_NONE,
+    [GEAR_VISOR_COSMICO] = ITEM_GEAR_VISOR_COSMICO,
+    [GEAR_CORAZON_TITAN] = ITEM_GEAR_CORAZON_TITAN,
+    [GEAR_SKI_MASK] = ITEM_GEAR_SKI_MASK,
+    [GEAR_CETRO_SINIESTRO] = ITEM_GEAR_CETRO_SINIESTRO,
+    [GEAR_IMPULSO_COSMICO] = ITEM_GEAR_IMPULSO_COSMICO,
+    [GEAR_PERMAFROST_FRAGMENT] = ITEM_GEAR_PERMAFROST_FRAGMENT,
+};
 static const struct WindowTemplate sUnholyCraftWindow =
 {
     .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
@@ -353,17 +458,214 @@ static void BuildStartMenuActions(void)
     }
 }
 
-static void OpenUnholyCraftingMenu(void)
+static void UnholyCraftRefreshIcon(enum Item itemId)
+{
+    if (sUnholyCraftIconSpriteId != MAX_SPRITES)
+    {
+        FreeSpriteTilesByTag(TAG_UNHOLY_CRAFT_ICON);
+        FreeSpritePaletteByTag(TAG_UNHOLY_CRAFT_ICON);
+        DestroySprite(&gSprites[sUnholyCraftIconSpriteId]);
+        sUnholyCraftIconSpriteId = MAX_SPRITES;
+    }
+
+    if (itemId == ITEM_NONE)
+        return;
+
+    sUnholyCraftIconSpriteId = AddItemIconSprite(TAG_UNHOLY_CRAFT_ICON, TAG_UNHOLY_CRAFT_ICON, itemId);
+    if (sUnholyCraftIconSpriteId != MAX_SPRITES)
+    {
+        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
+        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
+    }
+}
+
+static void UnholyCraftPrint(u8 x, u8 y, const u8 *text)
+{
+    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, x, y, 0, 0,
+                                 sUnholyCraftTextColors, TEXT_SKIP_DRAW, text);
+}
+
+static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *ingredient)
+{
+    u16 owned = CountTotalItemQuantityInBag(ingredient->itemId);
+
+    StringCopy(gStringVar4, GetItemName(ingredient->itemId));
+    StringAppend(gStringVar4, _("  "));
+    ConvertIntToDecimalStringN(gStringVar2, owned, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(gStringVar4, gStringVar2);
+    StringAppend(gStringVar4, _("/"));
+    ConvertIntToDecimalStringN(gStringVar3, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+    StringAppend(gStringVar4, gStringVar3);
+    if (owned >= ingredient->quantity)
+        StringAppend(gStringVar4, _(" OK"));
+    UnholyCraftPrint(8, 82 + row * 12, gStringVar4);
+}
+
+static void UnholyCraftRenderMenu(void)
 {
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sUnholyCraftSkinDaylight : sUnholyCraftSkinEclipse;
+    enum Item iconItem;
 
-    // Own and restore palette 14; BG0 window 15 remains the standard frame.
+    FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
+    DrawUnholyUiPanelAccents(sUnholyCraftWindowId, 26 * 8, 17 * 8, 19);
+    UnholyCraftPrint(4, 3, sUnholyCraftTitle);
+    UnholyCraftPrint(137, 3, skin);
+
+    if (sUnholyCraftMode == 0)
+    {
+        const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
+
+        StringCopy(gStringVar4, _("> "));
+        StringAppend(gStringVar4, GetItemName(recipe->result));
+        UnholyCraftPrint(4, 23, gStringVar4);
+        UnholyCraftPrint(8, 40, sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus]);
+        UnholyCraftPrint(4, 69, sUnholyCraftRequirements);
+
+        for (u8 i = 0; i < recipe->materialCount; i++)
+            UnholyCraftPrintMaterial(i, &recipe->materials[i]);
+        if (recipe->badgeFlag)
+            UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
+                             FlagGet(recipe->badgeFlag) ? _("BADGE: OK") : _("BADGE: LOCKED"));
+        UnholyCraftPrint(4, 122, sUnholyCraftControls);
+        iconItem = recipe->result;
+    }
+    else
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sUnholyCraftPartyCursor];
+        enum Gear existing = Gear_GetEquipped(mon);
+        enum Gear chosen = sUnholyCraftGearCursor;
+
+        UnholyCraftPrint(4, 22, _("EQUIP / REMOVE GEAR"));
+        StringCopy(gStringVar4, chosen == GEAR_NONE ? _("> REMOVE GEAR") : GetItemName(sUnholyGearItems[chosen]));
+        UnholyCraftPrint(6, 39, gStringVar4);
+
+        StringCopy(gStringVar4, _("PARTY "));
+        ConvertIntToDecimalStringN(gStringVar3, sUnholyCraftPartyCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        StringAppend(gStringVar4, gStringVar3);
+        StringAppend(gStringVar4, _(": "));
+        if (GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+        {
+            GetMonData(mon, MON_DATA_NICKNAME, gStringVar1);
+            StringAppend(gStringVar4, gStringVar1);
+        }
+        else
+            StringAppend(gStringVar4, _("EMPTY"));
+        UnholyCraftPrint(6, 57, gStringVar4);
+
+        StringCopy(gStringVar4, _("CURRENT: "));
+        StringAppend(gStringVar4, existing == GEAR_NONE ? _("NONE") : gGearsInfo[existing].name);
+        UnholyCraftPrint(6, 73, gStringVar4);
+
+        StringCopy(gStringVar4, _("IN BAG: "));
+        ConvertIntToDecimalStringN(gStringVar3, chosen == GEAR_NONE ? 0 : CountTotalItemQuantityInBag(sUnholyGearItems[chosen]), STR_CONV_MODE_LEFT_ALIGN, 3);
+        StringAppend(gStringVar4, chosen == GEAR_NONE ? _("N/A") : gStringVar3);
+        UnholyCraftPrint(6, 89, gStringVar4);
+
+        if (sUnholyCraftStatus != CRAFT_STATUS_READY)
+            UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
+        else
+            UnholyCraftPrint(6, 105, _("L/R: GEAR  UP/DOWN: PARTY"));
+        UnholyCraftPrint(4, 122, sUnholyEquipControls);
+        iconItem = chosen == GEAR_NONE ? ITEM_NONE : sUnholyGearItems[chosen];
+    }
+
+    CopyWindowToVram(sUnholyCraftWindowId, COPYWIN_FULL);
+    UnholyCraftRefreshIcon(iconItem);
+}
+
+static u8 UnholyCraftCheckRecipe(const struct UnholyCraftRecipe *recipe)
+{
+    if (recipe->badgeFlag != 0 && !FlagGet(recipe->badgeFlag))
+        return CRAFT_STATUS_BADGE;
+
+    for (u8 i = 0; i < recipe->materialCount; i++)
+    {
+        if (!CheckBagHasItem(recipe->materials[i].itemId, recipe->materials[i].quantity))
+            return CRAFT_STATUS_MATERIALS;
+    }
+
+    if (!CheckBagHasSpace(recipe->result, 1))
+        return CRAFT_STATUS_SPACE;
+    return CRAFT_STATUS_READY;
+}
+
+static u8 UnholyCraftFabricate(const struct UnholyCraftRecipe *recipe)
+{
+    u8 status = UnholyCraftCheckRecipe(recipe);
+
+    if (status != CRAFT_STATUS_READY)
+        return status;
+
+    for (u8 i = 0; i < recipe->materialCount; i++)
+    {
+        if (!RemoveBagItem(recipe->materials[i].itemId, recipe->materials[i].quantity))
+        {
+            // Guard even against unexpected inventory failure: all-or-nothing.
+            while (i > 0)
+            {
+                i--;
+                AddBagItem(recipe->materials[i].itemId, recipe->materials[i].quantity);
+            }
+            return CRAFT_STATUS_ERROR;
+        }
+    }
+
+    if (!AddBagItem(recipe->result, 1))
+    {
+        for (u8 i = 0; i < recipe->materialCount; i++)
+            AddBagItem(recipe->materials[i].itemId, recipe->materials[i].quantity);
+        return CRAFT_STATUS_SPACE;
+    }
+
+    return CRAFT_STATUS_COMPLETED;
+}
+
+static u8 UnholyCraftSwapGear(void)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sUnholyCraftPartyCursor];
+    enum Gear selected = sUnholyCraftGearCursor;
+    enum Gear previous;
+    enum Item incoming, outgoing;
+
+    if (!GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+        return CRAFT_STATUS_EMPTY_SLOT;
+
+    previous = Gear_GetEquipped(mon);
+    if (previous == selected)
+        return CRAFT_STATUS_ALREADY;
+
+    incoming = sUnholyGearItems[selected];
+    outgoing = sUnholyGearItems[previous];
+
+    // Do not duplicate a Gear: remove its tangible inventory copy before equipping.
+    if (incoming != ITEM_NONE && !RemoveBagItem(incoming, 1))
+        return CRAFT_STATUS_NO_GEAR;
+
+    // On replacement or removal the old Gear returns to the Bag.
+    // If this fails, put the new one back and leave Pokemon data unchanged.
+    if (outgoing != ITEM_NONE && !AddBagItem(outgoing, 1))
+    {
+        if (incoming != ITEM_NONE)
+            AddBagItem(incoming, 1);
+        return CRAFT_STATUS_SPACE;
+    }
+
+    Gear_SetEquipped(mon, selected);
+    return CRAFT_STATUS_EQUIPPED;
+}
+
+static void OpenUnholyCraftingMenu(void)
+{
+    sUnholyCraftMode = 0;
+    sUnholyCraftStatus = CRAFT_STATUS_READY;
+    sUnholyCraftConfirm = FALSE;
+    sUnholyCraftIconSpriteId = MAX_SPRITES;
+
     CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sUnholyCraftSavedPalette, sizeof(sUnholyCraftSavedPalette));
     LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     sUnholyCraftWindowId = AddWindow(&sUnholyCraftWindow);
     if (sUnholyCraftWindowId == 0xFF)
     {
-        // The start menu was already closed; do not strand the field controls.
         LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
         ScriptUnfreezeObjectEvents();
         UnlockPlayerFieldControls();
@@ -371,35 +673,7 @@ static void OpenUnholyCraftingMenu(void)
     }
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
     PutWindowTilemap(sUnholyCraftWindowId);
-    FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
-    DrawUnholyUiPanelAccents(sUnholyCraftWindowId, 26 * 8, 17 * 8, 19);
-
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 3, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftTitle);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 137, 3, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, skin);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 24, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftName);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 42, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftExplain);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 75, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftRequirements);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 88, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW,
-                                CheckBagHasItem(ITEM_EXP_SHARE, 1) ? sUnholyCraftExpReady : sUnholyCraftExpMissing);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 8, 103, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW,
-                                FlagGet(FLAG_BADGE01_GET) ? sUnholyCraftBadgeReady : sUnholyCraftBadgeMissing);
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 121, 0, 0,
-                                sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftControls);
-    CopyWindowToVram(sUnholyCraftWindowId, COPYWIN_FULL);
-    sUnholyCraftIconSpriteId = AddItemIconSprite(TAG_UNHOLY_CRAFT_ICON, TAG_UNHOLY_CRAFT_ICON, ITEM_SUPER_EXP_SHARE);
-    if (sUnholyCraftIconSpriteId != MAX_SPRITES)
-    {
-        // Keep the 24x24 icon clear of the recipe text and requirements.
-        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
-        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
-    }
+    UnholyCraftRenderMenu();
     CreateTask(Task_UnholyCraftingMenu, 8);
     FadeScreen(FADE_FROM_BLACK, 0);
 }
@@ -420,24 +694,105 @@ static void CloseUnholyCraftingMenu(void)
 
 static void Task_UnholyCraftingMenu(u8 taskId)
 {
+    bool8 changed = FALSE;
+
     if (gPaletteFade.active)
         return;
 
     if (JOY_NEW(B_BUTTON))
     {
+        if (sUnholyCraftConfirm)
+        {
+            sUnholyCraftConfirm = FALSE;
+            sUnholyCraftStatus = CRAFT_STATUS_READY;
+            UnholyCraftRenderMenu();
+            return;
+        }
         CloseUnholyCraftingMenu();
         DestroyTask(taskId);
         ScriptUnfreezeObjectEvents();
         UnlockPlayerFieldControls();
+        return;
+    }
+
+    if (JOY_NEW(SELECT_BUTTON))
+    {
+        sUnholyCraftMode ^= 1;
+        changed = TRUE;
+    }
+    else if (JOY_NEW(DPAD_LEFT) || JOY_NEW(L_BUTTON))
+    {
+        if (sUnholyCraftMode == 0)
+            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + UNHOLY_CRAFT_RECIPE_COUNT - 1) % UNHOLY_CRAFT_RECIPE_COUNT;
+        else
+            sUnholyCraftGearCursor = (sUnholyCraftGearCursor + GEAR_COUNT - 1) % GEAR_COUNT;
+        changed = TRUE;
+    }
+    else if (JOY_NEW(DPAD_RIGHT) || JOY_NEW(R_BUTTON))
+    {
+        if (sUnholyCraftMode == 0)
+            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + 1) % UNHOLY_CRAFT_RECIPE_COUNT;
+        else
+            sUnholyCraftGearCursor = (sUnholyCraftGearCursor + 1) % GEAR_COUNT;
+        changed = TRUE;
+    }
+    else if (sUnholyCraftMode && JOY_NEW(DPAD_UP))
+    {
+        sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + PARTY_SIZE - 1) % PARTY_SIZE;
+        changed = TRUE;
+    }
+    else if (sUnholyCraftMode && JOY_NEW(DPAD_DOWN))
+    {
+        sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + 1) % PARTY_SIZE;
+        changed = TRUE;
     }
     else if (JOY_NEW(A_BUTTON))
     {
-        CloseUnholyCraftingMenu();
-        DestroyTask(taskId);
-        // The script validates badge, materials and space, then requests confirmation.
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
-        ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);
+        if (sUnholyCraftMode)
+        {
+            sUnholyCraftStatus = UnholyCraftSwapGear();
+            PlaySE(sUnholyCraftStatus == CRAFT_STATUS_EQUIPPED ? SE_SUCCESS : SE_FAILURE);
+            UnholyCraftRenderMenu();
+            return;
+        }
+        else if (sUnholyCraftRecipeCursor == 0)
+        {
+            CloseUnholyCraftingMenu();
+            DestroyTask(taskId);
+            ScriptUnfreezeObjectEvents();
+            UnlockPlayerFieldControls();
+            ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);
+            return;
+        }
+        else if (!sUnholyCraftConfirm)
+        {
+            sUnholyCraftStatus = UnholyCraftCheckRecipe(&sUnholyCraftRecipes[sUnholyCraftRecipeCursor]);
+            if (sUnholyCraftStatus == CRAFT_STATUS_READY)
+            {
+                sUnholyCraftConfirm = TRUE;
+                sUnholyCraftStatus = CRAFT_STATUS_CONFIRM;
+            }
+            else
+                PlaySE(SE_FAILURE);
+            UnholyCraftRenderMenu();
+            return;
+        }
+        else
+        {
+            sUnholyCraftStatus = UnholyCraftFabricate(&sUnholyCraftRecipes[sUnholyCraftRecipeCursor]);
+            sUnholyCraftConfirm = FALSE;
+            PlaySE(sUnholyCraftStatus == CRAFT_STATUS_COMPLETED ? SE_SUCCESS : SE_FAILURE);
+            UnholyCraftRenderMenu();
+            return;
+        }
+    }
+
+    if (changed)
+    {
+        sUnholyCraftConfirm = FALSE;
+        sUnholyCraftStatus = CRAFT_STATUS_READY;
+        PlaySE(SE_SELECT);
+        UnholyCraftRenderMenu();
     }
 }
 

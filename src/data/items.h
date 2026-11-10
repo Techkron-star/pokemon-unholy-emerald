@@ -9868,6 +9868,90 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_SuperExpShare,
     },
 
+    [ITEM_GEAR_VISOR_COSMICO] =
+    {
+        .name = ITEM_NAME("Visor Cosmico"),
+        .description = COMPOUND_STRING("Amplifies special\nmoves through cycles.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_VisorCosmico,
+        .iconPalette = gItemIconPalette_VisorCosmico,
+    },
+
+    [ITEM_GEAR_CORAZON_TITAN] =
+    {
+        .name = ITEM_NAME("Corazon Titan"),
+        .description = COMPOUND_STRING("Amplifies physical\nmoves through cycles.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_CorazonTitan,
+        .iconPalette = gItemIconPalette_CorazonTitan,
+    },
+
+    [ITEM_GEAR_SKI_MASK] =
+    {
+        .name = ITEM_NAME("Ski Mask"),
+        .description = COMPOUND_STRING("Boosts Dark attacks\nthrough power cycles.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_SkiMask,
+        .iconPalette = gItemIconPalette_SkiMask,
+    },
+
+    [ITEM_GEAR_CETRO_SINIESTRO] =
+    {
+        .name = ITEM_NAME("Cetro Siniestro"),
+        .description = COMPOUND_STRING("Changes Dark attack\ntype matchups.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_CetroSiniestro,
+        .iconPalette = gItemIconPalette_CetroSiniestro,
+    },
+
+    [ITEM_GEAR_IMPULSO_COSMICO] =
+    {
+        .name = ITEM_NAME("Impulso Cosmico"),
+        .description = COMPOUND_STRING("Changes Ghost attack\ntype matchups.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_ImpulsoCosmico,
+        .iconPalette = gItemIconPalette_ImpulsoCosmico,
+    },
+
+    [ITEM_GEAR_PERMAFROST_FRAGMENT] =
+    {
+        .name = ITEM_NAME("Permafrost Fragment"),
+        .description = COMPOUND_STRING("Ice attacks freeze\nmore; Ice users heal.\nEquip in Crafting."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_PermafrostFragment,
+        .iconPalette = gItemIconPalette_PermafrostFragment,
+    },
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),
