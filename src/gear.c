@@ -7,8 +7,8 @@
 
 STATIC_ASSERT(GEAR_COUNT <= GEAR_MAX_COUNT, TooManyGears);
 
-// El ciclo vive en gBattleStruct (no toca el formato de guardado) y se reinicia cada
-// vez que un Pokémon entra al campo, igual que la stamina.
+// El ciclo vive en gBattleStruct (no toca el formato de guardado). Se recuerda
+// al cambiar un Pokémon durante un combate para evitar recargas gratis.
 
 enum Gear Gear_GetEquipped(struct Pokemon *mon)
 {
@@ -52,17 +52,45 @@ static void StartRecharge(enum BattlerId battler, const struct GearInfo *info, u
     gBattleStruct->gearTimer[battler] = turns;
 }
 
+// Conserva la fase al abandonar el campo (sin guardarla en la partida).
+// Se indexa también por posición de combate: evita colisiones entre rivales
+// de entrenadores distintos que tengan el mismo índice de equipo.
+static void RememberCycle(enum BattlerId battler)
+{
+    u8 slot = gBattlerPartyIndexes[battler];
+
+    if (slot >= PARTY_SIZE)
+        return;
+    gBattleStruct->gearPartyInitialized[battler][slot] = TRUE;
+    gBattleStruct->gearPartyId[battler][slot] = gBattleStruct->gearId[battler];
+    gBattleStruct->gearPartyPhase[battler][slot] = gBattleStruct->gearPhase[battler];
+    gBattleStruct->gearPartyTimer[battler][slot] = gBattleStruct->gearTimer[battler];
+}
+
 // Inicializa el estado al entrar al campo y devuelve el Gear (NULL si no lleva ninguno).
 static const struct GearInfo *Prepare(enum BattlerId battler)
 {
-    u8 owner = gBattlerPartyIndexes[battler] + 1;
+    u8 slot = gBattlerPartyIndexes[battler];
+    u8 owner = slot + 1;
 
     if (gBattleStruct->gearOwner[battler] != owner)
     {
         gBattleStruct->gearOwner[battler] = owner;
         gBattleStruct->gearId[battler] = Gear_GetEquipped(GetBattlerMon(battler));
         gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
-        StartCycle(battler, &gGearsInfo[gBattleStruct->gearId[battler]]);
+
+        if (slot < PARTY_SIZE
+         && gBattleStruct->gearPartyInitialized[battler][slot]
+         && gBattleStruct->gearPartyId[battler][slot] == gBattleStruct->gearId[battler])
+        {
+            gBattleStruct->gearPhase[battler] = gBattleStruct->gearPartyPhase[battler][slot];
+            gBattleStruct->gearTimer[battler] = gBattleStruct->gearPartyTimer[battler][slot];
+        }
+        else
+        {
+            StartCycle(battler, &gGearsInfo[gBattleStruct->gearId[battler]]);
+            RememberCycle(battler);
+        }
     }
     return gBattleStruct->gearId[battler] == GEAR_NONE ? NULL : &gGearsInfo[gBattleStruct->gearId[battler]];
 }
@@ -141,6 +169,9 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
      && gBattleStruct->gearPhase[battler] == GEAR_PHASE_ARMED
      && IsCompatible(info, move, moveType))
         StartRecharge(battler, info, 0); // el final de este mismo turno ya cuenta
+
+    // Un U-turn/Volt Switch puede retirar al usuario antes del final del turno.
+    RememberCycle(battler);
 }
 
 void Gear_EndOfTurn(enum BattlerId battler)
@@ -167,4 +198,5 @@ void Gear_EndOfTurn(enum BattlerId battler)
     default:
         break;
     }
+    RememberCycle(battler);
 }

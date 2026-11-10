@@ -971,7 +971,13 @@ static void CreateGearIconSprite(enum BattlerId battler, u8 healthboxSpriteId, u
 // Carga paleta y tiles del Gear equipado. Frame 0 = lista/sobrecarga, frame 1 = recargando.
 static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum Gear gear)
 {
-    const struct GearInfo *info = &gGearsInfo[gear];
+    const struct GearInfo *info;
+
+    // Con GEAR_NONE como único ID, no existe ningún elemento válido que dibujar.
+    // Evita indexar gGearsInfo[1] (GCC -Werror=array-bounds).
+    if (gear <= GEAR_NONE || gear >= GEAR_COUNT)
+        return FALSE;
+    info = &gGearsInfo[gear];
     u32 frame = Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING;
     u32 key = (1u << 24) | (gBattleStruct->gearOwner[battler] << 16) | (frame << 8) | gear;
     u16 palTag = TAG_GEAR_ICON_PAL_BASE + battler;

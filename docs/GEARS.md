@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** el *sistema* está implementado; **todavía no existe ningún Gear** (solo `GEAR_NONE`). Los valores de balance de cada Gear son decisión de diseño y no se inventan aquí (ver `DISENO.md`, sección 4).
+**Estado:** el núcleo del sistema está implementado y en revisión; **todavía no hay Gears concretos registrados** (solo `GEAR_NONE`). La rama de mejoras corrige el acceso fuera de rango del HUD al compilar la tabla vacía y evita resets triviales del ciclo al cambiar de Pokémon. Los porcentajes y recargas de cada Gear aún requieren definición; ver `DISENO.md`, sección 4.
 
 ## Cómo funciona
 
@@ -17,7 +17,7 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 
 **Guardado.** El Gear equipado ocupa 5 bits antes sin usar de la subestructura de movimientos del Pokémon (`PokemonSubstruct1.gear`), accesible con `MON_DATA_GEAR`. No cambia el tamaño de la estructura ni el formato del guardado; las partidas existentes lo leen como `GEAR_NONE`. Límite: **31 Gears** (`GEAR_MAX_COUNT` = 32 con el vacío).
 
-**Ciclo en combate.** El estado vive en `gBattleStruct` y se reinicia cada vez que el Pokémon entra al campo (igual que la stamina; cambiar de Pokémon reinicia el ciclo, punto de balance abierto).
+**Ciclo en combate.** El estado vive en `gBattleStruct` y se reinicia al comenzar cada combate. Los estados de recarga se recuerdan al retirar y regresar al Pokémon en el **mismo puesto de combate**, para evitar reinicios gratuitos. La migración entre puestos en combates dobles y los cambios por transformaciones aún necesitan pruebas específicas.
 
 1. **Armado / sobrecarga.** Según `trigger`:
    - `GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE`: queda armado y se gasta en el **primer movimiento de daño compatible**.
@@ -117,7 +117,9 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 - [ ] La ROM compila y el icono aparece en la esquina en el emulador, en el lado del jugador y del rival, en singles y dobles.
 - [ ] La sobrecarga se aplica una sola vez y el residual aparece al recargar; el icono cambia de fotograma.
 - [ ] Dos movimientos encadenados avanzan el ciclo **una** vez.
-- [ ] Cambiar de Pokémon y volver reinicia el ciclo como se espera.
+- [ ] Cambiar de Pokémon y regresar al mismo puesto **conserva** la fase de recarga (no recupera sobrecarga gratis); probar también U-turn y Volt Switch.
+- [ ] El ciclo se reinicia al iniciar una batalla nueva, sin persistir temporizadores al guardar.
+- [ ] Cambios de posición en dobles o múltiples entrenadores no mezclan estados de Pokémon distintos.
 - [ ] Guardar, cargar y mover el Pokémon por el PC conserva el Gear.
 
 ## Pendiente (fuera de este sistema)
@@ -127,3 +129,31 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 - Entrenadores que usen Gears (campo nuevo en los datos de equipo del entrenador).
 - Mostrar el turno restante de recarga y el Gear en el resumen en combate.
 - Casos abiertos del diseño: sobrecarga con dos movimientos encadenados compatibles, y si cambiar de Pokémon debe reiniciar el ciclo.
+
+
+## Decisiones confirmadas por el autor — 10 de noviembre de 2026
+
+Los efectos **ya están especificados**, pero aún no equivalen a Gears funcionales en la ROM. En esta rama solo está reparado el motor base.
+
+| Gear | Efecto confirmado | Qué falta |
+|---|---|---|
+| **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |
+| **Ancla de Realidad** | Al estar en el campo elimina el clima, campos, salas y trampas, incluso los hechos permanentes mediante Teseracto. Los efectos eliminados **no reaparecen** al marcharse el portador. | Si bloquea nuevas activaciones durante su presencia, reglas de prioridad de habilidades y mensajes. |
+| **Visor Cósmico** | Gear cíclico basado en Gafas Especiales, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto de potencia entre fase de sobrecarga/residual y turnos exactos. |
+| **Corazón de Titán** | Gear cíclico basado en Banda Músculo, **dobla su bonificación** (10 % → 20 %), nunca el daño entero. | Reparto por fase y turnos exactos. |
+| **Impulso Cósmico** | Movimientos Fantasma del portador son supereficaces contra Normal, Psíquico y Hada. | Cómo cambian la potencia y/o efectos entre fases, y QA con inmunidades. |
+| **Cetro Siniestro** | Movimientos Siniestros del portador son supereficaces contra Psíquico, Hada, Normal y Lucha. En dobles tipos, evaluar **cada tipo**: Lucha/Hada puede ser ×4. | Cómo funcionan sus ciclos sin perder esta identidad. |
+| **Ski Mask** | Bonus pasivo permanente a movimientos Siniestros de **70 % del bono de Gema Siniestra**; no cambia efectividades. | Cómo se presenta el ciclo de sobrecarga adicional manteniendo la base pasiva. |
+| **Permafrost Fragment** | Duplica la probabilidad de congelar o causar Frostbite por instancia de daño de Hielo; basta con usar movimientos de tipo Hielo. Si el portador es Hielo, debe obtener regeneración adicional. | **1/16 o 1/10** de PS (pendiente de confirmar) y frecuencia de curación; bonificación de sobrecarga/residual. |
+
+### Promedio de Gear + objeto ordinario
+
+Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspecto**, se usa la media aritmética de sus **bonificaciones en la fase actual**, nunca se suman ni se multiplican ambos factores. Ejemplo: Gear +20 % y Gafas Especiales +10 % → **+15 % total**, multiplicador ×1.15. En la fase residual se recalcula la media con el bono residual correspondiente. Objetos distintos que afecten otros aspectos del combate conservan sus efectos normales; no promediar con cero si no existe una bonificación coincidente. La implementación deberá modificar conjuntamente la contribución Gear y el modificador del objeto normal; aplicar ×1.20 y luego ×1.10 **sería un bug**.
+
+### Riesgos y pruebas antes de registrar Gears
+
+- Guardado: preservar el identificador de Gear (5 bits) al evolucionar, guardar, cargar o mover por PC; limitar la lista a 31 Gears distintos del valor vacío.
+- **Anti-abuso de cambios:** fase y temporizador sobreviven al retirar y reintroducir al Pokémon durante **el mismo combate**; finaliza toda persistencia del ciclo al iniciar otro combate. La primera corrección de motor indexa por ranura de Pokémon y puesto de combate; validar cambios cruzados entre puestos en dobles antes de producción.
+- Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
+- Permafrost: en movimientos multigolpe o en área, cada instancia elegible puede tirar estado; la regeneración del tipo Hielo debe definirse **por turno** o por ataque, para que multigolpe no permita curar PS ilimitados.
+- Cetro/Impulso: los cálculos de IA, interfaz de supereficacia, inmunidades y combates reales deben usar el mismo criterio; no editar permanentemente la tabla global de tipos.
