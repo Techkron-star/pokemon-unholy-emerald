@@ -650,6 +650,25 @@ static void HorizonDrawNotification(void)
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_GFX);
 }
 
+// Small native 4bpp egg thumbnails, one per tier; the selected entry also
+// gets the full Pokémon EGG icon. Quality changes the shell accent, not species.
+static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
+{
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 shell = daylight ? 4 : 2;
+    const u8 outline = quality == HORIZON_EGG_PRISMATIC ? 13
+                     : quality == HORIZON_EGG_RADIANT ? 7
+                     : daylight ? 10 : 3;
+
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y, 4, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 1, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(shell), x + 1, y + 2, 6, 5);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x, y + 3, 1, 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 7, y + 3, 1, 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 7, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 8, 4, 1);
+}
+
 static void HorizonDrawInfo(void)
 {
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonTextDaylight : sHorizonTextEclipse;
@@ -719,12 +738,13 @@ static void HorizonDrawInfo(void)
         for (u8 tier = 0; tier < HORIZON_EGG_TIER_COUNT; tier++)
         {
             const s32 y = 30 + tier * 10;
+            HorizonDrawSmallEgg(sHorizonInfoWindowId, 5, y, HorizonEggGetQuality(tier));
             StringCopy(gStringVar4, tier == sHorizonEggSelection ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
             if (HorizonEggIsSold(tier))
                 StringAppend(gStringVar4, sHorizonTextEggSold);
             else
                 StringAppend(gStringVar4, HorizonEggTierName(tier));
-            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 4, y, 0, 0,
+            AddTextPrinterParameterized4(sHorizonInfoWindowId, FONT_NARROW, 16, y, 0, 0,
                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
 
             if (!HorizonEggIsSold(tier) && HorizonEggGetQuality(tier) != HORIZON_EGG_STANDARD)
