@@ -44,11 +44,12 @@ Los entrenadores de ruta deben ofrecer una resistencia razonable, pero los rival
 
 ## 4. Megapiedras de entrenadores
 
+- **Implementado en datos:** el quinto equipo de revancha de cada uno de los ocho gimnasios tiene una megapiedra asignada a un integrante compatible. Roxanne–Aerodactyl, Brawly–Medicham, Wattson–Manectric, Flannery–Camerupt, Norman–Kangaskhan, Winona–Altaria, Tate y Liza–Metagross, Juan–Slowbro. Estos dos últimos sustituyen un miembro de sus equipos finales para disponer de una Mega.
 - Los entrenadores importantes pueden equipar megapiedras cuando la historia y el acceso del jugador justifiquen que aparezcan.
 - Una megaevolución como máximo por bando y combate, usando el sistema base de `pokeemerald-expansion`.
 - La IA debe elegir una oportunidad razonable para megaevolucionar, no desperdiciarla con un Pokémon que no corresponda ni usarla después de un KO.
 - Respetar la existencia del objeto en la especie correspondiente y confirmar que la función está habilitada en esa modalidad.
-- Al menos un jefe avanzado con Mega funcional como prueba; **no declarar ninguna Mega implementada hasta probarla**.
+- **Pendiente de QA:** el ítem equipado no prueba por sí mismo que la IA active la Mega en combate. Verificar al menos una Mega por líder en sus revanchas finales y corregir las condiciones de activación si hiciera falta.
 
 ## 5. Revanchas escaladas por medallas
 
@@ -116,9 +117,9 @@ El contador significa **mutaciones adicionales**, no bonificación de estadísti
 
 ## 8. Estado y secuencia recomendada
 
-**Hecho en esta rama (sujeto a QA):** refuerzo inicial de perfiles AI para entrenadores y principales jefes; un legendario o Pokémon de familia seudolegendaria en los ocho primeros equipos de gimnasio (Pupitar, Hakamo-o, Dragonair, Shelgon, Type: Null, Salamence, Metang, Sliggoo).
+**Hecho en esta rama (sujeto a QA):** refuerzo de perfiles AI para entrenadores y jefes; un legendario o seudolegendario en los ocho primeros equipos de gimnasio (Pupitar, Hakamo-o, Dragonair, Shelgon, Type: Null, Salamence, Metang, Sliggoo) y una megapiedra adecuada en el quinto equipo de revancha de cada líder.
 
-**Pendiente:** pruebas y balance de esos ocho equipos, sus variantes de revancha, megapiedras operativas, sistema de revancha por medallas, rareza 2× persistente, migración de guardados, ampliación de nueve mutaciones y sprite de insignia con contador.
+**Pendiente:** pruebas y balance de equipos, confirmar activación real de Megas, sistema dinámico de revancha por medallas, rareza 2× persistente, migración de guardados, ampliación de nueve mutaciones y sprite de insignia con contador.
 
 No fusionar automáticamente a main hasta que CI y pruebas de emulador validen este primer paquete; las especificaciones pendientes no autorizan implementar sistemas ficticios.
 
