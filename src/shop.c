@@ -31,6 +31,7 @@
 #include "script.h"
 #include "start_menu.h"
 #include "shop.h"
+#include "horizon_market.h"
 #include "sound.h"
 #include "sprite.h"
 #include "string_util.h"
@@ -113,6 +114,10 @@ struct ShopData
 
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
+static EWRAM_DATA bool8 sHorizonPokemonBrowsing = FALSE;
+static EWRAM_DATA bool8 sHorizonPokemonConfirm = FALSE;
+static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
+static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
 static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
 static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
@@ -125,6 +130,8 @@ EWRAM_DATA struct ItemSlot gMartPurchaseHistory[SMARTSHOPPER_NUM_ITEMS] = {0};
 
 static void Task_ShopMenu(u8 taskId);
 static void Task_HorizonUnavailable(u8 taskId);
+static void Task_HorizonPokemon(u8 taskId);
+static void HorizonDrawNotification(void);
 static void Task_HorizonDiscs(u8 taskId);
 static void Task_HorizonItems(u8 taskId);
 static void Task_HorizonMoves(u8 taskId);
@@ -181,6 +188,22 @@ static const struct YesNoFuncTable sShopPurchaseYesNoFuncs =
 };
 
 static const u8 sHorizonTextPokemon[] = _("POKEMON");
+static const u8 sHorizonTextBrowse[] = _("A: BUY  B: BACK");
+static const u8 sHorizonTextConfirm[] = _("A: YES  B: BACK");
+static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
+static const u8 sHorizonTextSold[] = _("SOLD");
+static const u8 sHorizonTextReady[] = _("Choose an offer.");
+static const u8 sHorizonTextNeedMoney[] = _("Not enough money.");
+static const u8 sHorizonTextNeedSpace[] = _("Party/PC is full.");
+static const u8 sHorizonTextBought[] = _("Purchased!");
+static const u8 sHorizonTextFailed[] = _("Could not buy.");
+static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
+static const u8 *const sHorizonPokemonStatuses[] =
+{
+    sHorizonTextReady, sHorizonTextConfirmBuy, sHorizonTextBought,
+    sHorizonTextNeedMoney, sHorizonTextNeedSpace, sHorizonTextSold,
+    sHorizonTextFailed,
+};
 static const u8 sHorizonTextDiscs[] = _("DISCS");
 static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
@@ -189,7 +212,7 @@ static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("L/R TABS  B EXIT");
-static const u8 sHorizonDescPokemon[] = _("Normal Pokemon\nby badge/time.\nCOMING SOON");
+static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Buy TMs.\nFixed test stock.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies.\nFixed test stock.\nA: BUY");
 static const u8 sHorizonDescEggs[] = _("Mystery eggs.\nCOMING SOON");
@@ -206,7 +229,7 @@ static const u16 sHorizonPaletteEclipse[] =
     RGB(0, 0, 0), RGB(2, 5, 12), RGB(29, 30, 31), RGB(7, 19, 26),
     RGB(4, 13, 22), RGB(0, 20, 25), RGB(11, 11, 23), RGB(19, 25, 29),
     RGB(1, 3, 7), RGB(6, 16, 20), RGB(24, 30, 31), RGB(14, 21, 26),
-    RGB(12, 8, 21), RGB(4, 7, 15), RGB(25, 28, 31), RGB(0, 0, 0)
+    RGB(12, 8, 21), RGB(31, 4, 4), RGB(25, 28, 31), RGB(0, 0, 0)
 };
 
 static const u16 sHorizonPaletteDaylight[] =
@@ -214,7 +237,7 @@ static const u16 sHorizonPaletteDaylight[] =
     RGB(0, 0, 0), RGB(31, 30, 26), RGB(3, 6, 9), RGB(20, 22, 18),
     RGB(30, 29, 25), RGB(23, 27, 23), RGB(31, 25, 15), RGB(12, 20, 19),
     RGB(31, 31, 29), RGB(28, 27, 22), RGB(13, 17, 18), RGB(26, 25, 21),
-    RGB(19, 26, 24), RGB(30, 30, 25), RGB(4, 7, 8), RGB(0, 0, 0)
+    RGB(19, 26, 24), RGB(25, 3, 3), RGB(4, 7, 8), RGB(0, 0, 0)
 };
 
 // Shared GBA palette used by crafting and Horizon. Theme preference lives in save flags.
@@ -260,7 +283,7 @@ static const struct WindowTemplate sHorizonInfoTemplate =
 
 static const struct MenuAction sHorizonTabs[] =
 {
-    {sHorizonTextPokemon, {.void_u8 = Task_HorizonUnavailable}},
+    {sHorizonTextPokemon, {.void_u8 = Task_HorizonPokemon}},
     {sHorizonTextDiscs, {.void_u8 = Task_HorizonDiscs}},
     {sHorizonTextItems, {.void_u8 = Task_HorizonItems}},
     {sHorizonTextEggs, {.void_u8 = Task_HorizonUnavailable}},
