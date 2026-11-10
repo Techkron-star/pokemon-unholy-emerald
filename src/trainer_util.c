@@ -68,6 +68,10 @@ static u32 GetPersistentMutationTrainerSeed(const struct Trainer *trainer)
     for (i = 0; i < TRAINER_NAME_LENGTH && trainer->trainerName[i] != EOS && trainer->trainerName[i] != 0; i++)
         seed = (seed ^ trainer->trainerName[i]) * 16777619u;
 
+    // Trainers sharing a generic name/class ("GRUNT", "HIKER") should
+    // not share the same mutations throughout the entire game.
+    if (!IsImportantMutationTrainer(trainer->trainerClass))
+        seed ^= Crc32B((const u8 *)trainer, sizeof(*trainer));
     return MixTrainerMutationSeed(seed);
 }
 
@@ -87,11 +91,11 @@ static enum Species GetMutationFamily(enum Species species)
     return species;
 }
 
-static u8 MutationCount(u8 mask)
+
+static u8 MutationCount(u16 mask)
 {
     u8 n = 0;
-
-    while (mask != 0)
+    while (mask)
     {
         n += mask & 1;
         mask >>= 1;
@@ -116,81 +120,74 @@ static u8 GetGymRematchMutationTier(const struct TrainerGenerator *trainer)
     return count;
 }
 
-// A deterministic rematch tier can be replayed without obtaining new rolls.
-// Earlier tiers are replayed as a prefix, so existing badges never disappear
-// when the player earns the next badge. This uses no new save layout fields.
-static u8 RollStableTrainerMutations(u32 seed, bool8 important, u8 rematchTier)
+// Replay deterministic, independent badge tiers: old mutations persist,
+// while the new badge tier offers precisely one new opportunity.
+static u16 RollStableTrainerMutations(u32 seed, bool8 important, u8 rematchTier)
 {
-    static const u8 sMutationFlags[] =
+    static const u16 sFlags[] =
     {
-        POKEMON_BADGE_ALPHA,
-        POKEMON_BADGE_SUPER,
-        POKEMON_BADGE_ENRAGED,
-        POKEMON_BADGE_OMEGA,
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED,
     };
-    u8 result = 0;
+    static const u16 sDenoms[] =
+    {
+        SPECIAL_BADGE_ALPHA_DENOMINATOR, SPECIAL_BADGE_SUPER_DENOMINATOR,
+        SPECIAL_BADGE_ENRAGED_DENOMINATOR, SPECIAL_BADGE_OMEGA_DENOMINATOR,
+        SPECIAL_BADGE_HYPER_DENOMINATOR, SPECIAL_BADGE_OVERLOADED_DENOMINATOR,
+        SPECIAL_BADGE_TITAN_DENOMINATOR, SPECIAL_BADGE_ANCESTRAL_DENOMINATOR,
+        SPECIAL_BADGE_ASCENDED_DENOMINATOR,
+    };
+    u16 result = 0;
     u8 tier;
 
     for (tier = 0; tier <= rematchTier; tier++)
     {
         rng_value_t rng = LocalRandomSeed(MixTrainerMutationSeed(seed ^ (0x9E3779B9u * (tier + 1))));
-        u8 rates[] =
-        {
-            important ? SPECIAL_BADGE_TRAINER_ALPHA_CHANCE : SPECIAL_BADGE_WILD_ALPHA_CHANCE,
-            important ? SPECIAL_BADGE_TRAINER_SUPER_CHANCE : SPECIAL_BADGE_WILD_SUPER_CHANCE,
-            important ? SPECIAL_BADGE_TRAINER_ENRAGED_CHANCE : SPECIAL_BADGE_WILD_ENRAGED_CHANCE,
-            important ? SPECIAL_BADGE_TRAINER_OMEGA_CHANCE : 0,
-        };
+        u16 candidates = 0;
         u8 alreadyHad = MutationCount(result);
-        u8 candidates = 0;
         u8 i;
 
-        // A gym rematch doubles the chance of a FIRST mutation if none
-        // was present; with one existing mutation it doubles the gate
-        // for a SECOND instead. Three or more are never boosted.
-        if (tier != 0 && alreadyHad == 0)
+        for (i = 0; i < ARRAY_COUNT(sFlags); i++)
         {
-            for (i = 0; i < ARRAY_COUNT(rates); i++)
-                rates[i] = min(100, rates[i] * 2);
+            u8 weight = (tier != 0 && alreadyHad == 0) ? 2 : 1;
+
+            // Omega only appears in important trainer parties.
+            if (!important && sFlags[i] == POKEMON_BADGE_OMEGA)
+                continue;
+            if (!(result & sFlags[i]) && LocalRandom32(&rng) % sDenoms[i] < weight)
+                candidates |= sFlags[i];
         }
 
-        for (i = 0; i < ARRAY_COUNT(sMutationFlags); i++)
-        {
-            if (rates[i] != 0 && LocalRandom32(&rng) % 100 < rates[i]
-             && !(result & sMutationFlags[i]))
-                candidates |= sMutationFlags[i];
-        }
-
-        while (candidates != 0)
+        while (candidates)
         {
             u8 choice = LocalRandom32(&rng) % MutationCount(candidates);
-            u8 flag = 0;
-            u32 gate;
+            u16 flag = 0;
             u8 accepted = MutationCount(result);
+            u32 gate;
 
-            for (i = 0; i < ARRAY_COUNT(sMutationFlags); i++)
+            for (i = 0; i < ARRAY_COUNT(sFlags); i++)
             {
-                if (candidates & sMutationFlags[i])
+                if (candidates & sFlags[i] && choice-- == 0)
                 {
-                    if (choice-- == 0)
-                    {
-                        flag = sMutationFlags[i];
-                        break;
-                    }
+                    flag = sFlags[i];
+                    break;
                 }
             }
-
             candidates &= ~flag;
-            // Multi-mutants stay exceptionally rare in natural encounters.
-            gate = accepted == 0 ? 1 : accepted == 1 ? 12 : accepted == 2 ? 40 : 100;
-            if (tier != 0 && alreadyHad == 1 && accepted == 1)
-                gate = 6; // 2x chance for a second mutation on rematches.
+            gate = accepted == 0 ? 1
+                 : accepted == 1 ? SPECIAL_BADGE_SECOND_GATE
+                 : accepted == 2 ? SPECIAL_BADGE_THIRD_GATE
+                 : SPECIAL_BADGE_FOURTH_GATE;
 
+            // When exactly one mutation existed entering a gym rematch,
+            // the extra chance to acquire a second is doubled.
+            if (tier != 0 && alreadyHad == 1 && accepted == 1)
+                gate = SPECIAL_BADGE_SECOND_GATE / 2;
             if (LocalRandom32(&rng) % gate == 0)
                 result |= flag;
         }
     }
-
     return result;
 }
 
@@ -198,7 +195,8 @@ static void AssignStableTrainerMutations(struct Pokemon *mon, const struct Train
 {
     u32 occurrence = 0;
     enum Species family = GetMutationFamily(entry->species);
-    u8 i, mask;
+    u8 i;
+    u16 mask;
     u32 seed;
 
     for (i = 0; i < trainer->generatedMutationCount; i++)
@@ -212,9 +210,7 @@ static void AssignStableTrainerMutations(struct Pokemon *mon, const struct Train
                                ^ (u32)family * 0x85EBCA6Bu
                                ^ (occurrence + 1) * 0xC2B2AE35u);
     mask = RollStableTrainerMutations(seed, trainer->isImportantTrainer, GetGymRematchMutationTier(trainer));
-    for (i = 0; i < 4; i++)
-        if (mask & (1 << i))
-            Pokemon_SetBadge(mon, 1 << i);
+    SetMonData(mon, MON_DATA_SPECIAL_BADGES, &mask);
 }
 
 static void InitTrainerMutationIdentity(struct TrainerGenerator *trainerGen, const struct Trainer *trainer)
