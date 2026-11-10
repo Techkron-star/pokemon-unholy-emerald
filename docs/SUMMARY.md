@@ -4,6 +4,8 @@
 - [Unholy Emerald · IA y revanchas de jefes](./IA_JEFES_REVANCHAS_Y_MUTACIONES.md)
 - [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
+- [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
+- [Unholy Emerald · QA visual Eclipse/Daylight](./qa/unholy-eclipse-daylight-icons-sprint.md)
 - [FEATURES](./FEATURES.md)
 - [Installation](./INSTALL.md)
     - [Setting up WSL1 (Legacy Portion)](./legacy_WSL1_INSTALL.md)
