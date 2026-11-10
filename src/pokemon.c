@@ -736,7 +736,9 @@ UNUSED static const struct BoxPokemon sBoxPokemonConstantsFit =
         .species = NUM_SPECIES - 1,
         .teraType = NUMBER_OF_MON_TYPES - 1,
         .heldItem = ITEMS_COUNT - 1,
-        .specialBadges = POKEMON_BADGES_ALL,
+        .specialBadges = (POKEMON_BADGES_ALL & 0xF),
+        .mutationExtraLow = (POKEMON_BADGES_ALL >> 4) & 3,
+        .mutationExtraHigh = (POKEMON_BADGES_ALL >> 6) & 7,
         .pokeball = POKEBALL_COUNT - 1,
     },
     .secure.substructs[1].type1 = {
