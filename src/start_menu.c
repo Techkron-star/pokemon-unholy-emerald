@@ -99,7 +99,7 @@ EWRAM_DATA static u8 sUnholyCraftWindowId = 0;
 EWRAM_DATA static u8 sUnholyCraftIconSpriteId = 0;
 EWRAM_DATA static u16 sUnholyCraftSavedPalette[16] = {0};
 EWRAM_DATA static u8 sUnholyCraftRecipeCursor = 0;
-EWRAM_DATA static u8 sUnholyCraftGearCursor = 1;
+EWRAM_DATA static u8 sUnholyCraftGearCursor = 0;
 EWRAM_DATA static u8 sUnholyCraftPartyCursor = 0;
 EWRAM_DATA static u8 sUnholyCraftMode = 0; // 0 = fabricate, 1 = equip
 EWRAM_DATA static u8 sUnholyCraftStatus = 0;
@@ -656,6 +656,7 @@ static u8 UnholyCraftSwapGear(void)
 static void OpenUnholyCraftingMenu(void)
 {
     sUnholyCraftMode = 0;
+    sUnholyCraftGearCursor = GEAR_VISOR_COSMICO;
     sUnholyCraftStatus = CRAFT_STATUS_READY;
     sUnholyCraftConfirm = FALSE;
     sUnholyCraftIconSpriteId = MAX_SPRITES;
