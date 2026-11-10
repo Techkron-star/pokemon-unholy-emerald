@@ -172,8 +172,6 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
-    bool8 showStamina;
-    bool8 showMutations;
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -1739,25 +1737,6 @@ static void Task_HandleInput(u8 taskId)
         else if (JOY_NEW(DPAD_RIGHT))
         {
             ChangePage(taskId, 1);
-        }
-        else if (JOY_NEW(L_BUTTON | R_BUTTON))
-        {
-            if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
-            {
-                sMonSummaryScreen->showStamina = !sMonSummaryScreen->showStamina;
-                PrintStaminaSummary();
-                PlaySE(SE_SELECT);
-            }
-            else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
-            {
-                u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
-                sMonSummaryScreen->showMutations = !sMonSummaryScreen->showMutations;
-                FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-                PrintMonAbilityName();
-                PrintMonAbilityDescription();
-                CopyWindowToVram(windowId, COPYWIN_FULL);
-                PlaySE(SE_SELECT);
-            }
         }
         else if (JOY_NEW(A_BUTTON))
         {
@@ -3534,16 +3513,65 @@ static const u8 sUnholyMutationAlpha[] = _("ALPHA");
 static const u8 sUnholyMutationSuper[] = _("SUPER");
 static const u8 sUnholyMutationEnraged[] = _("ENRAGED");
 static const u8 sUnholyMutationOmega[] = _("OMEGA");
-static const u8 sUnholyMutationSep[] = _(" / ");
-static const u8 sUnholyMutationNewline[] = _("\n");
-static const u8 sUnholyMutationTitle[] = _("MUTATIONS (L/R)");
+static const u8 sUnholyMutationAlphaShort[] = _("ALP");
+static const u8 sUnholyMutationSuperShort[] = _("SUP");
+static const u8 sUnholyMutationEnragedShort[] = _("ENR");
+static const u8 sUnholyMutationOmegaShort[] = _("OME");
+static const u8 sUnholyMutationSpace[] = _(" ");
 
+// Ability name on the left, mutation tags right-aligned on the same line.
+// With three or more mutations the tags switch to 3-letter codes to fit.
 static void PrintMonAbilityName(void)
 {
+    static const u8 *const sNames[] = {
+        sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged, sUnholyMutationOmega
+    };
+    static const u8 *const sShortNames[] = {
+        sUnholyMutationAlphaShort, sUnholyMutationSuperShort, sUnholyMutationEnragedShort, sUnholyMutationOmegaShort
+    };
+    static const u8 sMasks[] = {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_OMEGA
+    };
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    const u8 *title = sMonSummaryScreen->showMutations ? sUnholyMutationTitle : gAbilitiesInfo[ability].name;
+    const u8 *name = gAbilitiesInfo[ability].name;
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    const u8 *const *tagNames = sNames;
+    u8 tags[40];
+    u8 count = 0;
+    u8 i;
+    u32 windowWidth = WindowWidthPx(windowId);
+    u32 nameFont, tagFont, nameWidth, tagWidth;
 
-    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), title, 0, 1, 0, 1);
+    for (i = 0; i < ARRAY_COUNT(sMasks); i++)
+    {
+        if (sMonSummaryScreen->summary.specialBadges & sMasks[i])
+            count++;
+    }
+    if (count == 0)
+    {
+        PrintTextOnWindowToFit(windowId, name, 0, 1, 0, 1);
+        return;
+    }
+    if (count >= 3)
+        tagNames = sShortNames;
+
+    tags[0] = EOS;
+    for (i = 0; i < ARRAY_COUNT(sMasks); i++)
+    {
+        if (!(sMonSummaryScreen->summary.specialBadges & sMasks[i]))
+            continue;
+
+        if (tags[0] != EOS)
+            StringAppend(tags, sUnholyMutationSpace);
+        StringAppend(tags, tagNames[i]);
+    }
+
+    nameFont = GetFontIdToFit(name, FONT_NORMAL, 0, windowWidth * 9 / 20);
+    nameWidth = GetStringWidth(nameFont, name, 0);
+    tagFont = GetFontIdToFit(tags, FONT_SMALL, 0, windowWidth - nameWidth - 4);
+    tagWidth = GetStringWidth(tagFont, tags, 0);
+    PrintTextOnWindowWithFont(windowId, name, 0, 1, 0, 1, nameFont);
+    PrintTextOnWindowWithFont(windowId, tags, windowWidth - tagWidth, 4, 0, 0, tagFont);
 }
 
 static void PrintMonAbilityDescription(void)
@@ -3551,42 +3579,7 @@ static void PrintMonAbilityDescription(void)
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
 
-    if (!sMonSummaryScreen->showMutations)
-    {
-        PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
-    }
-    else
-    {
-        const u8 *const names[] = {
-            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged, sUnholyMutationOmega
-        };
-        const u8 masks[] = {
-            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_OMEGA
-        };
-        u8 mutationText[80];
-        u8 count = 0;
-        u8 i;
-
-        mutationText[0] = EOS;
-        for (i = 0; i < ARRAY_COUNT(names); i++)
-        {
-            if (!(sMonSummaryScreen->summary.specialBadges & masks[i]))
-                continue;
-
-            if (count == 2)
-                StringAppend(mutationText, sUnholyMutationNewline);
-            else if (count > 0)
-                StringAppend(mutationText, sUnholyMutationSep);
-            StringAppend(mutationText, names[i]);
-            count++;
-        }
-        if (count == 0)
-            StringCopy(mutationText, gText_None);
-
-        // Small text keeps two short rows of full mutation names within
-        // the existing 18x4-tile ability window (no extra UI allocation).
-        PrintTextOnWindowWithFont(windowId, mutationText, 0, 14, 0, 0, FONT_SMALL);
-    }
+    PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
 }
 
 static void BufferMonTrainerMemo(void)
@@ -3837,33 +3830,24 @@ static void Task_PrintSkillsPage(u8 taskId)
 // Current stamina lives in battle memory only. The summary displays capacity.
 static void PrintStaminaSummary(void)
 {
-    static const u8 sStaminaHint[] = _("L/R STAMINA");
-    static const u8 sStaminaLabel[] = _("STA MAX ");
+    static const u8 sStaminaLabel[] = _("STAMINA ");
     u8 text[32];
     u32 maxStamina;
     u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
+    struct Pokemon *mon = &sMonSummaryScreen->currentMon;
 
     if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
         return;
 
+    maxStamina = STAMINA_MAX_BASE
+               + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
+               + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
+               + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
+    ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringCopy(text, sStaminaLabel);
+    StringAppend(text, gStringVar1);
+
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    if (sMonSummaryScreen->showStamina)
-    {
-        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
-
-        maxStamina = STAMINA_MAX_BASE
-                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
-        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
-        StringCopy(text, sStaminaLabel);
-        StringAppend(text, gStringVar1);
-    }
-    else
-    {
-        StringCopy(text, sStaminaHint);
-    }
-
     PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
