@@ -1,7 +1,6 @@
 #include "global.h"
 #include "main.h"
 #include "data.h"
-#include "battle.h"
 #include "battle_setup.h"
 #include "event_data.h"
 #include "pokemon.h"
@@ -107,7 +106,7 @@ static u8 GetGymRematchMutationTier(const struct TrainerGenerator *trainer)
     if (trainer->trainerClass != TRAINER_CLASS_LEADER
      && trainer->trainerClass != TRAINER_CLASS_LEADER_FRLG)
         return 0;
-    if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER) || !TRAINER_BATTLE_PARAM.isRematch)
+    if (!TRAINER_BATTLE_PARAM.isRematch)
         return 0;
 
     for (i = 0; i < NUM_BADGES; i++)
