@@ -5,6 +5,18 @@ Route101_MapScripts::
 
 Route101_OnTransition:
 	call ProfBirch_EventScript_UpdateLocation
+	goto_if_set FLAG_RESCUED_BIRCH, Route101_OnTransition_AlphaMimic
+	end
+
+@ Reuse Birch's bag as the optional encounter ONLY after the starter
+@ selection and laboratory handoff. Older saves can see the encounter, too.
+Route101_OnTransition_AlphaMimic::
+	goto_if_set FLAG_UNHOLY_ALPHA_MIMIC_COMPLETED, Route101_OnTransition_AlphaMimicDone
+	clearflag FLAG_HIDE_ROUTE_101_BIRCH_STARTERS_BAG
+	end
+
+Route101_OnTransition_AlphaMimicDone::
+	setflag FLAG_HIDE_ROUTE_101_BIRCH_STARTERS_BAG
 	end
 
 Route101_OnFrame:
@@ -216,6 +228,7 @@ Route101_EventScript_RouteSign::
 	end
 
 Route101_EventScript_BirchsBag::
+	goto_if_set FLAG_RESCUED_BIRCH, Route101_EventScript_AlphaMimic
 	lock
 	faceplayer
 	setflag FLAG_SYS_POKEMON_GET
@@ -225,7 +238,6 @@ Route101_EventScript_BirchsBag::
 	setobjectxy LOCALID_PLAYER, 6, 13
 	applymovement LOCALID_PLAYER, Common_Movement_WalkInPlaceFasterLeft
 	waitmovement 0
-	msgbox Route101_Text_BattleSystemsIntro, MSGBOX_DEFAULT
 	special ChooseStarter
 	applymovement LOCALID_ROUTE101_BIRCH, Route101_Movement_BirchApproachPlayer
 	waitmovement 0
@@ -243,6 +255,33 @@ Route101_EventScript_BirchsBag::
 	warp MAP_LITTLEROOT_TOWN_PROFESSOR_BIRCHS_LAB, 6, 5
 	waitstate
 	release
+	end
+
+@ The same map object becomes a guaranteed Alpha mimic encounter
+@ after Birch has been rescued. One encounter only: it cannot be farmed.
+Route101_EventScript_AlphaMimic::
+	lockall
+	goto_if_set FLAG_UNHOLY_ALPHA_MIMIC_COMPLETED, Route101_EventScript_AlphaMimicEmpty
+	msgbox Route101_Text_AlphaMimicWarning, MSGBOX_DEFAULT
+	random 2
+	goto_if_eq VAR_RESULT, 0, Route101_EventScript_AlphaMimicVoltorb
+	setwildbattle SPECIES_FOONGUS, 25, ITEM_NONE
+	goto Route101_EventScript_AlphaMimicStart
+
+Route101_EventScript_AlphaMimicVoltorb::
+	setwildbattle SPECIES_VOLTORB, 25, ITEM_NONE
+
+Route101_EventScript_AlphaMimicStart::
+	special Special_GuaranteeAlphaMimic
+	dowildbattle
+	setflag FLAG_UNHOLY_ALPHA_MIMIC_COMPLETED
+	setflag FLAG_HIDE_ROUTE_101_BIRCH_STARTERS_BAG
+	releaseall
+	end
+
+Route101_EventScript_AlphaMimicEmpty::
+	msgbox Route101_Text_AlphaMimicEmpty, MSGBOX_DEFAULT
+	releaseall
 	end
 
 Route101_EventScript_HideMayInBedroom::
@@ -281,18 +320,6 @@ Route101_Text_YouSavedMe:
 	.string "This is not the place to chat, so come\n"
 	.string "by my POKéMON LAB later, okay?$"
 
-Route101_Text_BattleSystemsIntro:
-	.string "That battle showed you more than just\n"
-	.string "how to protect a POKéMON.\p"
-	.string "Some POKéMON have special mutations.\n"
-	.string "Look for the A, S, E, or O symbol to\n"
-	.string "see ALPHA, SUPER, ENRAGED, or OMEGA.\p"
-	.string "You can also chain two different moves\n"
-	.string "when you have enough STAMINA.\p"
-	.string "The first move spends STAMINA, and the\n"
-	.string "second move follows immediately.\n"
-	.string "Choose your attacks carefully!$"
-
 Route101_Text_TakeTiredPokemonToPokeCenter:
 	.string "If POKéMON get tired, take them to\n"
 	.string "a POKéMON CENTER.\p"
@@ -308,3 +335,10 @@ Route101_Text_WildPokemonInTallGrass:
 Route101_Text_RouteSign:
 	.string "ROUTE 101\n"
 	.string "{UP_ARROW} OLDALE TOWN$"
+
+Route101_Text_AlphaMimicWarning:
+	.string "The POKé BALL is shaking…\p"
+	.string "Something furious is inside!$"
+
+Route101_Text_AlphaMimicEmpty:
+	.string "The POKé BALL is empty.$"

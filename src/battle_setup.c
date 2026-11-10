@@ -31,6 +31,7 @@
 #include "metatile_behavior.h"
 #include "mirage_tower.h"
 #include "palette.h"
+#include "pokemon.h"
 #include "random.h"
 #include "safari_zone.h"
 #include "script.h"
@@ -527,6 +528,15 @@ void StartOldManTutorialBattle(void)
     gMain.savedCallback = CB2_ReturnToFieldContinueScriptPlayMapMusic;
     gBattleTypeFlags = BATTLE_TYPE_CATCH_TUTORIAL;
     CreateBattleStartTask(B_TRANSITION_SLICE, 0);
+}
+
+// The scripted Alpha mimic is created by setwildbattle before this special.
+// Force its mutation badge regardless of regular encounter RNG, preserving
+// a normal wild battle and ordinary capture rules.
+void Special_GuaranteeAlphaMimic(void)
+{
+    u8 badges = POKEMON_BADGE_ALPHA;
+    SetMonData(&gParties[B_TRAINER_OPPONENT_A][0], MON_DATA_SPECIAL_BADGES, &badges);
 }
 
 void BattleSetup_StartScriptedWildBattle(void)

@@ -366,3 +366,12 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 7. Implementar Super Liga, Omegas de endgame y contenido P2/P3.
 
 Antes de programar: simular a mano en papel combates con 5 o 6 Pokémon, con sus costos de stamina, para ver si el snowball se descontrola.
+
+### QA UI y aventuras (09-11-2026)
+
+- Horizon: las pestañas sin implementar permanecen en el menú y reproducen un sonido de error, sin abandonar las ventanas del shop.
+- Resumen: stamina máxima ocupa la zona superior derecha de Estadísticas; L/R alterna a la cifra de cintas, sin solapamiento.
+- Bolsa: siete bolsillos ya existentes, incluyendo Medicina y Objetos de combate. Los títulos muestran índice X/7 al cambiar con L/R; Piedras y Correos quedan pendientes como filtros virtuales, no como nuevos campos del guardado.
+- Tutorial del profesor: la explicación de stamina y mutaciones aparece en el laboratorio al terminar la conversación sobre el rival, no al tocar la bolsa inicial.
+- Bolsa de Abedul en Ruta 101: tras el rescate, al volver al mapa se transforma funcionalmente en un encuentro sorpresa de un Voltorb o Foongus nivel 25 con badge Alpha garantizado. La especie se elige 50/50; el encuentro se activa al interactuar y se consume al completar una batalla (no se repite). El script del inicial permanece intacto. Pendiente probarlo en emulador.
+- HFC Watch, raids y mutaciones Hyper/Overloaded/Titan/Ancestral/Ascendido: aún pendientes de reglas de usuario y de diseño de datos; no considerarlos implementados.
