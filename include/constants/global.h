@@ -110,11 +110,23 @@ enum Language
 #define ROAMER_COUNT 1 // Number of maximum concurrent active roamers
 
 // Bag constants
+// Unholy Emerald's seven expanded pockets fit in Emerald's four SaveBlock1
+// sectors after releasing unused mystery buffers. FRLG has a different save
+// layout and would overflow flash with the same 560-slot allocation; retain
+// seven visible pocket categories but use a conservative FRLG capacity.
+#if IS_FRLG
+#define BAG_ITEMS_COUNT 32
+#define BAG_KEYITEMS_COUNT 32
+#define BAG_POKEBALLS_COUNT 16
+#define BAG_BATTLEITEMS_COUNT 16
+#define BAG_MEDICINE_COUNT 32
+#else
 #define BAG_ITEMS_COUNT 100
 #define BAG_KEYITEMS_COUNT 100
 #define BAG_POKEBALLS_COUNT 100
 #define BAG_BATTLEITEMS_COUNT 50
 #define BAG_MEDICINE_COUNT 100
+#endif
 #define BAG_TMHM_COUNT 64
 #define BAG_BERRIES_COUNT 46
 

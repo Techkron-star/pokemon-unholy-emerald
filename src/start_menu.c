@@ -489,14 +489,14 @@ static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *i
     u16 owned = CountTotalItemQuantityInBag(ingredient->itemId);
 
     StringCopy(gStringVar4, GetItemName(ingredient->itemId));
-    StringAppend(gStringVar4, _("  "));
+    StringAppend(gStringVar4, COMPOUND_STRING("  "));
     ConvertIntToDecimalStringN(gStringVar2, owned, STR_CONV_MODE_LEFT_ALIGN, 3);
     StringAppend(gStringVar4, gStringVar2);
-    StringAppend(gStringVar4, _("/"));
+    StringAppend(gStringVar4, COMPOUND_STRING("/"));
     ConvertIntToDecimalStringN(gStringVar3, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
     StringAppend(gStringVar4, gStringVar3);
     if (owned >= ingredient->quantity)
-        StringAppend(gStringVar4, _(" OK"));
+        StringAppend(gStringVar4, COMPOUND_STRING(" OK"));
     UnholyCraftPrint(8, 82 + row * 12, gStringVar4);
 }
 
@@ -514,7 +514,7 @@ static void UnholyCraftRenderMenu(void)
     {
         const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
 
-        StringCopy(gStringVar4, _("> "));
+        StringCopy(gStringVar4, COMPOUND_STRING("> "));
         StringAppend(gStringVar4, GetItemName(recipe->result));
         UnholyCraftPrint(4, 23, gStringVar4);
         UnholyCraftPrint(8, 40, sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus]);
@@ -524,7 +524,7 @@ static void UnholyCraftRenderMenu(void)
             UnholyCraftPrintMaterial(i, &recipe->materials[i]);
         if (recipe->badgeFlag)
             UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
-                             FlagGet(recipe->badgeFlag) ? _("BADGE: OK") : _("BADGE: LOCKED"));
+                             FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("BADGE: OK") : COMPOUND_STRING("BADGE: LOCKED"));
         UnholyCraftPrint(4, 122, sUnholyCraftControls);
         iconItem = recipe->result;
     }
@@ -534,36 +534,36 @@ static void UnholyCraftRenderMenu(void)
         enum Gear existing = Gear_GetEquipped(mon);
         enum Gear chosen = sUnholyCraftGearCursor;
 
-        UnholyCraftPrint(4, 22, _("EQUIP / REMOVE GEAR"));
-        StringCopy(gStringVar4, chosen == GEAR_NONE ? _("> REMOVE GEAR") : GetItemName(sUnholyGearItems[chosen]));
+        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP / REMOVE GEAR"));
+        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(sUnholyGearItems[chosen]));
         UnholyCraftPrint(6, 39, gStringVar4);
 
-        StringCopy(gStringVar4, _("PARTY "));
+        StringCopy(gStringVar4, COMPOUND_STRING("PARTY "));
         ConvertIntToDecimalStringN(gStringVar3, sUnholyCraftPartyCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
         StringAppend(gStringVar4, gStringVar3);
-        StringAppend(gStringVar4, _(": "));
+        StringAppend(gStringVar4, COMPOUND_STRING(": "));
         if (GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
         {
             GetMonData(mon, MON_DATA_NICKNAME, gStringVar1);
             StringAppend(gStringVar4, gStringVar1);
         }
         else
-            StringAppend(gStringVar4, _("EMPTY"));
+            StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
         UnholyCraftPrint(6, 57, gStringVar4);
 
-        StringCopy(gStringVar4, _("CURRENT: "));
-        StringAppend(gStringVar4, existing == GEAR_NONE ? _("NONE") : gGearsInfo[existing].name);
+        StringCopy(gStringVar4, COMPOUND_STRING("CURRENT: "));
+        StringAppend(gStringVar4, existing == GEAR_NONE ? COMPOUND_STRING("NONE") : gGearsInfo[existing].name);
         UnholyCraftPrint(6, 73, gStringVar4);
 
-        StringCopy(gStringVar4, _("IN BAG: "));
+        StringCopy(gStringVar4, COMPOUND_STRING("IN BAG: "));
         ConvertIntToDecimalStringN(gStringVar3, chosen == GEAR_NONE ? 0 : CountTotalItemQuantityInBag(sUnholyGearItems[chosen]), STR_CONV_MODE_LEFT_ALIGN, 3);
-        StringAppend(gStringVar4, chosen == GEAR_NONE ? _("N/A") : gStringVar3);
+        StringAppend(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("N/A") : gStringVar3);
         UnholyCraftPrint(6, 89, gStringVar4);
 
         if (sUnholyCraftStatus != CRAFT_STATUS_READY)
             UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
-            UnholyCraftPrint(6, 105, _("L/R: GEAR  UP/DOWN: PARTY"));
+            UnholyCraftPrint(6, 105, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
         UnholyCraftPrint(4, 122, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : sUnholyGearItems[chosen];
     }
