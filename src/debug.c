@@ -39,6 +39,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokemon.h"
+#include "gear.h"
 #include "pokemon_icon.h"
 #include "pokemon_storage_system.h"
 #include "random.h"
@@ -428,6 +429,7 @@ static const struct DebugSelection sDynamicMassOutbreakSelection;
 static const struct DebugSelection sToggleFlagSelection;
 static const struct DebugSelection sSetVarSelection;
 static const struct DebugSelection sGiveItemSelection;
+static const struct DebugSelection sGiveGearSelection;
 static const struct DebugSelection sSimplePokemonSelection;
 static const struct DebugSelection sComplexPokemonSelection;
 static const struct DebugSelection sEggPokemonSelection;
@@ -655,6 +657,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
 {
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
+    { COMPOUND_STRING("Equip Gear (Party)"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
     { COMPOUND_STRING("Give Egg"),          DebugAction_Selection_Init, &sEggPokemonSelection },
@@ -3190,6 +3193,84 @@ static const struct DebugSelection sGiveItemSelection = {
     .onCancel = DebugSelectionStep_ReturnToGiveMenu,
     .onComplete = DebugSelection_GiveItem_Complete,
     .steps = {&sItemSelectionStep, &sQuantitySelectionStep},
+    .maxSteps = 2,
+};
+
+// Debug-only equip flow: Gears are saved in their own Pokemon slot, not bag items.
+// Select party slot 1..6 then Gear (0 removes it). Empty slots are ignored.
+static void DebugSelectionStep_UpdateGearPartySlot(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    u32 slot = gTasks[taskId].tInput;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+
+    ConvertIntToDecimalStringN(gStringVar3, slot + 1, STR_CONV_MODE_LEFT_ALIGN, digits);
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Party slot: {STR_VAR_3}"));
+    if (GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+        StringCopy(gStringVar2, GetSpeciesName(species));
+    else
+        StringCopy(gStringVar2, COMPOUND_STRING("Empty slot"));
+    StringCopy(gStringVar3, COMPOUND_STRING("Select a Pokemon"));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static void DebugSelectionStep_UpdateGearId(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    u32 gear = gTasks[taskId].tInput;
+
+    ConvertIntToDecimalStringN(gStringVar3, gear, STR_CONV_MODE_LEFT_ALIGN, digits);
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Gear ID: {STR_VAR_3}"));
+    if (gear == GEAR_NONE)
+        StringCopy(gStringVar2, COMPOUND_STRING("Remove Gear"));
+    else
+        StringCopy(gStringVar2, gGearsInfo[gear].name);
+    StringCopy(gStringVar3, COMPOUND_STRING("Own Gear slot"));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static bool32 DebugSelection_EquipGear_Complete(u8 taskId)
+{
+    u32 slot = DebugSelection_GetData(taskId, 0);
+    enum Gear gear = DebugSelection_GetData(taskId, 1);
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+
+    if (slot < PARTY_SIZE && gear < GEAR_COUNT && GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+    {
+        Gear_SetEquipped(mon, gear);
+        PlaySE(SE_SUCCESS);
+    }
+    else
+    {
+        PlaySE(SE_FAILURE);
+    }
+    DebugSelectionStep_ReturnToGiveMenu(taskId);
+    return TRUE;
+}
+
+static const struct DebugSelectionStep sGearPartySlotSelectionStep =
+{
+    .stepUpdate = DebugSelectionStep_UpdateGearPartySlot,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = 0,
+    .maxValue = PARTY_SIZE - 1,
+    .digits = 1,
+};
+
+static const struct DebugSelectionStep sGearIdSelectionStep =
+{
+    .stepUpdate = DebugSelectionStep_UpdateGearId,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = GEAR_NONE,
+    .maxValue = GEAR_COUNT - 1,
+    .digits = 1,
+};
+
+static const struct DebugSelection sGiveGearSelection =
+{
+    .onInit = Debug_CreateInputDisplayWindow,
+    .onCancel = DebugSelectionStep_ReturnToGiveMenu,
+    .onComplete = DebugSelection_EquipGear_Complete,
+    .steps = {&sGearPartySlotSelectionStep, &sGearIdSelectionStep},
     .maxSteps = 2,
 };
 
