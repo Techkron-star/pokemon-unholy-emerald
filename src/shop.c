@@ -527,7 +527,10 @@ static u8 CreateShopMenu(u8 martType)
     PutWindowTilemap(sMartInfo.windowId);
     CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
     if (sHorizonActive)
+    {
         HorizonOpenInfoWindow();
+        HorizonDrawNotification();
+    }
 
     return CreateTask(Task_ShopMenu, 8);
 }
@@ -682,6 +685,75 @@ static void HorizonDrawInfo(void)
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+    if (sHorizonActive && sHorizonPokemonBrowsing)
+    {
+        if (JOY_NEW(B_BUTTON))
+        {
+            sHorizonPokemonBrowsing = FALSE;
+            sHorizonPokemonConfirm = FALSE;
+            sHorizonPokemonStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
+        {
+            sHorizonPokemonSelection ^= 1; // Exactly two stock slots.
+            sHorizonPokemonConfirm = FALSE;
+            sHorizonPokemonStatus = 0;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+            return;
+        }
+        if (JOY_NEW(A_BUTTON))
+        {
+            enum HorizonMarketPurchaseResult outcome;
+
+            if (!sHorizonPokemonConfirm)
+            {
+                if (HorizonMarketOfferSold(sHorizonPokemonSelection))
+                    sHorizonPokemonStatus = 5;
+                else if (IsPlayerPartyAndPokemonStorageFull())
+                    sHorizonPokemonStatus = 4;
+                else if (!IsEnoughMoney(&gSaveBlock1Ptr->money, HorizonMarketGetPrice(sHorizonPokemonSelection)))
+                    sHorizonPokemonStatus = 3;
+                else
+                {
+                    sHorizonPokemonConfirm = TRUE;
+                    sHorizonPokemonStatus = 1;
+                }
+                PlaySE(sHorizonPokemonConfirm ? SE_SELECT : SE_FAILURE);
+            }
+            else
+            {
+                outcome = HorizonMarketPurchase(sHorizonPokemonSelection);
+                sHorizonPokemonConfirm = FALSE;
+                switch (outcome)
+                {
+                case HORIZON_MARKET_PURCHASE_OK:
+                    sHorizonPokemonStatus = 2;
+                    break;
+                case HORIZON_MARKET_PURCHASE_NO_MONEY:
+                    sHorizonPokemonStatus = 3;
+                    break;
+                case HORIZON_MARKET_PURCHASE_NO_SPACE:
+                    sHorizonPokemonStatus = 4;
+                    break;
+                case HORIZON_MARKET_PURCHASE_SOLD_OUT:
+                    sHorizonPokemonStatus = 5;
+                    break;
+                default:
+                    sHorizonPokemonStatus = 6;
+                    break;
+                }
+                PlaySE(outcome == HORIZON_MARKET_PURCHASE_OK ? SE_SUCCESS : SE_FAILURE);
+            }
+            HorizonDrawInfo();
+            return;
+        }
+        return;
+    }
+
     if (sHorizonActive && JOY_NEW(L_BUTTON | R_BUTTON))
     {
         Menu_MoveCursor(JOY_NEW(L_BUTTON) ? -1 : 1);
@@ -718,6 +790,22 @@ static void Task_ShopMenu(u8 taskId)
 #define tListTaskId data[7]
 #define tCallbackHi data[8]
 #define tCallbackLo data[9]
+
+static void Task_HorizonPokemon(u8 taskId)
+{
+    (void)taskId;
+    if (sHorizonInfoWindowId == 0xFF)
+        return;
+
+    HorizonMarketRefresh();
+    HorizonMarketMarkPokemonSeen();
+    sHorizonPokemonBrowsing = TRUE;
+    sHorizonPokemonConfirm = FALSE;
+    sHorizonPokemonSelection = 0;
+    sHorizonPokemonStatus = 0;
+    HorizonDrawNotification();
+    HorizonDrawInfo();
+}
 
 static void Task_HorizonUnavailable(u8 taskId)
 {
@@ -1666,8 +1754,13 @@ void CreatePokemartMenu(const u16 *itemsForSale)
 
 void CreateHorizonShopMenu(void)
 {
+    HorizonMarketRefresh();
     sHorizonActive = TRUE;
     sHorizonSelectedTab = 0;
+    sHorizonPokemonBrowsing = FALSE;
+    sHorizonPokemonConfirm = FALSE;
+    sHorizonPokemonSelection = 0;
+    sHorizonPokemonStatus = 0;
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(sHorizonShopItems);
     ClearItemPurchases();
