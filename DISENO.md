@@ -108,7 +108,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 | Ball | Notas |
 |---|---|
-| **Overdrive Ball** | Reemplaza a la "Hyper Ball" (que es el nombre japonés de la Ultra Ball). |
+| **Overdrive Ball** | Esfera de captura de categoría intermedia entre Ultra Ball y Master Ball. No reemplaza a ninguna Ball existente. Su multiplicador de captura y compatibilidad con mutaciones especiales están pendientes de confirmar; ×4 es solo una propuesta. |
 | **Alpha Ball** | Idea propia; efecto por definir. |
 | **Omega Ball** | Puede capturar Omegas, pero **no está garantizado**. |
 | **Infinity Ball** | Captura a cualquier Pokémon, incluidos los especiales. Equivalente post-game de la Master Ball. No se compra en tienda; es de post-game (recompensa de la Super Liga) o de cheat codes. |
