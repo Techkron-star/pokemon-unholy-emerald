@@ -3,10 +3,10 @@
 Paquete visual de **19 iconos originales de 24×24** con paletas JASC-PAL de 16 entradas y transparencia de índice 0. Se generaron y revisaron a escala nativa, con previews Eclipse/Daylight en el paquete entregado al usuario.
 
 ## Esferas (2)
-- **Overdrive Ball**: núcleo de sobrecarga y disipadores de energía naranja. Se sitúa entre Ultra Ball y Master Ball sin reemplazar ninguna esfera existente. Multiplicador, obtención y límites frente a mutaciones especiales pendientes de decisión (×4 es una propuesta no aprobada).
-- **Alpha Ball**: cierre plateado, núcleo azul y geometría de sellos. Efecto sin definir.
+- **Overdrive Ball**: núcleo de sobrecarga naranja. **×4 de captura aprobado**. Registrada en la rama items/unholy-phase1-balls-20261110 con icono GBA, ID y tabla de lanzamiento; precio y disponibilidad aún sin definir. No reemplaza ninguna Ball.
+- **Alpha Ball**: cierre plateado y núcleo azul. Esfera especial de menor categoría, dirigida a Alpha y Enraged; ambos siguen pudiendo atraparse con esferas ordinarias. Multiplicador y precio pendientes.
 
-**Omega Ball e Infinity Ball**: arte aprobado previamente y conservado, sin alteraciones en esta entrega; Infinity es recompensa posjuego y no debe venderse en Horizon.
+**Omega Ball e Infinity Ball**: arte aprobado previamente y conservado. Omega es el requisito de captura para mutaciones superiores a Super; Infinity captura siempre y debe restaurar PS/PP tras cada combate (restauración aún no programada). Infinity es recompensa posjuego y no se vende en Horizon.
 
 ## Gears (8)
 `teseracto`, `visor_cosmico`, `corazon_titan`, `ancla_realidad`, `impulso_cosmico`, `cetro_siniestro`, `ski_mask`, `permafrost_fragment`.
@@ -22,7 +22,7 @@ Los tres últimos no se declaran objetos de mochila: **Poké Simulator y Mutator
 ### Ubicación y estado
 - PNG: `graphics/unholy_concepts/icons/*.png`
 - JASC: `graphics/unholy_concepts/palettes/*.pal`
-- Todos **visuales solamente**. No crear constantes, handlers, recetas, tiendas ni costes ficticios. Los efectos de Alpha Ball y la mayoría de Gears siguen pendientes de diseño.
+- Salvo la Overdrive Ball, que ya tiene una **primera integración funcional en rama separada**, los recursos siguen siendo **visuales solamente**. No inventar constantes, recetas, tienda ni precios. La lógica de Gear exige un slot de equipamiento independiente.
 - En una integración futura, mover solamente los ítems aprobados a `graphics/items/...` y registrar sus referencias en el motor, sin tocar números de guardado.
 - **QA necesario:** confirmar PNG indexed + 16 colores + índice 0 transparente, conversión 4bpp en compilación, inspección real en emulador y contraste con ambos temas. El atlas no sustituye una prueba en emulador.
 
