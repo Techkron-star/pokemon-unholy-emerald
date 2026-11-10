@@ -4972,6 +4972,14 @@ BattleScript_GrassyTerrainHeals::
 	datahpupdate BS_ATTACKER, ASSURANCE_DOUBLE
 	return
 
+BattleScript_PermafrostHeal::
+	playanimation BS_ATTACKER, B_ANIM_SIMPLE_HEAL
+	printstring STRINGID_PERMAFROSTHEALS
+	waitmessage B_WAIT_TIME_LONG
+	healthbarupdate BS_ATTACKER
+	datahpupdate BS_ATTACKER, ASSURANCE_DOUBLE
+	return
+
 BattleScript_StickyHoldActivates::
 	call BattleScript_StickyHoldActivatesRet
 	goto BattleScript_MoveEnd
