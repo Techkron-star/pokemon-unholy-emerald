@@ -189,7 +189,7 @@ void Gear_EndOfTurn(enum BattlerId battler)
     {
     case GEAR_PHASE_OVERLOAD:
         if (--gBattleStruct->gearTimer[battler] == 0)
-            StartRecharge(battler, info, 1); // este final de turno ya cuenta
+            StartRecharge(battler, info, 0); // la recarga comienza DESPUES del ultimo turno de sobrecarga
         break;
     case GEAR_PHASE_RECHARGING:
         if (--gBattleStruct->gearTimer[battler] == 0)

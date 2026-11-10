@@ -6758,11 +6758,11 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     switch (ctx->holdEffects[ctx->battlerAtk])
     {
     case HOLD_EFFECT_MUSCLE_BAND:
-        if (IsBattleMovePhysical(move))
+        if (IsBattleMovePhysical(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_CORAZON_TITAN)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_WISE_GLASSES:
-        if (IsBattleMoveSpecial(move))
+        if (IsBattleMoveSpecial(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_VISOR_COSMICO)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_LUSTROUS_ORB:
@@ -6800,8 +6800,23 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
         break;
     }
 
-    // Gear equipado: sobrecarga o bonificación residual (ver src/gear.c).
-    modifier = uq4_12_multiply(modifier, Gear_GetPowerModifier(battlerAtk, move, moveType));
+    // El item ordinario y el Gear NO se multiplican entre si cuando refuerzan
+    // exactamente lo mismo. Se promedian sus BONIFICACIONES, por fase.
+    uq4_12_t gearModifier = Gear_GetPowerModifier(battlerAtk, move, moveType);
+    enum Gear activeGear = Gear_GetBattlerGear(battlerAtk);
+    if ((activeGear == GEAR_VISOR_COSMICO
+         && ctx->holdEffects[battlerAtk] == HOLD_EFFECT_WISE_GLASSES
+         && IsBattleMoveSpecial(move))
+     || (activeGear == GEAR_CORAZON_TITAN
+         && ctx->holdEffects[battlerAtk] == HOLD_EFFECT_MUSCLE_BAND
+         && IsBattleMovePhysical(move)))
+    {
+        // 1.20 y 1.10 => 1.15, no 1.32.
+        gearModifier = UQ_4_12(1.0)
+                     + (gearModifier - UQ_4_12(1.0)
+                     + PercentToUQ4_12_Floored(holdEffectParamAtk)) / 2;
+    }
+    modifier = uq4_12_multiply(modifier, gearModifier);
 
     // Terastallization boosts weak, non-priority, non-multi hit moves after modifiers to 60 BP.
     if (GetActiveGimmick(battlerAtk) == GIMMICK_TERA
@@ -8179,6 +8194,25 @@ s32 CalculateMoveDamageVars(struct DamageContext *ctx)
 static inline void MulByTypeEffectiveness(struct DamageContext *ctx, uq4_12_t *modifier, enum Type defType)
 {
     uq4_12_t mod = GetTypeModifier(ctx->moveType, defType);
+
+    // Efectividades personales de reliquias: por tipo de DEFENSOR.
+    // No tocar la tabla global, ni convertir movimientos de estado en ataques.
+    // Dos tipos afectados (Lucha/Hada con Cetro) dan 2x * 2x = 4x.
+    if (!gSpecialStatuses[ctx->battlerAtk].attackerInParty
+     && !IsBattleMoveStatus(ctx->move))
+    {
+        enum Gear gear = Gear_GetBattlerGear(ctx->battlerAtk);
+
+        if (gear == GEAR_CETRO_SINIESTRO
+         && ctx->moveType == TYPE_DARK
+         && (defType == TYPE_PSYCHIC || defType == TYPE_FAIRY
+          || defType == TYPE_NORMAL || defType == TYPE_FIGHTING))
+            mod = UQ_4_12(2.0);
+        else if (gear == GEAR_IMPULSO_COSMICO
+              && ctx->moveType == TYPE_GHOST
+              && (defType == TYPE_NORMAL || defType == TYPE_PSYCHIC || defType == TYPE_FAIRY))
+            mod = UQ_4_12(2.0);
+    }
 
     if (mod == UQ_4_12(0.0) && ctx->holdEffects[ctx->battlerDef] == HOLD_EFFECT_RING_TARGET)
     {
@@ -9687,7 +9721,20 @@ u32 CalcSecondaryEffectChance(enum BattlerId battler, enum Ability battlerAbilit
     if (hasRainbow)
         secondaryEffectChance *= 2;
 
-    return secondaryEffectChance;
+    // Permafrost afecta por cada comprobacion de un efecto de estado
+    // secundario de un movimiento de Hielo que inflige dano. Las reglas de
+    // inmunidad y aplicabilidad se comprueban en el motor normal.
+    if (secondaryEffectChance > 0
+     && GetMovePower(gCurrentMove) > 0
+     && GetBattleMoveType(gCurrentMove) == TYPE_ICE
+     && Gear_GetBattlerGear(battler) == GEAR_PERMAFROST_FRAGMENT
+     && !additionalEffect->self
+     && (additionalEffect->moveEffect == MOVE_EFFECT_FREEZE
+      || additionalEffect->moveEffect == MOVE_EFFECT_FROSTBITE
+      || additionalEffect->moveEffect == MOVE_EFFECT_FREEZE_OR_FROSTBITE))
+        secondaryEffectChance *= 2;
+
+    return min(secondaryEffectChance, 100);
 }
 
 bool32 MoveEffectIsGuaranteed(enum BattlerId battler, enum Ability battlerAbility, const struct AdditionalEffect *additionalEffect)
