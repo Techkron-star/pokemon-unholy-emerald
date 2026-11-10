@@ -85,7 +85,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 - **Omega:** anomalías genéticas excepcionalmente raras, con IVs/EVs máximos en cada stat (incluida la excepción al límite total habitual de EVs) y multiplicadores positivos **individuales por estadística de ×1.2 a ×1.5**, sujetos a la fórmula definitiva. Un Omega con +50 % en sus seis estadísticas base es el extremo superior ilustrado por el Dragonite de Lance.
 - Omega puede encontrarse de manera aleatoria en la naturaleza, con zonas de incidencia mayor (por ejemplo, cueva de Groudon) y mini-jefes. Rareza comparable o superior a shiny; probabilidades exactas pendientes.
 - Se conserva la intención de que los especiales sean amenazas importantes, incluso con ventajas al inicio del encuentro, pero deben concretarse los buffs reales por variante.
-- **No** se venden Pokémon Alpha, Super, Enraged u Omega en Horizon Shop, y el **Mutator no puede crear Omega**.
+- **Excepción posterior (10/11/2026):** Horizon Shop puede ofrecer individuos mutantes por RNG, con rareza y medallas mínimas; Omega solo entra a la tirada tras las ocho medallas y conserva una probabilidad extremadamente baja. El **Mutator sigue sin poder crear Omega**.
 - *Descartado por ahora:* aumentar la aparición de Omega mediante huevos.
 
 ### Cambio de habilidades
@@ -158,7 +158,7 @@ Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **
 - La lista, el panel de descripción y los botones comparten estructura, pero cada pestaña utiliza reglas y flujos propios.
 - Los temas de interfaz **Eclipse** y **Daylight** se eligen desde Opciones y permanecen guardados; no dependen del ciclo diurno de la partida.
 - Reusar la composición y efectos discretos de los temas Nebulous de esos nombres, no trasladar WebGL o shaders a GBA.
-- Ni variantes mutadas (Alpha, Super, Enraged, Omega) ni Infinity Ball se venden. No se inventan precios ni stocks aún sin definir.
+- Horizon permite ofertas mutantes muy raras, incluyendo Omega únicamente tras ocho medallas; **Infinity Ball sigue excluida**. Precios y probabilidades del mercado son parámetros iniciales sujetos a balance.
 - Crafting adopta panel de receta, requisitos visibles (poseído / requerido) y confirmación antes de consumir materiales.
 - Movimiento / aprender / olvidar reutiliza el flujo existente; se crea navegación uniforme, no una segunda lógica incompatible.
 
@@ -170,25 +170,31 @@ Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **
 
 Sistema de compras y servicios accesible desde el menú principal del juego. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
 
-La primera entrega añade una entrada **HORIZON SHOP** al menú principal y reutiliza la interfaz visual y el flujo de compra del PokéMart. El catálogo inicial es fijo para evitar rerolls ilimitados; la rotación persistente por día/noche y medallas queda para la siguiente fase.
+Horizon Shop reutiliza el menú del PokéMart para objetos y discos. La rama `feat/unholy-horizon-mutant-alerts-stock-20261110` añade un primer mercado de Pokémon de dos ofertas persistentes, con compra real, progresión, variación día/noche e indicadores de rareza. La validación de compilación y emulador continúa pendiente.
 
 ### Catálogo y progresión
 - La oferta de **Pokémon y objetos** se selecciona de forma **aleatoria (RNG)** y cambia en función del **ciclo de día y noche** del juego.
 - **Las medallas** determinan qué Pokémon y mercancías pueden aparecer en el catálogo; el contenido disponible progresa junto con la aventura.
-- **Solo se venden Pokémon normales.** No aparecen a la venta variantes **Alpha, Super, Enraged ni Omega**; Horizon Shop **no** es una vía para comprar mutaciones especiales. Esta exclusión no altera las reglas de encuentros y capturas fuera del mercado.
+- La mayoría de ofertas son normales. Cada nueva oferta permite tiradas extraordinarias de las nueve mutaciones registradas, restringidas por medallas; **Omega solo con ocho medallas**. La oferta persiste en variables de guardado hasta cambiar a un período válido o avanzar de medallas, y cada plaza se puede comprar una vez.
 
 ### Secciones del mercado
 | Sección | Contenido / servicio |
 | --- | --- |
-| **Pokémon** | Compra de Pokémon normales, con especies seleccionadas por RNG, medallas y día/noche. |
+| **Pokémon** | Dos ofertas elegidas por RNG, medallas y día/noche; raramente mutantes (incluido Omega después de ocho medallas). Compra con confirmación; entrega a equipo o PC si hay espacio. |
 | **Objetos** | Inventario aleatorio de objetos normales y especiales. |
 | **Discos** | Venta de discos de movimientos; selección aleatoria dentro del catálogo habilitado. |
 | **Huevos** | Compra de huevos aleatorios; especie por descubrir al eclosionar. |
 | **Movimientos** | Servicio para **aprender y borrar movimientos** de tus Pokémon desde el mismo menú. |
 
+### Avisos de ofertas mutantes (10/11/2026)
+
+Al aparecer por RNG una oferta mutante, la señal se propaga sin falsos positivos: **punto rojo junto a HORIZON en el menú START** (paleta estándar), **punto rojo junto a Pokémon en Horizon** y **!!! RARE STOCK** en el panel. Los indicadores desaparecen al **abrir de verdad la sección Pokémon**, no al abrir simplemente el menú Horizon. Solo una nueva rotación con oferta mutante reactivará los avisos. Si no hay oferta mutante, no aparecen.
+
+Implementación apilada en los PR #8 → #9 → #10 y la rama de avisos, **sin fusionar a master hasta CI + QA en emulador**. Persistencia: `VAR_HORIZON_MARKET_DAY`…`VAR_HORIZON_MARKET_BADGES` (0x40F7…0x40FE). Las dos ofertas conservan especie, mutación y estado vendido. Este primer formato ofrece **como máximo una mutación por individuo**, aunque el motor de encuentros permite varias; ampliar el formato solo tras pruebas de guardado.
+
 ### Decisiones pendientes
 - Precios, cantidades, existencia de unidades limitadas y escalado de costos por medalla.
-- Frecuencia exacta de rotación del catálogo y método para generar/persistir la oferta; **abrir y cerrar el menú no debería convertirse automáticamente en un reroll ilimitado** (propuesta de balance, no regla confirmada).
+- La primera versión del catálogo Pokémon se regenera al avanzar de día o de período día/noche, o al obtener una medalla nueva; abrir/cerrar no repite la tirada. La selección queda guardada en variables reservadas sin ampliar `SaveBlock1`. Ajustar esta periodicidad tras QA y feedback.
 - Qué discos, objetos especiales, especies y huevos entran en cada tramo de medallas y período del día.
 - Costos y límites del servicio de aprender/borrar movimientos; posibles condiciones para acceder a determinados movimientos.
 - Mecánica de generación genética de los huevos comprados: no se ha definido aquí ninguna garantía de mutaciones ni de variantes raras.
