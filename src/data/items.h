@@ -52,6 +52,23 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_OmegaBall,
     },
 
+    [ITEM_OVERDRIVE_BALL] =
+    {
+        .name = ITEM_NAME("Overdrive Ball"),
+        // No shop price until availability and cost are agreed.
+        .price = 0,
+        .description = COMPOUND_STRING(
+            "A powerful Ball\n"
+            "with a fourfold\n"
+            "catch rate."),
+        .pocket = POCKET_POKE_BALLS,
+        .type = ITEM_USE_BAG_MENU,
+        .battleUsage = EFFECT_ITEM_THROW_BALL,
+        .secondaryId = BALL_OVERDRIVE,
+        .iconPic = gItemIcon_OverdriveBall,
+        .iconPalette = gItemIconPalette_OverdriveBall,
+    },
+
     [ITEM_INFINITY_BALL] =
     {
         .name = ITEM_NAME("Infinity Ball"),

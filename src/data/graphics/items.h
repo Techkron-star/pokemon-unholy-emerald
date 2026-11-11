@@ -12,6 +12,9 @@ const u16 gItemIconPalette_StrangeBall[] = INCGFX_U16("graphics/items/icon_palet
 const u32 gItemIcon_PokeBall[] = INCGFX_U32("graphics/items/icons/poke_ball.png", ".4bpp.smol");
 const u16 gItemIconPalette_PokeBall[] = INCGFX_U16("graphics/items/icon_palettes/poke_ball.pal", ".gbapal");
 
+const u32 gItemIcon_OverdriveBall[] = INCGFX_U32("graphics/unholy_concepts/icons/overdrive_ball.png", ".4bpp.smol");
+const u16 gItemIconPalette_OverdriveBall[] = INCGFX_U16("graphics/unholy_concepts/palettes/overdrive_ball.pal", ".gbapal");
+
 const u32 gItemIcon_OmegaBall[] = INCGFX_U32("graphics/items/icons/omega_ball.png", ".4bpp.smol");
 const u16 gItemIconPalette_OmegaBall[] = INCGFX_U16("graphics/items/icon_palettes/omega_ball.pal", ".gbapal");
 const u32 gItemIcon_InfinityBall[] = INCGFX_U32("graphics/items/icons/infinity_ball.png", ".4bpp.smol");
