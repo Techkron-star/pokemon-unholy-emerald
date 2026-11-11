@@ -8236,6 +8236,105 @@ static void CB2_ChooseMonForMoveRelearner(void)
     SetMainCallback2(CB2_ReturnToField);
 }
 
+// Horizon's FORGET service shares the vanilla move-deletion implementation.
+// Unlike the NPC script it has no active script context awaiting a result.
+static void Task_HorizonChooseMonForMoveDeleter(u8 taskId);
+static void CB2_HorizonChooseMonForMoveDeleter(void);
+static void CB2_HorizonForgetMoveSelected(void);
+
+void ChooseMonForHorizonMoveDeleter(void)
+{
+    LockPlayerFieldControls();
+    FadeScreen(FADE_TO_BLACK, 0);
+    CreateTask(Task_HorizonChooseMonForMoveDeleter, 10);
+}
+
+static void Task_HorizonChooseMonForMoveDeleter(u8 taskId)
+{
+    if (!gPaletteFade.active)
+    {
+        CleanupOverworldWindowsAndTilemaps();
+        InitPartyMenu(PARTY_MENU_TYPE_CHOOSE_MON, PARTY_LAYOUT_SINGLE,
+                      PARTY_ACTION_CHOOSE_AND_CLOSE, FALSE, PARTY_MSG_CHOOSE_MON,
+                      Task_HandleChooseMonInput, CB2_HorizonChooseMonForMoveDeleter);
+        DestroyTask(taskId);
+    }
+}
+
+static void CB2_HorizonChooseMonForMoveDeleter(void)
+{
+    u8 slot = GetCursorSelectionMonId();
+    struct Pokemon *mon;
+    u8 learned = 0;
+
+    gFieldCallback2 = CB2_FadeFromPartyMenu;
+    if (slot >= PARTY_SIZE || slot >= gPartiesCount[B_TRAINER_PLAYER])
+    {
+        SetMainCallback2(CB2_ReturnToField);
+        return;
+    }
+
+    mon = &gParties[B_TRAINER_PLAYER][slot];
+    if (GetMonData(mon, MON_DATA_IS_EGG))
+    {
+        SetMainCallback2(CB2_ReturnToField);
+        return;
+    }
+
+    for (u8 i = 0; i < MAX_MON_MOVES; i++)
+        if (GetMonData(mon, MON_DATA_MOVE1 + i) != MOVE_NONE)
+            learned++;
+
+    if (learned <= 1)
+    {
+        // Never leave a Pokémon with no usable moves.
+        SetMainCallback2(CB2_ReturnToField);
+        return;
+    }
+
+    gSpecialVar_0x8004 = slot;
+    gSpecialVar_0x8005 = MAX_MON_MOVES;
+    gSpecialVar_Result = FALSE;
+    ShowPokemonSummaryScreen(SUMMARY_MODE_SELECT_MOVE, gParties[B_TRAINER_PLAYER],
+                             slot, gPartiesCount[B_TRAINER_PLAYER] - 1,
+                             CB2_HorizonForgetMoveSelected);
+}
+
+static void CB2_HorizonForgetMoveSelected(void)
+{
+    const u32 slot = gSpecialVar_0x8004;
+    const u32 moveSlot = gSpecialVar_0x8005;
+
+    // The summary selector sets Result=FALSE on cancellation. Validate the
+    // selection again on return so an egg/empty move cannot be deleted.
+    if (gSpecialVar_Result
+     && slot < PARTY_SIZE
+     && slot < gPartiesCount[B_TRAINER_PLAYER]
+     && moveSlot < MAX_MON_MOVES)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+        u32 learned = 0;
+
+        for (u8 i = 0; i < MAX_MON_MOVES; i++)
+            if (GetMonData(mon, MON_DATA_MOVE1 + i) != MOVE_NONE)
+                learned++;
+
+        if (!GetMonData(mon, MON_DATA_IS_EGG)
+         && learned > 1
+         && GetMonData(mon, MON_DATA_MOVE1 + moveSlot) != MOVE_NONE)
+        {
+            // Respect the same last-Surf safeguard as the standard Move
+            // Deleter before calling its slot-shifting deletion routine.
+            IsLastMonThatKnowsSurf();
+            if (gSpecialVar_Result == FALSE)
+                MoveDeleterForgetMove();
+        }
+    }
+
+    gFieldCallback2 = CB2_FadeFromPartyMenu;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
 void DoBattlePyramidMonsHaveHeldItem(void)
 {
     u8 i;
