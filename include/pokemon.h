@@ -1,3 +1,4 @@
+successfully downloaded text file (SHA: 09ddeaf25b54813eef9b81e9b44296e68d06bde2)
 #ifndef GUARD_POKEMON_H
 #define GUARD_POKEMON_H
 
@@ -296,6 +297,11 @@ struct Pokemon
     u16 speed;
     u16 spAttack;
     u16 spDefense;
+    // --- Unholy Emerald: Resumen de Pokémon (stamina y mutaciones visibles sin R/L) ---
+    u16 staminaCurrent;        // Stamina actual
+    u16 staminaMax;            // Stamina máxima
+    u32 mutationMask;          // Máscara de mutaciones activas (bitfield)
+    u8  mutationTier;          // Tier de mutación: C=0, B=1, A=2, S=3, Omega=4
 };
 
 struct MonSpritesGfxManager
