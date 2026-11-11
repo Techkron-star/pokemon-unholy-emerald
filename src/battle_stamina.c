@@ -8,9 +8,10 @@
 // Se (re)inicializa al máximo cada vez que un Pokémon entra al campo: se detecta
 // comparando el índice de equipo guardado con el actual.
 
-static u32 CalcMaxStamina(enum BattlerId battler)
+u32 Stamina_CalcMaxForMon(struct Pokemon *mon)
 {
-    struct Pokemon *mon = GetBattlerMon(battler);
+    if (mon == NULL)
+        return 0;
     u32 level = GetMonData(mon, MON_DATA_LEVEL);
     u32 hpEv = GetMonData(mon, MON_DATA_HP_EV);
     u32 hpIv = GetMonData(mon, MON_DATA_HP_IV);
@@ -32,7 +33,7 @@ static void EnsureInitialized(enum BattlerId battler)
         return;
 
     gBattleStruct->staminaOwner[battler] = owner;
-    gBattleStruct->maxStamina[battler] = CalcMaxStamina(battler);
+    gBattleStruct->maxStamina[battler] = Stamina_CalcMaxForMon(GetBattlerMon(battler));
     gBattleStruct->stamina[battler] = gBattleStruct->maxStamina[battler];
     gBattleStruct->staminaExhausted[battler] = FALSE;
 }

@@ -3,6 +3,12 @@
 
 #include "config/stamina.h"
 
+struct Pokemon;
+
+// Pure maximum-stamina calculation shared by battle and summary screens.
+// Does not read gBattleStruct or initialize a battler's battle state.
+u32 Stamina_CalcMaxForMon(struct Pokemon *mon);
+
 // Stamina actual y máxima del combatiente (se inicializa sola al entrar al campo).
 u32 Stamina_GetCurrent(enum BattlerId battler);
 u32 Stamina_GetMax(enum BattlerId battler);

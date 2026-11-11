@@ -172,9 +172,9 @@ struct PokemonSubstruct1
     enum Move move2:11; // 2047 moves.
     u16 evolutionTracker2:5;
     enum Move move3:11; // 2047 moves.
-    u16 gear:5; // enum Gear (0 = ninguno), repurposed padding.
+    u16 gear:5; // Low bits of Gear ID (0-31); do not change physical offset.
     enum Move move4:11; // 2047 moves.
-    u16 unused_06:3;
+    u16 gearHigh:3; // Upper bits of Gear ID (32-255), formerly unused padding.
     u16 hyperTrainedHP:1;
     u16 hyperTrainedAttack:1;
     u8 pp1:7; // 127 PP.

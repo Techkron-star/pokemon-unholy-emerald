@@ -15,7 +15,7 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 | **Tabla de Gears (aquí se crean)** | `src/data/gears.h` |
 | Icono en la caja de vida | `src/battle_interface.c` (`CreateGearIconSprite`) |
 
-**Guardado.** El Gear equipado ocupa 5 bits antes sin usar de la subestructura de movimientos del Pokémon (`PokemonSubstruct1.gear`), accesible con `MON_DATA_GEAR`. No cambia el tamaño de la estructura ni el formato del guardado; las partidas existentes lo leen como `GEAR_NONE`. Límite: **31 Gears** (`GEAR_MAX_COUNT` = 32 con el vacío).
+**Guardado.** El Gear equipado ocupa 8 bits de la subestructura de movimientos: los 5 bits originales (`PokemonSubstruct1.gear`) y 3 bits de relleno reutilizados (`PokemonSubstruct1.gearHigh`), accesibles con `MON_DATA_GEAR`. No cambia el tamaño de `BoxPokemon` ni desplaza los movimientos, IV o EV. Los IDs anteriores (0-31) conservan sus bits bajos. Capacidad técnica: **255 Gears** más el valor vacío (`GEAR_MAX_COUNT` = 256); esto no significa que ya existan 255 Gears jugables.
 
 **Ciclo en combate.** El estado vive en `gBattleStruct` y se reinicia al comenzar cada combate. Los estados de recarga se recuerdan al retirar y regresar al Pokémon en el **mismo puesto de combate**, para evitar reinicios gratuitos. La migración entre puestos en combates dobles y los cambios por transformaciones aún necesitan pruebas específicas.
 
@@ -108,7 +108,7 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 ## Límites de la GBA
 
 - Cada Pokémon con Gear en el campo usa **un hueco de paleta de sprites** (hasta 4 en dobles). Si no queda ninguno libre, ese icono no se dibuja; el Gear sigue funcionando.
-- Hasta 31 Gears por el ancho del campo guardado.
+- Hasta 255 Gears por el ancho del campo persistido (8 bits). La cantidad jugable depende del catálogo implementado.
 
 ## Lista de comprobación para cada Gear nuevo
 
@@ -152,7 +152,7 @@ Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspe
 
 ### Riesgos y pruebas antes de registrar Gears
 
-- Guardado: preservar el identificador de Gear (5 bits) al evolucionar, guardar, cargar o mover por PC; limitar la lista a 31 Gears distintos del valor vacío.
+- Guardado: preservar el identificador de Gear (8 bits) al evolucionar, guardar, cargar o mover por PC; permitir IDs de hasta 255 sin alterar el tamaño de `BoxPokemon`. La compatibilidad con saves anteriores debe verificarse sobre copias.
 - **Anti-abuso de cambios:** fase y temporizador sobreviven al retirar y reintroducir al Pokémon durante **el mismo combate**; finaliza toda persistencia del ciclo al iniciar otro combate. La primera corrección de motor indexa por ranura de Pokémon y puesto de combate; validar cambios cruzados entre puestos en dobles antes de producción.
 - Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
 - Permafrost: los movimientos multigolpe o en área deben tirar los estados por cada instancia **solo si el motor normalmente lo permite**. La curación es exactamente **una vez por turno al final**, al estilo Restos, sin depender de golpes. Si se equipa Restos, ambos +1/16 coincidentes se promedian (no se suman).

@@ -2216,8 +2216,11 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             break;
         }
         case MON_DATA_GEAR:
-            retVal = GetSubstruct1(boxMon)->gear;
+        {
+            struct PokemonSubstruct1 *moves = GetSubstruct1(boxMon);
+            retVal = moves->gear | (moves->gearHigh << 5);
             break;
+        }
         case MON_DATA_EXP:
             retVal = GetSubstruct0(boxMon)->experience;
             break;
@@ -2743,8 +2746,13 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             break;
         }
         case MON_DATA_GEAR:
-            SET8(GetSubstruct1(boxMon)->gear);
+        {
+            struct PokemonSubstruct1 *moves = GetSubstruct1(boxMon);
+            // Preserve move4, hyper-training bits and every existing byte.
+            moves->gear = data[0] & 0x1F;
+            moves->gearHigh = data[0] >> 5;
             break;
+        }
         case MON_DATA_EXP:
             SET32(GetSubstruct0(boxMon)->experience);
             break;
