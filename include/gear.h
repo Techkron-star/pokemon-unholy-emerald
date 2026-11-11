@@ -2,6 +2,7 @@
 #define GUARD_GEAR_H
 
 #include "constants/gears.h"
+#include "constants/items.h"
 #include "config/gears.h"
 #include "fpmath.h"
 
@@ -50,6 +51,19 @@ extern const struct GearInfo gGearsInfo[GEAR_COUNT];
 struct Pokemon;
 enum Gear Gear_GetEquipped(struct Pokemon *mon);
 void Gear_SetEquipped(struct Pokemon *mon, enum Gear gear); // GEAR_NONE = quitar
+
+// Crafted Gear items belong to a separate Pokémon slot, never MON_DATA_HELD_ITEM.
+enum GearEquipResult
+{
+    GEAR_EQUIP_OK,
+    GEAR_EQUIP_ALREADY,
+    GEAR_EQUIP_NOT_GEAR,
+    GEAR_EQUIP_NOT_OWNED,
+    GEAR_EQUIP_BAG_FULL,
+};
+enum Gear Gear_FromItem(enum Item item);
+enum Item Gear_ToItem(enum Gear gear);
+enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item);
 
 // --- Combate ---
 // Gear del combatiente y fase actual del ciclo (se inicializa solo al entrar al campo).
