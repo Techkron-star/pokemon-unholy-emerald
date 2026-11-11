@@ -34,6 +34,7 @@
 #include "horizon_market.h"
 #include "mutation_tiers.h"
 #include "horizon_eggs.h"
+#include "horizon_goods.h"
 #include "pokemon_icon.h"
 #include "sound.h"
 #include "sprite.h"
@@ -238,8 +239,8 @@ static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
-static const u8 sHorizonDescDiscs[] = _("Buy TMs.\nFixed test stock.\nA: BUY");
-static const u8 sHorizonDescItems[] = _("Basic supplies.\nFixed test stock.\nA: BUY");
+static const u8 sHorizonDescDiscs[] = _("Rotating TMs.\nBy badge and time.\nA: BUY");
+static const u8 sHorizonDescItems[] = _("Basic supplies +\nrotating specials.\nA: BUY");
 static const u8 sHorizonDescEggs[] = _("Five egg grades.\nRare quality RNG.\nA: OPEN EGGS");
 static const u8 sHorizonDescMoves[] = _("Existing Move\nManager.\nA: OPEN");
 static const u8 *const sHorizonDescriptions[] =
@@ -494,25 +495,6 @@ static const u8 sShopBuyMenuTextColors[][3] =
 };
 
 static const enum Item sShopItemsListDummy[] = { ITEM_NONE };
-
-// Fixed TM stock until rotating offers can persist across visits.
-static const u16 sHorizonDiscItems[] =
-{
-    ITEM_TM01, ITEM_TM05, ITEM_TM10, ITEM_TM17, ITEM_TM32, ITEM_NONE,
-};
-
-static const u16 sHorizonShopItems[] =
-{
-    ITEM_POKE_BALL,
-    ITEM_POTION,
-    ITEM_SUPER_POTION,
-    ITEM_REPEL,
-    ITEM_SUPER_REPEL,
-    ITEM_ESCAPE_ROPE,
-    ITEM_ABILITY_CAPSULE,
-    ITEM_ABILITY_PATCH,
-    ITEM_NONE,
-};
 
 static u8 CreateShopMenu(u8 martType)
 {
@@ -1097,13 +1079,13 @@ static void Task_HorizonEggs(u8 taskId)
 
 static void Task_HorizonDiscs(u8 taskId)
 {
-    SetShopItemsForSale(sHorizonDiscItems);
+    SetShopItemsForSale(HorizonGoodsGetDiscs());
     Task_HandleShopMenuBuy(taskId);
 }
 
 static void Task_HorizonItems(u8 taskId)
 {
-    SetShopItemsForSale(sHorizonShopItems);
+    SetShopItemsForSale(HorizonGoodsGetItems());
     Task_HandleShopMenuBuy(taskId);
 }
 
@@ -2068,7 +2050,7 @@ void CreateHorizonShopMenu(void)
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
     CreateShopMenu(MART_TYPE_NORMAL);
-    SetShopItemsForSale(sHorizonShopItems);
+    SetShopItemsForSale(HorizonGoodsGetItems());
     ClearItemPurchases();
     // Horizon returns through CB2_ReturnToFieldWithOpenMenu on B, not by
     // setting a field callback that never runs on this in-field close path.

@@ -2,6 +2,7 @@
 #include "horizon_market.h"
 #include "mutation_tiers.h"
 #include "horizon_eggs.h"
+#include "horizon_goods.h"
 #include "config/special_badges.h"
 #include "event_data.h"
 #include "money.h"
@@ -185,7 +186,12 @@ void HorizonMarketRefresh(void)
 
         // Never allow a backwards clock adjustment to farm mutation rolls.
         if (day < lastDay || (day == lastDay && period <= lastPeriod))
+        {
+            // First visit with an older save: initialize goods once without
+            // replacing existing Pokémon or purchased eggs.
+            HorizonGoodsEnsureSeeds();
             return;
+        }
     }
 
     u16 mutationWords[2] = {0, 0};
@@ -217,6 +223,7 @@ void HorizonMarketRefresh(void)
     VarSet(VAR_HORIZON_MARKET_MUTATIONS_1, mutationWords[1]);
     VarSet(VAR_HORIZON_MARKET_STATUS, 0);
     HorizonEggsRollStock();
+    HorizonGoodsRollSeeds();
     VarSet(VAR_HORIZON_MARKET_DAY, day);
     VarSet(VAR_HORIZON_MARKET_PERIOD, period);
     VarSet(VAR_HORIZON_MARKET_BADGES, badges);

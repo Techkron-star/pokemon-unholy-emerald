@@ -293,6 +293,8 @@
 #define VAR_HORIZON_MARKET_SPECIES_5                   VAR_UNUSED_0x40E5
 #define VAR_HORIZON_MARKET_MUTATIONS_1                 VAR_UNUSED_0x40A1
 #define VAR_HORIZON_EGG_QUALITIES                      VAR_UNUSED_0x40A8 // five 2-bit grades + five sold flags
+#define VAR_HORIZON_GOODS_SEED_A                       VAR_UNUSED_0x40B8 // rotated item/TM stock, low seed
+#define VAR_HORIZON_GOODS_SEED_B                       VAR_UNUSED_0x40BB // rotated item/TM stock, high seed
 
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)

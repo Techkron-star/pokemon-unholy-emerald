@@ -54,7 +54,11 @@ Fuente: Nebulous `themes.ts`: «Marfil cálido, nácar estriado y reflejos de co
 
 Nueva entrada visible en Opciones: `UI THEME: ECLIPSE / DAYLIGHT`. Guardar una selección válida en variable persistente de partida o campo seguro en save (definir después de auditar mapa de variables y tamaño real de SaveBlock). No reutilizar flags temporales. Aplicar al volver a abrir menús, preferiblemente sin reiniciar la ROM. El tema no sigue el reloj: la rotación día/noche del catálogo es **independiente**. El sistema tiene fallback funcional con paleta estándar si falla la carga del tema.
 
-## Corrección de navegación horizontal y cierre (10/11/2026)
+## Catálogos rotativos de objetos y discos (10/11/2026)
+
+Se sustituye el stock de prueba fijo por ofertas persistentes: **ocho objetos (tres básicos y cinco aleatorios)** y **seis MT distintas**. Se filtran por progreso y hora del juego; dos variables de semilla de 16 bits permiten regenerar la misma selección sin llamar al RNG del juego cada vez que se abre la tienda. El catálogo cambia solo cuando rota Horizon por día, período o nueva medalla. No modifica compras ni huevos de otras pestañas; los precios son los normales del catálogo base.
+
+
 
 El PR apilado `fix/unholy-horizon-horizontal-tabs-safe-exit-20261110` convierte las cinco tiendas de Horizon en una **barra horizontal** (PKMN / DISCS / ITEMS / EGGS / MOVES), no una lista vertical. Las flechas izquierda/derecha y L/R cambian de pestaña; A abre; B vuelve al START. Los seis Pokémon y los cinco huevos mantienen sus listas verticales internas y la compra doble A.
 

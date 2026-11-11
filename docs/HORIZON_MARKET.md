@@ -10,6 +10,18 @@ No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las proba
 
 **Validación pendiente:** compilación, retorno desde DISCS/ITEMS/MOVES, ciclos repetidos de apertura y cierre y prueba visual a 240×160 en Eclipse/Daylight.
 
+## Discos y Objetos: rotación persistente de stock (PR apilado)
+
+El catálogo `DISCS` ofrece **seis MT distintas** de una lista elegible por medallas y ciclo día/noche; `ITEMS` incluye **tres suministros permanentes** (Poké Ball, Poción y Cuerda Huida) y **cinco artículos rotativos** (Poké Balls especiales, curación, repelentes, artículos de combate o especiales). Entre los objetos más avanzados se incluyen Caramelo Raro y PP Up, bloqueados hasta más medallas. **Infinity Ball y Gears no se venden** por este sistema: mantienen sus propias reglas.
+
+La tienda de objetos y discos **no vuelve a tirar RNG al abrir/cerrar ni al pasar de pestaña**. La selección se genera de manera determinista a partir de dos mitades de una semilla guardadas en `VAR_HORIZON_GOODS_SEED_A` (`0x40B8`) y `VAR_HORIZON_GOODS_SEED_B` (`0x40BB`). Esas dos variables se actualizan al **rotar realmente** el mercado general (día, período o nueva medalla). En partidas anteriores cuyos Pokémon/huevos ya tienen stock válido, se inicializan las semillas sin volver a sortear sus ofertas.
+
+Se preserva la compra normal del PokéMart: **puedes comprar varias unidades** de un artículo o una MT mientras permanezca en stock; aquí no existen flags de agotado por artículo. Los precios y restricciones particulares siguen sujetos a balance. Las seis MT cambian independientemente de los ocho objetos, pero ambas tiendas utilizan el mismo período persistido. Todas las listas terminan con `ITEM_NONE`, omiten duplicados y no ofrecen artículos que incumplen sus requisitos.
+
+Código: `src/horizon_goods.c` y `include/horizon_goods.h`; pruebas de determinismo, cantidad y filtros en `test/horizon_goods.c`. No se ampliaron los SaveBlocks.
+
+**QA de esta entrega:** entrar/salir repetidamente; abrir ambas tiendas antes y después del cambio de día/noche; comprobar desbloqueos por medallas, compras múltiples, estabilidad del stock tras guardar/cargar, regreso correcto al menú horizontal y ausencia de ítems repetidos. Comprobar en emulator con las paletas Eclipse y Daylight antes de fusionar.
+
 ## Catálogo Pokémon
 
 - **Seis ofertas simultáneas e independientes** por período de mercado, una unidad por plaza. Se guardan especie, mutación, estado vendido y aviso leído, sin aumentar `SaveBlock1`.
