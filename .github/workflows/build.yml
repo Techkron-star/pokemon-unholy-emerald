@@ -7,6 +7,11 @@ on:
       - upcoming
   pull_request:
 
+# Avoid parallel obsolete PR builds while retaining a distinct gate per PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   GAME_REVISION: 0
   GAME_LANGUAGE: ENGLISH
@@ -17,7 +22,7 @@ env:
 jobs:
   build-emerald:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,7 +59,7 @@ jobs:
 
   build-firered:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,7 +94,7 @@ jobs:
 
   build-leafgreen:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,7 +129,7 @@ jobs:
 
   release:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -161,7 +166,7 @@ jobs:
 
   test:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -203,7 +208,7 @@ jobs:
   # Passes only when all parallel build/test jobs succeed.
   build:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-emerald, build-firered, build-leafgreen, release, test]
     steps:
       - name: All builds passed
@@ -211,7 +216,7 @@ jobs:
 
   docs_validate:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -221,7 +226,7 @@ jobs:
 
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: []
     steps:
       - name: Automatically pass for allcontributors
