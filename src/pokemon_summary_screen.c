@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle_stamina.h"
+#include "gear.h"
 #include "main.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -172,7 +173,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
-    bool8 showStamina;
+    u8 skillDetailsPage; // 0 Stamina, 1 Gear, 2 Mutations, 3 EV total
     u8 mutationPage; // 0: ability, 1-3: mutation groups of three.
     bool8 isBoxMon;
     u8 curMonIndex;
@@ -1744,7 +1745,7 @@ static void Task_HandleInput(u8 taskId)
         {
             if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
             {
-                sMonSummaryScreen->showStamina = !sMonSummaryScreen->showStamina;
+                sMonSummaryScreen->skillDetailsPage = (sMonSummaryScreen->skillDetailsPage + 1) % 4;
                 PrintStaminaSummary();
                 PlaySE(SE_SELECT);
             }
@@ -3853,34 +3854,75 @@ static void Task_PrintSkillsPage(u8 taskId)
 }
 
 // Current stamina lives in battle memory only. The summary displays capacity.
+// Compact contextual details on the Stats/IV/EV page. The full mutation
+// list remains on the Info page (L/R there), while A cycles Stats/IV/EV.
+// This window is intentionally the existing 11x2-tile prompt window.
 static void PrintStaminaSummary(void)
 {
-    static const u8 sStaminaHint[] = _("L/R STAMINA");
     static const u8 sStaminaLabel[] = _("STA MAX ");
-    u8 text[32];
-    u32 maxStamina;
+    static const u8 sMutationLabel[] = _("MUT: ");
+    static const u8 sEvTotalLabel[] = _("EV TOTAL ");
+    u8 text[40];
     u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
+    struct Pokemon *mon = &sMonSummaryScreen->currentMon;
 
     if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
         return;
 
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    if (sMonSummaryScreen->showStamina)
-    {
-        struct Pokemon *mon = &sMonSummaryScreen->currentMon;
 
-        // Always match battle logic, including Omega/Hyper/Overloaded bonuses.
-        maxStamina = Stamina_CalcMaxForMon(mon);
-        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
+    switch (sMonSummaryScreen->skillDetailsPage)
+    {
+    case 1: // Equipped Gear, independently of held item.
+    {
+        u32 gear = GetMonData(mon, MON_DATA_GEAR);
+        const u8 *name = gText_None;
+
+        if (gear > GEAR_NONE && gear < GEAR_COUNT && gGearsInfo[gear].name != NULL)
+            name = gGearsInfo[gear].name;
+
+        // Fit long names rather than spill into the nearby HP/level panel.
+        PrintTextOnWindowToFit(windowId, name, 0, 4, 0, 0);
+        break;
+    }
+    case 2:
+    {
+        u16 mutations = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+        u32 count = 0;
+        for (u32 bit = 0; bit < 9; bit++)
+        {
+            if (mutations & (1 << bit))
+                count++;
+        }
+        ConvertIntToDecimalStringN(gStringVar1, count, STR_CONV_MODE_LEFT_ALIGN, 2);
+        StringCopy(text, sMutationLabel);
+        StringAppend(text, gStringVar1);
+        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+        break;
+    }
+    case 3:
+    {
+        u32 totalEv = 0;
+        for (u32 i = 0; i < NUM_STATS; i++)
+            totalEv += GetMonData(mon, MON_DATA_HP_EV + i);
+        ConvertIntToDecimalStringN(gStringVar1, totalEv, STR_CONV_MODE_LEFT_ALIGN, 4);
+        StringCopy(text, sEvTotalLabel);
+        StringAppend(text, gStringVar1);
+        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+        break;
+    }
+    case 0:
+    default:
+    {
+        u32 maxStamina = Stamina_CalcMaxForMon(mon);
+        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 4);
         StringCopy(text, sStaminaLabel);
         StringAppend(text, gStringVar1);
+        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
+        break;
     }
-    else
-    {
-        StringCopy(text, sStaminaHint);
     }
 
-    PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
 }
@@ -4862,6 +4904,9 @@ static inline bool32 ShouldShowRename(void)
 
 static inline bool32 ShouldShowIvEvPrompt(void)
 {
+    if (sMonSummaryScreen->summary.isEgg)
+        return FALSE;
+
     if (P_SUMMARY_SCREEN_IV_EV_BOX_ONLY)
     {
         return (P_SUMMARY_SCREEN_IV_EV_INFO || FlagGet(P_FLAG_SUMMARY_SCREEN_IV_EV_INFO))
