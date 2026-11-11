@@ -1019,6 +1019,10 @@ static void _GiveEggFromDaycare(struct DayCare *daycare)
     BuildEggMoveset(&egg, &daycare->mons[parentSlots[1]].mon, &daycare->mons[parentSlots[0]].mon);
     InheritAbility(&egg, daycare);
 
+    // Roll once when receiving this specific egg, after inheritance and
+    // before hatching. The hatched Pokémon keeps the stored mutation bits.
+    Pokemon_AssignSpecialOriginBadges(&egg);
+
     isEgg = TRUE;
     SetMonData(&egg, MON_DATA_IS_EGG, &isEgg);
     gParties[B_TRAINER_PLAYER][PARTY_SIZE - 1] = egg;

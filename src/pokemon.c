@@ -38,6 +38,7 @@
 #include "pokedex.h"
 #include "pokeblock.h"
 #include "pokemon.h"
+#include "mutation_tiers.h"
 #include "pokemon_animation.h"
 #include "pokemon_icon.h"
 #include "pokemon_summary_screen.h"
@@ -3607,19 +3608,37 @@ static u8 CountMutationBits(u16 mask)
     return count;
 }
 
-void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
+static void Pokemon_AssignBadgesWithOriginBoost(struct Pokemon *mon, bool32 trainerEncounter, u8 lowTierBoostPercent)
 {
     u16 candidates = 0;
     u16 accepted = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
     u8 i;
 
     // Trainer teams are rolled by the deterministic generator in trainer_util.c.
-    // This function is used for wild and scripted encounters.
+    // Wild encounters keep the original 1/N chances. Special player-acquired
+    // Pokémon use independent 1.15/N rolls ONLY for tiers C and B.
     for (i = 0; i < ARRAY_COUNT(sMutationBadges); i++)
     {
+        bool32 rollSucceeded;
+        enum MutationTier tier;
+
         if (trainerEncounter && sMutationBadges[i] == POKEMON_BADGE_OMEGA)
             continue;
-        if (Random32() % sMutationDenominators[i] == 0)
+
+        tier = MutationTierFromBadge(sMutationBadges[i]);
+        if (lowTierBoostPercent > 0 && (tier == MUTATION_TIER_C || tier == MUTATION_TIER_B))
+        {
+            // Exact relative boost, with integer arithmetic (no floats).
+            // E.g. Alpha: 115/10000 = 1.15%, NOT 16%.
+            rollSucceeded = Random32() % (sMutationDenominators[i] * 100u)
+                          < 100u + lowTierBoostPercent;
+        }
+        else
+        {
+            rollSucceeded = Random32() % sMutationDenominators[i] == 0;
+        }
+
+        if (rollSucceeded)
             candidates |= sMutationBadges[i];
     }
 
@@ -3654,6 +3673,21 @@ void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
         SetMonData(mon, MON_DATA_SPECIAL_BADGES, &accepted);
         CalculateMonStats(mon);
     }
+}
+
+// Ordinary wild and scripted encounters are unchanged.
+void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
+{
+    Pokemon_AssignBadgesWithOriginBoost(mon, trainerEncounter, 0);
+}
+
+// One roll at acquisition, not again upon hatching/evolution/trading.
+// Never overwrite handcrafted/previously assigned event or Horizon badges.
+void Pokemon_AssignSpecialOriginBadges(struct Pokemon *mon)
+{
+    if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) != 0)
+        return;
+    Pokemon_AssignBadgesWithOriginBoost(mon, FALSE, SPECIAL_BADGE_SPECIAL_ORIGIN_LOW_TIER_BOOST_PERCENT);
 }
 
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex)

@@ -17,6 +17,11 @@
 #define SPECIAL_BADGE_THIRD_GATE  40
 #define SPECIAL_BADGE_FOURTH_GATE 100
 
+// Player-only special acquisition (starter, daycare, scripted gift, NPC trade):
+// +15% RELATIVE success chance for tiers C/B.  Never +15 percentage points.
+// Tier A, S, and Omega retain their ordinary rates.
+#define SPECIAL_BADGE_SPECIAL_ORIGIN_LOW_TIER_BOOST_PERCENT 15
+
 // A paid Mutator Omega roll (10/65536) is proposed but not active.
 #define SPECIAL_BADGE_MUTATOR_OMEGA_ROLLS 10
 

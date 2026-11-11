@@ -18,6 +18,20 @@ El **tier describe nivel de poder/acceso**, no la rareza numérica del RNG. Por 
 
 **Regla de huevos:** la ruleta utiliza las nueve mutaciones y puede generar premios S u Ω incluso desde un huevo Básico, con probabilidades bajas; el *rango* del huevo (Básico/Medio/Alto/Mítico/Legendario) y su *calidad visual* (Estándar/Radiante/Prismática) son conceptos **distintos del tier de mutación**. Calidad superior mejora odds pero nunca garantiza un tier determinado.
 
+## Mutaciones en adquisiciones especiales
+
+Las mutaciones se sortean **una sola vez** cuando el jugador obtiene:
+- Iniciales entregados mediante scripts, incluidos los de Birch.
+- Huevos de guardería, **al recibir el huevo**, antes de que eclosione.
+- Regalos de Pokémon entregados por scripts (`ScriptGiveMon` / `ScriptGiveMonParameterized`).
+- Intercambios con NPC (`CreateInGameTradePokemonInternal`).
+
+Se pueden obtener las **nueve mutaciones** naturalmente; nada de esto garantiza mutación. Los tiers C (Alpha/Hyper) y B (Super/Overloaded) tienen **+15 % de probabilidad relativa**, no +15 puntos porcentuales: Alpha pasa de 1 % a 1,15 %, Hyper de 0,4 % a 0,46 %. Los tiers A, S y Ω mantienen sus denominadores originales y sus compuertas de mutaciones múltiples.
+
+El bonus no cambia los salvajes, equipos de entrenador, lotería de huevos Horizon ni intercambios entre jugadores. El Pokémon conserva las mutaciones fijadas manualmente (por ejemplo, en un evento especial o en Horizon), y **no vuelve a recibir una tirada** al evolucionar, al eclosionar, al guardarse o al intercambiarse de nuevo.
+
+QA adicional: elegir tres iniciales en partidas nuevas separadas, generar varios huevos de guardería y eclosionarlos, recibir regalos y hacer intercambios con NPC; verificar que la probabilidad no se aplica dos veces, que existen mutaciones S/Ω posibles pero excepcionalmente raras y que las insignias persisten tras guardar/cargar.
+
 ## Mutaciones múltiples
 
 - Se conservan los badges individuales y sus **bonificaciones porcentuales se suman, nunca se multiplican entre sí**.
