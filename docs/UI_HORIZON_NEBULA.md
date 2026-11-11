@@ -54,6 +54,14 @@ Fuente: Nebulous `themes.ts`: «Marfil cálido, nácar estriado y reflejos de co
 
 Nueva entrada visible en Opciones: `UI THEME: ECLIPSE / DAYLIGHT`. Guardar una selección válida en variable persistente de partida o campo seguro en save (definir después de auditar mapa de variables y tamaño real de SaveBlock). No reutilizar flags temporales. Aplicar al volver a abrir menús, preferiblemente sin reiniciar la ROM. El tema no sigue el reloj: la rotación día/noche del catálogo es **independiente**. El sistema tiene fallback funcional con paleta estándar si falla la carga del tema.
 
+## Corrección de navegación horizontal y cierre (10/11/2026)
+
+El PR apilado `fix/unholy-horizon-horizontal-tabs-safe-exit-20261110` convierte las cinco tiendas de Horizon en una **barra horizontal** (PKMN / DISCS / ITEMS / EGGS / MOVES), no una lista vertical. Las flechas izquierda/derecha y L/R cambian de pestaña; A abre; B vuelve al START. Los seis Pokémon y los cinco huevos mantienen sus listas verticales internas y la compra doble A.
+
+La raíz usa una ventana horizontal BG0 de 27×3 tiles desde (2,1), y el panel detallado otra de 27×14 desde (2,5). El cursor se dibuja de forma propia y **no utiliza** el procesador de menú vertical del PokéMart. El cierre de Horizon destruye su ventana, el icono de huevo y su paleta temporal, y usa `CB2_ReturnToFieldWithOpenMenu` para reconstruir correctamente el campo y START. Los PokéMart convencionales conservan su ruta original.
+
+**QA bloqueante:** abrir/cerrar Horizon diez veces desde START, entrar/salir de Pokémon y huevos con B, comprar en DISC/ITEMS y volver, cambiar de pestaña con ambos esquemas de controles, y confirmar que la tienda no deja la UI congelada ni paletas erróneas en Eclipse/Daylight. El PR está en borrador; la corrección requiere comprobarse en emulador.
+
 ## 2. Horizon Shop — pantalla raíz y pestañas
 
 Cinco pestañas siempre navegables:
