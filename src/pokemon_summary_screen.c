@@ -1,5 +1,5 @@
 #include "global.h"
-#include "config/stamina.h"
+#include "battle_stamina.h"
 #include "main.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -167,13 +167,13 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
-        u8 specialBadges;
+        u16 specialBadges; // All nine mutation bits, not just the lower eight.
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
     bool8 showStamina;
-    bool8 showMutations;
+    u8 mutationPage; // 0: ability, 1-3: mutation groups of three.
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -1751,7 +1751,7 @@ static void Task_HandleInput(u8 taskId)
             else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
             {
                 u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
-                sMonSummaryScreen->showMutations = !sMonSummaryScreen->showMutations;
+                sMonSummaryScreen->mutationPage = (sMonSummaryScreen->mutationPage + 1) % 4;
                 FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
                 PrintMonAbilityName();
                 PrintMonAbilityDescription();
@@ -3536,12 +3536,18 @@ static const u8 sUnholyMutationEnraged[] = _("ENRAGED");
 static const u8 sUnholyMutationOmega[] = _("OMEGA");
 static const u8 sUnholyMutationSep[] = _(" / ");
 static const u8 sUnholyMutationNewline[] = _("\n");
-static const u8 sUnholyMutationTitle[] = _("MUTATIONS (L/R)");
+static const u8 sUnholyMutationTitles[3][20] = {
+    _("MUTATIONS 1/3"),
+    _("MUTATIONS 2/3"),
+    _("MUTATIONS 3/3"),
+};
 
 static void PrintMonAbilityName(void)
 {
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    const u8 *title = sMonSummaryScreen->showMutations ? sUnholyMutationTitle : gAbilitiesInfo[ability].name;
+    const u8 *title = sMonSummaryScreen->mutationPage
+                    ? sUnholyMutationTitles[sMonSummaryScreen->mutationPage - 1]
+                    : gAbilitiesInfo[ability].name;
 
     PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), title, 0, 1, 0, 1);
 }
@@ -3551,24 +3557,36 @@ static void PrintMonAbilityDescription(void)
     enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
     u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
 
-    if (!sMonSummaryScreen->showMutations)
+    if (sMonSummaryScreen->mutationPage == 0)
     {
         PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
     }
     else
     {
+        // All nine mutation types must be visible.  Show three per page
+        // instead of clipping a long list inside the four-tile ability window.
+        static const u8 sUnholyMutationHyper[] = _("HYPER");
+        static const u8 sUnholyMutationOverloaded[] = _("OVERLOADED");
+        static const u8 sUnholyMutationTitan[] = _("TITAN");
+        static const u8 sUnholyMutationAncestral[] = _("ANCESTRAL");
+        static const u8 sUnholyMutationAscended[] = _("ASCENDED");
         const u8 *const names[] = {
-            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged, sUnholyMutationOmega
+            sUnholyMutationAlpha, sUnholyMutationSuper, sUnholyMutationEnraged,
+            sUnholyMutationOmega, sUnholyMutationHyper, sUnholyMutationOverloaded,
+            sUnholyMutationTitan, sUnholyMutationAncestral, sUnholyMutationAscended
         };
-        const u8 masks[] = {
-            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_OMEGA
+        const u16 masks[] = {
+            POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+            POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+            POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
         };
         u8 mutationText[80];
         u8 count = 0;
         u8 i;
+        u8 start = (sMonSummaryScreen->mutationPage - 1) * 3;
 
         mutationText[0] = EOS;
-        for (i = 0; i < ARRAY_COUNT(names); i++)
+        for (i = start; i < start + 3; i++)
         {
             if (!(sMonSummaryScreen->summary.specialBadges & masks[i]))
                 continue;
@@ -3851,10 +3869,8 @@ static void PrintStaminaSummary(void)
     {
         struct Pokemon *mon = &sMonSummaryScreen->currentMon;
 
-        maxStamina = STAMINA_MAX_BASE
-                   + GetMonData(mon, MON_DATA_LEVEL) / STAMINA_MAX_LEVEL_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_EV) / STAMINA_MAX_EV_DIVISOR
-                   + GetMonData(mon, MON_DATA_HP_IV) / STAMINA_MAX_IV_DIVISOR;
+        // Always match battle logic, including Omega/Hyper/Overloaded bonuses.
+        maxStamina = Stamina_CalcMaxForMon(mon);
         ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 3);
         StringCopy(text, sStaminaLabel);
         StringAppend(text, gStringVar1);
