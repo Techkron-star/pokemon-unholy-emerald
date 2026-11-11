@@ -1,3 +1,4 @@
+successfully downloaded text file (SHA: 801dfe07ed7a08c08847554a11686baa004cb5be)
 #include "global.h"
 #include "main.h"
 #include "battle.h"
@@ -166,6 +167,10 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
+        // --- Unholy Emerald: Stamina y mutación visibles en resumen ---
+        u16 staminaMax;        // Stamina máxima
+        u32 mutationMask;      // Máscara de mutaciones activas
+        u8  mutationTier;      // Tier de mutación (C/B/A/S/Ω)
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
