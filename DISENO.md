@@ -185,7 +185,7 @@ Horizon Shop reutiliza el menú del PokéMart para objetos y discos. La rama `fe
 | Sección | Contenido / servicio |
 | --- | --- |
 | **Pokémon** | Seis ofertas simultáneas, una tirada RNG y compra por plaza. Hasta Ancestral; nunca Titan, Ascendido ni Omega. |
-| **Objetos** | Inventario aleatorio de objetos normales y especiales. |
+| **Objetos** | Tres suministros permanentes y cinco ofertas rotativas según medallas y día/noche, con stock guardado por semilla, sin reroll por abrir/cerrar. |
 | **Discos** | Venta de discos de movimientos; selección aleatoria dentro del catálogo habilitado. |
 | **Huevos** | Cinco huevos visibles (Básico, Medio, Alto, Mítico, Legendario); cada uno tira su propia calidad visual Estándar/Radiante/Prismática. Tras comprar se sortea una especie oculta y hasta tres mutaciones; incluso legendario Omega. |
 | **Movimientos** | Servicio para **aprender y borrar movimientos** de tus Pokémon desde el mismo menú. |
