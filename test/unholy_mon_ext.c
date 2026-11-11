@@ -64,3 +64,49 @@ TEST("Unholy per-mon extension accepts sorted stats and mutations")
     record.header.uidHigh = 0;
     EXPECT_EQ(UnholyMonExt_Validate(&record, sizeof(record)), FALSE);
 }
+
+
+TEST("Unholy per-mon extension supports bounded stat and mutation edits")
+{
+    u8 bytes[1 + sizeof(struct UnholyMonExtHeader) + 2 * sizeof(struct UnholyMonExtEntry)];
+    u8 snapshot[sizeof(bytes)];
+    u8 *record = &bytes[1]; // A byte-unaligned record, as in a packed save page.
+    const u32 capacity = sizeof(bytes) - 1;
+    s32 value = 0;
+
+    memset(bytes, 0xCC, sizeof(bytes));
+    EXPECT_EQ(UnholyMonExt_Init(record, capacity, 0xDEADBEEF, 0xCAFE1234, 60, 2), TRUE);
+    EXPECT_EQ(UnholyMonExt_Validate(record, capacity), TRUE);
+
+    // Insert out of order; writer must keep keys sorted for binary lookup.
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, UNHOLY_EXT_MUTATION, 55, 1), TRUE);
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, UNHOLY_EXT_STAT,
+                                     UNHOLY_STAT_STAMINA_MAX_BONUS, 250), TRUE);
+    EXPECT_EQ(UnholyMonExt_Validate(record, capacity), TRUE);
+    EXPECT_EQ(UnholyMonExt_TryGetValue(record, capacity, UNHOLY_EXT_MUTATION, 55, &value), TRUE);
+    EXPECT_EQ(value, 1);
+
+    // Updating an existing key consumes no additional capacity.
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, UNHOLY_EXT_STAT,
+                                     UNHOLY_STAT_STAMINA_MAX_BONUS, 999), TRUE);
+    EXPECT_EQ(UnholyMonExt_TryGetValue(record, capacity, UNHOLY_EXT_STAT,
+                                      UNHOLY_STAT_STAMINA_MAX_BONUS, &value), TRUE);
+    EXPECT_EQ(value, 999);
+
+    // Capacity exhaustion must leave the complete buffer byte-for-byte intact.
+    memcpy(snapshot, bytes, sizeof(bytes));
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, UNHOLY_EXT_STAT,
+                                     UNHOLY_STAT_CRITICAL_RATE_BONUS, 5), FALSE);
+    EXPECT_EQ(memcmp(snapshot, bytes, sizeof(bytes)), 0);
+
+    // Removing one entry frees exactly one slot for a new stat.
+    EXPECT_EQ(UnholyMonExt_TryRemoveValue(record, capacity, UNHOLY_EXT_MUTATION, 55), TRUE);
+    EXPECT_EQ(UnholyMonExt_TryGetValue(record, capacity, UNHOLY_EXT_MUTATION, 55, &value), FALSE);
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, UNHOLY_EXT_STAT,
+                                     UNHOLY_STAT_CRITICAL_RATE_BONUS, -12), TRUE);
+    EXPECT_EQ(UnholyMonExt_Validate(record, capacity), TRUE);
+
+    EXPECT_EQ(UnholyMonExt_TrySetValue(record, capacity, 0,
+                                     UNHOLY_STAT_STAMINA_MAX_BONUS, 1), FALSE);
+    EXPECT_EQ(UnholyMonExt_TryRemoveValue(record, capacity, UNHOLY_EXT_MUTATION, 55), FALSE);
+}
