@@ -10,6 +10,7 @@
 - [Unholy Emerald · QA tutorial de encadenados](./qa/first-battle-chain-tutorial.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
+- [Unholy Emerald · Arquitectura de guardados extendidos](./UNHOLY_SAVE_ARCHITECTURE.md)
 - [Unholy Emerald · QA visual Eclipse/Daylight](./qa/unholy-eclipse-daylight-icons-sprint.md)
 - [FEATURES](./FEATURES.md)
 - [Installation](./INSTALL.md)
