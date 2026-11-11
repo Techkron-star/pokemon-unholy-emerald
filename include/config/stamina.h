@@ -40,8 +40,12 @@
 // Player HUD: 32x32 circular stamina gauge placed just to the lower-left
 // of the healthbox. Offsets are relative to its centre and follow healthbox
 // sliding/visibility. Keep clear of move icons and double-battle cards.
-#define STAMINA_RING_X_OFFSET          (-44)
-#define STAMINA_RING_Y_OFFSET           12
+// 16x16 ring inside the gap between nickname, HP and EXP.
+// Relative to the centre of the main 64px healthbox sprite.
+#define STAMINA_RING_PLAYER_X_OFFSET   (-13)
+#define STAMINA_RING_PLAYER_Y_OFFSET   12
+#define STAMINA_RING_OPP_X_OFFSET      (-16)
+#define STAMINA_RING_OPP_Y_OFFSET       11
 #define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H

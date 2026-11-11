@@ -10,6 +10,12 @@ No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las proba
 
 **Validación pendiente:** compilación, retorno desde DISCS/ITEMS/MOVES, ciclos repetidos de apertura y cierre y prueba visual a 240×160 en Eclipse/Daylight.
 
+## Interfaz horizontal de compra (revisión 11/11/2026)
+
+Las listas de productos de **ITEMS y DISCS** ahora usan una vista de **tres tarjetas horizontales**: oferta anterior, seleccionada y siguiente. L/R o izquierda/derecha recorren el stock circularmente; A continúa con la confirmación y cantidad del PokéMart; B regresa a Horizon en la misma pestaña. El nombre completo del objeto seleccionado se muestra debajo de las tarjetas. Se conservan la descripción, icono, precio, cantidad y límites de inventario.
+
+La navegación horizontal se activa **solo** cuando `sHorizonActive` está habilitado. Las tiendas tradicionales y su lista vertical no cambian. El cursor de la vista Horizon es transitorio: **no vuelve a sortear stock ni modifica las variables del mercado**. Se debe validar render a 240×160 y probar compras, cancelaciones, cambio de categorías, Eclipse/Daylight y retorno a START.
+
 ## Discos y Objetos: rotación persistente de stock (PR apilado)
 
 El catálogo `DISCS` ofrece **seis MT distintas** de una lista elegible por medallas y ciclo día/noche; `ITEMS` incluye **tres suministros permanentes** (Poké Ball, Poción y Cuerda Huida) y **cinco artículos rotativos** (Poké Balls especiales, curación, repelentes, artículos de combate o especiales). Entre los objetos más avanzados se incluyen Caramelo Raro y PP Up, bloqueados hasta más medallas. **Infinity Ball y Gears no se venden** por este sistema: mantienen sus propias reglas.

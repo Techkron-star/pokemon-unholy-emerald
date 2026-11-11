@@ -28,4 +28,15 @@ TEST("Unholy circular stamina meter handles empty, partial and full values")
 
     // The centre stays transparent; sprite pixels use tile-major ordering.
     EXPECT_EQ(pixels[(2 * 4 + 2) * 32], 0);
+
+    // HUD sprites use 16x16/4 tiles on both sides.  Same percentage,
+    // same empty/full semantics, and a transparent centre.
+    {
+        u8 small[STAMINA_RING_COMPACT_TILE_BYTES];
+        u8 smallFull[STAMINA_RING_COMPACT_TILE_BYTES];
+        StaminaRing_RenderCompact(small, 0, 100, FALSE);
+        StaminaRing_RenderCompact(smallFull, 100, 100, FALSE);
+        EXPECT_EQ(memcmp(small, smallFull, sizeof(small)) == 0, FALSE);
+        EXPECT_EQ(small[(1 * 2 + 1) * 32], 0);
+    }
 }

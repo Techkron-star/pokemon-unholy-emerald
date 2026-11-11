@@ -5,6 +5,7 @@
 #include "battle_anim.h"
 #include "constants/battle_anim.h"
 #include "battle_interface.h"
+#include "stamina_ring.h"
 #include "main.h"
 #include "menu.h"
 #include "dma3.h"
@@ -83,10 +84,10 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
 
 static const struct CompressedSpriteSheet sSpriteSheets_StaminaBar[MAX_BATTLERS_COUNT] =
 {
-    {gBlankGfxCompressed, 0x0200, TAG_STAMINABAR_PLAYER1_TILE},
-    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT1_TILE},
-    {gBlankGfxCompressed, 0x0200, TAG_STAMINABAR_PLAYER2_TILE},
-    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT2_TILE}
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_PLAYER1_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_OPPONENT1_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_PLAYER2_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_OPPONENT2_TILE}
 };
 
 const struct SpritePalette sSpritePalettes_HealthBoxHealthBar[2] =

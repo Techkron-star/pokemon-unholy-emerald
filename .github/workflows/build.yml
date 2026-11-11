@@ -62,7 +62,7 @@ jobs:
       - name: Subir ROM de prueba Unholy Emerald
         uses: actions/upload-artifact@v4
         with:
-          name: unholy-emerald-pr23-pizzaboy
+          name: unholy-emerald-test-rom
           path: pokeemerald.gba
           retention-days: 3
           if-no-files-found: error

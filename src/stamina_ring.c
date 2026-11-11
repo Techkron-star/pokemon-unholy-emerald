@@ -151,3 +151,55 @@ void StaminaRing_Render(u8 *tiles, u32 current, u32 max, bool32 exhausted)
 
     RenderRingBand(tiles, 0, filled, color);
 }
+
+// Sprite-local compact ring. Unlike an affine-scaled 32x32 OBJ this keeps
+// the correct on-screen bounding box and consumes only four 8x8 tiles.
+// Reuse the same 64-point angular data as the full-size renderer.
+static void SetCompactRingPixel(u8 *tiles, s32 x, s32 y, u8 color)
+{
+    u32 byteIndex;
+
+    if (x < 0 || x >= 16 || y < 0 || y >= 16)
+        return;
+
+    byteIndex = ((y >> 3) * 2 + (x >> 3)) * 32
+              + (y & 7) * 4 + ((x & 7) >> 1);
+    if (x & 1)
+        tiles[byteIndex] = (tiles[byteIndex] & 0x0F) | (color << 4);
+    else
+        tiles[byteIndex] = (tiles[byteIndex] & 0xF0) | color;
+}
+
+void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted)
+{
+    u32 filled;
+    u8 color;
+
+    if (tiles == NULL)
+        return;
+
+    memset(tiles, 0, STAMINA_RING_COMPACT_TILE_BYTES);
+    filled = StaminaRing_FilledSegments(current, max);
+    color = exhausted || max == 0 || current * 4 <= max ? RING_EXHAUSTED
+          : current * 2 <= max ? RING_WARNING : RING_READY;
+
+    // Outer dark rim, then two concentric tracks, then filled arc.
+    // The ring interior (8,8) always stays transparent.
+    for (u32 i = 0; i < STAMINA_RING_TICKS; i++)
+    {
+        const s8 *point = sRingPoint[i];
+        SetCompactRingPixel(tiles, 8 + point[8] / 2, 8 + point[9] / 2, RING_OUTLINE);
+    }
+    for (u32 i = 0; i < STAMINA_RING_TICKS; i++)
+    {
+        const s8 *point = sRingPoint[i];
+        SetCompactRingPixel(tiles, 8 + point[2] / 2, 8 + point[3] / 2, RING_EMPTY);
+        SetCompactRingPixel(tiles, 8 + point[4] / 2, 8 + point[5] / 2, RING_EMPTY);
+    }
+    for (u32 i = 0; i < filled; i++)
+    {
+        const s8 *point = sRingPoint[i];
+        SetCompactRingPixel(tiles, 8 + point[2] / 2, 8 + point[3] / 2, color);
+        SetCompactRingPixel(tiles, 8 + point[4] / 2, 8 + point[5] / 2, color);
+    }
+}
