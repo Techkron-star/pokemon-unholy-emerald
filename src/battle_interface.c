@@ -787,17 +787,31 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
 
     if (STAMINA_ENABLED)
     {
-        u8 staminaBarSpriteId = CreateSpriteAtEnd(&sStaminaBarSpriteTemplates[gBattlerPositions[battler]], 140, 60, 0);
-        struct Sprite *staminaBarSprite = &gSprites[staminaBarSpriteId];
+        u8 staminaBarSpriteId;
+        struct Sprite *staminaBarSprite;
 
-        SetSubspriteTables(staminaBarSprite, &sHealthBar_SubspriteTables[GetBattlerSide(battler)]);
-        staminaBarSprite->subspriteMode = SUBSPRITES_IGNORE_PRIORITY;
-        staminaBarSprite->oam.priority = 1;
-        staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
-        staminaBarSprite->hStam_Data6 = data6;
-        staminaBarSprite->hStam_Battler = battler;
-        staminaBarSprite->invisible = TRUE;
-        sStaminaBarOwner[battler] = 0; // fuerza a dibujar la barra desde cero
+        if (IsOnPlayerSide(battler) && IndexOfSpritePaletteTag(TAG_STAMINA_RING_PAL) == 0xFF)
+            LoadSpritePalette(&sStaminaRingPalette);
+
+        staminaBarSpriteId = CreateSpriteAtEnd(&sStaminaBarSpriteTemplates[gBattlerPositions[battler]], 140, 60, 0);
+        if (staminaBarSpriteId != MAX_SPRITES)
+        {
+            staminaBarSprite = &gSprites[staminaBarSpriteId];
+            if (!IsOnPlayerSide(battler))
+            {
+                SetSubspriteTables(staminaBarSprite, &sHealthBar_SubspriteTables[GetBattlerSide(battler)]);
+                staminaBarSprite->subspriteMode = SUBSPRITES_IGNORE_PRIORITY;
+            }
+            staminaBarSprite->oam.priority = 1;
+            staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
+            staminaBarSprite->hStam_Data6 = data6;
+            staminaBarSprite->hStam_Battler = battler;
+            staminaBarSprite->invisible = TRUE;
+            sStaminaBarOwner[battler] = 0;
+            sStaminaRingDisplayed[battler] = -1;
+            sStaminaRingLastDrawn[battler] = -1;
+            sStaminaRingWasExhausted[battler] = FALSE;
+        }
     }
 
     if (GEARS_ENABLED)
