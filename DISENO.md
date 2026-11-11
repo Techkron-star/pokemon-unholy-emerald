@@ -123,6 +123,22 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ## 4. Gears — decisiones y código (10/11/2026)
 
+### Equipamiento de NPC y jefes (confirmado por el autor, 11-11-2026)
+
+**Los entrenadores NPC también pueden utilizar, simultáneamente, un objeto equipado ordinario y un Gear en cada Pokémon**, igual que el jugador. **Los jefes** (líderes de gimnasio, rivales importantes, Alto Mando, campeones y otros encuentros de jefe) estarán especialmente diseñados con **combinaciones de objeto + Gear** como parte de su estrategia. Esto no es una bonificación exclusiva del jugador.
+
+- **Slots independientes por Pokémon:** un objeto normal y un Gear son compatibles; el Gear no sustituye ni ocupa el espacio del objeto equipado. La restricción máxima es un objeto ordinario y un Gear por Pokémon salvo un sistema adicional explícito.
+- **Reglas simétricas:** los NPC están sujetos a la misma sobrecarga, recarga, activadores, promedios de bonificaciones coincidentes, límites de efectos y consumo de recursos que el jugador; la IA no reactivará un Gear gratuitamente al cambiar.
+- **Diferenciación por dificultad:** los NPC ordinarios *pueden* tener ambos equipamientos; las combinaciones estudiadas de los jefes serán particularmente comunes e importantes. No asignar automáticamente Gears raros a todos los NPC ni inventar porcentajes de distribución todavía.
+- **Diseño de encuentros:** considerar compatibilidad con movimientos, habilidad, tipo, papel del Pokémon y estrategias de equipo (p. ej., Reaper + Mira de Francotirador, defensivo + Escudo de Aegis, limpieza de campo + Nihil Engine). La IA debe entender las ventanas de sobrecarga y los turnos de recarga al decidir ataques, pivotes y protecciones.
+- **Telegráfica y claridad:** el HUD debe distinguir claramente el Gear rival, sus fases y el objeto ordinario cuando el juego lo revele; nunca atribuir una ventaja inexplicable a un NPC. La revelación del objeto seguirá las reglas del combate, sin filtrar objetos ocultos automáticamente.
+- **Datos de entrenador:** crear campos/presets para el Gear de cada integrante de equipo NPC sin reusar el slot de objeto equipado; verificar individuales, dobles, revancha y encuentros guionizados. Confirmar persistencia correcta de la recarga por combatiente.
+- **QA:** NPC sin Gear, con Gear, con objeto, con ambos, jefe con seis integrantes equipados, efecto de promedios al coincidir bonos, cambios de Pokémon, combate doble, movimiento encadenado y paridad entre jugador e IA.
+
+**Estado:** decisión de diseño confirmada; no implica que los datos de entrenadores, sus slots de Gear, la IA ni los combates contra jefes ya estén implementados y verificados.
+
+
+
 - **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. Base del sistema: `feat/gears-system`.
 - **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Visor, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
 - **Visor Cósmico:** +20 % a ataques especiales al sobrecargarse, +10 % residual; evolución de Gafas Especiales.
