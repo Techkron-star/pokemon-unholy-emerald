@@ -12,6 +12,7 @@
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
 - [Unholy Emerald · Arquitectura de guardados extendidos](./UNHOLY_SAVE_ARCHITECTURE.md)
 - [Unholy Emerald · HUD circular de Stamina y reforma de estadísticas](./UNHOLY_STAMINA_HUD.md)
+- [Unholy Emerald · Equipar Gears, bolsillos y depuración de mutantes](./UNHOLY_GEAR_DEBUG_BAG.md)
 - [Unholy Emerald · QA visual Eclipse/Daylight](./qa/unholy-eclipse-daylight-icons-sprint.md)
 - [FEATURES](./FEATURES.md)
 - [Installation](./INSTALL.md)
