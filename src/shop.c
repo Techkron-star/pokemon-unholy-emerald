@@ -143,6 +143,7 @@ static void Task_HorizonEggs(u8 taskId);
 static void HorizonEggIconShow(void);
 static void HorizonEggIconHide(void);
 static void HorizonDrawNotification(void);
+static void HorizonDrawTabs(void);
 static void Task_HorizonDiscs(u8 taskId);
 static void Task_HorizonItems(u8 taskId);
 static void Task_HorizonMoves(u8 taskId);
@@ -199,6 +200,16 @@ static const struct YesNoFuncTable sShopPurchaseYesNoFuncs =
 };
 
 static const u8 sHorizonTextPokemon[] = _("POKEMON");
+static const u8 sHorizonTabPokemon[] = _("PKMN");
+static const u8 sHorizonTabDiscs[] = _("DISCS");
+static const u8 sHorizonTabItems[] = _("ITEMS");
+static const u8 sHorizonTabEggs[] = _("EGGS");
+static const u8 sHorizonTabMoves[] = _("MOVES");
+static const u8 *const sHorizonTabLabels[] =
+{
+    sHorizonTabPokemon, sHorizonTabDiscs, sHorizonTabItems,
+    sHorizonTabEggs, sHorizonTabMoves,
+};
 static const u8 sHorizonTextBrowse[] = _("A: BUY  B: BACK");
 static const u8 sHorizonTextConfirm[] = _("A: YES  B: BACK");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
@@ -225,7 +236,7 @@ static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
-static const u8 sHorizonTextControls[] = _("L/R TABS  B EXIT");
+static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Buy TMs.\nFixed test stock.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies.\nFixed test stock.\nA: BUY");
@@ -284,13 +295,15 @@ void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY)
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, height - 4, 3, 2);
 }
 
+// Root navigation spans the screen horizontally (five native tab cells).
+// Its details pane below is deliberately separate from the buy-item screen.
 static const struct WindowTemplate sHorizonInfoTemplate =
 {
     .bg = 0,
-    .tilemapLeft = 14,
-    .tilemapTop = 1,
-    .width = 15,
-    .height = 13,
+    .tilemapLeft = 2,
+    .tilemapTop = 5,
+    .width = 27,
+    .height = 14,
     .paletteNum = 14,
     .baseBlock = 0xA0,
 };
@@ -511,9 +524,11 @@ static u8 CreateShopMenu(u8 martType)
     if (sHorizonActive)
     {
         struct WindowTemplate winTemplate = sShopMenuWindowTemplates[WIN_BUY_SELL_QUIT];
-        winTemplate.width = 12;
-        winTemplate.height = 11;
-        winTemplate.paletteNum = 14; // Same Eclipse/Daylight text palette as the details panel.
+        winTemplate.tilemapLeft = 2;
+        winTemplate.tilemapTop = 1;
+        winTemplate.width = 27;
+        winTemplate.height = 3;
+        winTemplate.paletteNum = 14; // Shared Eclipse/Daylight tab palette.
         sMartInfo.windowId = AddWindow(&winTemplate);
         sMartInfo.menuActions = sHorizonTabs;
         numMenuItems = ARRAY_COUNT(sHorizonTabs);
@@ -536,14 +551,20 @@ static u8 CreateShopMenu(u8 martType)
     }
 
     SetStandardWindowBorderStyle(sMartInfo.windowId, FALSE);
-    PrintMenuTable(sMartInfo.windowId, numMenuItems, sMartInfo.menuActions);
-    InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, numMenuItems, sHorizonActive ? sHorizonSelectedTab : 0);
-    PutWindowTilemap(sMartInfo.windowId);
-    CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
     if (sHorizonActive)
     {
+        // Horizon is horizontal and owns its own arrow/cursor handling; calling
+        // InitMenuInUpperLeftCornerNormal here would leave a vertical menu cursor.
+        PutWindowTilemap(sMartInfo.windowId);
         HorizonOpenInfoWindow();
-        HorizonDrawNotification();
+        HorizonDrawTabs();
+    }
+    else
+    {
+        PrintMenuTable(sMartInfo.windowId, numMenuItems, sMartInfo.menuActions);
+        InitMenuInUpperLeftCornerNormal(sMartInfo.windowId, numMenuItems, 0);
+        PutWindowTilemap(sMartInfo.windowId);
+        CopyWindowToVram(sMartInfo.windowId, COPYWIN_MAP);
     }
 
     return CreateTask(Task_ShopMenu, 8);
@@ -586,7 +607,7 @@ static void HorizonEggIconShow(void)
     sHorizonEggPaletteOwned = IndexOfSpritePaletteTag(gMonIconPaletteTable[paletteIndex].tag) == 0xFF;
     LoadMonIconPalette(SPECIES_EGG);
     // The actual Pokémon EGG icon, not a species preview or placeholder text.
-    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 58, 0, 0, TRUE);
+    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 112, 0, 0, TRUE);
 }
 
 static void HorizonEggIconHide(void)
