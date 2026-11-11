@@ -42,6 +42,6 @@
 // sliding/visibility. Keep clear of move icons and double-battle cards.
 #define STAMINA_RING_X_OFFSET          (-44)
 #define STAMINA_RING_Y_OFFSET           12
-#define STAMINA_RING_SEGMENTS           48
+#define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H
