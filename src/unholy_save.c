@@ -27,3 +27,26 @@ struct SaveBlock4 *UnholySave4_Get(void)
 
     return save4;
 }
+
+
+void UnholySave5_Reset(void)
+{
+    struct SaveBlock5 *save5 = &gPokemonStoragePtr->unholySave5;
+
+    memset(save5, 0, sizeof(*save5));
+    save5->magic = UNHOLY_SAVE5_MAGIC;
+    save5->version = UNHOLY_SAVE5_VERSION;
+}
+
+struct SaveBlock5 *UnholySave5_Get(void)
+{
+    struct SaveBlock5 *save5 = &gPokemonStoragePtr->unholySave5;
+
+    if (save5->magic != UNHOLY_SAVE5_MAGIC)
+        UnholySave5_Reset();
+
+    if (save5->version != UNHOLY_SAVE5_VERSION)
+        return NULL;
+
+    return save5;
+}
