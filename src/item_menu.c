@@ -1412,6 +1412,7 @@ static void Task_BagMenu_HandleInput(u8 taskId)
 
 static void ReturnToItemList(u8 taskId)
 {
+    DrawPocketTabs(gBagPosition.pocket);
     CreatePocketScrollArrowPair();
     CreatePocketSwitchArrowPair();
     ClearWindowTilemap(WIN_TMHM_INFO_ICONS);
@@ -1547,8 +1548,29 @@ static void DrawItemListBgRow(u8 y)
     ScheduleBgCopyTilemapToVram(2);
 }
 
-// Vanilla bag art displays five pocket marks. Unholy has seven pockets;
-// redraw ALL seven, including Battle Items and Medicine, every time.
+// The BG2 bag illustration is built for five icons. Keep those classic marks,
+// but provide a persistent, legible seven-tab ribbon on BG0.
+static void DrawPocketTabs(u8 currentPocket)
+{
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(0));
+    for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+    {
+        u8 left = 3 + pocket * 16;
+        bool8 occupied = gBagMenu->numItemStacks[pocket] >
+                         (gBagMenu->hideCloseBagText ? 0 : 1);
+
+        BagMenu_Print(WIN_POCKET_TABS, FONT_NARROW, sBagPocketTabLabels[pocket],
+                      left, 1, 0, 0, TEXT_SKIP_DRAW,
+                      pocket == currentPocket ? COLORID_POCKET_NAME : COLORID_NORMAL);
+
+        if (pocket == currentPocket)
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left, 13, 13, 2);
+        else if (occupied)
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left + 5, 13, 3, 2);
+    }
+    CopyWindowToVram(WIN_POCKET_TABS, COPYWIN_GFX);
+}
+
 static void DrawPocketIndicatorBar(u8 currentPocket)
 {
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
@@ -1556,6 +1578,7 @@ static void DrawPocketIndicatorBar(u8 currentPocket)
         u16 tile = (pocket == currentPocket) ? 0x102B : 0x1017;
         FillBgTilemapBufferRect_Palette0(2, tile, pocket + 5, 3, 1, 1);
     }
+    DrawPocketTabs(currentPocket);
     ScheduleBgCopyTilemapToVram(2);
 }
 
