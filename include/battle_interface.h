@@ -47,6 +47,7 @@ enum
 #define TAG_STAMINABAR_OPPONENT1_TILE   0xD7C1
 #define TAG_STAMINABAR_PLAYER2_TILE     0xD7C2
 #define TAG_STAMINABAR_OPPONENT2_TILE   0xD7C3
+#define TAG_STAMINA_RING_PAL           0xD7C4 // Shared by both player rings
 
 #define TAG_GEAR_ICON_TILE_BASE         0xD7D0 // + battler (4 tags)
 #define TAG_GEAR_ICON_PAL_BASE          0xD7D8 // + battler (4 tags)
