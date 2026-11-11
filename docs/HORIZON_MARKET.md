@@ -2,6 +2,14 @@
 
 **Estado:** PR #13 experimental, apilado sobre #11 → #10 → #9 → #8. No fusionar a `master` antes de compilar, comprobar guardados y pasar QA en emulador.
 
+## UI de tiendas y cierre seguro
+
+Las cinco tiendas se presentan horizontalmente arriba: **PKMN · DISCS · ITEMS · EGGS · MOVES**. A abre la tienda seleccionada; izquierda/derecha o L/R cambia de pestaña; B reconstruye el campo y regresa al menú START. Los catálogos de seis Pokémon y cinco huevos siguen siendo listas internas. La salida desde Pokémon o Huevos con B cancela primero una compra en confirmación y luego vuelve a la barra superior.
+
+No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las probabilidades. El cierre libera el sprite/paleta temporal del huevo y las ventanas antes de llamar a `CB2_ReturnToFieldWithOpenMenu`, en vez de dejar `ShowReturnToFieldStartMenu` pendiente sin ejecutar.
+
+**Validación pendiente:** compilación, retorno desde DISCS/ITEMS/MOVES, ciclos repetidos de apertura y cierre y prueba visual a 240×160 en Eclipse/Daylight.
+
 ## Catálogo Pokémon
 
 - **Seis ofertas simultáneas e independientes** por período de mercado, una unidad por plaza. Se guardan especie, mutación, estado vendido y aviso leído, sin aumentar `SaveBlock1`.
