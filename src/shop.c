@@ -1153,10 +1153,33 @@ static void Task_HandleShopMenuQuit(u8 taskId)
 {
     if (sHorizonActive)
     {
+        // Horizon was opened from START, which had already torn down the field
+        // windows. Scheduling ShowReturnToFieldStartMenu() here is not enough:
+        // it only stores a callback; it does not actually rebuild the field.
+        // Re-enter through the same full field callback used by the Bag menu.
         HorizonCloseInfoWindow();
+        if (sMartInfo.windowId != 0xFF)
+        {
+            ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
+            RemoveWindow(sMartInfo.windowId);
+            sMartInfo.windowId = 0xFF;
+        }
         sHorizonActive = FALSE;
         sHorizonSelectedTab = 0;
+        sHorizonPokemonBrowsing = FALSE;
+        sHorizonEggBrowsing = FALSE;
+        sHorizonPokemonConfirm = FALSE;
+        sHorizonEggConfirm = FALSE;
+        sHorizonPaletteSaved = FALSE;
+        sMartInfo.callback = NULL;
+        DestroyTask(taskId);
+
+        // Rebuild overworld windows and reopen START in a valid task context;
+        // do not try to draw START onto Horizon's destroyed BG tilemap.
+        CB2_ReturnToFieldWithOpenMenu();
+        return;
     }
+
     ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
     RemoveWindow(sMartInfo.windowId);
     TryPutSmartShopperOnAir();
@@ -2047,7 +2070,9 @@ void CreateHorizonShopMenu(void)
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(sHorizonShopItems);
     ClearItemPurchases();
-    SetShopMenuCallback(ShowReturnToFieldStartMenu);
+    // Horizon returns through CB2_ReturnToFieldWithOpenMenu on B, not by
+    // setting a field callback that never runs on this in-field close path.
+    SetShopMenuCallback(NULL);
 }
 
 void CreateDecorationShop1Menu(const u16 *itemsForSale)
