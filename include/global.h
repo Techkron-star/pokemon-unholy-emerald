@@ -1210,6 +1210,21 @@ struct SaveBlock1
     u8 rivalName[PLAYER_NAME_LENGTH + 1];
     struct DaycareMon route5DayCareMon;
 #endif
+    // --- Unholy Emerald: SaveBlock1 extension ---
+    u16 mutationTier;          // Tier de mutación del Pokémon activo / líder
+    u32 mutationMask;          // Máscara de mutaciones activas
+    u8  mutationBadges;        // Badges de mutación obtenidos (bitfield)
+    u16 staminaCurrent;        // Stamina actual
+    u16 staminaMax;            // Stamina máxima
+    u32 staminaCooldown;       // Temporizador de regeneración
+    u32 horizonSeedDiscs;      // Semilla de stock de MTs (DISCS)
+    u32 horizonSeedItems;      // Semilla de stock de ítems (ITEMS)
+    u16 horizonPokemonOffer1;  // Oferta Pokémon 1
+    u16 horizonPokemonOffer2;  // Oferta Pokémon 2
+    u8  equippedGearSlot;      // Slot de Gear equipado (0-5, 0xFF = ninguno)
+    u16 gearCharges[6];        // Cargas restantes por Gear
+    u8  gearUnlockFlags;       // Gears desbloqueados/creados (bitfield)
+    u8  _gearPad;              // Padding
     // sizeof: 0x3???
 };
 
