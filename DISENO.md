@@ -141,7 +141,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
 - **Corrección del autor (11-11-2026): existen 18 Sangres, una por cada tipo Pokémon**, no cuatro. Los cuatro nombres iniciales se conservan y se completan con los otros catorce nombres y afinidades en [`docs/GEARS_CATALOGO_AVENTURA_COMPETITIVO.md`](docs/GEARS_CATALOGO_AVENTURA_COMPETITIVO.md).
-- Afinidades tentativas —**no confirmadas por el autor**—: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
+- Afinidades propuestas: flamígera/Fuego; demoníaca/Siniestro; divina/Hada; escamada/Dragón. Los nombres y cifras de balance de las otras 14 Sangres están propuestos para revisión; **la regla confirmada es una Sangre por tipo**.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
 ### Estado de implementación (10 noviembre 2026)
