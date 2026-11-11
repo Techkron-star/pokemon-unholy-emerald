@@ -431,6 +431,7 @@ static const struct DebugSelection sSetVarSelection;
 static const struct DebugSelection sGiveItemSelection;
 static const struct DebugSelection sGiveGearSelection;
 static const struct DebugSelection sSimplePokemonSelection;
+static const struct DebugSelection sUnholyPokemonSelection;
 static const struct DebugSelection sComplexPokemonSelection;
 static const struct DebugSelection sEggPokemonSelection;
 static const struct DebugSelection sGiveDecorationSelection;
@@ -659,6 +660,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
     { COMPOUND_STRING("Equip Gear (Party)"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
+    { COMPOUND_STRING("Pokémon (Unholy)"),  DebugAction_Selection_Init, &sUnholyPokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
     { COMPOUND_STRING("Give Egg"),          DebugAction_Selection_Init, &sEggPokemonSelection },
     { COMPOUND_STRING("Give Decoration…"),  DebugAction_Selection_Init, &sGiveDecorationSelection },
@@ -3469,6 +3471,48 @@ static const struct DebugSelectionStep sUnholyMutationSelectionStep = {
     .maxValue = 1,
     .digits = 1,
     .substepCount = 9
+};
+
+// Short debug path: species + level + shiny + nine mutation toggles.
+// Unlike the long Complex wizard this skips manually selecting 6 IVs,
+// 6 EVs, 4 moves, abilities and secondary gimmicks.
+static bool32 DebugSelection_GiveUnholyPokemon_OnComplete(u8 taskId)
+{
+    u16 *data = (u16 *)GetWordTaskArg(taskId, STEPS_DATA_PTR_ARG);
+    static const u16 mutations[] = {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
+    };
+    struct Pokemon mon;
+    u16 badges = 0;
+
+    CreateMon(&mon, data[0], data[1], Random32(), OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_IS_SHINY, &data[2]);
+    for (u32 i = 0; i < ARRAY_COUNT(mutations); i++)
+    {
+        if (data[3 + i])
+            badges |= mutations[i];
+    }
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    CalculateMonStats(&mon);
+    GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
+    DebugSelectionStep_ReturnToGiveMenu(taskId);
+    PlaySE(SE_SUCCESS);
+    return TRUE;
+}
+
+static const struct DebugSelection sUnholyPokemonSelection = {
+    .onInit = Debug_CreateInputDisplayWindow,
+    .onCancel = DebugSelectionStep_ReturnToGiveMenu,
+    .onComplete = DebugSelection_GiveUnholyPokemon_OnComplete,
+    .steps = {
+        &sSpeciesSelectionStep,
+        &sLevelSelectionStep,
+        &sShinynessSelectionStep,
+        &sUnholyMutationSelectionStep,
+    },
+    .maxSteps = 4,
 };
 
 
