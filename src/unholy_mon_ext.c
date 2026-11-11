@@ -49,3 +49,42 @@ bool32 UnholyMonExt_Validate(const void *record, u32 availableBytes)
 
     return TRUE;
 }
+
+
+bool32 UnholyMonExt_TryGetValue(const void *record, u32 availableBytes,
+                               u16 domain, u16 key, s32 *outValue)
+{
+    struct UnholyMonExtHeader header;
+    const u8 *data = record;
+    u32 low, high;
+
+    if (outValue == NULL || domain == 0 || key == 0
+     || !UnholyMonExt_Validate(record, availableBytes))
+        return FALSE;
+
+    memcpy(&header, data, sizeof(header));
+    low = 0;
+    high = header.entryCount;
+
+    // Domain-key entries are sorted; binary search is cheap even when a
+    // future Pokémon has hundreds of additional stats or mutations.
+    while (low < high)
+    {
+        struct UnholyMonExtEntry entry;
+        u32 middle = low + (high - low) / 2;
+
+        memcpy(&entry, data + sizeof(header) + middle * sizeof(entry), sizeof(entry));
+
+        if (entry.domain < domain || (entry.domain == domain && entry.key < key))
+            low = middle + 1;
+        else if (entry.domain > domain || entry.key > key)
+            high = middle;
+        else
+        {
+            *outValue = entry.value;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
