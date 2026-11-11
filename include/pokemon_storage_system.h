@@ -24,6 +24,9 @@ struct PokemonStorage
     /*0x8344*/ u8 boxNames[TOTAL_BOXES_COUNT][BOX_NAME_LENGTH + 1];
     /*0x83C2*/ u8 boxWallpapers[TOTAL_BOXES_COUNT];
     /*0x8432*/ struct Pokemon fusions[MAX_FUSION_STORAGE];
+    // Second Unholy logical extension. Existing boxed Pokémon and fusions
+    // retain their original offsets; stored in unused sector 13 tail space.
+    struct SaveBlock5 unholySave5;
 };
 
 extern struct PokemonStorage *gPokemonStoragePtr;
