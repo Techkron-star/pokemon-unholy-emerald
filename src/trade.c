@@ -4607,6 +4607,10 @@ static void CreateInGameTradePokemonInternal(u8 whichPlayerMon, u8 whichInGameTr
         }
     }
     CalculateMonStats(&gParties[B_TRAINER_OPPONENT_A][0]);
+
+    // NPC trades originate here; never reroll on link trades or when viewing
+    // an already-owned Pokémon.
+    Pokemon_AssignSpecialOriginBadges(pokemon);
 }
 
 static void GetInGameTradeMail(struct Mail *mail, const struct InGameTrade *trade)
