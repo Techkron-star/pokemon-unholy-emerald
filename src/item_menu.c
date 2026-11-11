@@ -104,6 +104,7 @@ enum {
     WIN_TMHM_INFO_ICONS,
     WIN_TMHM_INFO,
     WIN_MESSAGE, // Identical to ITEMWIN_MESSAGE. Unused?
+    WIN_POCKET_TABS, // Seven real, labeled pockets above the item list
 };
 
 // Item list ID for toSwapPos to indicate an item is not currently being swapped
@@ -136,6 +137,11 @@ static void LoadBagItemListBuffers(u8);
 static void PrintPocketNames(const u8 *, const u8 *);
 static void CopyPocketNameToWindow(u32);
 static void DrawPocketIndicatorBar(u8);
+static void DrawPocketTabs(u8);
+static void OpenQuickPocketPicker(u8 taskId);
+static void CloseQuickPocketPicker(void);
+static void Task_QuickPocketPicker(u8 taskId);
+static void JumpToBagPocket(u8 taskId, u8 pocket);
 static void CreatePocketScrollArrowPair(void);
 static void CreatePocketSwitchArrowPair(void);
 static void DestroyPocketSwitchArrowPair(void);
@@ -291,6 +297,27 @@ static const struct ListMenuTemplate sItemListMenu =
 };
 
 static const u8 sText_NothingToSort[] = _("There's nothing to sort!");
+static const u8 sBagPocketTabItems[] = _("IT");
+static const u8 sBagPocketTabBalls[] = _("PB");
+static const u8 sBagPocketTabTMs[] = _("TM");
+static const u8 sBagPocketTabBerries[] = _("BR");
+static const u8 sBagPocketTabKey[] = _("KY");
+static const u8 sBagPocketTabBattle[] = _("BT");
+static const u8 sBagPocketTabMedicine[] = _("MD");
+
+// Each of the seven categories occupies 16px in the 120px item-list header.
+static const u8 *const sBagPocketTabLabels[POCKETS_COUNT] =
+{
+    [POCKET_ITEMS] = sBagPocketTabItems,
+    [POCKET_POKE_BALLS] = sBagPocketTabBalls,
+    [POCKET_TM_HM] = sBagPocketTabTMs,
+    [POCKET_BERRIES] = sBagPocketTabBerries,
+    [POCKET_KEY_ITEMS] = sBagPocketTabKey,
+    [POCKET_BATTLE_ITEMS] = sBagPocketTabBattle,
+    [POCKET_MEDICINE] = sBagPocketTabMedicine,
+};
+static const u8 sQuickPocketTitle[] = _("POCKETS  L+R");
+static const u8 sQuickPocketInstructions[] = _("A: GO    B: BACK");
 static const struct MenuAction sItemMenuActions[] = {
     [ACTION_USE]               = {gMenuText_Use,                {ItemMenu_UseOutOfBattle}},
     [ACTION_TOSS]              = {gMenuText_Toss,               {ItemMenu_Toss}},
@@ -481,7 +508,28 @@ static const struct WindowTemplate sDefaultBagWindows[] =
         .paletteNum = 15,
         .baseBlock = 0x1B1,
     },
+    [WIN_POCKET_TABS] = {
+        .bg = 0,
+        .tilemapLeft = 14,
+        .tilemapTop = 0,
+        .width = 15,
+        .height = 2,
+        .paletteNum = 1,
+        .baseBlock = 0x260,
+    },
     DUMMY_WIN_TEMPLATE,
+};
+
+// BG1 quick-picker modal, with dedicated tiles clear of the context windows.
+static const struct WindowTemplate sQuickPocketPickerWindow =
+{
+    .bg = 1,
+    .tilemapLeft = 7,
+    .tilemapTop = 2,
+    .width = 17,
+    .height = 16,
+    .paletteNum = 15,
+    .baseBlock = 0x2A0,
 };
 
 static const struct WindowTemplate sContextMenuWindowTemplates[] =
@@ -584,6 +632,8 @@ static EWRAM_DATA struct ListBuffer1 *sListBuffer1 = 0;
 static EWRAM_DATA struct ListBuffer2 *sListBuffer2 = 0;
 EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
+static EWRAM_DATA u8 sQuickPocketWindowId = 0; // EWRAM .sbss requires zero init; reset to WINDOW_NONE on bag open.
+static EWRAM_DATA u8 sQuickPocketSelection = 0; // Set to the actual pocket when the Bag opens.
 
 void ResetBagScrollPositions(void)
 {
@@ -678,6 +728,8 @@ void GoToBagMenu(u8 location, u8 pocket, MainCallback exitCallback)
          || gBagPosition.location == ITEMMENULOCATION_BERRY_TREE_MULCH
          || gBagPosition.location == ITEMMENULOCATION_RAIDEND)
             gBagMenu->pocketSwitchDisabled = TRUE;
+        sQuickPocketWindowId = WINDOW_NONE;
+        sQuickPocketSelection = gBagPosition.pocket;
         gBagMenu->newScreenCallback = NULL;
         gBagMenu->toSwapPos = NOT_SWAPPING;
         gBagMenu->pocketScrollArrowsTask = TASK_NONE;
@@ -1273,6 +1325,17 @@ static void Task_BagMenu_HandleInput(u8 taskId)
 
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE && !gPaletteFade.active)
     {
+        // Press L+R together for a direct pocket picker. Do not enable this in
+        // link/tutorial/special catching contexts with restricted navigation.
+        if (!gBagMenu->pocketSwitchDisabled && !IsVictoryCatch() &&
+            !IsWallysBag() && !MenuHelpers_IsLinkActive() &&
+            JOY_HELD(L_BUTTON) && JOY_HELD(R_BUTTON) &&
+            JOY_NEW(L_BUTTON | R_BUTTON))
+        {
+            OpenQuickPocketPicker(taskId);
+            return;
+        }
+
         switch (GetSwitchBagPocketDirection())
         {
         case SWITCH_POCKET_LEFT:
@@ -1360,6 +1423,7 @@ static void Task_BagMenu_HandleInput(u8 taskId)
 
 static void ReturnToItemList(u8 taskId)
 {
+    DrawPocketTabs(gBagPosition.pocket);
     CreatePocketScrollArrowPair();
     CreatePocketSwitchArrowPair();
     ClearWindowTilemap(WIN_TMHM_INFO_ICONS);
@@ -1367,6 +1431,152 @@ static void ReturnToItemList(u8 taskId)
     PutWindowTilemap(WIN_DESCRIPTION);
     ScheduleBgCopyTilemapToVram(0);
     gTasks[taskId].func = Task_BagMenu_HandleInput;
+}
+
+// This picker does not modify item routing, capacities or save data. It only
+// changes which of the seven *existing* Bag pockets is currently displayed.
+static void DrawQuickPocketPicker(void)
+{
+    u8 windowId = sQuickPocketWindowId;
+
+    if (windowId == WINDOW_NONE)
+        return;
+
+    // Palette 15 is the standard menu palette (color 10 black, 8 blue).
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(10));
+    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketTitle, 8, 2,
+                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+    {
+        u8 y = 15 + pocket * 14;
+        u16 count = gBagMenu->numItemStacks[pocket];
+
+        if (!gBagMenu->hideCloseBagText && count != 0)
+            count--; // "CLOSE BAG" is not an item.
+
+        if (pocket == sQuickPocketSelection)
+            FillWindowPixelRect(windowId, PIXEL_FILL(8), 3, y - 1, 130, 13);
+
+        BagMenu_Print(windowId, FONT_NARROW,
+                      pocket == sQuickPocketSelection ? gText_SelectorArrow2 : gText_EmptyString2,
+                      5, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+        BagMenu_Print(windowId, FONT_NARROW, gPocketNamesStringsTable[pocket],
+                      20, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+
+        ConvertIntToDecimalStringN(gStringVar3, count, STR_CONV_MODE_RIGHT_ALIGN, 3);
+        BagMenu_Print(windowId, FONT_NARROW, gStringVar3,
+                      110, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    }
+    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketInstructions, 9, 115,
+                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    CopyWindowToVram(windowId, COPYWIN_GFX);
+}
+
+static void OpenQuickPocketPicker(u8 taskId)
+{
+    if (sQuickPocketWindowId != WINDOW_NONE)
+        return;
+
+    sQuickPocketWindowId = AddWindow(&sQuickPocketPickerWindow);
+    if (sQuickPocketWindowId == WINDOW_NONE)
+    {
+        PlaySE(SE_FAILURE);
+        return;
+    }
+
+    sQuickPocketSelection = gBagPosition.pocket;
+    PutWindowTilemap(sQuickPocketWindowId);
+    DrawStdFrameWithCustomTileAndPalette(sQuickPocketWindowId, FALSE, 1, 14);
+    DrawQuickPocketPicker();
+    ScheduleBgCopyTilemapToVram(1);
+    PlaySE(SE_SELECT);
+    gTasks[taskId].func = Task_QuickPocketPicker;
+}
+
+static void CloseQuickPocketPicker(void)
+{
+    if (sQuickPocketWindowId == WINDOW_NONE)
+        return;
+
+    ClearStdWindowAndFrameToTransparent(sQuickPocketWindowId, FALSE);
+    ClearWindowTilemap(sQuickPocketWindowId);
+    RemoveWindow(sQuickPocketWindowId);
+    sQuickPocketWindowId = WINDOW_NONE;
+    ScheduleBgCopyTilemapToVram(1);
+}
+
+static void JumpToBagPocket(u8 taskId, u8 pocket)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 iconId;
+
+    if (pocket >= POCKETS_COUNT || pocket == gBagPosition.pocket)
+    {
+        gTasks[taskId].func = Task_BagMenu_HandleInput;
+        return;
+    }
+
+    // Store independent cursor/scroll offsets exactly as an L/R switch does.
+    DestroyListMenuTask(tListTaskId, &gBagPosition.scrollPosition[gBagPosition.pocket],
+                        &gBagPosition.cursorPosition[gBagPosition.pocket]);
+    BagDestroyPocketScrollArrowPair();
+    ClearWindowTilemap(WIN_ITEM_LIST);
+    ClearWindowTilemap(WIN_DESCRIPTION);
+    iconId = gBagMenu->spriteIds[ITEMMENUSPRITE_ITEM + (gBagMenu->itemIconSlot ^ 1)];
+    if (iconId < MAX_SPRITES)
+        gSprites[iconId].invisible = TRUE;
+
+    gBagPosition.pocket = pocket;
+    PrintPocketNames(gPocketNamesStringsTable[pocket], NULL);
+    CopyPocketNameToWindow(0);
+    DrawPocketIndicatorBar(pocket);
+    SetBagVisualPocketId(pocket, TRUE);
+    FillBgTilemapBufferRect_Palette0(2, 17, 14, 2, 15, 16);
+    ScheduleBgCopyTilemapToVram(2);
+
+    LoadBagItemListBuffers(pocket);
+    tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate,
+                               gBagPosition.scrollPosition[pocket],
+                               gBagPosition.cursorPosition[pocket]);
+    PutWindowTilemap(WIN_ITEM_LIST);
+    PutWindowTilemap(WIN_DESCRIPTION);
+    PutWindowTilemap(WIN_POCKET_NAME);
+    ScheduleBgCopyTilemapToVram(0);
+    CreatePocketScrollArrowPair();
+    CreatePocketSwitchArrowPair();
+    gTasks[taskId].func = Task_BagMenu_HandleInput;
+}
+
+static void Task_QuickPocketPicker(u8 taskId)
+{
+    if (MenuHelpers_ShouldWaitForLinkRecv() || gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(DPAD_UP | DPAD_LEFT))
+    {
+        sQuickPocketSelection = (sQuickPocketSelection + POCKETS_COUNT - 1) % POCKETS_COUNT;
+        PlaySE(SE_SELECT);
+        DrawQuickPocketPicker();
+    }
+    else if (JOY_NEW(DPAD_DOWN | DPAD_RIGHT))
+    {
+        sQuickPocketSelection = (sQuickPocketSelection + 1) % POCKETS_COUNT;
+        PlaySE(SE_SELECT);
+        DrawQuickPocketPicker();
+    }
+    else if (JOY_NEW(B_BUTTON))
+    {
+        CloseQuickPocketPicker();
+        PlaySE(SE_SELECT);
+        gTasks[taskId].func = Task_BagMenu_HandleInput;
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        u8 selected = sQuickPocketSelection;
+        CloseQuickPocketPicker();
+        PlaySE(SE_SELECT);
+        JumpToBagPocket(taskId, selected);
+    }
 }
 
 static u8 GetSwitchBagPocketDirection(void)
@@ -1495,8 +1705,29 @@ static void DrawItemListBgRow(u8 y)
     ScheduleBgCopyTilemapToVram(2);
 }
 
-// Vanilla bag art displays five pocket marks. Unholy has seven pockets;
-// redraw ALL seven, including Battle Items and Medicine, every time.
+// The BG2 bag illustration is built for five icons. Keep those classic marks,
+// but provide a persistent, legible seven-tab ribbon on BG0.
+static void DrawPocketTabs(u8 currentPocket)
+{
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1)); // Opaque dark strip, gold accents in both bag palettes
+    for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+    {
+        u8 left = 3 + pocket * 16;
+        bool8 occupied = gBagMenu->numItemStacks[pocket] >
+                         (gBagMenu->hideCloseBagText ? 0 : 1);
+
+        BagMenu_Print(WIN_POCKET_TABS, FONT_NARROW, sBagPocketTabLabels[pocket],
+                      left, 1, 0, 0, TEXT_SKIP_DRAW,
+                      pocket == currentPocket ? COLORID_POCKET_NAME : COLORID_NORMAL);
+
+        if (pocket == currentPocket)
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left, 13, 13, 2);
+        else if (occupied)
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left + 5, 13, 3, 2);
+    }
+    CopyWindowToVram(WIN_POCKET_TABS, COPYWIN_GFX);
+}
+
 static void DrawPocketIndicatorBar(u8 currentPocket)
 {
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
@@ -1504,6 +1735,7 @@ static void DrawPocketIndicatorBar(u8 currentPocket)
         u16 tile = (pocket == currentPocket) ? 0x102B : 0x1017;
         FillBgTilemapBufferRect_Palette0(2, tile, pocket + 5, 3, 1, 1);
     }
+    DrawPocketTabs(currentPocket);
     ScheduleBgCopyTilemapToVram(2);
 }
 
@@ -2562,12 +2794,17 @@ static void PrintPocketNames(const u8 *pocketName1, const u8 *pocketName2)
     window.height = 2;
     windowId = AddWindow(&window);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName1, 0x40);
-    BagMenu_Print(windowId, FONT_NORMAL, pocketName1, offset, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
+    // A 64-pixel vanilla pocket-name window cannot fit all seven long
+    // category names in the normal font. Use the narrow font when necessary
+    // instead of letting Battle Items or Medicine overflow their header.
+    u8 font = GetStringWidth(FONT_NORMAL, pocketName1, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+    offset = GetStringCenterAlignXOffset(font, pocketName1, 0x40);
+    BagMenu_Print(windowId, font, pocketName1, max(0, offset), 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     if (pocketName2)
     {
-        offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName2, 0x40);
-        BagMenu_Print(windowId, FONT_NORMAL, pocketName2, offset + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
+        font = GetStringWidth(FONT_NORMAL, pocketName2, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+        offset = GetStringCenterAlignXOffset(font, pocketName2, 0x40);
+        BagMenu_Print(windowId, font, pocketName2, max(0, offset) + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     }
     CpuCopy32((u8 *)GetWindowAttribute(windowId, WINDOW_TILE_DATA), gBagMenu->pocketNameBuffer, sizeof(gBagMenu->pocketNameBuffer));
     RemoveWindow(windowId);
@@ -2603,6 +2840,8 @@ static void LoadBagMenuTextWindows(void)
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
         PutWindowTilemap(i);
     }
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1)); // Opaque dark strip, gold accents in both bag palettes
+    PutWindowTilemap(WIN_POCKET_TABS);
     ScheduleBgCopyTilemapToVram(0);
     ScheduleBgCopyTilemapToVram(1);
 }
