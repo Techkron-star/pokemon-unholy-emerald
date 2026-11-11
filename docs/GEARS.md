@@ -4,6 +4,9 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 
 **Estado:** el núcleo está implementado. La rama `feat/unholy-gear-effects-20261110` registra **seis Gears**, incluyendo los temporizadores, potenciadores, cambios de efectividad y curación periódica. Falta la interfaz de equipamiento, iconos de HUD 16×32 y validación completa de CI/emulador. No se ha integrado en `master`.
 
+
+**Catálogo ampliado de diseño (no implementado):** [18 Sangres —una por cada tipo Pokémon— y Gears tácticos para aventura/competitivo](GEARS_CATALOGO_AVENTURA_COMPETITIVO.md). No confundir propuestas con los seis Gears registrados en la rama de efectos. El límite de 5 bits deberá migrarse antes de ampliar todos los IDs.
+
 ## Cómo funciona
 
 | Pieza | Dónde |
