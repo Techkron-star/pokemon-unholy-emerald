@@ -19,6 +19,7 @@
 #include "international_string_util.h"
 #include "item.h"
 #include "item_menu_icons.h"
+#include "gear.h"
 #include "item_use.h"
 #include "lilycove_lady.h"
 #include "list_menu.h"
@@ -94,6 +95,7 @@ enum {
     ACTION_BY_TYPE,
     ACTION_BY_AMOUNT,
     ACTION_BY_INDEX,
+    ACTION_EQUIP,
     ACTION_DUMMY,
 };
 
@@ -207,6 +209,7 @@ static void ItemMenu_UseOutOfBattle(u8);
 static void ItemMenu_Toss(u8);
 static void ItemMenu_Register(u8);
 static void ItemMenu_Give(u8);
+static void ItemMenu_Equip(u8);
 static void ItemMenu_Cancel(u8);
 static void ItemMenu_UseInBattle(u8);
 static void ItemMenu_CheckTag(u8);
@@ -323,6 +326,7 @@ static const struct MenuAction sItemMenuActions[] = {
     [ACTION_TOSS]              = {gMenuText_Toss,               {ItemMenu_Toss}},
     [ACTION_REGISTER]          = {gMenuText_Register,           {ItemMenu_Register}},
     [ACTION_GIVE]              = {gMenuText_Give,               {ItemMenu_Give}},
+    [ACTION_EQUIP]             = {COMPOUND_STRING("EQUIP"),      {ItemMenu_Equip}},
     [ACTION_CANCEL]            = {gText_Cancel2,                {ItemMenu_Cancel}},
     [ACTION_BATTLE_USE]        = {gMenuText_Use,                {ItemMenu_UseInBattle}},
     [ACTION_CHECK]             = {COMPOUND_STRING("CHECK"),     {ItemMenu_UseOutOfBattle}},
@@ -370,6 +374,10 @@ static const u8 sContextMenuItems_BerriesPocket[] = {
 
 static const u8 sContextMenuItems_BattleUse[] = {
     ACTION_BATTLE_USE,  ACTION_CANCEL
+};
+
+static const u8 sContextMenuItems_Gear[] = {
+    ACTION_EQUIP, ACTION_CANCEL
 };
 
 static const u8 sContextMenuItems_Give[] = {
@@ -1929,6 +1937,13 @@ static void OpenContextMenu(u8 taskId)
                 gBagMenu->contextMenuNumItems = ARRAY_COUNT(sContextMenuItems_Give);
             }
         }
+        else if (gBagPosition.location == ITEMMENULOCATION_FIELD
+              && Gear_FromItem(gSpecialVar_ItemId) != GEAR_NONE)
+        {
+            // Gear is a separate slot, not a held item or registered key item.
+            gBagMenu->contextMenuItemsPtr = sContextMenuItems_Gear;
+            gBagMenu->contextMenuNumItems = ARRAY_COUNT(sContextMenuItems_Gear);
+        }
         else
         {
             switch (gBagPosition.pocket)
@@ -2298,6 +2313,25 @@ static void ItemMenu_Give(u8 taskId)
     {
         PrintItemCantBeHeld(taskId);
     }
+}
+
+// Equipment uses the Pokémon's independent Gear slot. Party selection and
+// inventory exchange are handled by Gear_TryEquipFromBag in party_menu.c.
+static void ItemMenu_Equip(u8 taskId)
+{
+    RemoveContextWindow();
+    if (Gear_FromItem(gSpecialVar_ItemId) == GEAR_NONE)
+    {
+        ItemMenu_Cancel(taskId);
+        return;
+    }
+    if (CalculatePlayerPartyCount() == 0)
+    {
+        PrintThereIsNoPokemon(taskId);
+        return;
+    }
+    gBagMenu->newScreenCallback = CB2_ChooseMonToGiveItem;
+    Task_FadeAndCloseBagMenu(taskId);
 }
 
 static void PrintThereIsNoPokemon(u8 taskId)
