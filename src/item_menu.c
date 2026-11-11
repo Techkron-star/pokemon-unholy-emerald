@@ -2794,12 +2794,17 @@ static void PrintPocketNames(const u8 *pocketName1, const u8 *pocketName2)
     window.height = 2;
     windowId = AddWindow(&window);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
-    offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName1, 0x40);
-    BagMenu_Print(windowId, FONT_NORMAL, pocketName1, offset, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
+    // A 64-pixel vanilla pocket-name window cannot fit all seven long
+    // category names in the normal font. Use the narrow font when necessary
+    // instead of letting Battle Items or Medicine overflow their header.
+    u8 font = GetStringWidth(FONT_NORMAL, pocketName1, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+    offset = GetStringCenterAlignXOffset(font, pocketName1, 0x40);
+    BagMenu_Print(windowId, font, pocketName1, max(0, offset), 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     if (pocketName2)
     {
-        offset = GetStringCenterAlignXOffset(FONT_NORMAL, pocketName2, 0x40);
-        BagMenu_Print(windowId, FONT_NORMAL, pocketName2, offset + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
+        font = GetStringWidth(FONT_NORMAL, pocketName2, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+        offset = GetStringCenterAlignXOffset(font, pocketName2, 0x40);
+        BagMenu_Print(windowId, font, pocketName2, max(0, offset) + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     }
     CpuCopy32((u8 *)GetWindowAttribute(windowId, WINDOW_TILE_DATA), gBagMenu->pocketNameBuffer, sizeof(gBagMenu->pocketNameBuffer));
     RemoveWindow(windowId);
