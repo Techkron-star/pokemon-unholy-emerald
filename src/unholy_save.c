@@ -21,7 +21,7 @@ static u32 UnholySave_Crc32Update(u32 crc, const u8 *data, u32 size)
     return crc;
 }
 
-static u32 UnholySave_CalculateCrc(u16 *version, u32 payloadBytes)
+static u32 UnholySave_CalculateCrc(const u16 *version, u32 payloadBytes)
 {
     // Layout is [magic:4][version:2][flags:2][crc32:4][payload:N].
     // Hash the header's version/flags followed by the full payload;
@@ -54,7 +54,7 @@ bool32 UnholySave4_Validate(const struct SaveBlock4 *save4)
     return save4 != NULL
         && save4->magic == UNHOLY_SAVE4_MAGIC
         && save4->version == UNHOLY_SAVE4_VERSION
-        && save4->crc32 == UnholySave_CalculateCrc((u16 *)&save4->version,
+        && save4->crc32 == UnholySave_CalculateCrc(&save4->version,
                                                    sizeof(save4->payload));
 }
 
@@ -63,7 +63,7 @@ bool32 UnholySave5_Validate(const struct SaveBlock5 *save5)
     return save5 != NULL
         && save5->magic == UNHOLY_SAVE5_MAGIC
         && save5->version == UNHOLY_SAVE5_VERSION
-        && save5->crc32 == UnholySave_CalculateCrc((u16 *)&save5->version,
+        && save5->crc32 == UnholySave_CalculateCrc(&save5->version,
                                                    sizeof(save5->payload));
 }
 
