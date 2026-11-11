@@ -44,7 +44,7 @@
 // Relative to the centre of the main 64px healthbox sprite.
 #define STAMINA_RING_PLAYER_X_OFFSET   (-13)
 #define STAMINA_RING_PLAYER_Y_OFFSET   12
-#define STAMINA_RING_OPP_X_OFFSET       10
+#define STAMINA_RING_OPP_X_OFFSET      (-16)
 #define STAMINA_RING_OPP_Y_OFFSET       11
 #define STAMINA_RING_SEGMENTS           64
 
