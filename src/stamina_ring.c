@@ -1,10 +1,11 @@
 #include "global.h"
+#include "config/stamina.h"
 #include "stamina_ring.h"
 
 // Clockwise from 12 o'clock. Five concentric radii (9..13px), precomputed
 // for the GBA: no floating-point math, trigonometry or per-frame allocations.
 // Each 32x32 sprite renders a Zelda-style three-pixel-thick hollow gauge.
-#define STAMINA_RING_TICKS 64
+#define STAMINA_RING_TICKS STAMINA_RING_SEGMENTS
 static const s8 sRingPoint[STAMINA_RING_TICKS][10] =
 {
 {   0,  -9,   0, -10,   0, -11,   0, -12,   0, -13 },
