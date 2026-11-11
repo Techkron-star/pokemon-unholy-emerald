@@ -309,6 +309,24 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 **Estado:** habilidad de diseño documentada; **no se ha agregado** a tablas de habilidades, especies, cadenas de texto ni lógica de combate. No confundir con un Gear.
 
+### Distribución selectiva de Reaper (corrección del autor, 11-11-2026)
+
+**La intención confirmada es que Reaper se otorgue a Pokémon orientados a golpes críticos**, con **Lurantis, Sceptile e Inteleon** como tres especies expresamente designadas para recibirla en Unholy Emerald. Otros Pokémon afines quedan sujetos a revisión individual; **no** distribuir indiscriminadamente a cualquier especie ni asignar de oficio a todas las que conocen un ataque con crítico elevado.
+
+| Especie designada | Motivo | Regla de asignación a definir |
+|---|---|---|
+| **Lurantis** | Puede usar Hoja Aguda/Leaf Blade y otros ataques con alto índice crítico; ofrece una construcción alternativa a Contrary. | **Debe poder obtener Reaper**, sin eliminar automáticamente Contrary ni el resto de opciones existentes. |
+| **Sceptile** | El acceso a Hoja Aguda/Leaf Blade con crítico elevado y su perfil ofensivo encajan con remates. | **Debe poder obtener Reaper**, conservando las habilidades normales de su línea o definiendo el slot suplementario cuando sea preciso. |
+| **Inteleon** | Disparo Certero/Snipe Shot tiene índice crítico aumentado; su habilidad alternativa Sniper está enfocada en críticos. | **Debe poder obtener Reaper** como opción diferenciada, **sin sustituir automáticamente Sniper**. |
+
+**Otros posibles candidatos para evaluación, NO aprobados por el autor:** Absol, Drapion, Honchkrow, Kingdra, Sirfetch'd y Gallade (confirmar que están disponibles en el contenido, sus movimientos y habilidades antes de asignarles nada). Valorar que sean depredadores/rematadores especializados en crítico y que Reaper no convierta a un atacante genérico en ejecutor omnipresente.
+
+**Compatibilidad de diseño:** mantener el funcionamiento de Ability Capsule/Patch según la mecánica documentada; definir cómo se consigue Reaper sin borrar habilidades del Pokémon ni forzar opciones nuevas en especies con slots ocupados. Para Pokémon Super con habilidades múltiples, validar Reaper junto a Sniper y otros buffs críticos sin ejecuciones duplicadas. Ataques de **crítico garantizado** y combinaciones con **Mira de Francotirador** requieren test de balance específico, no una exclusión arbitraria. Reaper se evalúa solo al finalizar el daño de un crítico real, por debajo de 15 %; no ejecuta por golpes no críticos.
+
+**Estado:** asignación deseada y reglas de distribución **documentadas**, pero todavía no hay modificación a species/abilities ni código de batalla probado.
+
+
+
 ### Esquivar (acción de combate)
 - Acción distinta de atacar/defender, con probabilidad de evasión base asociada a la **Velocidad**.
 - Tras cada **esquiva exitosa**, la probabilidad para la siguiente esquiva se **reduce a la mitad**.
