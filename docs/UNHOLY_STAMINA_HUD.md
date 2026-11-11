@@ -2,14 +2,14 @@
 
 ## Implementación actual (rama UI apilada sobre SaveBlock4/5)
 
-El personaje aliado usa un medidor **circular de 32×32 píxeles (4bpp)** colocado en el espacio libre a la izquierda/abajo de su tarjeta de PS. No reutiliza un trozo de la barra de vida ni dibuja encima de los campos de IV/EV. El emulador verá un sprite OBJ auténtico con 16 tiles independientes, paleta propia y seguimiento del desplazamiento/visibilidad/orden de capas de la tarjeta.
+**Revisión 11/11/2026:** ambos bandos usan un medidor **circular compacto de 16×16 píxeles (4bpp)**, dentro de la tarjeta de PS entre la zona del nombre y las barras de PS/experiencia. Cada sprite ocupa **4 tiles (128 bytes)**; se utiliza una paleta compartida para todos. La posición distingue aliado/rival y simples/dobles, sigue deslizamiento, transparencia y prioridad de la caja. Es un ajuste visual; no cambia la fórmula de Stamina.
 
 - `STAMINA_REGEN_PERCENT = 20`: recarga **20 %** de Stamina máxima al final del turno (antes era **12 %**). **Advertencia de balance:** 20 % recupera MÁS que 12 %, aunque la petición verbal mencionara reducirla; se ha priorizado el porcentaje explícito.
 - `src/stamina_ring.c`: rasterizador GBA eficiente sin trigonometría ni memoria dinámica; 64 segmentos de anillo, 3 píxeles de grosor, borde oscuro y centro transparente. Colores: verde (capacidad holgada), amarillo (intermedia) y rojo (baja/agotada). Al llegar a cero permanece visible el contorno oscuro.
-- `src/battle_interface.c`: la barra de Stamina de jugador es ahora un sprite OAM de 32×32; la del rival continúa horizontal. Animación suave al gastar/recuperar Stamina; el cambio de Pokémon restablece inmediatamente el valor, evitando representar al dueño anterior. Sigue al healthbox al entrar, salir, abrir menús y desvanecer.
-- `src/battle_gfx_sfx_util.c`: 512 bytes de tiles reservados para cada sprite circular aliado; los enemigos conservan su asignación de 256 bytes.
-- `include/config/stamina.h`: `STAMINA_RING_X_OFFSET=-44`, `Y_OFFSET=12`. Son offsets ajustables tras capturas reales en Pizza Boy. 64 segmentos.
-- Pruebas nativas de las fuentes reales (`tools/unholy/host_save_schema.sh`) y de GBA (`test/unholy_stamina_ring.c`) cubren porcentajes 0/20/50/100, saturación, render diferente y hueco central.
+- `src/battle_interface.c`: jugador **y rival** dibujan el mismo círculo de 16×16 y actualizan su animación suave al gastar/recuperar Stamina; el cambio de Pokémon restablece inmediatamente el valor y evita representar al dueño anterior. Sigue al healthbox al entrar, salir, abrir menús y desvanecer.
+- `src/battle_gfx_sfx_util.c`: 128 bytes reservados para **cada** círculo, incluidos rivales; disminuye el consumo de OBJ VRAM respecto al indicador anterior.
+- `include/config/stamina.h`: offsets separados `STAMINA_RING_PLAYER_*` y `STAMINA_RING_OPP_*`; ajustables tras capturas reales en Pizza Boy. Se conservan 64 segmentos lógicos.
+- El rasterizador de 32×32 sigue disponible para regresión; `StaminaRing_RenderCompact` dibuja el de 16×16 y comparte el cálculo de porcentajes. Las pruebas GBA (`test/unholy_stamina_ring.c`) comprueban también que su centro es transparente y que vacío/lleno difieren.
 
 ### Validaciones pendientes
 
