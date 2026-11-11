@@ -83,9 +83,9 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
 
 static const struct CompressedSpriteSheet sSpriteSheets_StaminaBar[MAX_BATTLERS_COUNT] =
 {
-    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_PLAYER1_TILE},
+    {gBlankGfxCompressed, 0x0200, TAG_STAMINABAR_PLAYER1_TILE},
     {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT1_TILE},
-    {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_PLAYER2_TILE},
+    {gBlankGfxCompressed, 0x0200, TAG_STAMINABAR_PLAYER2_TILE},
     {gBlankGfxCompressed, 0x0100, TAG_STAMINABAR_OPPONENT2_TILE}
 };
 
