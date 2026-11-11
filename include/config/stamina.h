@@ -23,7 +23,7 @@
 #define STAMINA_COST_POWER_DIVISOR     10
 
 // Recarga al final de cada turno, en % de la stamina máxima.
-#define STAMINA_REGEN_PERCENT           12
+#define STAMINA_REGEN_PERCENT           20
 
 // Si la stamina llega a 0, el Pokémon queda agotado (pierde el turno, sin Struggle)
 // hasta que su stamina vuelva a este % del máximo.
@@ -33,11 +33,15 @@
 // Pokémon restauran este % de la stamina máxima por cada KO, además de su subida de stat.
 #define STAMINA_KO_RESTORE_PERCENT      30
 
-// Posición de la barra de stamina respecto a la barra de vida (píxeles hacia abajo).
-// Si no te gusta dónde queda, ajusta este número.
+// Opponents retain the legacy horizontal meter until their HUD is redesigned.
 #define STAMINA_BAR_Y_OFFSET            8
-
-// Ancho de la barra en píxeles (6 tiles, igual que la barra de vida). No cambiar.
 #define STAMINA_BAR_PIXELS              48
+
+// Player HUD: 32x32 circular stamina gauge placed just to the lower-left
+// of the healthbox. Offsets are relative to its centre and follow healthbox
+// sliding/visibility. Keep clear of move icons and double-battle cards.
+#define STAMINA_RING_X_OFFSET          (-44)
+#define STAMINA_RING_Y_OFFSET           12
+#define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H

@@ -4,6 +4,7 @@
 #include "pokemon.h"
 #include "battle_controllers.h"
 #include "battle_stamina.h"
+#include "stamina_ring.h"
 #include "gear.h"
 #include "battle_interface.h"
 #include "battle_z_move.h"
@@ -312,12 +313,44 @@ static const struct SpriteTemplate sHealthbarSpriteTemplates[MAX_BATTLERS_COUNT]
 /*  v-- Origin
 [0  +  ][1     ]   64x8
 */
+// The player uses a circular 32x32 OAM object with sixteen 4bpp tiles.
+// Opponents retain the existing slim HP-style horizontal meter.
+static const struct OamData sOamData_StaminaRing =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(32x32),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(32x32),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const u16 sStaminaRingColors[16] =
+{
+    RGB(0, 0, 0),    // 0: transparent
+    RGB(8, 12, 13),  // 1: empty track
+    RGB(7, 30, 16),  // 2: ready (Zelda-style bright green)
+    RGB(31, 25, 4),  // 3: recovering / warning
+    RGB(31, 8, 7),   // 4: depleted / exhausted
+    RGB(3, 6, 8),    // 5: dark silhouette
+};
+static const struct SpritePalette sStaminaRingPalette = {
+    sStaminaRingColors, TAG_STAMINA_RING_PAL
+};
+
 static const struct SpriteTemplate sStaminaBarSpriteTemplates[MAX_BATTLERS_COUNT] =
 {
     {
         .tileTag = TAG_STAMINABAR_PLAYER1_TILE,
-        .paletteTag = TAG_HEALTHBAR_PAL,
-        .oam = &sOamData_Healthbar,
+        .paletteTag = TAG_STAMINA_RING_PAL,
+        .oam = &sOamData_StaminaRing,
         .callback = SpriteCB_StaminaBar
     },
     {
@@ -328,8 +361,8 @@ static const struct SpriteTemplate sStaminaBarSpriteTemplates[MAX_BATTLERS_COUNT
     },
     {
         .tileTag = TAG_STAMINABAR_PLAYER2_TILE,
-        .paletteTag = TAG_HEALTHBAR_PAL,
-        .oam = &sOamData_Healthbar,
+        .paletteTag = TAG_STAMINA_RING_PAL,
+        .oam = &sOamData_StaminaRing,
         .callback = SpriteCB_StaminaBar
     },
     {
@@ -645,6 +678,11 @@ static const u8 sMutationOmega[] = _(" O");
 static EWRAM_DATA struct BattleBarInfo sStaminaBars[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA u32 sGearIconKey[MAX_BATTLERS_COUNT] = {0}; // qué se dibujó ya en el icono (0 = nada)
 static EWRAM_DATA u8 sStaminaBarOwner[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA s32 sStaminaRingDisplayed[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA s32 sStaminaRingLastDrawn[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA bool32 sStaminaRingWasExhausted[MAX_BATTLERS_COUNT] = {0};
+// Shared scratch; callbacks render sequentially, VRAM is sprite-private.
+static EWRAM_DATA u32 sStaminaRingTiles[STAMINA_RING_TILE_BYTES / sizeof(u32)];
 
 // This function is here to cover a specific case - one player's mon in a 2 vs 1 double battle. In this scenario - display singles layout.
 // The same goes for a 2 vs 1 where opponent has only one Pokémon.
@@ -749,17 +787,31 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
 
     if (STAMINA_ENABLED)
     {
-        u8 staminaBarSpriteId = CreateSpriteAtEnd(&sStaminaBarSpriteTemplates[gBattlerPositions[battler]], 140, 60, 0);
-        struct Sprite *staminaBarSprite = &gSprites[staminaBarSpriteId];
+        u8 staminaBarSpriteId;
+        struct Sprite *staminaBarSprite;
 
-        SetSubspriteTables(staminaBarSprite, &sHealthBar_SubspriteTables[GetBattlerSide(battler)]);
-        staminaBarSprite->subspriteMode = SUBSPRITES_IGNORE_PRIORITY;
-        staminaBarSprite->oam.priority = 1;
-        staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
-        staminaBarSprite->hStam_Data6 = data6;
-        staminaBarSprite->hStam_Battler = battler;
-        staminaBarSprite->invisible = TRUE;
-        sStaminaBarOwner[battler] = 0; // fuerza a dibujar la barra desde cero
+        if (IsOnPlayerSide(battler) && IndexOfSpritePaletteTag(TAG_STAMINA_RING_PAL) == 0xFF)
+            LoadSpritePalette(&sStaminaRingPalette);
+
+        staminaBarSpriteId = CreateSpriteAtEnd(&sStaminaBarSpriteTemplates[gBattlerPositions[battler]], 140, 60, 0);
+        if (staminaBarSpriteId != MAX_SPRITES)
+        {
+            staminaBarSprite = &gSprites[staminaBarSpriteId];
+            if (!IsOnPlayerSide(battler))
+            {
+                SetSubspriteTables(staminaBarSprite, &sHealthBar_SubspriteTables[GetBattlerSide(battler)]);
+                staminaBarSprite->subspriteMode = SUBSPRITES_IGNORE_PRIORITY;
+            }
+            staminaBarSprite->oam.priority = 1;
+            staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
+            staminaBarSprite->hStam_Data6 = data6;
+            staminaBarSprite->hStam_Battler = battler;
+            staminaBarSprite->invisible = TRUE;
+            sStaminaBarOwner[battler] = 0;
+            sStaminaRingDisplayed[battler] = -1;
+            sStaminaRingLastDrawn[battler] = -1;
+            sStaminaRingWasExhausted[battler] = FALSE;
+        }
     }
 
     if (GEARS_ENABLED)
@@ -895,22 +947,75 @@ static void UpdateStaminaBar(struct Sprite *sprite, enum BattlerId battler)
     }
 }
 
+static void UpdateStaminaRing(struct Sprite *sprite, enum BattlerId battler)
+{
+    s32 maxValue = Stamina_GetMax(battler);
+    s32 target = Stamina_GetCurrent(battler);
+    bool32 exhausted = Stamina_IsExhausted(battler);
+    u8 owner = gBattleStruct->staminaOwner[battler];
+    s32 shown = sStaminaRingDisplayed[battler];
+
+    if (owner != sStaminaBarOwner[battler] || shown < 0)
+    {
+        // Switching Pokémon: initialize immediately, no animation of old data.
+        sStaminaBarOwner[battler] = owner;
+        shown = target;
+        sStaminaRingLastDrawn[battler] = -1;
+    }
+    else if (shown != target)
+    {
+        // Smooth 20-32 frame change without spawning tasks or consuming more
+        // sprites. A new target is picked up immediately on the next frame.
+        s32 step = max(1, maxValue / 24);
+        if (shown < target)
+            shown = min(shown + step, target);
+        else
+            shown = max(shown - step, target);
+    }
+
+    sStaminaRingDisplayed[battler] = shown;
+    if (sStaminaRingLastDrawn[battler] == shown
+     && sStaminaRingWasExhausted[battler] == exhausted)
+        return;
+
+    StaminaRing_Render((u8 *)sStaminaRingTiles, shown, maxValue, exhausted);
+    CpuCopy32(sStaminaRingTiles,
+              (void *)(OBJ_VRAM0 + sprite->oam.tileNum * TILE_SIZE_4BPP),
+              STAMINA_RING_TILE_BYTES);
+    sStaminaRingLastDrawn[battler] = shown;
+    sStaminaRingWasExhausted[battler] = exhausted;
+}
+
 static void SpriteCB_StaminaBar(struct Sprite *sprite)
 {
     u8 healthboxSpriteId = sprite->hStam_HealthBoxSpriteId;
     enum BattlerId battler = sprite->hStam_Battler;
 
-    sprite->x = gSprites[healthboxSpriteId].x + (sprite->hStam_Data6 == 2 ? 8 : 16);
-    sprite->y = gSprites[healthboxSpriteId].y + STAMINA_BAR_Y_OFFSET;
+    if (IsOnPlayerSide(battler))
+    {
+        // Lower-left pocket of the allied healthbox; moves with its slide.
+        sprite->x = gSprites[healthboxSpriteId].x + STAMINA_RING_X_OFFSET;
+        sprite->y = gSprites[healthboxSpriteId].y + STAMINA_RING_Y_OFFSET;
+    }
+    else
+    {
+        // Rival bars stay horizontal until the opponent HUD is redesigned.
+        sprite->x = gSprites[healthboxSpriteId].x + (sprite->hStam_Data6 == 2 ? 8 : 16);
+        sprite->y = gSprites[healthboxSpriteId].y + STAMINA_BAR_Y_OFFSET;
+    }
     sprite->x2 = gSprites[healthboxSpriteId].x2;
     sprite->y2 = gSprites[healthboxSpriteId].y2;
 
-    // Sigue la visibilidad de la barra de vida (se oculta en menús, al caer un Pokémon, etc.).
+    // Match HP box visibility when sliding, fainting, or opening menus.
     sprite->invisible = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible;
+    sprite->oam.priority = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].oam.priority;
     if (sprite->invisible)
         return;
 
-    UpdateStaminaBar(sprite, battler);
+    if (IsOnPlayerSide(battler))
+        UpdateStaminaRing(sprite, battler);
+    else
+        UpdateStaminaBar(sprite, battler);
 }
 
 // Icono del Gear: 16x16 en la esquina superior derecha de la caja de vida. Los tiles y la
