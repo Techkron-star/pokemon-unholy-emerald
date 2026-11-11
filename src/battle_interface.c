@@ -4,6 +4,7 @@
 #include "pokemon.h"
 #include "battle_controllers.h"
 #include "battle_stamina.h"
+#include "stamina_ring.h"
 #include "gear.h"
 #include "battle_interface.h"
 #include "battle_z_move.h"
@@ -312,12 +313,44 @@ static const struct SpriteTemplate sHealthbarSpriteTemplates[MAX_BATTLERS_COUNT]
 /*  v-- Origin
 [0  +  ][1     ]   64x8
 */
+// The player uses a circular 32x32 OAM object with sixteen 4bpp tiles.
+// Opponents retain the existing slim HP-style horizontal meter.
+static const struct OamData sOamData_StaminaRing =
+{
+    .y = 0,
+    .affineMode = ST_OAM_AFFINE_OFF,
+    .objMode = ST_OAM_OBJ_NORMAL,
+    .mosaic = FALSE,
+    .bpp = ST_OAM_4BPP,
+    .shape = SPRITE_SHAPE(32x32),
+    .x = 0,
+    .matrixNum = 0,
+    .size = SPRITE_SIZE(32x32),
+    .tileNum = 0,
+    .priority = 1,
+    .paletteNum = 0,
+    .affineParam = 0,
+};
+
+static const u16 sStaminaRingColors[16] =
+{
+    RGB(0, 0, 0),    // 0: transparent
+    RGB(8, 12, 13),  // 1: empty track
+    RGB(7, 30, 16),  // 2: ready (Zelda-style bright green)
+    RGB(31, 25, 4),  // 3: recovering / warning
+    RGB(31, 8, 7),   // 4: depleted / exhausted
+    RGB(3, 6, 8),    // 5: dark silhouette
+};
+static const struct SpritePalette sStaminaRingPalette = {
+    sStaminaRingColors, TAG_STAMINA_RING_PAL
+};
+
 static const struct SpriteTemplate sStaminaBarSpriteTemplates[MAX_BATTLERS_COUNT] =
 {
     {
         .tileTag = TAG_STAMINABAR_PLAYER1_TILE,
-        .paletteTag = TAG_HEALTHBAR_PAL,
-        .oam = &sOamData_Healthbar,
+        .paletteTag = TAG_STAMINA_RING_PAL,
+        .oam = &sOamData_StaminaRing,
         .callback = SpriteCB_StaminaBar
     },
     {
@@ -328,8 +361,8 @@ static const struct SpriteTemplate sStaminaBarSpriteTemplates[MAX_BATTLERS_COUNT
     },
     {
         .tileTag = TAG_STAMINABAR_PLAYER2_TILE,
-        .paletteTag = TAG_HEALTHBAR_PAL,
-        .oam = &sOamData_Healthbar,
+        .paletteTag = TAG_STAMINA_RING_PAL,
+        .oam = &sOamData_StaminaRing,
         .callback = SpriteCB_StaminaBar
     },
     {
@@ -645,6 +678,11 @@ static const u8 sMutationOmega[] = _(" O");
 static EWRAM_DATA struct BattleBarInfo sStaminaBars[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA u32 sGearIconKey[MAX_BATTLERS_COUNT] = {0}; // qué se dibujó ya en el icono (0 = nada)
 static EWRAM_DATA u8 sStaminaBarOwner[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA s32 sStaminaRingDisplayed[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA s32 sStaminaRingLastDrawn[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA bool32 sStaminaRingWasExhausted[MAX_BATTLERS_COUNT] = {0};
+// Shared scratch; callbacks render sequentially, VRAM is sprite-private.
+static EWRAM_DATA u32 sStaminaRingTiles[STAMINA_RING_TILE_BYTES / sizeof(u32)];
 
 // This function is here to cover a specific case - one player's mon in a 2 vs 1 double battle. In this scenario - display singles layout.
 // The same goes for a 2 vs 1 where opponent has only one Pokémon.
