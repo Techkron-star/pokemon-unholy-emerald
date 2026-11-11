@@ -57,6 +57,16 @@ jobs:
           GAME_VERSION: EMERALD
         run: make -j$(nproc) -O all
 
+      # Attach the actual testable ROM for Pizza Boy Pro QA. This is the
+      # experimental PR head, NOT a release of master.
+      - name: Subir ROM de prueba Unholy Emerald
+        uses: actions/upload-artifact@v4
+        with:
+          name: unholy-emerald-pr23-pizzaboy
+          path: pokeemerald.gba
+          retention-days: 3
+          if-no-files-found: error
+
   build-firered:
     if: github.actor != 'allcontributors[bot]'
     runs-on: ubuntu-24.04
