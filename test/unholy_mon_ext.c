@@ -27,6 +27,18 @@ TEST("Unholy per-mon extension accepts sorted stats and mutations")
     record.fields[1].key = 55; // An extension key, NOT a hardcoded bitmask.
     record.fields[1].value = 1;
     EXPECT_EQ(UnholyMonExt_Validate(&record, sizeof(record)), TRUE);
+    {
+        s32 actual = 0;
+
+        EXPECT_EQ(UnholyMonExt_TryGetValue(&record, sizeof(record),
+                  UNHOLY_EXT_STAT, UNHOLY_STAT_STAMINA_MAX_BONUS, &actual), TRUE);
+        EXPECT_EQ(actual, 250);
+        EXPECT_EQ(UnholyMonExt_TryGetValue(&record, sizeof(record),
+                  UNHOLY_EXT_MUTATION, 55, &actual), TRUE);
+        EXPECT_EQ(actual, 1);
+        EXPECT_EQ(UnholyMonExt_TryGetValue(&record, sizeof(record),
+                  UNHOLY_EXT_STAT, UNHOLY_STAT_CRITICAL_DAMAGE_BONUS, &actual), FALSE);
+    }
 
     // A validator must not assume 4-byte alignment of serialized data.
     {
