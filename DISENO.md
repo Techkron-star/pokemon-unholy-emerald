@@ -77,6 +77,33 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
+### Primer gimnasio: Roxanne — Larvitar Alfa + Teseracto + Tormenta de Arena (11-11-2026)
+
+**Decisión del autor:** Roxanne llevará un **Larvitar** en su equipo del primer gimnasio; será **Alfa** para introducir esa mutación en un combate de jefe y llevará **Teseracto**, junto con **Tormenta de Arena** como movimiento para activar el clima. Es una combinación específica de jefe, no una regla general de las especies ni de todos los Larvitar.
+
+| Elemento | Regla de encuentro |
+|---|---|
+| Pokémon | **Larvitar** de Roxanne |
+| Variante | **Alfa** |
+| Gear | **Teseracto**, en slot separado del objeto ordinario |
+| Movimiento fundamental | **Tormenta de Arena** |
+| Efecto esperado | La primera Tormenta de Arena creada mientras Teseracto sea utilizable se vuelve **persistente hasta eliminación explícita**, según la definición del Gear |
+| Duración de Teseracto | **Consumo único**, como una gema; no recarga ni vuelve a activar el efecto tras usarse |
+| Objeto ordinario | **No especificado**, el slot debe seguir disponible para NPC, sin inventar equipo adicional |
+| Otros movimientos, nivel, IA y habilidades | Pendientes de fijar para balance del primer gimnasio |
+
+**Intención pedagógica:** el primer gimnasio debe enseñar en pantalla que (1) Larvitar tiene la variante **Alfa**; (2) el **Teseracto** se consume y altera la duración del efecto creado; (3) la arena no desaparece automáticamente tras cinco turnos y **puede eliminarse mediante un efecto de eliminación explícita válido** (Ancla de Realidad según su definición), sin convertirla en clima global permanente de la partida. La UI debe comunicarlo de forma breve y sin diálogos intrusivos o pantalla negra.
+
+**Interacciones y equilibrio:**
+- Larvitar es Roca/Tierra y no sufre daño de tormenta; la arena normalmente otorga **×1.5 de Defensa Especial** a Pokémon de tipo Roca desde Generación IV. Verificar que la configuración de mecánicas de Unholy utiliza este comportamiento; no afirmar que el efecto ya está probado en la ROM.
+- Larvitar conserva **debilidad ×4 a Agua y Planta**, de modo que debe haber contrajuego accesible antes del gimnasio, sin obligar al jugador a elegir un inicial concreto. Probar equipos iniciales con Treecko, Torchic y Mudkip, y especies capturables antes de Roxanne.
+- La **IA de Roxanne** debe dar valor táctico a crear arena si no existe, pero sin scripts que fuercen siempre una misma apertura ni turnos gratuitos ocultos. Al consumirse Teseracto, volver a usar Tormenta de Arena **no debe hacerla persistente de nuevo** salvo que se consiga otro Teseracto por las reglas normales.
+- Evaluar cuál es la prioridad exacta del Teseracto si otro clima ya está activo o si el campo se elimina de manera explícita. No permitir que la persistencia del efecto ignore Ancla de Realidad.
+- Un Pokémon Alfa de entrenador y su Gear deben obedecer **idénticas reglas** a los del jugador, incluyendo los ciclos y las bonificaciones coincidentes que sí correspondan; Teseracto es excepción consumible a los ciclos.
+- **QA:** señal visual del Alfa, icono y consumo Teseracto, uso efectivo de Tormenta de Arena, duración tras turno 5, eliminación por Ancla, reuso sin Teseracto, cambio de Larvitar, fin de combate, transición a exterior, derrotas/revancha, Stamina, IA, HUD y balance de equipos.
+
+**Estado:** especificación de encuentro **documentada, no implementada ni probada**. Teseracto y la atribución de Gears a entrenadores todavía requieren lógica funcional.
+
 ## 2. Pokémon especiales
 - **Alpha, Super, Enraged y Omega** son características de individuos; pueden **combinarse** en un mismo Pokémon, con combinaciones extremas muy raras.
 - **Alpha:** inspirado en los Alpha de Legends Arceus; detalles de estadísticas y presencia aún pendientes.
