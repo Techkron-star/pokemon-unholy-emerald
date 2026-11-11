@@ -1752,7 +1752,7 @@ static void Task_HandleInput(u8 taskId)
             else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
             {
                 u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
-                sMonSummaryScreen->mutationPage = (sMonSummaryScreen->mutationPage + 1) % 4;
+                sMonSummaryScreen->mutationPage = (sMonSummaryScreen->mutationPage + 1) % 7;
                 FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
                 PrintMonAbilityName();
                 PrintMonAbilityDescription();
@@ -3537,10 +3537,13 @@ static const u8 sUnholyMutationEnraged[] = _("ENRAGED");
 static const u8 sUnholyMutationOmega[] = _("OMEGA");
 static const u8 sUnholyMutationSep[] = _(" / ");
 static const u8 sUnholyMutationNewline[] = _("\n");
-static const u8 sUnholyMutationTitles[3][20] = {
+static const u8 sUnholyMutationTitles[6][20] = {
     _("MUTATIONS 1/3"),
     _("MUTATIONS 2/3"),
     _("MUTATIONS 3/3"),
+    _("BONUSES 1/3"),
+    _("BONUSES 2/3"),
+    _("BONUSES 3/3"),
 };
 
 static void PrintMonAbilityName(void)
@@ -3561,6 +3564,35 @@ static void PrintMonAbilityDescription(void)
     if (sMonSummaryScreen->mutationPage == 0)
     {
         PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+    }
+    else if (sMonSummaryScreen->mutationPage >= 4)
+    {
+        // Three additional views show the *actual* additive percent modifiers
+        // for all six base stats, including Titan's negative Speed penalty.
+        // Read the current Pokémon to match the battle calculation exactly.
+        static const u8 sStatNames[NUM_STATS][8] = {
+            _("HP"), _("ATK"), _("DEF"), _("SPEED"), _("SPATK"), _("SPDEF")
+        };
+        static const u8 sPlus[] = _(" +");
+        static const u8 sMinus[] = _(" -");
+        static const u8 sPercent[] = _("%");
+        u8 text[80];
+        u8 firstStat = (sMonSummaryScreen->mutationPage - 4) * 2;
+
+        text[0] = EOS;
+        for (u32 i = firstStat; i < firstStat + 2; i++)
+        {
+            s32 bonus = Pokemon_GetMutationStatBonusPercent(&sMonSummaryScreen->currentMon, i);
+            if (i != firstStat)
+                StringAppend(text, sUnholyMutationNewline);
+            StringAppend(text, sStatNames[i]);
+            StringAppend(text, bonus < 0 ? sMinus : sPlus);
+            ConvertIntToDecimalStringN(gStringVar1, bonus < 0 ? -bonus : bonus,
+                                       STR_CONV_MODE_LEFT_ALIGN, 3);
+            StringAppend(text, gStringVar1);
+            StringAppend(text, sPercent);
+        }
+        PrintTextOnWindowWithFont(windowId, text, 0, 14, 0, 0, FONT_SMALL);
     }
     else
     {
