@@ -41,13 +41,16 @@ void UnholyMonIdentity_ScanInit(struct UnholyMonIdentityScan *scan,
 
     memset(scan, 0, sizeof(*scan));
     if (key != NULL)
+    {
         scan->key = *key;
+        scan->valid = TRUE;
+    }
 }
 
 void UnholyMonIdentity_ScanObserve(struct UnholyMonIdentityScan *scan,
                                    const struct UnholyMonLegacyKey *candidate)
 {
-    if (scan == NULL || candidate == NULL)
+    if (scan == NULL || candidate == NULL || !scan->valid)
         return;
 
     if (UnholyMonIdentity_KeyEquals(&scan->key, candidate)
@@ -58,7 +61,7 @@ void UnholyMonIdentity_ScanObserve(struct UnholyMonIdentityScan *scan,
 enum UnholyMonIdentityStatus UnholyMonIdentity_ScanStatus(
     const struct UnholyMonIdentityScan *scan)
 {
-    if (scan == NULL)
+    if (scan == NULL || !scan->valid)
         return UNHOLY_MON_ID_INVALID;
     if (scan->matches == 0)
         return UNHOLY_MON_ID_MISSING;
