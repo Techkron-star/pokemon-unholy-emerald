@@ -77,6 +77,33 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ---
 
+### Primer gimnasio: Roxanne — Larvitar Alfa + Teseracto + Tormenta de Arena (11-11-2026)
+
+**Decisión del autor:** Roxanne llevará un **Larvitar** en su equipo del primer gimnasio; será **Alfa** para introducir esa mutación en un combate de jefe y llevará **Teseracto**, junto con **Tormenta de Arena** como movimiento para activar el clima. Es una combinación específica de jefe, no una regla general de las especies ni de todos los Larvitar.
+
+| Elemento | Regla de encuentro |
+|---|---|
+| Pokémon | **Larvitar** de Roxanne |
+| Variante | **Alfa** |
+| Gear | **Teseracto**, en slot separado del objeto ordinario |
+| Movimiento fundamental | **Tormenta de Arena** |
+| Efecto esperado | La primera Tormenta de Arena creada mientras Teseracto sea utilizable se vuelve **persistente hasta eliminación explícita**, según la definición del Gear |
+| Duración de Teseracto | **Consumo único**, como una gema; no recarga ni vuelve a activar el efecto tras usarse |
+| Objeto ordinario | **No especificado**, el slot debe seguir disponible para NPC, sin inventar equipo adicional |
+| Otros movimientos, nivel, IA y habilidades | Pendientes de fijar para balance del primer gimnasio |
+
+**Intención pedagógica:** el primer gimnasio debe enseñar en pantalla que (1) Larvitar tiene la variante **Alfa**; (2) el **Teseracto** se consume y altera la duración del efecto creado; (3) la arena no desaparece automáticamente tras cinco turnos y **puede eliminarse mediante un efecto de eliminación explícita válido** (Ancla de Realidad según su definición), sin convertirla en clima global permanente de la partida. La UI debe comunicarlo de forma breve y sin diálogos intrusivos o pantalla negra.
+
+**Interacciones y equilibrio:**
+- Larvitar es Roca/Tierra y no sufre daño de tormenta; la arena normalmente otorga **×1.5 de Defensa Especial** a Pokémon de tipo Roca desde Generación IV. Verificar que la configuración de mecánicas de Unholy utiliza este comportamiento; no afirmar que el efecto ya está probado en la ROM.
+- Larvitar conserva **debilidad ×4 a Agua y Planta**, de modo que debe haber contrajuego accesible antes del gimnasio, sin obligar al jugador a elegir un inicial concreto. Probar equipos iniciales con Treecko, Torchic y Mudkip, y especies capturables antes de Roxanne.
+- La **IA de Roxanne** debe dar valor táctico a crear arena si no existe, pero sin scripts que fuercen siempre una misma apertura ni turnos gratuitos ocultos. Al consumirse Teseracto, volver a usar Tormenta de Arena **no debe hacerla persistente de nuevo** salvo que se consiga otro Teseracto por las reglas normales.
+- Evaluar cuál es la prioridad exacta del Teseracto si otro clima ya está activo o si el campo se elimina de manera explícita. No permitir que la persistencia del efecto ignore Ancla de Realidad.
+- Un Pokémon Alfa de entrenador y su Gear deben obedecer **idénticas reglas** a los del jugador, incluyendo los ciclos y las bonificaciones coincidentes que sí correspondan; Teseracto es excepción consumible a los ciclos.
+- **QA:** señal visual del Alfa, icono y consumo Teseracto, uso efectivo de Tormenta de Arena, duración tras turno 5, eliminación por Ancla, reuso sin Teseracto, cambio de Larvitar, fin de combate, transición a exterior, derrotas/revancha, Stamina, IA, HUD y balance de equipos.
+
+**Estado:** especificación de encuentro **documentada, no implementada ni probada**. Teseracto y la atribución de Gears a entrenadores todavía requieren lógica funcional.
+
 ## 2. Pokémon especiales
 - **Alpha, Super, Enraged y Omega** son características de individuos; pueden **combinarse** en un mismo Pokémon, con combinaciones extremas muy raras.
 - **Alpha:** inspirado en los Alpha de Legends Arceus; detalles de estadísticas y presencia aún pendientes.
@@ -92,7 +119,8 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 - La **Ability Capsule** y el **Ability Patch** están disponibles para comprar en todos los PokéMart estándar desde el primer acceso, sin requisito de medallas.
 - La Capsule alterna entre las dos habilidades normales de la especie y no tiene efecto si no existen dos habilidades normales distintas.
-- El Patch alterna entre una habilidad normal y la habilidad oculta cuando la especie dispone de ella.
+- El Patch permite cambiar entre habilidad normal y una habilidad oculta cuando la especie dispone de ella. **Excepción de catálogo ampliado:** si una especie tiene **dos habilidades ocultas** (como Lurantis, Sceptile e Inteleon con su habilidad oculta original **más Reaper**), al solicitar una habilidad oculta mediante un objeto de cambio se **elige aleatoriamente entre las dos ocultas**, en lugar de sustituir o eliminar la original. Reaper **no** ocupa uno de los dos slots normales. **Propuesta de probabilidad:** 50/50 cuando haya exactamente dos opciones; la probabilidad no fue cuantificada por el autor.
+- Cuando el Pokémon ya tiene una habilidad oculta y se usa de nuevo un objeto de cambio, debe admitirse el sistema de **múltiples ocultas**; el flujo concreto de reroll/retorno a normal, si es posible obtener la misma oculta y cuándo consumir el objeto aún debe definirse y probarse antes de programarlo. No presentar un resultado del azar como selección manual ni garantizar Reaper tras un solo uso.
 - Ambos objetos se aplican desde el menú del grupo, se consumen solo después de confirmar el cambio y no crean habilidades múltiples para Pokémon Super.
 - Los badges Alpha, Super, Enraged y Omega no cambian estas reglas en esta fase.
 
@@ -122,6 +150,22 @@ Todos los números de balance están en `include/config/stamina.h`.
 
 ## 4. Gears — decisiones y código (10/11/2026)
 
+### Equipamiento de NPC y jefes (confirmado por el autor, 11-11-2026)
+
+**Los entrenadores NPC también pueden utilizar, simultáneamente, un objeto equipado ordinario y un Gear en cada Pokémon**, igual que el jugador. **Los jefes** (líderes de gimnasio, rivales importantes, Alto Mando, campeones y otros encuentros de jefe) estarán especialmente diseñados con **combinaciones de objeto + Gear** como parte de su estrategia. Esto no es una bonificación exclusiva del jugador.
+
+- **Slots independientes por Pokémon:** un objeto normal y un Gear son compatibles; el Gear no sustituye ni ocupa el espacio del objeto equipado. La restricción máxima es un objeto ordinario y un Gear por Pokémon salvo un sistema adicional explícito.
+- **Reglas simétricas:** los NPC están sujetos a la misma sobrecarga, recarga, activadores, promedios de bonificaciones coincidentes, límites de efectos y consumo de recursos que el jugador; la IA no reactivará un Gear gratuitamente al cambiar.
+- **Diferenciación por dificultad:** los NPC ordinarios *pueden* tener ambos equipamientos; las combinaciones estudiadas de los jefes serán particularmente comunes e importantes. No asignar automáticamente Gears raros a todos los NPC ni inventar porcentajes de distribución todavía.
+- **Diseño de encuentros:** considerar compatibilidad con movimientos, habilidad, tipo, papel del Pokémon y estrategias de equipo (p. ej., Reaper + Mira de Francotirador, defensivo + Escudo de Aegis, limpieza de campo + Nihil Engine). La IA debe entender las ventanas de sobrecarga y los turnos de recarga al decidir ataques, pivotes y protecciones.
+- **Telegráfica y claridad:** el HUD debe distinguir claramente el Gear rival, sus fases y el objeto ordinario cuando el juego lo revele; nunca atribuir una ventaja inexplicable a un NPC. La revelación del objeto seguirá las reglas del combate, sin filtrar objetos ocultos automáticamente.
+- **Datos de entrenador:** crear campos/presets para el Gear de cada integrante de equipo NPC sin reusar el slot de objeto equipado; verificar individuales, dobles, revancha y encuentros guionizados. Confirmar persistencia correcta de la recarga por combatiente.
+- **QA:** NPC sin Gear, con Gear, con objeto, con ambos, jefe con seis integrantes equipados, efecto de promedios al coincidir bonos, cambios de Pokémon, combate doble, movimiento encadenado y paridad entre jugador e IA.
+
+**Estado:** decisión de diseño confirmada; no implica que los datos de entrenadores, sus slots de Gear, la IA ni los combates contra jefes ya estén implementados y verificados.
+
+
+
 - **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. Base del sistema: `feat/gears-system`.
 - **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Visor, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
 - **Visor Cósmico:** +20 % a ataques especiales al sobrecargarse, +10 % residual; evolución de Gafas Especiales.
@@ -140,8 +184,8 @@ Todos los números de balance están en `include/config/stamina.h`.
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
-- **Nombres establecidos:** Sangre flamígera; Sangre demoníaca; Sangre divina; Sangre escamada.
-- Afinidades tentativas —**no confirmadas por el autor**—: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
+- **Corrección del autor (11-11-2026): existen 18 Sangres, una por cada tipo Pokémon**, no cuatro. Los cuatro nombres iniciales se conservan y se completan con los otros catorce nombres y afinidades en [`docs/GEARS_CATALOGO_AVENTURA_COMPETITIVO.md`](docs/GEARS_CATALOGO_AVENTURA_COMPETITIVO.md).
+- Afinidades propuestas: flamígera/Fuego; demoníaca/Siniestro; divina/Hada; escamada/Dragón. Los nombres y cifras de balance de las otras 14 Sangres están propuestos para revisión; **la regla confirmada es una Sangre por tipo**.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
 ### Estado de implementación (10 noviembre 2026)
@@ -295,6 +339,37 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 ### Lethal Tempo (habilidad previamente planteada)
 - Si el usuario noquea usando un movimiento que coincide con **uno de sus tipos**, obtiene prioridad para su siguiente turno, **sin superar movimientos de prioridad naturalmente mayor**.
 - Pensada para Pokémon rápidos como Sceptile; **no asignar a Dragonite** por defecto. Confirmar si una cadena de dos ataques cambia la activación.
+
+### Reaper (habilidad de ejecución por crítico)
+
+**Regla confirmada por el autor (11-11-2026):** cuando el portador de **Reaper** realiza un ataque que **resulta ser crítico** y, **después de aplicar el daño de ese ataque**, los PS restantes del Pokémon enemigo quedan **estrictamente por debajo del 15 % de sus PS máximos**, el enemigo es **ejecutado inmediatamente**: sus PS pasan a 0 y se procesa el debilitamiento normal, sin requerir otro ataque.
+
+- Requisitos: debe ser un **golpe crítico real acertado** del Pokémon con Reaper; no basta un ataque cualquiera, ni daño residual de clima/veneno, ni un crítico efectuado por otro Pokémon.
+- **Condición estricta:** `HP_restante * 100 < HP_maximo * 15` tras descontar daño; si queda **exactamente en 15 %**, no se ejecuta. Si el propio daño ya lo dejó a 0 PS, el KO ya se produjo y no se procesa un KO adicional.
+- **Solo objetivos enemigos** del portador. En combates dobles, evaluar independientemente cada rival alcanzado.
+- **Sin doble KO ni doble recompensa:** el daño extra de ejecución debe registrarse como consecuencia del movimiento del portador, sin conceder EXP, monedas, boosts o recarga de STA dos veces.
+- **Interacciones pendientes de cerrar antes de implementar:** Sustituto y daño al sustituto, protección que impide el golpe, Banda Focus, Robustez, Aguante, inmunidades de KO, efectos antiejecución especiales, multigolpe con críticos individuales y ataques que golpean a varios rivales. La descripción «ejecutado inmediatamente» no autoriza inventar excepciones especiales ni ignorar reglas de scripts sin documentarlas.
+- **QA obligatoria:** tras crítico, probar enemigo con 14.99 %, 15 % y más de 15 % de PS; no crítico; golpe fallido; daño residual; sustituto; críticos multigolpe; dobles; evaluación de la IA; KO/recompensa/efectos de post-KO.
+
+**Estado:** habilidad de diseño documentada; **no se ha agregado** a tablas de habilidades, especies, cadenas de texto ni lógica de combate. No confundir con un Gear.
+
+### Distribución selectiva de Reaper (corrección del autor, 11-11-2026)
+
+**La intención confirmada es que Reaper sea una SEGUNDA HABILIDAD OCULTA de Pokémon orientados a golpes críticos**, con **Lurantis, Sceptile e Inteleon** como tres especies expresamente designadas para recibirla en Unholy Emerald. Cada uno **conserva íntegramente su habilidad oculta anterior** y sus habilidades normales. El objeto de cambio que permita obtener una habilidad oculta debe **elegir aleatoriamente entre ambas ocultas**. Otros Pokémon afines quedan sujetos a revisión individual; **no** distribuir indiscriminadamente a cualquier especie ni asignar de oficio a todas las que conocen un ataque con crítico elevado.
+
+| Especie designada | Motivo | Regla de asignación a definir |
+|---|---|---|
+| **Lurantis** | Puede usar Hoja Aguda/Leaf Blade y otros ataques con alto índice crítico; ofrece una construcción alternativa a Contrary. | Ocultas posibles: **Respondón (Contrary)** **o** **Reaper**, elegidas aleatoriamente por el objeto; se conservan las normales. |
+| **Sceptile** | El acceso a Hoja Aguda/Leaf Blade con crítico elevado y su perfil ofensivo encajan con remates. | Ocultas posibles: **Liviano (Unburden)** **o** **Reaper**, elegidas aleatoriamente por el objeto; se conservan las normales. |
+| **Inteleon** | Disparo Certero/Snipe Shot tiene índice crítico aumentado; su habilidad alternativa Sniper está enfocada en críticos. | Ocultas posibles: **Francotirador (Sniper)** **o** **Reaper**, elegidas aleatoriamente por el objeto; se conservan las normales. |
+
+**Otros posibles candidatos para evaluación, NO aprobados por el autor:** Absol, Drapion, Honchkrow, Kingdra, Sirfetch'd y Gallade (confirmar que están disponibles en el contenido, sus movimientos y habilidades antes de asignarles nada). Valorar que sean depredadores/rematadores especializados en crítico y que Reaper no convierta a un atacante genérico en ejecutor omnipresente.
+
+**Compatibilidad de diseño:** **Reaper es exclusivamente oculta**, no normal ni reemplazo de la oculta preexistente. **Ability Capsule** sigue alternando solo habilidades normales; el objeto de obtención/cambio de ocultas (p. ej. **Ability Patch**) selecciona **al azar** una de las dos ocultas cuando existan. La extensión exige **soporte del motor para varias ocultas por especie** y un identificador persistente inequívoco del slot seleccionado, además de compatibilidad con Pokémon atrapados, guardados, evolución, crianza y cambios de forma. El flujo de reroll cuando ya tiene una oculta y el tratamiento de tiradas que repiten el mismo resultado se cerrarán en implementación sin suponer que haya selección manual. Para Pokémon Super con habilidades múltiples, validar Reaper junto a Sniper y otros buffs críticos sin ejecuciones duplicadas. Ataques de **crítico garantizado** y combinaciones con **Mira de Francotirador** requieren test de balance específico, no una exclusión arbitraria. Reaper se evalúa solo al finalizar el daño de un crítico real, por debajo de 15 %; no ejecuta por golpes no críticos.
+
+**Estado:** asignación deseada y reglas de distribución **documentadas**, pero todavía no hay modificación a species/abilities ni código de batalla probado.
+
+
 
 ### Esquivar (acción de combate)
 - Acción distinta de atacar/defender, con probabilidad de evasión base asociada a la **Velocidad**.
