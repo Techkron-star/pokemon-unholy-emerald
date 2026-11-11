@@ -6,6 +6,7 @@
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
+- [Unholy Emerald · Catálogo de 18 Sangres y Gears tácticos](./GEARS_CATALOGO_AVENTURA_COMPETITIVO.md)
 - [Unholy Emerald · QA visual Eclipse/Daylight](./qa/unholy-eclipse-daylight-icons-sprint.md)
 - [FEATURES](./FEATURES.md)
 - [Installation](./INSTALL.md)
