@@ -23,7 +23,14 @@ bool32 Chain_IsMoveChainable(enum Move move)
 {
     enum BattleMoveEffects effect = GetMoveEffect(move);
 
-    return move != MOVE_NONE && effect != EFFECT_PROTECT && effect != EFFECT_ENDURE;
+    // All Protect/Detect/King's Shield variants share EFFECT_PROTECT.
+    // Mat Block and Magic Coat also negate/reflect incoming actions:
+    // they must not be chained with an attack in the same turn.
+    return move != MOVE_NONE
+        && effect != EFFECT_PROTECT
+        && effect != EFFECT_ENDURE
+        && effect != EFFECT_MAT_BLOCK
+        && effect != EFFECT_MAGIC_COAT;
 }
 
 u32 Chain_GetNumTurnActions(void)
@@ -157,7 +164,8 @@ static bool32 PickDifferentRivalMove(enum BattlerId battler)
     {
         enum Move move = gBattleMons[battler].moves[i];
 
-        if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0)
+        if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0
+         || !Chain_IsMoveChainable(move))
             continue;
         if (Stamina_GetMoveCost(battler, move) >= Stamina_GetCurrent(battler))
             continue;
