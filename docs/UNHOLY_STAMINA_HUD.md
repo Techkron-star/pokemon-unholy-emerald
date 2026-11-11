@@ -20,6 +20,15 @@ El personaje aliado usa un medidor **circular de 32×32 píxeles (4bpp)** coloca
 - [ ] Ajustar offsets por formato simple/doble si la vista real lo necesita.
 - [ ] Si la paleta de OBJ está llena, establecer un respaldo probado; no presentar como verificado sin prueba.
 
+## Primera reforma funcional del Resumen (implementada en esta rama)
+
+- En `include/config/summary_screen.h` se habilitan los **valores numéricos de IV y EV** para cualquier Pokémon no huevo: `P_SUMMARY_SCREEN_IV_EV_INFO=TRUE`, `P_SUMMARY_SCREEN_IV_EV_TILESET=TRUE`, `P_SUMMARY_SCREEN_IV_EV_VALUES=TRUE`. El botón **A** de la página de atributos recorre **Estadísticas → IV → EV → Estadísticas**; se reutilizan los controles y ventanas originales, con los títulos del conjunto alternativo de tiles.
+- El panel compacto superior de atributos deja de ser un interruptor «mostrar Stamina / ocultarla». **L/R** recorre cuatro contextos: **Stamina máxima**, **nombre del Gear**, **cantidad de mutaciones** y **EV totales**. La fórmula de Stamina coincide con combate, e IV/EV incluyen los valores efectivos de Omega y Ascendido.
+- No altera `BoxPokemon`, variables persistidas, datos de combate, índices de guardado ni estadísticas actuales; solo cambia el frontend de Resumen. El Gear se valida contra `GEAR_COUNT` antes de acceder al catálogo y los textos largos usan ajuste de tipografía.
+- El contador de mutaciones incluye el noveno bit (Ascendido), evitando el truncamiento a 8 bits ya corregido en la rama base.
+
+**Lo que no se anuncia como terminado:** una página de *atributos ampliados* con navegación visual propia, la lista de modificadores y el historial por UID. Eso requiere construir las ventanas dedicadas y conectar el backend del PR #22, todavía experimental.
+
 ## Reforma planificada de la pantalla de estadísticas
 
 No debemos añadir diez estadísticas al panel original sin espacio. La pantalla del GBA es **240×160**; debemos conservar la paginación lateral y separar **datos** de **renderizado**. Ya existe `UnholyMonSummary_Build()` para leer stats, IV/EV, Stamina, bonus de mutaciones y Gear sin alterar al Pokémon.
@@ -34,4 +43,4 @@ Arquitectura UI propuesta:
 
 Plan de ejecución: extraer el proveedor de datos de `pokemon_summary_screen.c`, diseñar la navegación por páginas sin romper el Resumen clásico ni PC, crear ventanas de datos optimizadas, probar cambios de equipo/caja/huevo y habilitar metadatos extendidos solo cuando la asociación UID sea segura. Las páginas que dependen de UID no deben mostrar valores inventados.
 
-**Estado real:** el HUD circular está implementado en código, pendiente de compilación y QA de posicionamiento; la reforma completa del Resumen es un plan por ejecutar, no una pantalla ya finalizada.
+**Estado real:** el HUD circular y la primera reforma de estadísticas están implementados en código (página de IV/EV y panel de detalles); queda pendiente compilar esta segunda revisión, evaluar el layout en Pizza Boy, y diseñar las páginas ampliadas completas.
