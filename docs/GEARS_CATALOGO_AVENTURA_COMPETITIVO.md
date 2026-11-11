@@ -106,6 +106,33 @@ Todas las cifras son **propuestas para playtesting**, no valores aprobados/imple
 **Estado:** diseños registrados por petición del autor, no presentes todavía como objetos funcionales, constantes, sprites, recetas o efectos en la ROM.
 
 
+## Muramasa — reliquia de raids solicitada por el autor
+
+**Concepto confirmado:** **Muramasa** es un objeto/Gear anticuración y antidefensa que **reduce los efectos curativos o defensivos del rival independientemente de la fuente**. Es **fabricable con exactamente 10 Fragmentos de Muramasa**, y esos fragmentos se **obtienen en raids**. No se ha especificado una medalla como ingrediente ni se debe exigir una por defecto.
+
+### Receta confirmada
+
+| Resultado | Cantidad | Material requerido | Fuente de obtención |
+|---|---:|---|---|
+| **Muramasa** | ×1 | **Fragmento de Muramasa ×10** | Recompensas de **raids** (frecuencia y dificultades pendientes) |
+
+El crafteo debe consumir los **10 fragmentos** solo tras confirmar la elaboración, verificar materiales antes de gastar y registrar Muramasa como Gear equipable por el sistema existente, con objeto de inventario/icono/HUD cuando se implemente. **No existe todavía receta funcional ni probabilidad de drop confirmada**. No añadir costes monetarios ni materiales adicionales por su cuenta.
+
+### Alcance del efecto: «independiente de todo»
+
+- **Sin excepciones por procedencia:** el efecto ha de actuar frente a curaciones y mitigación/protección generadas por **movimientos, habilidades, objetos equipados ordinarios, Gears, clima, campos y otros efectos de batalla**, siempre que beneficien al rival afectado. El nombre de la fuente **no** debe ser una vía para eludir Muramasa.
+- **Curación:** incluye recuperación directa de PS, drenaje, curación por turno y recuperación provocada por efectos defensivos o habilidades. Muramasa reduce la **cantidad efectivamente recuperada** por el rival, no la cantidad de daño inicial.
+- **Defensa:** incluye bonificaciones temporales de Defensa/Defensa Especial, pantallas, barreras, escudos y **reducciones porcentuales de daño** de cualquier procedencia. El objetivo es debilitar la **ventaja defensiva que generan los efectos**, sin alterar las estadísticas base del Pokémon por defecto.
+- **Protecciones binarias** (p. ej., Protección, inmunidad temporal por una habilidad, aguantar a 1 PS) **requieren una regla de resolución especial**: no se pueden «reducir un porcentaje» como si fueran curación. **Pendiente de concretar cómo las afecta Muramasa** sin convertir en comportamiento implícito una ruptura total de inmunidades o del guion de combates.
+- La regla **no depende del tipo del portador, del rival, del tipo del ataque ni de la fuente del beneficio defensivo**. Sí debe comprobarse quién es el rival afectado para no debilitar accidentalmente a los aliados del portador en dobles.
+- **No confundir reducción con cancelación:** el autor confirmó «reducir», **no** anular al 100 %; el porcentaje de reducción de curaciones, aumento de defensa y escudos **queda pendiente**. Cuando se fije, una propuesta de cálculo es aplicar Muramasa **una vez por evento de recuperación/mitigación** y nunca una vez por cada componente que lo causó, para evitar multiplicación involuntaria.
+- **Fase de Gear pendiente:** dado que Muramasa se especificó por efecto permanente sobre las fuentes del rival y no por pulso/recarga, **no asignar arbitrariamente 1+3 turnos**. Propuesta a valorar: efecto pasivo mientras lo porte el Pokémon en campo, con condiciones explícitas para el rival. El usuario no ha confirmado aún ese detalle.
+
+**Matriz de QA necesaria:** Recuperación, Deseo, Restos, Regeneración, drenaje, pantalla Reflejo/Luz/Velo Aurora, aumentos defensivos, Protección, Sustituto, Foco Interno u otros defensivos pertinentes, Robustez/Banda Focus, clima/campos, Gears, dobles (enemigo vs. aliado), IA, encadenamiento y enfrentamientos donde el efecto defensivo proviene de una combinación de fuentes. No alterar inmunidades de tipo o reglas de batalla especiales sin especificación, y no afirmar que está implementado antes de probarlo.
+
+**Estado:** especificación de diseño y receta confirmada, **sin sprites, fragmentos dados de alta, loot de raids, entrada de crafteo ni efecto de combate funcional**.
+
+
 ## Otras ideas anteriores (aún sin aprobación/implementación)
 
 Se conservan las ocho ideas previamente propuestas; **NO mezclarlas con la lista de Gears implementados**: Espejo de Némesis (reflejo), Aguja de Cronos (drenaje de STA), Núcleo de Entropía (ruptura de pantallas), Orbe de Resonancia (multigolpe), Colmillo de Hidra (drenaje de PS), Prisma Anómalo (reducción de daño supereficaz), Grillete Astral (bloqueo temporal de cambio) y Sello de Cero (anular boosts defensivos).
@@ -120,10 +147,11 @@ Evitar solapamiento entre **Ancla de Escape** y **Grillete Astral**: ambos deben
 - **P3:** Crisol Antídoto, Lente de Certeza, Módulo Vectorial y Ancla de Escape.
 - **P4:** Bastión Gemelo y Escudo del Último Aliento, tras QA intensiva de dobles y antiexploits.
 - **P5 (nuevos Gears):** seguir los niveles P1–P3 específicos de la sección «Nueve Gears propuestos por el autor»; no mover Berserker ni Nihil a «implementado» hasta terminar los ajustes del motor.
+- **Muramasa (diseño confirmado):** implementar obtención de Fragmentos en raids y receta ×10; motor de curación/mitigación unificado por fuente, sin excepciones por procedencia, más pruebas de protecciones binarias antes de habilitarlo.
 
 ### Límite de IDs y guardado
 
-La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 utilitarios + 9 añadidos por el autor = **53** (sin contar Colmillo de Rayquaza si se convierte en Gear).
+La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 utilitarios + 9 añadidos por el autor + Muramasa = **54** (sin contar Colmillo de Rayquaza si se convierte en Gear).
 
 **No basta subir `GEAR_MAX_COUNT` a 128.** Se necesita una migración del campo persistente a, como mínimo, **6 bits** (hasta 63 Gears + GEAR_NONE) o idealmente **7 bits** (hasta 127 Gears + GEAR_NONE), y una auditoría de ocupación de bits/estructura, checksum, acceso `MON_DATA_GEAR`, Caja/PC y guardados antiguos. No sobrescribir bits usados por mutaciones, stamina u otros flags. Valorar una estructura de guardado ampliada y migración versionada, puesto que el proyecto admite incompatibilidad controlada entre compilaciones, siempre con respaldo de save.
 
