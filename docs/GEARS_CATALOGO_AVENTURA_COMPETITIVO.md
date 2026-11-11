@@ -70,6 +70,42 @@ Todas las cifras son **propuestas para playtesting**, no valores aprobados/imple
 - **Módulo Vectorial:** mantener una lista explícita de IDs de pivotes que incluyen cambio al ejecutar. No dar beneficios a ataques simplemente rápidos ni a teletransportes de historia.
 - La **IA enemiga** debe considerar los Gears al planificar sin activar por accidente sus temporizadores durante la simulación de daño.
 
+## Nueve Gears propuestos por el autor (11-11-2026)
+
+**Los efectos centrales de los nueve Gears de esta sección son decisiones del autor**; los detalles que el autor no fijó (duración/cadencia, porcentajes en espadas y Berserker, reglas de prioridad) quedan claramente señalados para el balance. **No implementados todavía.**
+
+| Gear | Efecto confirmado | Fase / detalle pendiente |
+|---|---|---|
+| **Nihil Engine** | Cada pocos turnos emite un **pulso de normalización** que elimina **una trampa rival** o **un efecto de campo ordinario** generado por habilidades o movimientos. Los campos/efectos **especiales NO se ven afectados**. | Periodicidad pendiente; **propuesta**: cada 3 finales de turno. Cada pulso elimina solo 1 objetivo elegible, no limpia toda la arena. Determinar prioridad trampa/campo y clasificación de «especial». |
+| **Bufanda Siniestra** | **Cada vez que el portador causa un retroceso (flinch) efectivo al enemigo**, recupera **25 % de sus PS actuales**, no de sus PS máximos. | Pasivo por evento, sin enfriamiento inventado. Retroceso debe impedir realmente la acción; no curar por mero intento de aplicar flinch. Redondeo mínimo propuesto: 1 PS si tenía vida y cabe curación. |
+| **Guante de Midas** | **Duplica los Pokédólares** recibidos **solo si el Pokémon que finalizó el combate** lo tiene equipado. | Efecto económico pasivo, fuera del ciclo. Comprobar portador en la conclusión válida del combate, antes de repartir premio **una sola vez**; sin premios en encuentros salvajes ni duplicación por dobles/encadenamiento. |
+| **Mira de Francotirador** | **Sobrecarga:** multiplica por **3** la probabilidad de crítico y aumenta el **daño de los golpes críticos un 20 %**. **Recarga:** probabilidad ×**2**, daño crítico **+9 %**. | Multiplicar la probabilidad real calculada (con tope 100 %), no +3 niveles de crítico. No aumentar daño de golpes no críticos. Duraciones por decidir, con propuesta 1 turno de sobrecarga y 3 de recarga. |
+| **Espada Carmesí** | Potencia **todos los movimientos de corte** e incorpora **quemadura** a sus impactos. | Potencia y probabilidad de quemadura no especificadas; **no convertir en 100 % sin aprobación**. Usar una sola lista de movimientos de corte, común a las tres espadas. |
+| **Espada Plateada** | Igual que la Carmesí: potencia **todos los movimientos de corte**, pero incorpora **congelación** a sus impactos. | Potencia y probabilidad de congelación pendientes. La congelación puede anular turnos enteros; validar reglas de Frostbite/congelación de Unholy antes de fijar porcentajes. |
+| **Necro Espada** | Potencia **todos los movimientos de corte** y **cura al portador cuando derrota a un enemigo**, calculando la curación a partir de **sus PS actuales** (no máximos). | Porcentaje de curación pendiente: el autor confirmó la base «vida actual», **no fijó una cifra**. Un único evento de cura por KO válido, sin reactivar por cada golpe de un multigolpe. |
+| **Inyección Berserker** | Dispara las estadísticas **ofensivas** (Ataque y Ataque Especial) mientras **disminuye proporcionalmente las defensivas** (Defensa y Defensa Especial). El coste puede alcanzar una **defensa efectiva nula o negativa**. | Intensidades, acumulación y duración aún no especificadas. La semántica negativa debe conservarse como **vulnerabilidad por debajo de cero**, no descartarse con clamp a 1; usar cálculo seguro sin dividir por cero ni overflow. |
+| **Anillo Feérico** (escrito inicialmente «Abillo faerico») | Si el portador **es tipo Hada**, recibe **menos daño de Veneno**. Para tipos que no sean Hada, no da beneficio. | Reducción % pendiente. Definir y probar por separado **movimientos de tipo Veneno** y **daño residual de envenenamiento/Tóxico**, sin crear inmunidad total. |
+
+### Reglas de interacción y precisión
+
+- **Nihil Engine no equivale al Ancla de Realidad.** El Ancla elimina clima, terrenos/campos, salas y trampas según su definición, incluso efectos que Teseracto hizo persistentes. Nihil hace **pulsos parciales**, limitados a trampas del lado enemigo o campos **ordinarios**. Para que «ordinario/especial» no sea arbitrario, cada efecto de campo debe registrar su **origen** (movimiento, habilidad, evento/script) y una clasificación inequívoca de protección especial. Si un campo ordinario fue hecho permanente por Teseracto, aún debe definirse si Nihil puede afectarlo; **no borrar por defecto las excepciones de Teseracto**.
+- **Bufanda Siniestra:** curación igual al **25 % de PS actuales en el instante del flinch**, no al 25 % de PS máximos. Ejemplo: con 80/200 PS, cura 20 PS y queda en 100/200; el siguiente retroceso vuelve a calcular con la vida actual en ese momento. Si un objetivo ya no podía actuar por una causa anterior, no tratar el flinch como causado por el Gear. Se revisará competencia con objetos normales de retroceso.
+- **Guante de Midas:** se evalúa al finalizar el combate, no al participar o ser el primero del equipo. **Interpretación técnica provisional**: Pokémon aliado activo responsable de cerrar el combate; en dobles o KO por daño residual, resolver quién cuenta como finalizador antes de implementar. El bono de premio no debe aplicar dos veces. Con Amuleto Moneda / Incienso Duplo, definir su coincidencia bajo la regla de promediar bonos equivalentes para evitar multiplicación libre de ×2×2.
+- **Mira de Francotirador:** distinguir de **Periscopio / Garra Afilada**, que alteran niveles de crítico, y de la habilidad **Francotirador**, que aumenta el daño crítico. La habilidad Francotirador sigue su efecto original; toda coincidencia de un mismo bonus requiere regla explícita de promedio para que la Mira no produzca apilamiento descontrolado. **Ejemplo de probabilidad, solo ilustrativo:** base 1/24 ≈ 4.17 % → sobrecarga 3/24 = 12.5 %, residual 2/24 ≈ 8.33 %. Las tasas efectivas dependen de la generación/configuración concreta del hack. Los +20 %/+9 % modifican **daño solo cuando hay crítico**.
+- **Las tres Espadas:** «de corte» debe comprobarse por metadatos/flags de movimiento compatibles con la clasificación de **Cortante (Sharpness)**, no por nombre ni por categoría física: algunos cortes son especiales. Sin daño de corte o sin impacto, no aplicar estado ni curación por KO. Verificar dobles, multigolpes, inmunidades de estado, objetivos con sustituto y KO simultáneos.
+- **Inyección Berserker:** los stats del Pokémon en el guardado NO deben volverse negativos ni corromperse. La «Defensa negativa» se implementa como una **defensa efectiva de combate con déficit firmado** que amplifica el daño entrante cuando cruza cero, sin usar defensa cero/negativa como divisor de la fórmula tradicional. Esta representación conserva que sea peor que estar en cero y evita división por cero, bajo flujo definido y comprobable. Tanto Defensa como Defensa Especial requieren pruebas con golpes críticos, modificaciones de etapas, mutaciones y movimientos que ignoran defensas.
+- **Anillo Feérico:** mantiene debilidades e inmunidades normales; **reduce daño**, no cambia la tabla de tipos, no cura Veneno y no anula Tóxico a menos que el diseño lo confirme. Identificar exactamente qué fuente de daño es «Veneno».
+
+### Prioridad de implementación y pruebas de estos nueve
+
+1. **P1 económico / simple:** Guante de Midas (ganancias de entrenadores y premio), Anillo Feérico (daño), Bufanda Siniestra (evento flinch). Ninguno debe heredar un temporizador de potencia que le impida funcionar.
+2. **P2 de combate:** Mira de Francotirador, las tres Espadas (tres variantes con **una sola** definición de cortes, dos hooks de estado y uno de KO).
+3. **P3 profundo del motor:** Nihil Engine (origen/tipo de campo especial/ordinario, trampas por lado y Teseracto); Inyección Berserker (cálculo de daño con vulnerabilidad firmada, mutaciones y casos de defensa efectiva <= 0).
+4. Probar también uso por **entrenadores rivales e IA**, no solo por el equipo del jugador. Guardar/cargar, PC, batallas dobles, encadenamientos y límite de Gears.
+
+**Estado:** diseños registrados por petición del autor, no presentes todavía como objetos funcionales, constantes, sprites, recetas o efectos en la ROM.
+
+
 ## Otras ideas anteriores (aún sin aprobación/implementación)
 
 Se conservan las ocho ideas previamente propuestas; **NO mezclarlas con la lista de Gears implementados**: Espejo de Némesis (reflejo), Aguja de Cronos (drenaje de STA), Núcleo de Entropía (ruptura de pantallas), Orbe de Resonancia (multigolpe), Colmillo de Hidra (drenaje de PS), Prisma Anómalo (reducción de daño supereficaz), Grillete Astral (bloqueo temporal de cambio) y Sello de Cero (anular boosts defensivos).
@@ -83,10 +119,11 @@ Evitar solapamiento entre **Ancla de Escape** y **Grillete Astral**: ambos deben
 - **P2:** Batería de Reserva, Botas del Umbral, Velo Críptico y Amuleto Inquebrantable: cuatro puntos de entrada distintos del motor (STA, hazards, secundarios, cambios de estadísticas).
 - **P3:** Crisol Antídoto, Lente de Certeza, Módulo Vectorial y Ancla de Escape.
 - **P4:** Bastión Gemelo y Escudo del Último Aliento, tras QA intensiva de dobles y antiexploits.
+- **P5 (nuevos Gears):** seguir los niveles P1–P3 específicos de la sección «Nueve Gears propuestos por el autor»; no mover Berserker ni Nihil a «implementado» hasta terminar los ajustes del motor.
 
 ### Límite de IDs y guardado
 
-La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 de este documento = **44** (sin contar Colmillo de Rayquaza si se convierte en Gear).
+La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 utilitarios + 9 añadidos por el autor = **53** (sin contar Colmillo de Rayquaza si se convierte en Gear).
 
 **No basta subir `GEAR_MAX_COUNT` a 128.** Se necesita una migración del campo persistente a, como mínimo, **6 bits** (hasta 63 Gears + GEAR_NONE) o idealmente **7 bits** (hasta 127 Gears + GEAR_NONE), y una auditoría de ocupación de bits/estructura, checksum, acceso `MON_DATA_GEAR`, Caja/PC y guardados antiguos. No sobrescribir bits usados por mutaciones, stamina u otros flags. Valorar una estructura de guardado ampliada y migración versionada, puesto que el proyecto admite incompatibilidad controlada entre compilaciones, siempre con respaldo de save.
 
@@ -103,6 +140,7 @@ La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear
 - Probar escape válido/prohibido, trampas, cambios forzados y reglas de combate contra entrenador.
 - Probar el Escudo con Focus Sash, Sturdy, Endure, hazards, daño residual y movimientos multigolpe (y el modo competitivo, si aplica).
 - Probar IA rival y entrenador de nivel alto con los mismos Gears que el jugador; sin ventaja oculta.
+- Probar **Nihil** contra trampas rivales, campos ordinarios/especiales, habilidades, ataques, Teseracto y Ancla; **Bufanda** con flinch efectivo e infructuoso, PS actuales; **Midas** con finalizador distinto del que inicia, dobles, veneno/KO residual, Amuleto Moneda; **Mira** con probabilidades por etapa e inmunidad de críticos; **Espadas** con cada corte, estados, crítico, multigolpe y curación por KO; **Berserker** en defensa cero/negativa sin desbordamiento; **Anillo Feérico** en Hada, no Hada, ataques Veneno y Tóxico.
 - `make`, tests que procedan, emulador visual e inspección de guardado; **ningún check se declara aprobado sin ejecutarlo**.
 
 ## Fuentes de inspiración (no equivalen a cifras de balance)
