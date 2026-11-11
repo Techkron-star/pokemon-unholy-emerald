@@ -48,24 +48,28 @@ La distribución actual de `save.h` contiene dos ranuras de 14 sectores de 4 KiB
 
 En total: **512 KiB por ranura**, dos copias = 1 MiB físico. Estos son **presupuestos de diseño**, NO capacidades habilitadas ni confirmación de compatibilidad de Pizza Boy.
 
-## Diseño de extensiones Pokémon (independiente de las pestañas de interfaz)
+## Diseño de extensiones Pokémon y pantalla de estadísticas
 
-Pensado para una futura `MonExtendedRecord` con ID propio e inmutable y versionado:
+**Primer contrato ya implementado:** `include/unholy_mon_ext.h` y `src/unholy_mon_ext.c` definen/validan un registro **variable** por Pokémon, con la identidad, el Gear, la habilidad oculta seleccionada y una tabla ordenada de campos `(dominio, clave, valor s32)`. Sus pruebas están en `test/unholy_mon_ext.c`.
 
-| Campo | Tipo inicial de diseño | Uso |
+| Dominio | Ejemplos | Cómo crece |
 | --- | --- | --- |
-| `monUid` | u64 o dos u32 | Identidad permanente, no índice de caja |
-| `mutationFlags` | u32 | Cada mutación como bit, multi-mutaciones sin truncamiento |
-| `gearId` | u16 | 65535 valores técnicos; restringir a enum realmente definido |
-| `hiddenAbilitySlot` | u8 | Opciones ocultas múltiples, Reaper incluido |
-| `staminaMaxBonus` | s16 | Bonificación persistente, NO duplicar stamina derivada |
-| `statExtra[]` | s16/u16 indexados por schema | Estadísticas futuras, solo las que requieran persistencia |
-| `modifiers[]` | lista compacta versionada | Permanentes, temporales y orígenes separados |
-| `schemaVersion` | u16 | Evolución compatible del registro |
+| `UNHOLY_EXT_STAT` | stamina máxima, regeneración, crítico, futuras estadísticas | Añadiendo una nueva clave, sin ampliar `BoxPokemon` |
+| `UNHOLY_EXT_MUTATION` | Alfa, Omega, Titan, mutaciones futuras | Una entrada por ID de mutación; no depende de 9/18/32 bits |
+| `UNHOLY_EXT_PERMANENT` | entrenamiento, mejoras persistentes, penalizaciones | Entrada tipada con ID y valor de 32 bits |
+| `UNHOLY_EXT_ACHIEVEMENT` | historial/logros por Pokémon | Nuevas claves sin rediseñar el resumen |
+| Campos fijos de cabecera | `uidLow/uidHigh`, `gearId:u16`, `hiddenAbilitySlot`, `version`, `totalBytes` | Mantener la versión, migrar si se cambia la cabecera |
 
-**Nota:** no duplicar automáticamente PS, Atk, Def, etc. si el motor ya los calcula; las nuevas pantallas pueden consultar atributos derivados directamente. La ampliación visual del Resumen es un trabajo de UI y battle logic, no exige agrandar SaveBlocks por sí sola.
+Los registros son autodelimitados (`totalBytes`), verifican alineación mediante `memcpy`, rechazan longitudes incorrectas, UIDs cero y claves repetidas o desordenadas; la lectura **no asigna memoria ni modifica el guardado**.
 
-Las mutaciones actuales ya tienen bits repartidos en `PokemonSubstruct0`; migrar a `u32` exige coordinar TODOS los accesos `MON_DATA_SPECIAL_BADGES` en combate, PC, huevos, pruebas, serialización y trading. NO borrar los bits actuales hasta implementar lectura/migración.
+**Importante:** este es **un esquema de datos y un validador**, **no** el almacenamiento persistente por Pokémon terminado. Antes de conectar una nueva estadística a combate o a la pantalla de resumen, hace falta:
+1. Asignar un **UID realmente estable** a cada Pokémon, que lo acompañe al moverlo entre equipo, PC, guardería, fusiones y transferencias; el OTID + personalidad por sí solo no garantiza unicidad.
+2. Implementar un directorio/índice del backend extendido por UID con transacciones y CRC de página; no usar posición fija de caja como identidad.
+3. Migrar en lectura los datos actuales de `MON_DATA_GEAR` y `MON_DATA_SPECIAL_BADGES`, sin descartar los bits antiguos antes de tener pruebas de transferencias, huevos, evolución y rival.
+4. Añadir consultas `GetStat(mon, id)` para estadísticas derivadas. **La stamina actual de un turno no debe guardarse** salvo que exista un requisito de juego explícito.
+
+**Pantalla de estadísticas futura**: pestañas General · Combate · Stamina · Mutaciones · Gears · Historial. Cada pestaña lee atributos derivados y sus extensiones por UID; sus páginas son **UI**, no campos nuevos obligatorios en el archivo de guardado. Nuevos atributos no fuerzan modificar el diseño de la pantalla ni reordenar estructuras GBA.
+
 
 ## Fronteras de módulos futuras
 
