@@ -173,7 +173,6 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
-    u8 skillDetailsPage; // 0 Stamina, 1 Gear, 2 Mutations, 3 EV total
     u8 mutationPage; // 0: ability, 1-3: mutation groups of three.
     bool8 isBoxMon;
     u8 curMonIndex;
@@ -1745,9 +1744,14 @@ static void Task_HandleInput(u8 taskId)
         {
             if (sMonSummaryScreen->currPageIndex == PSS_PAGE_SKILLS)
             {
-                sMonSummaryScreen->skillDetailsPage = (sMonSummaryScreen->skillDetailsPage + 1) % 4;
-                PrintStaminaSummary();
-                PlaySE(SE_SELECT);
+                // L/R is the primary stats switch: normal -> IV -> EV.
+                // A retains the same shortcut for accessibility.
+                if (ShouldShowIvEvPrompt())
+                {
+                    ShowMonSkillsInfo(taskId, IncrementSkillsStatsMode(sMonSummaryScreen->skillsPageMode));
+                    PrintStaminaSummary();
+                    PlaySE(SE_SELECT);
+                }
             }
             else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
             {
@@ -1796,6 +1800,7 @@ static void Task_HandleInput(u8 taskId)
                 if (ShouldShowIvEvPrompt())
                 {
                     ShowMonSkillsInfo(taskId, IncrementSkillsStatsMode(sMonSummaryScreen->skillsPageMode));
+                    PrintStaminaSummary();
                     PlaySE(SE_SELECT);
                 }
             }
@@ -3889,72 +3894,51 @@ static void Task_PrintSkillsPage(u8 taskId)
 // Compact contextual details on the Stats/IV/EV page. The full mutation
 // list remains on the Info page (L/R there), while A cycles Stats/IV/EV.
 // This window is intentionally the existing 11x2-tile prompt window.
+// The EXP value area is reclaimed for Stamina, and the lower row tracks
+// the active genetics mode. This is display-only; experience is unchanged.
 static void PrintStaminaSummary(void)
 {
-    static const u8 sStaminaLabel[] = _("STA MAX ");
-    static const u8 sMutationLabel[] = _("MUT: ");
-    static const u8 sEvTotalLabel[] = _("EV TOTAL ");
-    u8 text[40];
-    u8 windowId = PSS_LABEL_WINDOW_PROMPT_RELEARN;
+    static const u8 sStaminaLabel[] = _("STA MAX");
+    static const u8 sIvTotalLabel[] = _("IV:");
+    static const u8 sEvTotalLabel[] = _("EV:");
+    static const u8 sRegenLabel[] = _("REGEN");
+    u8 text[24];
+    u8 windowId;
+    u32 value = 0;
     struct Pokemon *mon = &sMonSummaryScreen->currentMon;
 
-    if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS)
+    if (sMonSummaryScreen->currPageIndex != PSS_PAGE_SKILLS || sMonSummaryScreen->summary.isEgg)
         return;
 
+    windowId = AddWindowFromTemplateList(sPageSkillsTemplate, PSS_DATA_WINDOW_EXP);
     FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
+    PrintTextOnWindowWithFont(windowId, sStaminaLabel, 0, 0, 0, 0, FONT_SMALL);
 
-    switch (sMonSummaryScreen->skillDetailsPage)
-    {
-    case 1: // Equipped Gear, independently of held item.
-    {
-        u32 gear = GetMonData(mon, MON_DATA_GEAR);
-        const u8 *name = gText_None;
+    ConvertIntToDecimalStringN(gStringVar1, Stamina_CalcMaxForMon(mon), STR_CONV_MODE_LEFT_ALIGN, 4);
+    PrintTextOnWindowWithFont(windowId, gStringVar1, 0, 9, 0, 0, FONT_SMALL);
 
-        if (gear > GEAR_NONE && gear < GEAR_COUNT && gGearsInfo[gear].name != NULL)
-            name = gGearsInfo[gear].name;
-
-        // Fit long names rather than spill into the nearby HP/level panel.
-        PrintTextOnWindowToFit(windowId, name, 0, 4, 0, 0);
-        break;
-    }
-    case 2:
+    if (sMonSummaryScreen->skillsPageMode == SUMMARY_SKILLS_MODE_IVS)
     {
-        u16 mutations = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
-        u32 count = 0;
-        for (u32 bit = 0; bit < 9; bit++)
-        {
-            if (mutations & (1 << bit))
-                count++;
-        }
-        ConvertIntToDecimalStringN(gStringVar1, count, STR_CONV_MODE_LEFT_ALIGN, 2);
-        StringCopy(text, sMutationLabel);
-        StringAppend(text, gStringVar1);
-        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
-        break;
-    }
-    case 3:
-    {
-        u32 totalEv = 0;
         for (u32 i = 0; i < NUM_STATS; i++)
-            totalEv += GetMonData(mon, MON_DATA_HP_EV + i);
-        ConvertIntToDecimalStringN(gStringVar1, totalEv, STR_CONV_MODE_LEFT_ALIGN, 4);
-        StringCopy(text, sEvTotalLabel);
-        StringAppend(text, gStringVar1);
-        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
-        break;
+            value += GetMonData(mon, MON_DATA_HP_IV + i);
+        StringCopy(text, sIvTotalLabel);
     }
-    case 0:
-    default:
+    else if (sMonSummaryScreen->skillsPageMode == SUMMARY_SKILLS_MODE_EVS)
     {
-        u32 maxStamina = Stamina_CalcMaxForMon(mon);
-        ConvertIntToDecimalStringN(gStringVar1, maxStamina, STR_CONV_MODE_LEFT_ALIGN, 4);
-        StringCopy(text, sStaminaLabel);
-        StringAppend(text, gStringVar1);
-        PrintTextOnWindowWithFont(windowId, text, 0, 4, 0, 0, FONT_SMALL);
-        break;
+        for (u32 i = 0; i < NUM_STATS; i++)
+            value += GetMonData(mon, MON_DATA_HP_EV + i);
+        StringCopy(text, sEvTotalLabel);
     }
+    else
+    {
+        // No need to allocate additional window space for XP data.
+        StringCopy(text, sRegenLabel);
+        value = STAMINA_REGEN_PERCENT;
     }
 
+    ConvertIntToDecimalStringN(gStringVar1, value, STR_CONV_MODE_LEFT_ALIGN, 4);
+    StringAppend(text, gStringVar1);
+    PrintTextOnWindowWithFont(windowId, text, 0, 21, 0, 0, FONT_SMALL);
     PutWindowTilemap(windowId);
     CopyWindowToVram(windowId, COPYWIN_FULL);
 }

@@ -10,6 +10,11 @@ enum Pocket
     POCKET_KEY_ITEMS,
     POCKET_BATTLE_ITEMS,
     POCKET_MEDICINE,
+    // UI-only filtered pockets: items remain persisted in their original
+    // POCKET_KEY_ITEMS / POCKET_ITEMS arrays (no SaveBlock1 growth).
+    POCKET_GEARS,
+    POCKET_MAIL,
+    POCKET_MISC,
     POCKETS_COUNT,
     POCKET_DUMMY = POCKETS_COUNT,
 };

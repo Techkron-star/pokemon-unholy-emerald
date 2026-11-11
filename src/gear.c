@@ -3,6 +3,7 @@
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
+#include "item.h"
 #include "data/gears.h"
 
 STATIC_ASSERT(GEAR_COUNT <= GEAR_MAX_COUNT, TooManyGears);
@@ -22,6 +23,69 @@ void Gear_SetEquipped(struct Pokemon *mon, enum Gear gear)
     u32 value = gear < GEAR_COUNT ? gear : GEAR_NONE;
 
     SetMonData(mon, MON_DATA_GEAR, &value);
+}
+
+// Explicit mapping: item IDs and Gear IDs are independently append-only.
+enum Gear Gear_FromItem(enum Item item)
+{
+    switch (item)
+    {
+    case ITEM_GEAR_VISOR_COSMICO: return GEAR_VISOR_COSMICO;
+    case ITEM_GEAR_CORAZON_TITAN: return GEAR_CORAZON_TITAN;
+    case ITEM_GEAR_SKI_MASK: return GEAR_SKI_MASK;
+    case ITEM_GEAR_CETRO_SINIESTRO: return GEAR_CETRO_SINIESTRO;
+    case ITEM_GEAR_IMPULSO_COSMICO: return GEAR_IMPULSO_COSMICO;
+    case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
+    default: return GEAR_NONE;
+    }
+}
+
+enum Item Gear_ToItem(enum Gear gear)
+{
+    switch (gear)
+    {
+    case GEAR_VISOR_COSMICO: return ITEM_GEAR_VISOR_COSMICO;
+    case GEAR_CORAZON_TITAN: return ITEM_GEAR_CORAZON_TITAN;
+    case GEAR_SKI_MASK: return ITEM_GEAR_SKI_MASK;
+    case GEAR_CETRO_SINIESTRO: return ITEM_GEAR_CETRO_SINIESTRO;
+    case GEAR_IMPULSO_COSMICO: return ITEM_GEAR_IMPULSO_COSMICO;
+    case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
+    default: return ITEM_NONE;
+    }
+}
+
+enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item)
+{
+    enum Gear requested = Gear_FromItem(item);
+    enum Gear current;
+    enum Item previousItem;
+
+    if (mon == NULL || requested == GEAR_NONE)
+        return GEAR_EQUIP_NOT_GEAR;
+    if (GetMonData(mon, MON_DATA_IS_EGG))
+        return GEAR_EQUIP_NOT_GEAR;
+    current = Gear_GetEquipped(mon);
+    if (current == requested)
+        return GEAR_EQUIP_ALREADY;
+    if (!CheckBagHasItem(item, 1))
+        return GEAR_EQUIP_NOT_OWNED;
+
+    previousItem = Gear_ToItem(current);
+    // No Pokémon mutation until the inventory exchange is complete.
+    if (!RemoveBagItem(item, 1))
+        return GEAR_EQUIP_NOT_OWNED;
+
+    if (current != GEAR_NONE)
+    {
+        if (previousItem == ITEM_NONE || !AddBagItem(previousItem, 1))
+        {
+            AddBagItem(item, 1); // Restore the incoming Gear on failure.
+            return GEAR_EQUIP_BAG_FULL;
+        }
+    }
+
+    Gear_SetEquipped(mon, requested);
+    return GEAR_EQUIP_OK;
 }
 
 static void StartCycle(enum BattlerId battler, const struct GearInfo *info)

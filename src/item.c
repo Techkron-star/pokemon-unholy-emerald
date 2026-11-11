@@ -102,6 +102,9 @@ struct ItemSlot NONNULL BagPocket_GetSlotData(struct BagPocket *pocket, u32 pock
     case POCKET_BERRIES:
     case POCKET_BATTLE_ITEMS:
     case POCKET_MEDICINE:
+    case POCKET_GEARS:
+    case POCKET_MAIL:
+    case POCKET_MISC:
         return BagPocket_GetSlotDataGeneric(pocket, pocketPos);
     case POCKET_DUMMY:
         return BagPocket_GetSlotDataPC(pocket, pocketPos);
@@ -127,6 +130,9 @@ void NONNULL BagPocket_SetSlotData(struct BagPocket *pocket, u32 pocketPos, stru
     case POCKET_BERRIES:
     case POCKET_BATTLE_ITEMS:
     case POCKET_MEDICINE:
+    case POCKET_GEARS:
+    case POCKET_MAIL:
+    case POCKET_MISC:
         BagPocket_SetSlotDataGeneric(pocket, pocketPos, newSlot);
         break;
     case POCKET_DUMMY:
@@ -139,7 +145,8 @@ void ApplyNewEncryptionKeyToBagItems(u32 newKey)
 {
     enum Pocket pocketId;
     enum Item item;
-    for (pocketId = 0; pocketId < POCKETS_COUNT; pocketId++)
+    // Do not encrypt EWRAM-only category views a second time.
+    for (pocketId = 0; pocketId < POCKET_GEARS; pocketId++)
     {
         for (item = ITEM_NONE; item < gBagPockets[pocketId].capacity; item++)
             ApplyNewEncryptionKeyToHword(&(gBagPockets[pocketId].itemSlots[item].quantity), newKey);
@@ -175,6 +182,15 @@ void SetBagItemsPointers(void)
     gBagPockets[POCKET_MEDICINE].itemSlots = gSaveBlock1Ptr->bag.medicine;
     gBagPockets[POCKET_MEDICINE].capacity = BAG_MEDICINE_COUNT;
     gBagPockets[POCKET_MEDICINE].id = POCKET_MEDICINE;
+
+    // These are populated only while the Bag UI is open and never written
+    // directly into a SaveBlock. The physical item storage remains unchanged.
+    for (u32 i = POCKET_GEARS; i < POCKETS_COUNT; i++)
+    {
+        gBagPockets[i].itemSlots = NULL;
+        gBagPockets[i].capacity = 0;
+        gBagPockets[i].id = i;
+    }
 }
 
 u8 *CopyItemName(enum Item itemId, u8 *dst)

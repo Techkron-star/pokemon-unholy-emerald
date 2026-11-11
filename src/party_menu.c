@@ -33,6 +33,7 @@
 #include "international_string_util.h"
 #include "item.h"
 #include "item_menu.h"
+#include "gear.h"
 #include "item_use.h"
 #include "caps.h"
 #include "link.h"
@@ -7117,6 +7118,38 @@ void CB2_ChooseMonToGiveItem(void)
 
 static void TryGiveItemOrMailToSelectedMon(u8 taskId)
 {
+    // EQUIP from the bag uses exactly the same Pokémon chooser as GIVE,
+    // but it must never interact with MON_DATA_HELD_ITEM or its switch prompt.
+    if (Gear_FromItem(gPartyMenu.bagItem) != GEAR_NONE)
+    {
+        enum GearEquipResult result = Gear_TryEquipFromBag(
+            &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], gPartyMenu.bagItem);
+        const u8 *message;
+
+        switch (result)
+        {
+        case GEAR_EQUIP_OK:
+            message = COMPOUND_STRING("GEAR EQUIPPED!");
+            break;
+        case GEAR_EQUIP_ALREADY:
+            message = COMPOUND_STRING("ALREADY EQUIPPED.");
+            break;
+        case GEAR_EQUIP_BAG_FULL:
+            message = COMPOUND_STRING("BAG FULL! NOT EQUIPPED.");
+            break;
+        case GEAR_EQUIP_NOT_OWNED:
+            message = COMPOUND_STRING("GEAR NOT IN BAG.");
+            break;
+        default:
+            message = COMPOUND_STRING("CANNOT EQUIP GEAR.");
+            break;
+        }
+
+        DisplayPartyMenuMessage(message, TRUE);
+        gTasks[taskId].func = Task_UpdateHeldItemSpriteAndClosePartyMenu;
+        return;
+    }
+
     sPartyMenuItemId = GetMonData(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], MON_DATA_HELD_ITEM);
     if (sPartyMenuItemId == ITEM_NONE)
     {

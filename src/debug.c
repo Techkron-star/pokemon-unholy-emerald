@@ -431,6 +431,7 @@ static const struct DebugSelection sSetVarSelection;
 static const struct DebugSelection sGiveItemSelection;
 static const struct DebugSelection sGiveGearSelection;
 static const struct DebugSelection sSimplePokemonSelection;
+static const struct DebugSelection sUnholyPokemonSelection;
 static const struct DebugSelection sComplexPokemonSelection;
 static const struct DebugSelection sEggPokemonSelection;
 static const struct DebugSelection sGiveDecorationSelection;
@@ -659,6 +660,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
     { COMPOUND_STRING("Equip Gear (Party)"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
+    { COMPOUND_STRING("Pokémon (Unholy)"),  DebugAction_Selection_Init, &sUnholyPokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
     { COMPOUND_STRING("Give Egg"),          DebugAction_Selection_Init, &sEggPokemonSelection },
     { COMPOUND_STRING("Give Decoration…"),  DebugAction_Selection_Init, &sGiveDecorationSelection },
@@ -3436,6 +3438,83 @@ static const struct DebugSelectionStep sShinynessSelectionStep = {
     .maxValue = 1,
     .digits = 1
 };
+// One explicit YES/NO step for each known mutation; combinations are allowed.
+// This uses the existing complex Pokémon generator, not a second debug menu.
+// Keep this order aligned with the masks in completion below.
+static void DebugSelectionStep_UpdateUnholyMutation(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    const u8 *const names[] =
+    {
+        COMPOUND_STRING("Alpha"),
+        COMPOUND_STRING("Super"),
+        COMPOUND_STRING("Enraged"),
+        COMPOUND_STRING("Omega"),
+        COMPOUND_STRING("Hyper"),
+        COMPOUND_STRING("Overloaded"),
+        COMPOUND_STRING("Titan"),
+        COMPOUND_STRING("Ancestral"),
+        COMPOUND_STRING("Ascended"),
+    };
+    u32 index = gTasks[taskId].tSubstep;
+    if (index >= ARRAY_COUNT(names))
+        index = 0;
+    StringCopy(gStringVar1, names[index]);
+    StringCopy(gStringVar2, gTasks[taskId].tInput ? COMPOUND_STRING("YES") : COMPOUND_STRING("NO"));
+    StringCopy(gStringVar3, COMPOUND_STRING(""));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static const struct DebugSelectionStep sUnholyMutationSelectionStep = {
+    .stepUpdate = DebugSelectionStep_UpdateUnholyMutation,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = 0,
+    .maxValue = 1,
+    .digits = 1,
+    .substepCount = 9
+};
+
+// Short debug path: species + level + shiny + nine mutation toggles.
+// Unlike the long Complex wizard this skips manually selecting 6 IVs,
+// 6 EVs, 4 moves, abilities and secondary gimmicks.
+static bool32 DebugSelection_GiveUnholyPokemon_OnComplete(u8 taskId)
+{
+    u16 *data = (u16 *)GetWordTaskArg(taskId, STEPS_DATA_PTR_ARG);
+    static const u16 mutations[] = {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
+    };
+    struct Pokemon mon;
+    u16 badges = 0;
+
+    CreateMon(&mon, data[0], data[1], Random32(), OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_IS_SHINY, &data[2]);
+    for (u32 i = 0; i < ARRAY_COUNT(mutations); i++)
+    {
+        if (data[3 + i])
+            badges |= mutations[i];
+    }
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    CalculateMonStats(&mon);
+    GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
+    DebugSelectionStep_ReturnToGiveMenu(taskId);
+    PlaySE(SE_SUCCESS);
+    return TRUE;
+}
+
+static const struct DebugSelection sUnholyPokemonSelection = {
+    .onInit = Debug_CreateInputDisplayWindow,
+    .onCancel = DebugSelectionStep_ReturnToGiveMenu,
+    .onComplete = DebugSelection_GiveUnholyPokemon_OnComplete,
+    .steps = {
+        &sSpeciesSelectionStep,
+        &sLevelSelectionStep,
+        &sShinynessSelectionStep,
+        &sUnholyMutationSelectionStep,
+    },
+    .maxSteps = 4,
+};
+
 
 static const struct DebugSelectionStep sAbilitySelectionStep = {
     .stepUpdate = DebugSelectionStep_UpdateAbility,
@@ -3537,6 +3616,20 @@ static bool32 DebugSelection_GiveComplexPokemon_OnComplete(u8 taskId)
     SetMonData(&mon, MON_DATA_GIGANTAMAX_FACTOR, &monData[23]);
     SetMonData(&mon, MON_DATA_TERA_TYPE, &monData[24]);
 
+    // The last nine choices are individual mutation toggles. Keep full u16
+    // mask so Ascended (bit 8) is preserved, and allow combinations.
+    static const u16 mutationMasks[9] =
+    {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
+    };
+    u16 badges = 0;
+    for (u32 i = 0; i < ARRAY_COUNT(mutationMasks); i++)
+        if (monData[25 + i])
+            badges |= mutationMasks[i];
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+
     CalculateMonStats(&mon);
     GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
     DebugSelectionStep_ReturnToGiveMenu(taskId);
@@ -3560,8 +3653,9 @@ static const struct DebugSelection sComplexPokemonSelection = {
         &sDynamaxLevelSelectionStep,
         &sGigantamaxFactorSelectionStep,
         &sTeraTypeSelectionStep,
+        &sUnholyMutationSelectionStep,
     },
-    .maxSteps = 12,
+    .maxSteps = 13,
 };
 
 static bool32 DebugSelection_GiveEggPokemon_OnComplete(u8 taskId)
