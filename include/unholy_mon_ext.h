@@ -61,4 +61,20 @@ bool32 UnholyMonExt_Validate(const void *record, u32 availableBytes);
 bool32 UnholyMonExt_TryGetValue(const void *record, u32 availableBytes,
                                u16 domain, u16 key, s32 *outValue);
 
+// Initialize a new record in caller-owned storage. The UID must be minted by
+// the future persistence layer (never inferred from party/box position).
+bool32 UnholyMonExt_Init(void *record, u32 availableBytes, u32 uidLow, u32 uidHigh,
+                         u16 gearId, u8 hiddenAbilitySlot);
+
+// Insert or update one (domain,key) with a signed 32-bit value. Edits happen
+// only after validating the original record and ensuring sufficient capacity.
+// A full record returns FALSE with bytes untouched; keys remain sorted.
+bool32 UnholyMonExt_TrySetValue(void *record, u32 availableBytes,
+                               u16 domain, u16 key, s32 value);
+
+// Remove an existing attribute; caller may omit absent attributes to save
+// space. This never changes the UID, Gear slot, or other entries.
+bool32 UnholyMonExt_TryRemoveValue(void *record, u32 availableBytes,
+                                  u16 domain, u16 key);
+
 #endif // GUARD_UNHOLY_MON_EXT_H
