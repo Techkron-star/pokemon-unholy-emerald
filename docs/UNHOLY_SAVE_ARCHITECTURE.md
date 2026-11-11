@@ -70,6 +70,10 @@ Los registros son autodelimitados (`totalBytes`), verifican alineación mediante
 
 **Pantalla de estadísticas futura**: pestañas General · Combate · Stamina · Mutaciones · Gears · Historial. Cada pestaña lee atributos derivados y sus extensiones por UID; sus páginas son **UI**, no campos nuevos obligatorios en el archivo de guardado. Nuevos atributos no fuerzan modificar el diseño de la pantalla ni reordenar estructuras GBA.
 
+**Capa de datos del resumen ya implementada:** `UnholyMonSummary_Build(mon, out)` en `src/unholy_mon_summary.c` devuelve nivel, especie, estadísticas calculadas, IV, EV, porcentaje de mutación por estadística, Gear y **Stamina máxima**. La Stamina procede de `Stamina_CalcMaxForMon(mon)`, extraída de `src/battle_stamina.c`, de modo que la futura pantalla muestra exactamente la misma fórmula que combate y no genera reglas divergentes. Es **solo lectura**, no depende de `gBattleStruct` y no guarda Stamina actual fuera de combate. `test/unholy_mon_summary.c` cubre Sceptile Omega nivel 100 con 31 IV/252 EV en las seis estadísticas.
+
+**Pendiente para el frontend de la pantalla:** diseño y renderizado real de pestañas en GBA; lectura de los registros adicionales por UID después de conectar el backend persistente. Esta capa es un proveedor de datos, no una pantalla ya dibujada.
+
 
 ## Fronteras de módulos futuras
 
