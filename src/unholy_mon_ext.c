@@ -88,3 +88,108 @@ bool32 UnholyMonExt_TryGetValue(const void *record, u32 availableBytes,
 
     return FALSE;
 }
+
+bool32 UnholyMonExt_Init(void *record, u32 availableBytes, u32 uidLow, u32 uidHigh,
+                         u16 gearId, u8 hiddenAbilitySlot)
+{
+    struct UnholyMonExtHeader header = {0};
+
+    if (record == NULL || availableBytes < sizeof(header)
+     || (uidLow == 0 && uidHigh == 0))
+        return FALSE;
+
+    header.magic = UNHOLY_MON_EXT_MAGIC;
+    header.version = UNHOLY_MON_EXT_VERSION;
+    header.totalBytes = sizeof(header);
+    header.uidLow = uidLow;
+    header.uidHigh = uidHigh;
+    header.gearId = gearId;
+    header.hiddenAbilitySlot = hiddenAbilitySlot;
+    memcpy(record, &header, sizeof(header));
+    return TRUE;
+}
+
+bool32 UnholyMonExt_TrySetValue(void *record, u32 availableBytes,
+                               u16 domain, u16 key, s32 value)
+{
+    struct UnholyMonExtHeader header;
+    struct UnholyMonExtEntry entry;
+    u8 *data = record;
+    u32 pos;
+
+    if (domain == 0 || key == 0 || !UnholyMonExt_Validate(record, availableBytes))
+        return FALSE;
+
+    memcpy(&header, data, sizeof(header));
+
+    // Find the first key >= requested (domain,key).
+    for (pos = 0; pos < header.entryCount; pos++)
+    {
+        memcpy(&entry, data + sizeof(header) + pos * sizeof(entry), sizeof(entry));
+        if (entry.domain > domain
+         || (entry.domain == domain && entry.key >= key))
+            break;
+    }
+
+    if (pos < header.entryCount && entry.domain == domain && entry.key == key)
+    {
+        entry.value = value;
+        memcpy(data + sizeof(header) + pos * sizeof(entry), &entry, sizeof(entry));
+        return TRUE;
+    }
+
+    // No partial writes on capacity failures, including the u16 length limit.
+    if (availableBytes - header.totalBytes < sizeof(entry)
+     || (u32)header.totalBytes + sizeof(entry) > 0xFFFFu
+     || header.entryCount == 0xFFFFu)
+        return FALSE;
+
+    memmove(data + sizeof(header) + (pos + 1) * sizeof(entry),
+            data + sizeof(header) + pos * sizeof(entry),
+            (header.entryCount - pos) * sizeof(entry));
+    entry.domain = domain;
+    entry.key = key;
+    entry.value = value;
+    memcpy(data + sizeof(header) + pos * sizeof(entry), &entry, sizeof(entry));
+
+    header.entryCount++;
+    header.totalBytes += sizeof(entry);
+    memcpy(data, &header, sizeof(header));
+    return TRUE;
+}
+
+bool32 UnholyMonExt_TryRemoveValue(void *record, u32 availableBytes,
+                                  u16 domain, u16 key)
+{
+    struct UnholyMonExtHeader header;
+    struct UnholyMonExtEntry entry;
+    u8 *data = record;
+
+    if (domain == 0 || key == 0 || !UnholyMonExt_Validate(record, availableBytes))
+        return FALSE;
+
+    memcpy(&header, data, sizeof(header));
+
+    for (u32 pos = 0; pos < header.entryCount; pos++)
+    {
+        memcpy(&entry, data + sizeof(header) + pos * sizeof(entry), sizeof(entry));
+        if (entry.domain == domain && entry.key == key)
+        {
+            memmove(data + sizeof(header) + pos * sizeof(entry),
+                    data + sizeof(header) + (pos + 1) * sizeof(entry),
+                    (header.entryCount - pos - 1) * sizeof(entry));
+
+            header.entryCount--;
+            header.totalBytes -= sizeof(entry);
+            // Make it harder to accidentally read stale, formerly-live data.
+            memset(data + header.totalBytes, 0, sizeof(entry));
+            memcpy(data, &header, sizeof(header));
+            return TRUE;
+        }
+        if (entry.domain > domain
+         || (entry.domain == domain && entry.key > key))
+            return FALSE;
+    }
+
+    return FALSE;
+}
