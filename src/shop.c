@@ -129,6 +129,7 @@ static EWRAM_DATA bool8 sHorizonPokemonConfirm = FALSE;
 static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
 static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
+static EWRAM_DATA u16 sHorizonGoodsSelection = 0; // Horizontal purchase carousel.
 static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
 static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
 static EWRAM_DATA u16 sHorizonSavedPalette[16];
@@ -161,6 +162,7 @@ static void BuyMenuDrawGraphics(void);
 static void BuyMenuAddScrollIndicatorArrows(void);
 static void Task_BuyMenu(u8 taskId);
 static void BuyMenuBuildListMenuTemplate(void);
+static void BuyMenuDrawHorizonGoods(void);
 static void BuyMenuInitBgs(void);
 static void BuyMenuInitWindows(void);
 static void BuyMenuDecompressBgGraphics(void);
@@ -238,6 +240,7 @@ static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
+static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY  B: BACK");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Rotating TMs.\nBy badge and time.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies +\nrotating specials.\nA: BUY");
@@ -1079,12 +1082,14 @@ static void Task_HorizonEggs(u8 taskId)
 
 static void Task_HorizonDiscs(u8 taskId)
 {
+    sHorizonGoodsSelection = 0;
     SetShopItemsForSale(HorizonGoodsGetDiscs());
     Task_HandleShopMenuBuy(taskId);
 }
 
 static void Task_HorizonItems(u8 taskId)
 {
+    sHorizonGoodsSelection = 0;
     SetShopItemsForSale(HorizonGoodsGetItems());
     Task_HandleShopMenuBuy(taskId);
 }
@@ -1265,7 +1270,18 @@ static void CB2_InitBuyMenu(void)
         BuyMenuDrawGraphics();
         BuyMenuAddScrollIndicatorArrows();
         taskId = CreateTask(Task_BuyMenu, 8);
-        gTasks[taskId].tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, 0, 0);
+        if (sHorizonActive)
+        {
+            // No hidden vertical list or cursor in the Horizon buying screen.
+            gTasks[taskId].tListTaskId = TASK_NONE;
+            BuyMenuDrawHorizonGoods();
+            if (sMartInfo.itemCount != 0)
+                BuyMenuPrintItemDescriptionAndShowItemIcon(sMartInfo.itemList[0], TRUE, NULL);
+        }
+        else
+        {
+            gTasks[taskId].tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, 0, 0);
+        }
         BlendPalettes(PALETTES_ALL, 16, RGB_BLACK);
         BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_BLACK);
         SetVBlankCallback(VBlankCB_BuyMenu);
@@ -1383,6 +1399,8 @@ static void BuyMenuPrintPriceInList(u8 windowId, u32 itemId, u8 y)
 
 static void BuyMenuAddScrollIndicatorArrows(void)
 {
+    if (sHorizonActive)
+        return;
     if (sShopData->scrollIndicatorsTaskId == TASK_NONE && sMartInfo.itemCount + 1 > MAX_ITEMS_SHOWN)
     {
         sShopData->scrollIndicatorsTaskId = AddScrollIndicatorArrowPairParameterized(
@@ -1406,8 +1424,91 @@ static void BuyMenuRemoveScrollIndicatorArrows(void)
     }
 }
 
+// Horizon Items and Discs: three actual products across the screen rather
+// than the traditional vertical PokéMart list.  L/R scroll a circular window
+// and the underlying purchase flow (money, quantity, stock) is unchanged.
+static void BuyMenuDrawHorizonGoods(void)
+{
+    u16 count = sMartInfo.itemCount;
+    u8 selectedName[ITEM_NAME_LENGTH + 2];
+
+    if (!sHorizonActive)
+        return;
+
+    FillWindowPixelBuffer(WIN_ITEM_LIST, PIXEL_FILL(1));
+    if (count == 0)
+    {
+        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 55, 24,
+                                     0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                     TEXT_SKIP_DRAW, gText_SoldOut);
+    }
+    else
+    {
+        for (u8 column = 0; column < 3; column++)
+        {
+            s32 relative = (s32)column - 1;
+            u16 index = (sHorizonGoodsSelection + count + relative) % count;
+            enum Item item = sMartInfo.itemList[index];
+            const u8 *fullName = GetItemName(item);
+            u8 label[11];
+            u8 x = 5 + column * 70;
+            u8 len = 0;
+
+            while (len < 9 && fullName[len] != EOS)
+            {
+                label[len] = fullName[len];
+                len++;
+            }
+            label[len] = EOS;
+
+            // A subtle card edge distinguishes the selected slot even in
+            // the monochrome shop palette.
+            FillWindowPixelRect(WIN_ITEM_LIST,
+                                PIXEL_FILL(column == 1 ? 3 : 2), x, 4, 64, 2);
+            FillWindowPixelRect(WIN_ITEM_LIST,
+                                PIXEL_FILL(column == 1 ? 3 : 2), x, 34, 64, 2);
+            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 3, 11,
+                                         0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                         TEXT_SKIP_DRAW, label);
+
+            if (GetItemImportance(item)
+             && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
+            {
+                AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
+                                             x + 9, 24, 0, 0,
+                                             sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                             TEXT_SKIP_DRAW, gText_SoldOut);
+            }
+            else
+            {
+                ConvertIntToDecimalStringN(gStringVar1,
+                                           GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT),
+                                           STR_CONV_MODE_LEFT_ALIGN, 6);
+                AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
+                                             x + 7, 24, 0, 0,
+                                             sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                             TEXT_SKIP_DRAW, gStringVar1);
+            }
+        }
+
+        StringCopy(selectedName, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]));
+        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
+                                     GetStringCenterAlignXOffset(FONT_NARROW, selectedName, 216),
+                                     40, 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                     TEXT_SKIP_DRAW, selectedName);
+    }
+
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 18, 54,
+                                 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                 TEXT_SKIP_DRAW, sHorizonGoodsControls);
+    PutWindowTilemap(WIN_ITEM_LIST);
+    CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
+}
+
 static void BuyMenuPrintCursor(u8 scrollIndicatorsTaskId, u8 colorSet)
 {
+    if (sHorizonActive)
+        return;
     u8 y = ListMenuGetYCoordForPrintingArrowCursor(scrollIndicatorsTaskId);
     BuyMenuPrint(WIN_ITEM_LIST, gText_SelectorArrow2, 0, y, 0, colorSet);
 }
@@ -1481,7 +1582,21 @@ static void BuyMenuDecompressBgGraphics(void)
 
 static void BuyMenuInitWindows(void)
 {
-    InitWindows(sShopBuyMenuWindowTemplates);
+    if (sHorizonActive)
+    {
+        struct WindowTemplate templates[ARRAY_COUNT(sShopBuyMenuWindowTemplates)];
+        memcpy(templates, sShopBuyMenuWindowTemplates, sizeof(templates));
+        // Wide horizontal purchase cards leave the regular Mart layout alone.
+        templates[WIN_ITEM_LIST].tilemapLeft = 2;
+        templates[WIN_ITEM_LIST].tilemapTop = 4;
+        templates[WIN_ITEM_LIST].width = 27;
+        templates[WIN_ITEM_LIST].height = 8;
+        InitWindows(templates);
+    }
+    else
+    {
+        InitWindows(sShopBuyMenuWindowTemplates);
+    }
     DeactivateAllTextPrinters();
     LoadUserWindowBorderGfx(WIN_MONEY, 1, BG_PLTT_ID(13));
     LoadMessageBoxGfx(WIN_MONEY, 0xA, BG_PLTT_ID(14));
@@ -1713,8 +1828,41 @@ static void Task_BuyMenu(u8 taskId)
 
     if (!gPaletteFade.active)
     {
-        s32 itemId = ListMenu_ProcessInput(tListTaskId);
-        ListMenuGetScrollAndRow(tListTaskId, &sShopData->scrollOffset, &sShopData->selectedRow);
+        s32 itemId;
+
+        if (sHorizonActive)
+        {
+            if (JOY_NEW(DPAD_LEFT | L_BUTTON) && sMartInfo.itemCount != 0)
+            {
+                sHorizonGoodsSelection = (sHorizonGoodsSelection + sMartInfo.itemCount - 1)
+                                        % sMartInfo.itemCount;
+                PlaySE(SE_SELECT);
+                BuyMenuDrawHorizonGoods();
+                BuyMenuPrintItemDescriptionAndShowItemIcon(
+                    sMartInfo.itemList[sHorizonGoodsSelection], TRUE, NULL);
+                return;
+            }
+            if (JOY_NEW(DPAD_RIGHT | R_BUTTON) && sMartInfo.itemCount != 0)
+            {
+                sHorizonGoodsSelection = (sHorizonGoodsSelection + 1) % sMartInfo.itemCount;
+                PlaySE(SE_SELECT);
+                BuyMenuDrawHorizonGoods();
+                BuyMenuPrintItemDescriptionAndShowItemIcon(
+                    sMartInfo.itemList[sHorizonGoodsSelection], TRUE, NULL);
+                return;
+            }
+            if (JOY_NEW(B_BUTTON))
+                itemId = LIST_CANCEL;
+            else if (JOY_NEW(A_BUTTON) && sMartInfo.itemCount != 0)
+                itemId = sMartInfo.itemList[sHorizonGoodsSelection];
+            else
+                return;
+        }
+        else
+        {
+            itemId = ListMenu_ProcessInput(tListTaskId);
+            ListMenuGetScrollAndRow(tListTaskId, &sShopData->scrollOffset, &sShopData->selectedRow);
+        }
 
         switch (itemId)
         {
@@ -1950,8 +2098,18 @@ static void BuyMenuReturnToItemList(u8 taskId)
     s16 *data = gTasks[taskId].data;
 
     ClearDialogWindowAndFrameToTransparent(WIN_MESSAGE, FALSE);
-    RedrawListMenu(tListTaskId);
-    BuyMenuPrintCursor(tListTaskId, COLORID_ITEM_LIST);
+    if (sHorizonActive)
+    {
+        BuyMenuDrawHorizonGoods();
+        if (sMartInfo.itemCount != 0)
+            BuyMenuPrintItemDescriptionAndShowItemIcon(
+                sMartInfo.itemList[sHorizonGoodsSelection], TRUE, NULL);
+    }
+    else
+    {
+        RedrawListMenu(tListTaskId);
+        BuyMenuPrintCursor(tListTaskId, COLORID_ITEM_LIST);
+    }
     PutWindowTilemap(WIN_ITEM_LIST);
     PutWindowTilemap(WIN_ITEM_DESCRIPTION);
     ScheduleBgCopyTilemapToVram(0);
@@ -2039,6 +2197,7 @@ void CreateHorizonShopMenu(void)
     HorizonMarketRefresh();
     sHorizonActive = TRUE;
     sHorizonSelectedTab = 0;
+    sHorizonGoodsSelection = 0;
     sHorizonPokemonBrowsing = FALSE;
     sHorizonEggBrowsing = FALSE;
     sHorizonEggConfirm = FALSE;
