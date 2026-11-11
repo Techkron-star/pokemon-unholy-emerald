@@ -3209,6 +3209,9 @@ static void Task_SortFinish(u8 taskId)
 
 void SortItemsInBag(struct BagPocket *pocket, enum BagSortOptions type)
 {
+    // Filtered category views are snapshots, never a persistent pocket.
+    if (pocket->id >= POCKET_GEARS && pocket->id < POCKETS_COUNT)
+        return;
     switch (type)
     {
     case SORT_ALPHABETICALLY:
