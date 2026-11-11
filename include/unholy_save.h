@@ -11,12 +11,27 @@
 #define UNHOLY_SAVE4_VERSION       1
 #define UNHOLY_SAVE4_PAYLOAD_BYTES 1612
 
+// A fifth logical block fits in PokemonStorage's unused ninth-sector tail:
+// 9 * 3968 - 34144 = 1568 bytes. Separate from the BoxPokemon data, after
+// all existing fields; therefore box offsets and encryption are untouched.
+#define UNHOLY_SAVE5_MAGIC         0x554E4835 // ASCII 'UNH5'
+#define UNHOLY_SAVE5_VERSION       1
+#define UNHOLY_SAVE5_PAYLOAD_BYTES 1560
+
 struct SaveBlock4
 {
     u32 magic;
     u16 version;
     u16 flags; // Reserved for format migrations, NOT game progression flags.
     u8 payload[UNHOLY_SAVE4_PAYLOAD_BYTES];
+};
+
+struct SaveBlock5
+{
+    u32 magic;
+    u16 version;
+    u16 flags;
+    u8 payload[UNHOLY_SAVE5_PAYLOAD_BYTES];
 };
 
 // Initializes a new/legacy save's extension on first use. Returns NULL when
@@ -27,5 +42,8 @@ struct SaveBlock4 *UnholySave4_Get(void);
 // Explicit reset for a deliberate, versioned save migration or a new game.
 // Normal callers should use UnholySave4_Get instead.
 void UnholySave4_Reset(void);
+
+struct SaveBlock5 *UnholySave5_Get(void);
+void UnholySave5_Reset(void);
 
 #endif // GUARD_UNHOLY_SAVE_H
