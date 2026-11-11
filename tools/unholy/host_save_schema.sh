@@ -12,6 +12,7 @@ cat > "$TMP/global.h" <<'EOF'
 #include <stdint.h>
 #include <string.h>
 typedef uint8_t u8;
+typedef int8_t s8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef int32_t s32;
@@ -35,6 +36,6 @@ EOF
 
 ${CC:-cc} -std=c11 -O2 -Wall -Wextra -Werror -pedantic \
   -I"$TMP" -I"$ROOT/include" \
-  "$ROOT/src/unholy_save.c" "$ROOT/src/unholy_mon_ext.c" \
+  "$ROOT/src/unholy_save.c" "$ROOT/src/unholy_mon_ext.c" "$ROOT/src/stamina_ring.c" \
   "$ROOT/tools/unholy/host_save_schema.c" -o "$TMP/unholy-save-host"
 "$TMP/unholy-save-host"
