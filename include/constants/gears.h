@@ -1,13 +1,14 @@
 #ifndef GUARD_CONSTANTS_GEARS_H
 #define GUARD_CONSTANTS_GEARS_H
 
-// ID del Gear equipado en cada Pokémon. Se guarda en 5 bits (0-31), así que
-// el sistema admite como máximo GEAR_MAX_COUNT Gears (GEAR_NONE incluido).
+// ID del Gear equipado en cada Pokémon. Ahora se guarda en 8 bits (0-255)
+// repartidos entre los 5 bits originales y 3 bits antes sin usar.
+// Los antiguos Gear IDs (0-31) mantienen su representación binaria.
 //
 // Para añadir un Gear nuevo: pon su constante justo ANTES de GEAR_COUNT y NO
 // reordenes ni borres las anteriores (los IDs ya están en las partidas guardadas).
 // Guía completa: docs/GEARS.md
-#define GEAR_MAX_COUNT 32
+#define GEAR_MAX_COUNT 256
 
 enum Gear
 {
