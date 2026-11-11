@@ -307,6 +307,11 @@ static void DebugAction_PCBag_Fill_PocketPokeBalls(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketTMHM(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketBerries(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketKeyItems(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketBattleItems(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMedicine(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketGears(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMail(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMisc(u8 taskId);
 static void DebugAction_PCBag_ClearBag(u8 taskId);
 static void DebugAction_PCBag_ClearBoxes(u8 taskId);
 
@@ -617,6 +622,11 @@ static const struct DebugMenuOption sDebugMenu_Actions_PCBag_Fill[] =
     { COMPOUND_STRING("Fill Pocket TMHM"),          DebugAction_PCBag_Fill_PocketTMHM },
     { COMPOUND_STRING("Fill Pocket Berries"),       DebugAction_PCBag_Fill_PocketBerries },
     { COMPOUND_STRING("Fill Pocket Key Items"),     DebugAction_PCBag_Fill_PocketKeyItems },
+    { COMPOUND_STRING("Fill Pocket Battle"),        DebugAction_PCBag_Fill_PocketBattleItems },
+    { COMPOUND_STRING("Fill Pocket Medicine"),      DebugAction_PCBag_Fill_PocketMedicine },
+    { COMPOUND_STRING("Fill Pocket Gears"),         DebugAction_PCBag_Fill_PocketGears },
+    { COMPOUND_STRING("Fill Pocket Mail"),          DebugAction_PCBag_Fill_PocketMail },
+    { COMPOUND_STRING("Fill Pocket Misc"),          DebugAction_PCBag_Fill_PocketMisc },
     { NULL }
 };
 
@@ -3882,15 +3892,49 @@ static void DebugAction_PCBag_Fill_PCItemStorage(u8 taskId)
     }
 }
 
-static void DebugAction_PCBag_Fill_PocketItems(u8 taskId)
+// Debug filling uses exactly the same classification as the normal Bag view.
+// AddBagItem still writes the canonical save-backed physical pocket.
+static void Debug_PCBag_FillDisplayPocket(enum Pocket pocketId)
 {
     enum Item itemId;
+    u16 quantity = (pocketId == POCKET_KEY_ITEMS || pocketId == POCKET_GEARS)
+                 ? 1 : MAX_BAG_ITEM_CAPACITY;
 
     for (itemId = 1; itemId < ITEMS_COUNT; itemId++)
     {
-        if ((GetItemPocket(itemId) == POCKET_ITEMS || GetItemPocket(itemId) == POCKET_BATTLE_ITEMS) && CheckBagHasSpace(itemId, MAX_BAG_ITEM_CAPACITY))
-            AddBagItem(itemId, MAX_BAG_ITEM_CAPACITY);
+        if (GetItemDisplayPocket(itemId) == pocketId && CheckBagHasSpace(itemId, quantity))
+            AddBagItem(itemId, quantity);
     }
+}
+
+static void DebugAction_PCBag_Fill_PocketItems(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_ITEMS);
+}
+
+static void DebugAction_PCBag_Fill_PocketBattleItems(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_BATTLE_ITEMS);
+}
+
+static void DebugAction_PCBag_Fill_PocketMedicine(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MEDICINE);
+}
+
+static void DebugAction_PCBag_Fill_PocketGears(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_GEARS);
+}
+
+static void DebugAction_PCBag_Fill_PocketMail(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MAIL);
+}
+
+static void DebugAction_PCBag_Fill_PocketMisc(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MISC);
 }
 
 static void DebugAction_PCBag_Fill_PocketPokeBalls(u8 taskId)
@@ -3928,13 +3972,7 @@ static void DebugAction_PCBag_Fill_PocketBerries(u8 taskId)
 
 static void DebugAction_PCBag_Fill_PocketKeyItems(u8 taskId)
 {
-    enum Item itemId;
-
-    for (itemId = 1; itemId < ITEMS_COUNT; itemId++)
-    {
-        if (GetItemPocket(itemId) == POCKET_KEY_ITEMS && CheckBagHasSpace(itemId, 1))
-            AddBagItem(itemId, 1);
-    }
+    Debug_PCBag_FillDisplayPocket(POCKET_KEY_ITEMS);
 }
 
 static void DebugAction_PCBag_ClearBag(u8 taskId)

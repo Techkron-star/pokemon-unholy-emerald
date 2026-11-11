@@ -1,5 +1,7 @@
 #include "global.h"
 #include "item.h"
+#include "gear.h"
+#include "mail.h"
 #include "berry.h"
 #include "pokeball.h"
 #include "string_util.h"
@@ -907,6 +909,37 @@ u8 GetItemConsumability(enum Item itemId)
 enum Pocket GetItemPocket(enum Item itemId)
 {
     return gItemsInfo[SanitizeItemId(itemId)].pocket;
+}
+
+// Single source of truth for the visible Bag category. Item creation, removal
+// and debug insertion continue using GetItemPocket for save-backed storage.
+enum Pocket GetItemDisplayPocket(enum Item itemId)
+{
+    enum Item validItem = SanitizeItemId(itemId);
+    enum Pocket storagePocket = GetItemPocket(validItem);
+
+    if (storagePocket == POCKET_KEY_ITEMS && Gear_FromItem(validItem) != GEAR_NONE)
+        return POCKET_GEARS;
+
+    if (storagePocket == POCKET_ITEMS)
+    {
+        if (ItemIsMail(validItem))
+            return POCKET_MAIL;
+
+        switch (gItemsInfo[validItem].sortType)
+        {
+        case ITEM_TYPE_UNCATEGORIZED:
+        case ITEM_TYPE_SHARD:
+        case ITEM_TYPE_SELLABLE:
+        case ITEM_TYPE_RELIC:
+        case ITEM_TYPE_FOSSIL:
+            return POCKET_MISC;
+        default:
+            break;
+        }
+    }
+
+    return storagePocket;
 }
 
 enum ItemType GetItemType(enum Item itemId)
