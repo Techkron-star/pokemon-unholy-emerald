@@ -3441,7 +3441,7 @@ static const struct DebugSelectionStep sShinynessSelectionStep = {
 // Keep this order aligned with the masks in completion below.
 static void DebugSelectionStep_UpdateUnholyMutation(u8 taskId, u8 digits, u32 min, u32 max)
 {
-    static const u8 *const names[] =
+    const u8 *const names[] =
     {
         COMPOUND_STRING("Alpha"),
         COMPOUND_STRING("Super"),
