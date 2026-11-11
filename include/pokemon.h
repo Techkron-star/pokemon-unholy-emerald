@@ -1,3 +1,4 @@
+successfully downloaded text file (SHA: c271595282ad13a278962a6876429e3bcbf1e3bd)
 successfully downloaded text file (SHA: 09ddeaf25b54813eef9b81e9b44296e68d06bde2)
 #ifndef GUARD_POKEMON_H
 #define GUARD_POKEMON_H
@@ -126,6 +127,11 @@ enum MonData {
     MON_DATA_GIGANTAMAX_FACTOR,
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
+    // --- Unholy Emerald: Stamina y mutación ---
+    MON_DATA_STAMINA_CURRENT,
+    MON_DATA_STAMINA_MAX,
+    MON_DATA_MUTATION_MASK,
+    MON_DATA_MUTATION_TIER,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
