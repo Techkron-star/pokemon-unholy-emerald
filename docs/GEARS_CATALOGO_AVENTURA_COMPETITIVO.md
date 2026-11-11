@@ -11,6 +11,18 @@
 5. Los efectos que **potencian el mismo aspecto** que un objeto ordinario deben **promediar sus bonificaciones**, conforme a `docs/GEARS.md`; no multiplicar ni sumar automáticamente. Los efectos de distinta naturaleza se evalúan por separado.
 6. Solo los Gears marcados **implementados y probados** pueden anunciarse como funcionales en ROM. En particular, no basta registrar un ID/nombre para afirmar que protege de trampas o efectos secundarios.
 
+## Equipamiento dual para NPC y jefes (decisión confirmada)
+
+- **Los NPC también portan objetos ordinarios + Gears simultáneamente**, ambos en slots independientes de cada Pokémon; no es una ventaja exclusiva del jugador.
+- Los **jefes** deben tener composiciones predefinidas y coherentes con ambas piezas: el Gear complementa su rol, movimientos y habilidad, y puede sincronizarse con la estrategia del equipo.
+- Los entrenadores ordinarios pueden tener ambos; las tasas exactas de aparición y desbloqueo por progreso **no están fijadas**.
+- La IA utiliza el mismo motor y está sometida a idénticas fases de **sobrecarga y recarga**, consume sus recursos normalmente y no reinicia el ciclo con cambios; los bonos que coinciden con un objeto ordinario siguen el promedio acordado.
+- Los Gears equipados en NPC deben registrarse como datos por Pokémon en equipos de entrenador, **sin sobrescribir el objeto ordinario**. En individuales y dobles se evalúa el Gear que realmente lleva cada participante.
+- Debe haber pistas visuales sobre la presencia y fase del Gear rival, respetando las reglas para revelar el objeto ordinario, y sin filtrar ventajas ocultas gratuitamente.
+- **Pruebas mínimas:** jugador/NPC simétricos; NPC sin Gear, solo Gear, solo objeto, ambos; jefes con equipos completos; fases del ciclo; cambios; dobles; movimientos encadenados; coincidencia de bonificaciones y cálculo de IA.
+
+**Estado:** especificación confirmada, **no** implementación de equipamiento de entrenadores ni prueba de emulador.
+
 ## Las Sangres: una por CADA tipo (18 en total)
 
 La lista anterior de cuatro Sangres era **incompleta**, no un límite. Son dieciocho identidades distintas, una por cada tipo; los cuatro nombres anteriores se conservan.
