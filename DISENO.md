@@ -10,13 +10,13 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 
 ---
 
-## Estado de implementación (rama `feat/stamina`)
+## Estado de implementación (auditoría de la rama experimental, 11/11/2026)
 
 | Pieza | Estado |
 |---|---|
 | Menú de debug (ítems, dinero, Pokémon) | Hecho (el de pokeemerald-expansion, activado en el menú de inicio) |
 | Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo relativo a stamina máxima (14% base + potencia efectiva/10 puntos porcentuales). Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
-| Barra de stamina | Implementada y compilada; clon de la barra de vida con colores y animación. Falta validación visual en emulador/hardware (`STAMINA_BAR_Y_OFFSET`) |
+| HUD de Stamina | PR #26: anillos compactos de 16×16 para aliado y rival, compartiendo paleta y siguiendo la tarjeta de PS. **Pendiente de QA visual real** en batallas simples/dobles y cambios; no es la barra horizontal antigua |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
 | Movimientos encadenados | Implementado en combates individuales: SELECT marca el primer movimiento, A confirma el segundo; el rival obtiene una acción extra y también puede encadenar |
@@ -31,14 +31,30 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Progresión de crafteo | Al iniciar se reciben Repartir EXP, correr y bicicleta; el menú de crafteo se desbloquea tras la primera medalla mediante Roxanne |
 | Horizon Shop desde el menú | Corregido el retorno: ya no intenta reabrir el menú principal sobre la tienda y vuelve al campo correctamente |
 | Captura de mutaciones | Corregida la captura de Enraged/Omega: ya no son imposibles; conservan su penalización de probabilidad |
-| Identificación de mutaciones | El resumen del Pokémon muestra `MUT: A S E O` junto a la habilidad; Birch explica los símbolos tras el rescate |
+| Identificación de mutaciones | El Resumen experimental muestra nueve mutaciones y modificadores reales en páginas; los símbolos en combate y textos siguen sujetos a validación visual |
 | Encadenamiento rival | El segundo movimiento no puede repetir el mismo movimiento del primero; la selección muestra `▶2` y el coste de stamina se reorganiza sin solaparse |
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
-| Horizon Shop | Entrada en el menú principal y catálogo inicial fijo de objetos implementados; Pokémon, huevos, discos, servicios y rotación persistente pendientes |
+| Horizon Shop | Rama apilada: cinco pestañas horizontales; seis Pokémon, cinco huevos y stock persistente de objetos/discos. PR #26 añade catálogo horizontal de compras. Esta entrega añade selector real **LEARN / FORGET**; **pendiente de comprobar ciclo completo en emulador** |
 | Gestión de movimientos | Exclusiva de Horizon Shop: se retiran LEARN del equipo y START RELEARN del resumen; el acceso de Horizon conserva el recordador existente |
-| Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
+| Balls, Pokémon especiales, Gears, Super Liga | Omega Ball e Infinity Ball existen; seis Gears con equipamiento separado (`EQUIP`) y efectos registrados en la rama. Sangres de 18 tipos, Gears mayores, Super Liga y recompensa jugable **pendientes** |
+
+### Avance integrado en ramas apiladas (11/11/2026)
+
+**Aclaración de estado:** «Implementado en código» no equivale a «jugable y fusionado». Los PR **#22 → #27** siguen siendo experimentales y apilados; este lote añade otra rama encima de #27. No se ha integrado en `master` ni probado de extremo a extremo en Pizza Boy.
+
+| Sistema | Implementación disponible en rama experimental | Validación necesaria |
+|---|---|---|
+| Mochila | 10 categorías visibles; GE/ML/MS son vistas únicas de slots reales, con llenado debug clasificado; franja negra de etiquetas eliminada (PR #25) | Regalar/usar/tirar/Gear/EQUIP, debug llenado, guardar y reabrir |
+| Resumen de Pokémon | A alterna estadísticas/IV/EV; L/R recorre stamina máxima, Gear, mutaciones y EV; página adicional de modificadores (PR #23/#24) | Pantallas de huevos, mutantes, tablas, texto y compatibilidad con PC |
+| Mutaciones especiales de origen | Iniciales por script, huevos de guardería, regalos e intercambios NPC: tirada única; tiers C/B tienen probabilidad ×1,15 (PR #27) | RNG, persistencia, sin doble tirada ni cambios a huevos Horizon |
+| Horizon compra | Pokémon/huevos de RNG persistente; tres tarjetas horizontales para Objetos y Discos (PR #26) | Stock, regresión al salir, cantidades, Eclipse/Daylight, iconos |
+| Horizon MOVES | **LEARN y FORGET** seleccionables en la misma pestaña; FORGET reutiliza el selector de movimiento y el borrador del juego (este lote) | Confirmación/cancelación, uno o varios movimientos, Surf y regreso al campo |
+| Encadenado | Los movimientos que bloquean/reflejan ataques (Protect, Endure, Mat Block, Magic Coat) quedan excluidos, incluido turno extra rival (este lote) | Tests automáticos y combate real con cadenas y agotamiento |
+| Guardado | Bloques lógicos extendidos y prototipos de identidad, **sin backend físico real de 1 MiB** (PR #22) | Compatibilidad save/load, checksums y emuladores |
+
+**CI:** la ejecución de #27 compiló Emerald, FireRed, LeafGreen y release y pasó documentación; la batería general de tests estaba en curso en la última consulta. Una compilación GBA no sustituye la prueba de interacción en emulador.
 
 ### Cambios recientes verificados
 
@@ -65,7 +81,7 @@ Todos los números de balance están en `include/config/stamina.h`.
 ### Movimientos encadenados (compuestos)
 - Se pueden ejecutar **máximo dos movimientos encadenados naturalmente**, con restricciones; **los dos cuentan como un solo turno**.
 - Cada movimiento consume su stamina correspondiente. No se pueden repetir movimientos dentro de la misma cadena (regla previa del diseño).
-- Los movimientos de protección o que anulan un ataque durante un turno (tipo Protect) **no se encadenan** con otros.
+- Los movimientos de protección o que anulan un ataque durante un turno (tipo Protect) **no se encadenan** con otros. También quedan excluidos los de efecto Mat Block y Magic Coat. El turno extra del rival no puede saltarse esta restricción.
 - Un turno con dos movimientos solo avanza **una vez** la recarga de Gears y efectos medidos por turnos.
 - Resto de restricciones y orden de actuación frente al rival: pendientes de detallar.
 
@@ -91,6 +107,10 @@ Todos los números de balance están en `include/config/stamina.h`.
 ### Tiers de mutación (10 noviembre 2026)
 
 Clasificación unificada por **poder/acceso**, distinta de las probabilidades RNG: **C** = Alpha y Hyper; **B** = Super y Overloaded; **A** = Enraged y Ancestral; **S** = Titan y Ascendido; **Ω** = Omega. Horizon Pokémon permite únicamente C/B/A; huevos admiten C/B/A/S/Ω por ruleta. Las combinaciones conservan todas sus mutaciones, el tier principal es el más alto y los bonos siguen siendo **aditivos**. Reglas, código y pruebas en [`docs/MUTATION_TIERS.md`](docs/MUTATION_TIERS.md).
+
+### Mutaciones en obtenciones especiales (PR #27)
+
+Los iniciales entregados mediante scripts, crías de guardería al recibir el huevo, regalos y Pokémon recibidos por intercambios NPC pueden tener cualquiera de las nueve mutaciones. **Alpha, Hyper, Super y Overloaded (tiers C/B) ganan un +15 % relativo de probabilidad**: Alpha pasa de 1 % a 1,15 %, no a 16 %. A/S/Omega conservan sus tasas. No se aplica este aumento al catálogo de huevos Horizon, encuentros salvajes ni intercambios multijugador. Las mutaciones fijadas previamente no se vuelven a sortear.
 
 ### Cambio de habilidades
 
@@ -119,14 +139,14 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 
 - La **Master Ball deja de ser 100%** con los especiales: su eficacia queda reducida al 75% contra Alpha, 35% contra Super, 12% contra Enraged y 3% contra Omega, antes de aplicar el resto de la fórmula de captura.
 - Como capturar un Omega exige una ball de end game, encontrarse uno a mitad del juego no sirve de nada intentarlo.
-- Los encuentros salvajes usan tasas bajas (Alpha 4%, Super 2%, Enraged 1%) y los enemigos tasas sustancialmente mayores (20%, 12%, 6%, Omega 2%). Cada badge se tira de forma independiente, por lo que las combinaciones son posibles.
+- **Balance histórico, no tasas actuales:** antes se propusieron porcentajes como Alpha 4 %, Super 2 % o Enraged 1 %. El código actual aplica los denominadores de `include/config/special_badges.h` y los gates de mutaciones múltiples; **no presentar aquellas cifras como probabilidades jugables**.
 - Enraged y Omega requieren Omega Ball o Infinity Ball. La Omega Ball no garantiza la captura; Infinity Ball sí. Master Ball nunca garantiza especiales.
 
 ---
 
 ## 4. Gears — decisiones y código (10/11/2026)
 
-- **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. Base del sistema: `feat/gears-system`.
+- **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. En la rama apilada existe equipamiento mediante acción `EQUIP` y bolsillo visual GE (PR #24/#25); el sistema **no está declarado estable** hasta QA de inventario y combates.
 - **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Visor, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
 - **Visor Cósmico:** +20 % a ataques especiales al sobrecargarse, +10 % residual; evolución de Gafas Especiales.
 - **Corazón de Titán:** +20 % a ataques físicos al sobrecargarse, +10 % residual; evolución de Banda Músculo.
@@ -138,7 +158,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - **Teseracto:** consumo único, como Gema equipada. Vuelve permanentes clima, campos, salas y trampas mientras no se eliminen explícitamente; NO se implementa sin cerrar disparador y todas las interacciones.
 - **Ancla de Realidad:** elimina clima, campos, salas y trampas, **incluso los hechos permanentes por Teseracto**; lo eliminado no reaparece. Pendiente si bloquea nueva activación durante la presencia.
 - **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
-- **Alcance real en código:** seis Gears con IDs, fases, daño y efectividades definidos en `feat/unholy-gear-effects-20261110`; aún falta UI de equipamiento y sprite HUD 16×32. No están integrados Teseracto/Ancla, y la evolución del sistema exige QA de combates dobles y guardados.
+- **Alcance real en código:** seis Gears con IDs, fases, daño y efectividades registrados; existen el selector `EQUIP` y un icono HUD inicial en la rama. Faltan las 18 Sangres, Teseracto/Ancla, recetas de obtención, temporizador de recarga visible y QA de combates dobles/guardados.
 
 ### Familia de Gears: Inyecciones sanguíneas
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
@@ -149,7 +169,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
 ### Estado de implementación (10 noviembre 2026)
-- El sistema base está en `feat/gears-system`; **seis Gears tienen lógica registrada en rama experimental**, sin UI de equipamiento ni arte HUD 16×32; detalles en [`docs/GEARS.md`](docs/GEARS.md).
+- El sistema base existe en `feat/gears-system`; **seis Gears tienen lógica registrada** y la rama apilada incorpora acción de equipar y bolsillo visual GE, **sin validación exhaustiva**; detalles en [`docs/GEARS.md`](docs/GEARS.md).
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
@@ -166,15 +186,15 @@ Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **
 - Crafting adopta panel de receta, requisitos visibles (poseído / requerido) y confirmación antes de consumir materiales.
 - Movimiento / aprender / olvidar reutiliza el flujo existente; se crea navegación uniforme, no una segunda lógica incompatible.
 
-**Estado:** especificado, pendiente de implementación en C y de validación visual en ROM/emulador.
+**Estado actualizado:** hay implementación en C de Eclipse/Daylight, pestañas horizontales, compras, huevos y el nuevo selector de movimientos. No están finalizadas todas las pantallas previstas, la ruleta animada ni las pruebas visuales reales en Pizza Boy.
 
 ---
 
-## 5. Horizon Shop (primera entrega implementada; catálogo avanzado pendiente)
+## 5. Horizon Shop (catálogo y flujos experimentales; pendiente de QA)
 
 Sistema de compras y servicios accesible desde el menú principal del juego. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
 
-Horizon Shop reutiliza el menú del PokéMart para objetos y discos. La rama `feat/unholy-horizon-six-stock-egg-roulette-20261110` desarrolla seis ofertas Pokémon persistentes y cinco rangos de huevos reales con calidad visual independiente por RNG. Compilación y pruebas de emulador pendientes.
+Horizon Shop conserva el motor de compra y dinero del PokéMart, pero la rama apilada ya implementa **tres tarjetas horizontales para Objetos/Discos**, seis ofertas Pokémon persistentes y cinco rangos de huevos con calidad visual independiente por RNG. La pestaña MOVES contiene **LEARN / FORGET**: aprender reutiliza el Move Relearner y olvidar reutiliza el Move Deleter. La compatibilidad de guardados, los flujos de retorno y la geometría todavía requieren QA en emulador.
 
 ### Catálogo y progresión
 - La oferta de **Pokémon y objetos** se selecciona de forma **aleatoria (RNG)** y cambia en función del **ciclo de día y noche** del juego.
@@ -188,7 +208,7 @@ Horizon Shop reutiliza el menú del PokéMart para objetos y discos. La rama `fe
 | **Objetos** | Tres suministros permanentes y cinco ofertas rotativas según medallas y día/noche, con stock guardado por semilla, sin reroll por abrir/cerrar. |
 | **Discos** | Seis MT aleatorias distintas y desbloqueadas por medallas y día/noche; selección persistente por período. |
 | **Huevos** | Cinco huevos visibles (Básico, Medio, Alto, Mítico, Legendario); cada uno tira su propia calidad visual Estándar/Radiante/Prismática. Tras comprar se sortea una especie oculta y hasta tres mutaciones; incluso legendario Omega. |
-| **Movimientos** | Servicio para **aprender y borrar movimientos** de tus Pokémon desde el mismo menú. |
+| **Movimientos** | Dos acciones reales **LEARN / FORGET**; permite elegir Pokémon, aprender mediante recordador y seleccionar el movimiento que se quiere olvidar. Respeta la protección del último movimiento y del último Surf. QA visual y de retorno pendiente. |
 
 ### Avisos de ofertas mutantes (10/11/2026)
 
@@ -358,11 +378,11 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
 - Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
 - HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
-- Acceso contextual `LEARN` desde el menú de acciones del Pokémon: implementado para abrir directamente el gestor con el Pokémon seleccionado; queda pendiente ampliar filtros y acciones avanzadas del gestor.
+- Acceso contextual `LEARN` desde el menú del Pokémon: implementado; Horizon MOVES añade `LEARN / FORGET` (este lote). Pendientes filtros, mensajes de error más claros y QA de retorno sin pantallas negras.
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: sistema y icono de esquina hechos (`docs/GEARS.md`); faltan Gears concretos, interfaz de equipar, obtención, entrenadores y HUD del turno de recarga.
+- Gears: sistema, icono inicial, bolsillo GE y acción EQUIP codificados (`docs/GEARS.md`); faltan 18 Sangres, Gears mayores, recetas, entrenadores y HUD de fase/recarga; QA de interacción y guardado bloqueante.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado
@@ -375,6 +395,21 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 ### P3 — Mejoras opcionales
 
 - Personalización estética, Pokémon acompañantes, estadísticas históricas y otras mejoras que no bloquean la versión jugable.
+
+### Entregas pendientes priorizadas tras esta auditoría
+
+| Prioridad | Próxima entrega | Criterio de aceptación / bloqueo |
+|---|---|---|
+| P0 | **Cierre de bugs UI y regresiones** | ROM descargable de la cabeza del PR; probar mochila 10 bolsillos, Horizon, STA aliado/rival simple/doble, regreso START y save/load; sin corrupción ni pantalla negra |
+| P0 | **Suite de pruebas general** | Separar fallos preexistentes de regresiones; corregir errores de conteo de sprites/captura. Solo fusionar con compilación limpia y QA manual |
+| P1 | **Crafting de Gears** | Recetas de múltiples materiales, vista de requisitos, confirmación y no consumir si falla espacio/materiales. Diseñar ingredientes antes de codificar 18 Sangres |
+| P1 | **Poké Simulator + Overloaded Exp. Share** | Primero definir costos, topes, fórmula EXP→huevos y compatibilidad Omega/Ascendido; no inventar balance |
+| P1 | **IA de líderes y revancha escalada** | Estrategia sin equipos artificialmente perfectos, Gears y mutaciones existentes, escalado por última medalla; pruebas de dobles/turnos |
+| P2 | **Mutator y Pokélocator** | Reglas de coste, reroll y recursos aún abiertas: diseñar interfaz y datos sin activar RNG no especificado |
+| P2 | **Super Liga y Rayquaza** | Requiere postgame, scripts/balance de jefes y recompensa Infinity Ball; Rayquaza transforma al caer a ≤75 % PS cuando proceda |
+| P3 | **Estados y habilidades nuevos** | No activar Desterrado, Terrornauta, esquiva ni Sangres completas hasta cerrar reglas que afectan guardado o interacción |
+
+**Dependencias:** la persistencia de datos ampliados/UID y la versión de guardado deben estabilizarse antes de introducir nuevos campos permanentes. No asumir que los PR apilados ya están en `master`.
 
 ## Orden de implementación sugerido
 
