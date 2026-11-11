@@ -296,6 +296,19 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Si el usuario noquea usando un movimiento que coincide con **uno de sus tipos**, obtiene prioridad para su siguiente turno, **sin superar movimientos de prioridad naturalmente mayor**.
 - Pensada para Pokémon rápidos como Sceptile; **no asignar a Dragonite** por defecto. Confirmar si una cadena de dos ataques cambia la activación.
 
+### Reaper (habilidad de ejecución por crítico)
+
+**Regla confirmada por el autor (11-11-2026):** cuando el portador de **Reaper** realiza un ataque que **resulta ser crítico** y, **después de aplicar el daño de ese ataque**, los PS restantes del Pokémon enemigo quedan **estrictamente por debajo del 15 % de sus PS máximos**, el enemigo es **ejecutado inmediatamente**: sus PS pasan a 0 y se procesa el debilitamiento normal, sin requerir otro ataque.
+
+- Requisitos: debe ser un **golpe crítico real acertado** del Pokémon con Reaper; no basta un ataque cualquiera, ni daño residual de clima/veneno, ni un crítico efectuado por otro Pokémon.
+- **Condición estricta:** `HP_restante * 100 < HP_maximo * 15` tras descontar daño; si queda **exactamente en 15 %**, no se ejecuta. Si el propio daño ya lo dejó a 0 PS, el KO ya se produjo y no se procesa un KO adicional.
+- **Solo objetivos enemigos** del portador. En combates dobles, evaluar independientemente cada rival alcanzado.
+- **Sin doble KO ni doble recompensa:** el daño extra de ejecución debe registrarse como consecuencia del movimiento del portador, sin conceder EXP, monedas, boosts o recarga de STA dos veces.
+- **Interacciones pendientes de cerrar antes de implementar:** Sustituto y daño al sustituto, protección que impide el golpe, Banda Focus, Robustez, Aguante, inmunidades de KO, efectos antiejecución especiales, multigolpe con críticos individuales y ataques que golpean a varios rivales. La descripción «ejecutado inmediatamente» no autoriza inventar excepciones especiales ni ignorar reglas de scripts sin documentarlas.
+- **QA obligatoria:** tras crítico, probar enemigo con 14.99 %, 15 % y más de 15 % de PS; no crítico; golpe fallido; daño residual; sustituto; críticos multigolpe; dobles; evaluación de la IA; KO/recompensa/efectos de post-KO.
+
+**Estado:** habilidad de diseño documentada; **no se ha agregado** a tablas de habilidades, especies, cadenas de texto ni lógica de combate. No confundir con un Gear.
+
 ### Esquivar (acción de combate)
 - Acción distinta de atacar/defender, con probabilidad de evasión base asociada a la **Velocidad**.
 - Tras cada **esquiva exitosa**, la probabilidad para la siguiente esquiva se **reduce a la mitad**.
