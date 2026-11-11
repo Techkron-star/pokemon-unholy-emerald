@@ -22,12 +22,14 @@ Es una **base de desarrollo** para crear ROM hacks de Pokémon Emerald, no un ju
 
 | Principio | Descripción |
 |-----------|-------------|
-| **No ampliar SaveBlock** | Los sistemas nuevos deben reutilizar variables de guardado existentes o usar espacio sin usar (ej. `0x40B8`, `0x40BB`, `0x40F7–0x40FE`). No cambiar el tamaño de `SaveBlock1` ni `SaveBlock2`. |
+| **No ampliar SaveBlock*** | Los sistemas nuevos deben reutilizar variables de guardado existentes o usar espacio sin usar (ej. `0x40B8`, `0x40BB`, `0x40F7–0x40FE`). No cambiar el tamaño de `SaveBlock1` ni `SaveBlock2`, salvo excepción documentada (ver §9.1). |
 | **Compatibilidad Emerald + FRLG** | El código debe compilar en Pokémon Emerald, FireRed y LeafGreen. Las banderas específicas de FRLG deben declararse para evitar errores de compilación (ej. EXP Share). |
 | **No romper mecánicas heredadas** | Precios base, IDs de objetos existentes, clasificaciones, SaveBlock, bonos porcentuales y denominadores de RNG no se alteran sin justificación. |
 | **Determinismo y persistencia** | Los sistemas con RNG (mercado, huevos, mutaciones) deben usar semillas persistentes para reproducir exactamente el mismo estado al abrir/cerrar, guardar/cargar y cambiar de pestaña. |
 | **UI segura** | Las pantallas nuevas no deben dejar callbacks pendientes, ventanas residuales ni congelar al jugador. El cierre debe liberar recursos y reconstruir el campo correctamente (`CB2_ReturnToFieldWithOpenMenu`). |
 | **Sin dualidad de callbacks verticales** | Mientras se navega en menús horizontales (Horizon), no usar `Menu_ProcessInputNoWrap` ni `Menu_MoveCursor` (pensados para menú vertical). |
+
+> ***Nota 9.1 — Excepción al principio "No ampliar SaveBlock":** El SaveBlock1 se amplió en +44 bytes para persistir datos de mutaciones, stamina, mercado Horizon y Gears (campos `mutationTier`, `mutationMask`, `mutationBadges`, `staminaCurrent`, `staminaMax`, `staminaCooldown`, `horizonSeedDiscs`, `horizonSeedItems`, `horizonPokemonOffer1/2`, `equippedGearSlot`, `gearCharges[6]`, `gearUnlockFlags`, `_gearPad`). Los campos se añadieron al final de `struct SaveBlock1` sin desplazar offsets existentes. SaveBlock1 pasó de 15568 a 15612 bytes; cabe en la holgura existente de 304 bytes sin tocar el mapa de flash. Esta es una excepción deliberada al principio #1; cualquier futura ampliación requiere justificación y actualización de este documento. Véase `docs/SAVEBLOCK_EXPANSION.md`.*
 
 ---
 
