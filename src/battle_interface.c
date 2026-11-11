@@ -1008,6 +1008,7 @@ static void SpriteCB_StaminaBar(struct Sprite *sprite)
 
     // Match HP box visibility when sliding, fainting, or opening menus.
     sprite->invisible = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible;
+    sprite->oam.priority = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].oam.priority;
     if (sprite->invisible)
         return;
 
