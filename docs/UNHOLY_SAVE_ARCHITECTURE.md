@@ -16,11 +16,11 @@
 
 La distribución actual de `save.h` contiene dos ranuras de 14 sectores de 4 KiB, más 4 sectores reservados; cada sector dispone de 3968 bytes del bloque principal, **116 bytes sidecar** de SaveBlock3 y 12 bytes de pie.
 
-- `SaveBlock4` **lógico**: 1620 bytes dentro del área lateral de SaveBlock3; desplazamiento 4 después de `dexNavChain`. Guarda cabecera de magic/version/flags y 1612 bytes de payload. No requiere hardware extra. Configuraciones que agreguen otros campos al inicio de SaveBlock3 deben revisar su presupuesto: `STATIC_ASSERT` abortará la compilación ante desborde.
-- `SaveBlock5` **lógico**: 1568 bytes anexados después de `struct PokemonStorage` previo (34144 bytes), dentro de su noveno sector. Guarda magic/version/flags y 1560 bytes de payload. La ubicación, el orden y el tamaño de BoxPokemon/PC y sus fusiones no cambian.
-- Los accessors `UnholySave4_Get` y `UnholySave5_Get` inicializan el área si no aparece el magic; si ven un `version` más reciente con magic válido, devuelven `NULL` en lugar de borrar datos. `Reset` es explícito.
+- `SaveBlock4` **lógico**: 1620 bytes dentro del área lateral de SaveBlock3; desplazamiento 4 después de `dexNavChain`. Guarda cabecera de magic/version/flags/CRC32 y 1608 bytes de payload. No requiere hardware extra. Configuraciones que agreguen otros campos al inicio de SaveBlock3 deben revisar su presupuesto: `STATIC_ASSERT` abortará la compilación ante desborde.
+- `SaveBlock5` **lógico**: 1568 bytes anexados después de `struct PokemonStorage` previo (34144 bytes), dentro de su noveno sector. Guarda magic/version/flags/CRC32 y 1556 bytes de payload. La ubicación, el orden y el tamaño de BoxPokemon/PC y sus fusiones no cambian.
+- Los accessors `UnholySave4_Get` y `UnholySave5_Get` inicializan áreas completamente vacías (todo `0x00` o `0xFF`). Con datos desconocidos, una versión posterior o un CRC inválido devuelven `NULL` sin sobrescribir nada. `Reset` es explícito. Después de cada modificación de payload/flags hay que llamar a `UnholySave4_Commit` o `UnholySave5_Commit` para actualizar el CRC32.
 - Conservar las dimensiones previas de `SaveBlock1` y `SaveBlock2`; la ampliación intencionada de mochila anterior ya aumentó SaveBlock1 a 15784 bytes (vs. 15568 de la prueba original). Los tests de tamaño se actualizan para verificar el contrato de la rama, NO para proclamar retrocompatibilidad con saves más antiguos.
-- **Advertencia:** las 116 bytes laterales de cada sector (SaveBlock3/4) no se incluyen en el cálculo tradicional de checksum del sector. Antes de colocar datos críticos de usuario en SaveBlock4 necesitamos comprobación adicional de integridad y recuperación por ranura. Por ahora es infraestructura preparada y no contenedor certificado para datos críticos.
+- **Advertencia:** los 116 bytes laterales de cada sector (SaveBlock3/4) no están en el checksum tradicional del sector. Ahora se comprueba su **CRC32 lógico**, que detecta corrupción, pero **todavía falta** reconciliación por generación y recuperación automática de la copia anterior: no es un contenedor certificado para progreso crítico.
 
 **Capacidad disponible en esta etapa:** ~3,180 bytes adicionales de almacenamiento lógico (1620 + 1568), sin cambio de la ROM respecto al .sav de 128 KiB. No confundir esto con 1 MiB.
 
@@ -78,7 +78,8 @@ El ID de dominio desacopla la lógica del juego del tamaño/ubicación física; 
 - [ ] Compilar Emerald/FireRed/LeafGreen con los dos bloques lógicos anexados.
 - [ ] Verificar tamaños exactos de ambos bloques y offsets originales.
 - [ ] Validar guardado/carga de datos de prueba en SaveBlock4/5, incluidas versiones desconocidas y datos legados.
-- [ ] Añadir checksums y recuperación de datos laterales SaveBlock3 antes de guardar progreso esencial.
+- [x] Añadir CRC32 para detectar corrupción en SaveBlock4 y SaveBlock5 (validación y pruebas nuevas).
+- [ ] Implementar recuperación automática por ranura de datos laterales SaveBlock3 antes de guardar progreso esencial.
 - [ ] Comprobar que la memoria de los bloques no desplaza más allá de 256 KiB EWRAM.
 - [ ] Probar ROM de diagnóstico **independiente** en Pizza Boy Pro antes de modificar el backend Flash real.
 - [ ] Emulador mGBA como control comparativo para detectar dependencias de un emulador específico.
