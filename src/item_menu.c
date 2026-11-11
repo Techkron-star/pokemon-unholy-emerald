@@ -612,10 +612,27 @@ EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
 static EWRAM_DATA u8 sQuickPocketWindowId = 0; // EWRAM .sbss requires zero init; reset to WINDOW_NONE on bag open.
 static EWRAM_DATA u8 sQuickPocketSelection = 0; // Set to the actual pocket when the Bag opens.
-// EWRAM-only category views. No item is duplicated in the save file.
-static EWRAM_DATA struct ItemSlot sViewGearItems[BAG_KEYITEMS_COUNT];
-static EWRAM_DATA struct ItemSlot sViewMailItems[BAG_ITEMS_COUNT];
-static EWRAM_DATA struct ItemSlot sViewMiscItems[BAG_ITEMS_COUNT];
+// Every displayed row refers to one real, encrypted, save-backed ItemSlot.
+// These maps are transient indexes, NOT duplicate inventories.
+static EWRAM_DATA u16 sDisplaySlotIndices[POCKETS_COUNT][MAX_POCKET_ITEMS];
+
+static enum Pocket GetDisplaySourcePocket(enum Pocket displayPocket)
+{
+    if (displayPocket == POCKET_GEARS)
+        return POCKET_KEY_ITEMS;
+    if (displayPocket == POCKET_MAIL || displayPocket == POCKET_MISC)
+        return POCKET_ITEMS;
+    return displayPocket;
+}
+
+static struct ItemSlot GetDisplayedBagSlot(enum Pocket pocketId, u32 visibleIndex)
+{
+    if (pocketId >= POCKETS_COUNT || visibleIndex >= MAX_POCKET_ITEMS)
+        return (struct ItemSlot){ ITEM_NONE, 0 };
+
+    return GetBagItemIdAndQuantity(GetDisplaySourcePocket(pocketId),
+                                   sDisplaySlotIndices[pocketId][visibleIndex]);
+}
 
 void ResetBagScrollPositions(void)
 {
@@ -948,7 +965,7 @@ static void LoadBagItemListBuffers(u8 pocketId)
     {
         for (i = 0; i < gBagMenu->numItemStacks[pocketId] - 1; i++)
         {
-            GetItemNameFromPocket(sListBuffer2->name[i], GetBagItemId(pocketId, i));
+            GetItemNameFromPocket(sListBuffer2->name[i], GetDisplayedBagSlot(pocketId, i).itemId);
             subBuffer = sListBuffer1->subBuffers;
             subBuffer[i].name = sListBuffer2->name[i];
             subBuffer[i].id = i;
@@ -962,7 +979,7 @@ static void LoadBagItemListBuffers(u8 pocketId)
     {
         for (i = 0; i < gBagMenu->numItemStacks[pocketId]; i++)
         {
-            GetItemNameFromPocket(sListBuffer2->name[i], GetBagItemId(pocketId, i));
+            GetItemNameFromPocket(sListBuffer2->name[i], GetDisplayedBagSlot(pocketId, i).itemId);
             subBuffer = sListBuffer1->subBuffers;
             subBuffer[i].name = sListBuffer2->name[i];
             subBuffer[i].id = i;
@@ -1019,7 +1036,7 @@ static void BagMenu_MoveCursorCallback(s32 itemIndex, bool8 onInit, struct ListM
     {
         RemoveBagItemIconSprite(gBagMenu->itemIconSlot ^ 1);
         if (itemIndex != LIST_CANCEL)
-           AddBagItemIconSprite(GetBagItemId(gBagPosition.pocket, itemIndex), gBagMenu->itemIconSlot);
+           AddBagItemIconSprite(GetDisplayedBagSlot(gBagPosition.pocket, itemIndex).itemId, gBagMenu->itemIconSlot);
         else
            AddBagItemIconSprite(ITEM_LIST_END, gBagMenu->itemIconSlot);
         gBagMenu->itemIconSlot ^= 1;
@@ -1043,7 +1060,7 @@ static void BagMenu_ItemPrintCallback(u8 windowId, u32 itemIndex, u8 y)
                 BagMenu_PrintCursorAtPos(y, COLORID_NONE);
         }
 
-        struct ItemSlot itemSlot = GetBagItemIdAndQuantity(gBagPosition.pocket, itemIndex);
+        struct ItemSlot itemSlot = GetDisplayedBagSlot(gBagPosition.pocket, itemIndex);
 
         // Draw HM icon
         if (gBagPosition.pocket == POCKET_TM_HM && GetItemTMHMIndex(itemSlot.itemId) > NUM_TECHNICAL_MACHINES)
@@ -1071,7 +1088,7 @@ static void PrintItemDescription(int itemIndex)
     const u8 *str;
     if (itemIndex != LIST_CANCEL)
     {
-        str = GetItemDescription(GetBagItemId(gBagPosition.pocket, itemIndex));
+        str = GetItemDescription(GetDisplayedBagSlot(gBagPosition.pocket, itemIndex).itemId);
     }
     else
     {
@@ -1192,58 +1209,39 @@ static void Task_CloseBagMenu(u8 taskId)
 
 void UpdatePocketItemList(enum Pocket pocketId)
 {
+    struct BagPocket *source;
+    enum Pocket sourcePocket;
+    u32 count = 0;
+
     if (pocketId >= POCKETS_COUNT)
-        return; // shouldn't even get here
+        return;
 
-    struct BagPocket *pocket = &gBagPockets[pocketId];
-    if (pocketId >= POCKET_GEARS)
+    sourcePocket = GetDisplaySourcePocket(pocketId);
+    source = &gBagPockets[sourcePocket];
+
+    // Only the seven physical pockets own ItemSlots. The other three
+    // categories index their source slots; they never write snapshots.
+    if (pocketId < POCKET_GEARS)
     {
-        struct BagPocket *source = &gBagPockets[pocketId == POCKET_GEARS ? POCKET_KEY_ITEMS : POCKET_ITEMS];
-        struct ItemSlot *view = pocketId == POCKET_GEARS ? sViewGearItems
-                              : pocketId == POCKET_MAIL ? sViewMailItems : sViewMiscItems;
-        u32 count = 0;
+        if (pocketId == POCKET_TM_HM || pocketId == POCKET_BERRIES)
+            SortItemsInBag(source, SORT_BY_INDEX);
+        else
+            CompactItemsInBagPocket(pocketId);
+    }
 
-        // Quantity is encrypted in the source slot; a raw copy is necessary
-        // so the standard BagPocket reader decrypts it precisely once.
-        for (u32 i = 0; i < source->capacity; i++)
+    for (u32 i = 0; i < source->capacity; i++)
+    {
+        enum Item itemId = GetBagItemId(sourcePocket, i);
+        if (itemId != ITEM_NONE && GetItemDisplayPocket(itemId) == pocketId)
         {
-            struct ItemSlot raw = source->itemSlots[i];
-            if (raw.itemId == ITEM_NONE)
-                continue;
-            if ((pocketId == POCKET_GEARS && Gear_FromItem(raw.itemId) == GEAR_NONE)
-             || (pocketId == POCKET_MAIL && !ItemIsMail(raw.itemId))
-             || (pocketId == POCKET_MISC && ItemIsMail(raw.itemId)))
-                continue;
-            view[count++] = raw;
+            if (count >= MAX_POCKET_ITEMS - 1)
+                break;
+            sDisplaySlotIndices[pocketId][count++] = i;
         }
-        memset(view + count, 0, (source->capacity - count) * sizeof(*view));
-        pocket->itemSlots = view;
-        pocket->capacity = source->capacity;
-        pocket->id = pocketId;
-    }
-    else switch (pocketId)
-    {
-    case POCKET_TM_HM:
-    case POCKET_BERRIES:
-        SortItemsInBag(pocket, SORT_BY_INDEX);
-        break;
-    default:
-        CompactItemsInBagPocket(pocketId);
-        break;
     }
 
-    gBagMenu->numItemStacks[pocketId] = 0;
-
-    for (u32 i = 0; i < pocket->capacity && BagPocket_GetSlotData(pocket, i).itemId; i++)
-        gBagMenu->numItemStacks[pocketId]++;
-
-    if (!gBagMenu->hideCloseBagText)
-        gBagMenu->numItemStacks[pocketId]++;
-
-    if (gBagMenu->numItemStacks[pocketId] > MAX_ITEMS_SHOWN)
-        gBagMenu->numShownItems[pocketId] = MAX_ITEMS_SHOWN;
-    else
-        gBagMenu->numShownItems[pocketId] = gBagMenu->numItemStacks[pocketId];
+    gBagMenu->numItemStacks[pocketId] = count + !gBagMenu->hideCloseBagText;
+    gBagMenu->numShownItems[pocketId] = min(gBagMenu->numItemStacks[pocketId], MAX_ITEMS_SHOWN);
 }
 
 static void UpdatePocketItemLists(void)
@@ -1294,7 +1292,7 @@ void CloseItemMessage(u8 taskId)
     u16 *cursorPos = &gBagPosition.cursorPosition[gBagPosition.pocket];
     RemoveItemMessageWindow(ITEMWIN_MESSAGE);
     DestroyListMenuTask(tListTaskId, scrollPos, cursorPos);
-    UpdatePocketItemList(gBagPosition.pocket);
+    UpdatePocketItemLists();
     UpdatePocketListPosition(gBagPosition.pocket);
     LoadBagItemListBuffers(gBagPosition.pocket);
     tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, *scrollPos, *cursorPos);
@@ -1378,7 +1376,7 @@ static void Task_BagMenu_HandleInput(u8 taskId)
                 {
                     struct ItemSlot tempItem;
                     data[1] = GetItemListPosition(gBagPosition.pocket);
-                    tempItem = GetBagItemIdAndQuantity(gBagPosition.pocket, data[1]);
+                    tempItem = GetDisplayedBagSlot(gBagPosition.pocket, data[1]);
                     data[2] = tempItem.quantity;
                     if (gBagPosition.cursorPosition[gBagPosition.pocket] == gBagMenu->numItemStacks[gBagPosition.pocket])
                         break;
@@ -1414,7 +1412,7 @@ static void Task_BagMenu_HandleInput(u8 taskId)
             break;
         default: // A_BUTTON
             {
-                struct ItemSlot itemSlot = GetBagItemIdAndQuantity(gBagPosition.pocket, listPosition);
+                struct ItemSlot itemSlot = GetDisplayedBagSlot(gBagPosition.pocket, listPosition);
                 PlaySE(SE_SELECT);
                 BagDestroyPocketScrollArrowPair();
                 BagMenu_PrintCursor(tListTaskId, COLORID_GRAY_CURSOR);
@@ -1744,7 +1742,7 @@ static void StartItemSwap(u8 taskId)
     ListMenuSetTemplateField(tListTaskId, LISTFIELD_CURSORKIND, CURSOR_INVISIBLE);
     tListPosition = gBagPosition.scrollPosition[gBagPosition.pocket] + gBagPosition.cursorPosition[gBagPosition.pocket];
     gBagMenu->toSwapPos = tListPosition;
-    CopyItemName(GetBagItemId(gBagPosition.pocket, tListPosition), gStringVar1);
+    CopyItemName(GetDisplayedBagSlot(gBagPosition.pocket, tListPosition).itemId, gStringVar1);
     StringExpandPlaceholders(gStringVar4, gText_MoveVar1Where);
     FillWindowPixelBuffer(WIN_DESCRIPTION, PIXEL_FILL(0));
     BagMenu_Print(WIN_DESCRIPTION, FONT_NORMAL, gStringVar4, 3, 1, 0, 0, 0, COLORID_NORMAL);
@@ -1806,7 +1804,15 @@ static void DoItemSwap(u8 taskId)
     }
     else
     {
-        MoveItemSlotInPocket(gBagPosition.pocket, tListPosition, realPos);
+        {
+            u16 count = gBagMenu->numItemStacks[gBagPosition.pocket] - !gBagMenu->hideCloseBagText;
+            u16 fromSlot = sDisplaySlotIndices[gBagPosition.pocket][tListPosition];
+            u16 toSlot = realPos < count
+                       ? sDisplaySlotIndices[gBagPosition.pocket][realPos]
+                       : sDisplaySlotIndices[gBagPosition.pocket][count - 1] + 1;
+            MoveItemSlotInPocket(GetDisplaySourcePocket(gBagPosition.pocket), fromSlot, toSlot);
+            UpdatePocketItemLists();
+        }
         gBagMenu->toSwapPos = NOT_SWAPPING;
         DestroyListMenuTask(tListTaskId, scrollPos, cursorPos);
         if (tListPosition < realPos)
@@ -2222,9 +2228,11 @@ static void Task_TossItemFromBag(u8 taskId)
     if (JOY_NEW(A_BUTTON | B_BUTTON))
     {
         PlaySE(SE_SELECT);
-        RemoveBagItemFromSlot(&gBagPockets[gBagPosition.pocket], *scrollPos + *cursorPos, tItemCount);
+        RemoveBagItemFromSlot(&gBagPockets[GetDisplaySourcePocket(gBagPosition.pocket)],
+                              sDisplaySlotIndices[gBagPosition.pocket][*scrollPos + *cursorPos],
+                              tItemCount);
         DestroyListMenuTask(tListTaskId, scrollPos, cursorPos);
-        UpdatePocketItemList(gBagPosition.pocket);
+        UpdatePocketItemLists();
         UpdatePocketListPosition(gBagPosition.pocket);
         LoadBagItemListBuffers(gBagPosition.pocket);
         tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, *scrollPos, *cursorPos);
@@ -2246,7 +2254,7 @@ static void Task_RemoveItemFromBag(u8 taskId)
         PlaySE(SE_SELECT);
         RemoveBagItem(gSpecialVar_ItemId, tItemCount);
         DestroyListMenuTask(tListTaskId, scrollPos, cursorPos);
-        UpdatePocketItemList(gBagPosition.pocket);
+        UpdatePocketItemLists();
         UpdatePocketListPosition(gBagPosition.pocket);
         LoadBagItemListBuffers(gBagPosition.pocket);
         tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, *scrollPos, *cursorPos);
@@ -2554,7 +2562,7 @@ static void SellItem(u8 taskId)
     RemoveBagItem(gSpecialVar_ItemId, tItemCount);
     AddMoney(&gSaveBlock1Ptr->money, GetItemSellPrice(gSpecialVar_ItemId) * tItemCount);
     DestroyListMenuTask(tListTaskId, scrollPos, cursorPos);
-    UpdatePocketItemList(gBagPosition.pocket);
+    UpdatePocketItemLists();
     UpdatePocketListPosition(gBagPosition.pocket);
     LoadBagItemListBuffers(gBagPosition.pocket);
     tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate, *scrollPos, *cursorPos);
@@ -3122,7 +3130,8 @@ static void SortBagItems(u8 taskId)
 
     RemoveContextWindow();
 
-    SortItemsInBag(&gBagPockets[gBagPosition.pocket], tSortType);
+    SortItemsInBag(&gBagPockets[GetDisplaySourcePocket(gBagPosition.pocket)], tSortType);
+    UpdatePocketItemLists();
     DestroyListMenuTask(data[0], scrollPos, cursorPos);
     UpdatePocketListPosition(gBagPosition.pocket);
     LoadBagItemListBuffers(gBagPosition.pocket);
