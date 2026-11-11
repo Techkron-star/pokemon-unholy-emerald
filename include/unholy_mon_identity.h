@@ -1,6 +1,9 @@
 #ifndef GUARD_UNHOLY_MON_IDENTITY_H
 #define GUARD_UNHOLY_MON_IDENTITY_H
 
+struct BoxPokemon;
+struct Pokemon;
+
 // A stable *legacy fingerprint* for migration, NOT a guaranteed unique UID.
 // OTID and personality normally follow a Pokémon through party/PC moves and
 // evolutions; clones may share both values. Never attach persistent extension
@@ -16,6 +19,7 @@ struct UnholyMonIdentityScan
 {
     struct UnholyMonLegacyKey key;
     u32 matches;
+    bool32 valid;
 };
 
 enum UnholyMonIdentityStatus
