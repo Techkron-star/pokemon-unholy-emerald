@@ -1325,6 +1325,17 @@ static void Task_BagMenu_HandleInput(u8 taskId)
 
     if (MenuHelpers_ShouldWaitForLinkRecv() != TRUE && !gPaletteFade.active)
     {
+        // Press L+R together for a direct pocket picker. Do not enable this in
+        // link/tutorial/special catching contexts with restricted navigation.
+        if (!gBagMenu->pocketSwitchDisabled && !IsVictoryCatch() &&
+            !IsWallysBag() && !MenuHelpers_IsLinkActive() &&
+            JOY_HELD(L_BUTTON) && JOY_HELD(R_BUTTON) &&
+            JOY_NEW(L_BUTTON | R_BUTTON))
+        {
+            OpenQuickPocketPicker(taskId);
+            return;
+        }
+
         switch (GetSwitchBagPocketDirection())
         {
         case SWITCH_POCKET_LEFT:
@@ -1420,6 +1431,152 @@ static void ReturnToItemList(u8 taskId)
     PutWindowTilemap(WIN_DESCRIPTION);
     ScheduleBgCopyTilemapToVram(0);
     gTasks[taskId].func = Task_BagMenu_HandleInput;
+}
+
+// This picker does not modify item routing, capacities or save data. It only
+// changes which of the seven *existing* Bag pockets is currently displayed.
+static void DrawQuickPocketPicker(void)
+{
+    u8 windowId = sQuickPocketWindowId;
+
+    if (windowId == WINDOW_NONE)
+        return;
+
+    // Palette 15 is the standard menu palette (color 10 black, 8 blue).
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(10));
+    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketTitle, 8, 2,
+                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+    {
+        u8 y = 15 + pocket * 14;
+        u16 count = gBagMenu->numItemStacks[pocket];
+
+        if (!gBagMenu->hideCloseBagText && count != 0)
+            count--; // "CLOSE BAG" is not an item.
+
+        if (pocket == sQuickPocketSelection)
+            FillWindowPixelRect(windowId, PIXEL_FILL(8), 3, y - 1, 130, 13);
+
+        BagMenu_Print(windowId, FONT_NARROW,
+                      pocket == sQuickPocketSelection ? gText_SelectorArrow2 : gText_EmptyString2,
+                      5, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+        BagMenu_Print(windowId, FONT_NARROW, gPocketNamesStringsTable[pocket],
+                      20, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+
+        ConvertIntToDecimalStringN(gStringVar3, count, STR_CONV_MODE_RIGHT_ALIGN, 3);
+        BagMenu_Print(windowId, FONT_NARROW, gStringVar3,
+                      110, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    }
+    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketInstructions, 9, 115,
+                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    CopyWindowToVram(windowId, COPYWIN_GFX);
+}
+
+static void OpenQuickPocketPicker(u8 taskId)
+{
+    if (sQuickPocketWindowId != WINDOW_NONE)
+        return;
+
+    sQuickPocketWindowId = AddWindow(&sQuickPocketPickerWindow);
+    if (sQuickPocketWindowId == WINDOW_NONE)
+    {
+        PlaySE(SE_FAILURE);
+        return;
+    }
+
+    sQuickPocketSelection = gBagPosition.pocket;
+    PutWindowTilemap(sQuickPocketWindowId);
+    DrawStdFrameWithCustomTileAndPalette(sQuickPocketWindowId, FALSE, 1, 14);
+    DrawQuickPocketPicker();
+    ScheduleBgCopyTilemapToVram(1);
+    PlaySE(SE_SELECT);
+    gTasks[taskId].func = Task_QuickPocketPicker;
+}
+
+static void CloseQuickPocketPicker(void)
+{
+    if (sQuickPocketWindowId == WINDOW_NONE)
+        return;
+
+    ClearStdWindowAndFrameToTransparent(sQuickPocketWindowId, FALSE);
+    ClearWindowTilemap(sQuickPocketWindowId);
+    RemoveWindow(sQuickPocketWindowId);
+    sQuickPocketWindowId = WINDOW_NONE;
+    ScheduleBgCopyTilemapToVram(1);
+}
+
+static void JumpToBagPocket(u8 taskId, u8 pocket)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 iconId;
+
+    if (pocket >= POCKETS_COUNT || pocket == gBagPosition.pocket)
+    {
+        gTasks[taskId].func = Task_BagMenu_HandleInput;
+        return;
+    }
+
+    // Store independent cursor/scroll offsets exactly as an L/R switch does.
+    DestroyListMenuTask(tListTaskId, &gBagPosition.scrollPosition[gBagPosition.pocket],
+                        &gBagPosition.cursorPosition[gBagPosition.pocket]);
+    BagDestroyPocketScrollArrowPair();
+    ClearWindowTilemap(WIN_ITEM_LIST);
+    ClearWindowTilemap(WIN_DESCRIPTION);
+    iconId = gBagMenu->spriteIds[ITEMMENUSPRITE_ITEM + (gBagMenu->itemIconSlot ^ 1)];
+    if (iconId < MAX_SPRITES)
+        gSprites[iconId].invisible = TRUE;
+
+    gBagPosition.pocket = pocket;
+    PrintPocketNames(gPocketNamesStringsTable[pocket], NULL);
+    CopyPocketNameToWindow(0);
+    DrawPocketIndicatorBar(pocket);
+    SetBagVisualPocketId(pocket, TRUE);
+    FillBgTilemapBufferRect_Palette0(2, 17, 14, 2, 15, 16);
+    ScheduleBgCopyTilemapToVram(2);
+
+    LoadBagItemListBuffers(pocket);
+    tListTaskId = ListMenuInit(&gMultiuseListMenuTemplate,
+                               gBagPosition.scrollPosition[pocket],
+                               gBagPosition.cursorPosition[pocket]);
+    PutWindowTilemap(WIN_ITEM_LIST);
+    PutWindowTilemap(WIN_DESCRIPTION);
+    PutWindowTilemap(WIN_POCKET_NAME);
+    ScheduleBgCopyTilemapToVram(0);
+    CreatePocketScrollArrowPair();
+    CreatePocketSwitchArrowPair();
+    gTasks[taskId].func = Task_BagMenu_HandleInput;
+}
+
+static void Task_QuickPocketPicker(u8 taskId)
+{
+    if (MenuHelpers_ShouldWaitForLinkRecv() || gPaletteFade.active)
+        return;
+
+    if (JOY_NEW(DPAD_UP | DPAD_LEFT))
+    {
+        sQuickPocketSelection = (sQuickPocketSelection + POCKETS_COUNT - 1) % POCKETS_COUNT;
+        PlaySE(SE_SELECT);
+        DrawQuickPocketPicker();
+    }
+    else if (JOY_NEW(DPAD_DOWN | DPAD_RIGHT))
+    {
+        sQuickPocketSelection = (sQuickPocketSelection + 1) % POCKETS_COUNT;
+        PlaySE(SE_SELECT);
+        DrawQuickPocketPicker();
+    }
+    else if (JOY_NEW(B_BUTTON))
+    {
+        CloseQuickPocketPicker();
+        PlaySE(SE_SELECT);
+        gTasks[taskId].func = Task_BagMenu_HandleInput;
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        u8 selected = sQuickPocketSelection;
+        CloseQuickPocketPicker();
+        PlaySE(SE_SELECT);
+        JumpToBagPocket(taskId, selected);
+    }
 }
 
 static u8 GetSwitchBagPocketDirection(void)
