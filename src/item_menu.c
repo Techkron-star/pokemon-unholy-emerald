@@ -1709,7 +1709,7 @@ static void DrawItemListBgRow(u8 y)
 // but provide a persistent, legible seven-tab ribbon on BG0.
 static void DrawPocketTabs(u8 currentPocket)
 {
-    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(0));
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1)); // Opaque dark strip, gold accents in both bag palettes
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
     {
         u8 left = 3 + pocket * 16;
@@ -2840,7 +2840,7 @@ static void LoadBagMenuTextWindows(void)
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
         PutWindowTilemap(i);
     }
-    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(0));
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1)); // Opaque dark strip, gold accents in both bag palettes
     PutWindowTilemap(WIN_POCKET_TABS);
     ScheduleBgCopyTilemapToVram(0);
     ScheduleBgCopyTilemapToVram(1);
