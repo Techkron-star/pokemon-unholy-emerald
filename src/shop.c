@@ -1010,23 +1010,40 @@ static void Task_ShopMenu(u8 taskId)
         return;
     }
 
-    if (sHorizonActive && JOY_NEW(L_BUTTON | R_BUTTON))
+    // Horizon does not have a vertical menu cursor. Never pass its L/R,
+    // D-pad or A/B input to Menu_ProcessInputNoWrap(), which belongs to the
+    // vanilla PokéMart and can reference an obsolete menu selection.
+    if (sHorizonActive)
     {
-        Menu_MoveCursor(JOY_NEW(L_BUTTON) ? -1 : 1);
-        sHorizonSelectedTab = Menu_GetCursorPos();
-        HorizonDrawInfo();
-        return;
-    }
-    inputCode = Menu_ProcessInputNoWrap();
-    if (sHorizonActive && inputCode == MENU_NOTHING_CHOSEN)
-    {
-        u8 tab = Menu_GetCursorPos();
-        if (tab != sHorizonSelectedTab)
+        if (JOY_NEW(B_BUTTON))
         {
-            sHorizonSelectedTab = tab;
+            PlaySE(SE_SELECT);
+            Task_HandleShopMenuQuit(taskId);
+        }
+        else if (JOY_NEW(DPAD_LEFT | L_BUTTON))
+        {
+            sHorizonSelectedTab = (sHorizonSelectedTab + ARRAY_COUNT(sHorizonTabs) - 1)
+                                % ARRAY_COUNT(sHorizonTabs);
+            PlaySE(SE_SELECT);
+            HorizonDrawTabs();
             HorizonDrawInfo();
         }
+        else if (JOY_NEW(DPAD_RIGHT | R_BUTTON))
+        {
+            sHorizonSelectedTab = (sHorizonSelectedTab + 1) % ARRAY_COUNT(sHorizonTabs);
+            PlaySE(SE_SELECT);
+            HorizonDrawTabs();
+            HorizonDrawInfo();
+        }
+        else if (JOY_NEW(A_BUTTON))
+        {
+            PlaySE(SE_SELECT);
+            sMartInfo.menuActions[sHorizonSelectedTab].func.void_u8(taskId);
+        }
+        return;
     }
+
+    inputCode = Menu_ProcessInputNoWrap();
     switch (inputCode)
     {
     case MENU_NOTHING_CHOSEN:
