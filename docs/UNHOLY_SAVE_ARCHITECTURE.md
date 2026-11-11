@@ -62,6 +62,10 @@ En total: **512 KiB por ranura**, dos copias = 1 MiB físico. Estos son **presup
 
 Los registros son autodelimitados (`totalBytes`), verifican alineación mediante `memcpy`, rechazan longitudes incorrectas, UIDs cero y claves repetidas o desordenadas; la lectura **no asigna memoria ni modifica el guardado**.
 
+**Identidad y migración (núcleo añadido):** `UnholyMonIdentity_ReadMon/ReadBox` obtiene una huella heredada (`personalidad + ID del entrenador original`) que permanece estable al copiar o mover un Pokémon sin crear nuevas columnas en la partida antigua. `UnholyMonIdentity_ScanInit/ScanObserve/ScanStatus` detecta **duplicados** sin crear arreglos de 420 entradas en EWRAM. Si dos Pokémon comparten huella, el estado es `UNHOLY_MON_ID_AMBIGUOUS`: **NO** se debe asignarles un mismo registro extendido. La huella **no equivale a un UID global perfecto**; una vez habilitado el backend de 1 MiB, cada Pokémon necesitará un UID asignado y una marca persistente de asociación compatible con movimientos entre todas las ubicaciones. No se ha conectado aún la búsqueda/recorrido de equipo, PC, guardería y fusiones.
+
+**Ampliación de Gear ID ya aplicada:** se preservan los cinco bits originales del Gear, usando además tres bits de relleno del mismo `PokemonSubstruct1` (`gearHigh`). `MON_DATA_GEAR` acepta ahora **0–255** (255 IDs más el vacío), sin añadir un solo byte a `BoxPokemon` ni desplazar los movimientos/IV/EV. Hay pruebas explícitas de Gear 0, 31, 32, 60, 127, 128 y 255. La capacidad de IDs no implica que haya 255 Gears implementados ni habilita el backend de 1 MiB.
+
 **Importante:** este es **un esquema de datos y un validador**, **no** el almacenamiento persistente por Pokémon terminado. Antes de conectar una nueva estadística a combate o a la pantalla de resumen, hace falta:
 1. Asignar un **UID realmente estable** a cada Pokémon, que lo acompañe al moverlo entre equipo, PC, guardería, fusiones y transferencias; el OTID + personalidad por sí solo no garantiza unicidad.
 2. Implementar un directorio/índice del backend extendido por UID con transacciones y CRC de página; no usar posición fija de caja como identidad.
@@ -86,6 +90,8 @@ El ID de dominio desacopla la lógica del juego del tamaño/ubicación física; 
 - [ ] Compilar Emerald/FireRed/LeafGreen con los dos bloques lógicos anexados.
 - [ ] Verificar tamaños exactos de ambos bloques y offsets originales.
 - [ ] Validar guardado/carga de datos de prueba en SaveBlock4/5, incluidas versiones desconocidas y datos legados.
+- [x] Compilar los modelos de datos y verificar las pruebas específicas de SaveBlocks/Stamina/atributos con la ROM de pruebas (CI anterior del PR).
+- [ ] Validar las nuevas pruebas de Gear ID (8 bits) e identidad heredada y el efecto de los cambios en la ROM.
 - [x] Añadir CRC32 para detectar corrupción en SaveBlock4 y SaveBlock5 (validación y pruebas nuevas).
 - [ ] Implementar recuperación automática por ranura de datos laterales SaveBlock3 antes de guardar progreso esencial.
 - [ ] Comprobar que la memoria de los bloques no desplaza más allá de 256 KiB EWRAM.
