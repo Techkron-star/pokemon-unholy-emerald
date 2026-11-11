@@ -659,17 +659,47 @@ static void HorizonCloseInfoWindow(void)
     }
 }
 
-// The red marker uses a reserved color in both Eclipse/Daylight 4bpp palettes.
-// It is a *visualization* of a real saved offer, not a random UI animation.
-static void HorizonDrawNotification(void)
+// Five real, horizontally arranged stores; no vertical cursor is created.
+// Each 42-pixel cell uses the same theme palette as the details panel.
+static void HorizonDrawTabs(void)
 {
+    const u8 activeAccent = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 6 : 7;
+
     if (!sHorizonActive || sMartInfo.windowId == 0xFF)
         return;
 
-    FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(1), 84, 10, 5, 5);
+    FillWindowPixelBuffer(sMartInfo.windowId, PIXEL_FILL(1));
+    FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(activeAccent), 2, 1, 212, 1);
+    for (u8 tab = 0; tab < ARRAY_COUNT(sHorizonTabs); tab++)
+    {
+        u8 x = 4 + tab * 42;
+
+        if (tab == sHorizonSelectedTab)
+        {
+            FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(activeAccent),
+                                x, 18, 39, 2);
+        }
+        else
+        {
+            FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(3),
+                                x + 3, 18, 33, 1);
+        }
+
+        AddTextPrinterParameterized4(sMartInfo.windowId, FONT_NARROW,
+                                    x + 4, 5, 0, 0, sHorizonTextColors,
+                                    TEXT_SKIP_DRAW, sHorizonTabLabels[tab]);
+    }
+
+    // A real unseen mutated offer adds an alert only on the Pokémon tab.
     if (HorizonMarketHasUnseenMutation())
-        FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(13), 85, 11, 4, 4);
-    CopyWindowToVram(sMartInfo.windowId, COPYWIN_GFX);
+        FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(13), 37, 3, 4, 4);
+
+    CopyWindowToVram(sMartInfo.windowId, COPYWIN_FULL);
+}
+
+static void HorizonDrawNotification(void)
+{
+    HorizonDrawTabs();
 }
 
 // Small native 4bpp egg thumbnails, one per tier; the selected entry also
