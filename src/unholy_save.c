@@ -1,5 +1,6 @@
 #include "global.h"
 #include "unholy_save.h"
+#include "pokemon_storage_system.h"
 
 // This extension is persisted automatically by the original SaveBlock3
 // per-sector copy logic. No extra sector, bank, or emulator API is involved.
