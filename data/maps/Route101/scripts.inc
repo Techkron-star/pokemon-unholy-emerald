@@ -225,7 +225,6 @@ Route101_EventScript_BirchsBag::
 	setobjectxy LOCALID_PLAYER, 6, 13
 	applymovement LOCALID_PLAYER, Common_Movement_WalkInPlaceFasterLeft
 	waitmovement 0
-	msgbox Route101_Text_BattleSystemsIntro, MSGBOX_DEFAULT
 	special ChooseStarter
 	applymovement LOCALID_ROUTE101_BIRCH, Route101_Movement_BirchApproachPlayer
 	waitmovement 0
@@ -280,18 +279,6 @@ Route101_Text_YouSavedMe:
 	.string "Hi, you're {PLAYER}{KUN}!\p"
 	.string "This is not the place to chat, so come\n"
 	.string "by my POKéMON LAB later, okay?$"
-
-Route101_Text_BattleSystemsIntro:
-	.string "That battle showed you more than just\n"
-	.string "how to protect a POKéMON.\p"
-	.string "Some POKéMON have special mutations.\n"
-	.string "Look for the A, S, E, or O symbol to\n"
-	.string "see ALPHA, SUPER, ENRAGED, or OMEGA.\p"
-	.string "You can also chain two different moves\n"
-	.string "when you have enough STAMINA.\p"
-	.string "The first move spends STAMINA, and the\n"
-	.string "second move follows immediately.\n"
-	.string "Choose your attacks carefully!$"
 
 Route101_Text_TakeTiredPokemonToPokeCenter:
 	.string "If POKéMON get tired, take them to\n"
