@@ -1374,6 +1374,13 @@
 #define FLAG_ENABLE_SHIP_NAVEL_ROCK                                 (SYS_FLAGS + 0x4A)
 #define FLAG_ENABLE_SHIP_BIRTH_ISLAND                               (SYS_FLAGS + 0x4B)
 
+// Unholy persistent settings. FRLG's (SYS_FLAGS + 0x20..0x27) are BADGES,
+// unlike Emerald, so never copy the Emerald numeric offsets here.
+// 0x84C..0x84E are currently unassigned (between event and world-map flags).
+#define FLAG_UNHOLY_EXP_SHARE_ENABLED                               (SYS_FLAGS + 0x4C)
+#define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED                         (SYS_FLAGS + 0x4D)
+#define FLAG_UNHOLY_UI_DAYLIGHT                                     (SYS_FLAGS + 0x4E)
+
 // World Map Flags
 #define FLAG_WORLD_MAP_PALLET_TOWN                                  (SYS_FLAGS + 0x90)
 #define FLAG_WORLD_MAP_VIRIDIAN_CITY                                (SYS_FLAGS + 0x91)
