@@ -3412,6 +3412,17 @@ static void DoBattleIntro(void)
                     statusesOpponentB = GetTrainerStartingStatusFromId(TRAINER_BATTLE_PARAM.opponentB);
             }
             STARTING_STATUS_DEFINITIONS(UNPACK_STARTING_STATUS_TO_BATTLE);
+
+            // Birch's emergency lesson now plays over the live battle field,
+            // after both Pokemon have appeared and before the first turn.
+            // BATTLE_TYPE_FIRST_BATTLE also labels some early rival fights;
+            // restrict this tutorial to the Route 101 wild rescue battle.
+            if ((gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+             && !(gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_LINK)))
+            {
+                PrepareStringBattle(STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL,
+                                    GetBattlerAtPosition(B_POSITION_PLAYER_LEFT));
+            }
             gBattleMainFunc = TryDoEventsBeforeFirstTurn;
         }
         break;
