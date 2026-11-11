@@ -106,6 +106,30 @@ Todas las cifras son **propuestas para playtesting**, no valores aprobados/imple
 **Estado:** diseños registrados por petición del autor, no presentes todavía como objetos funcionales, constantes, sprites, recetas o efectos en la ROM.
 
 
+## Seis Gears adicionales definidos por el autor (11-11-2026)
+
+**Diseño solicitado, NO implementado en la ROM.** Se conservan las mecánicas aportadas; activadores, excepciones y cantidades que no fueron especificadas quedan identificados como pendientes, no se inventan cifras definitivas.
+
+| Gear | Efecto principal (confirmado por el autor) | Precisión técnica / pendientes |
+|---|---|---|
+| **Escudo de Aegis** | **Duplica la eficacia de cada nivel positivo de Defensa y Defensa Especial**, sin otorgar niveles adicionales. | Con +1 de Defensa se *muestra +1*, pero el **bono de esa etapa** vale por dos. No confundir con subir +2 etapas cada vez que se recibe un buff. Propuesta de cálculo: evaluar +n como +2n **solo al calcular el multiplicador defensivo**, sin alterar stages guardados ni exceder límites numéricos. Igual para Defensa Especial; etapas negativas normales. |
+| **Ariete Nautilo** | **Cada golpe de contacto al rival rompe un nivel de Defensa**; si el rival no tiene aumentos, **continúa reduciendo su Defensa**. | Golpe válido: primero quita +1 del stage de Defensa positivo; desde 0 lo pasa a −1, y así hasta el suelo habitual de −6. En multigolpe, comprobar cada golpe de contacto válido; confirmar balance si se decide limitar a una activación por movimiento. No disminuir la estadística base. |
+| **Guantes Cohete** | Los ataques **de puño reciben +1 de prioridad**, **aditiva** a la prioridad intrínseca del movimiento y a otras fuentes. | Usar flag de movimientos de puño (misma familia que Puño Férreo), incluidos los que ya son prioritarios. Calcular antes de ordenar acciones, aplicando el límite permitido por el motor sin desbordamiento. No afectar ataques que no sean de puño. |
+| **Piedra de Afilar** | **Cada ataque cortante usado aumenta Ataque en +1 etapa**. Además, existe protección para que no te bajen Ataque «de 1≥» (literal del autor). | Interpretación operativa **provisional** de «1≥»: una vez alcanzado al menos **+1**, no puede reducirse mediante bajadas de Ataque enemigas **por debajo de +1** mientras lleve el Gear. Confirmar si la intención era bloquear cualquier descenso cuando se está en +1 o superior. No bloquear automáticamente Haze, robo de boosts o reseteos si no se define. Usar clasificación de corte compartida con las tres Espadas. Máximo normal +6. |
+| **Túnica Rúnica** | El portador **no recibe daño de efectos ambientales ni trampas**; **destruye trampas** y obtiene **+1 etapa de Ataque Especial**. | La inmunidad de daño cubre clima dañino, peligros de entrada y efectos ambientales con daño (no implica inmunidad a daño directo de ataques). Falta fijar si limpia trampas de su propio lado, ambas partes, o solo cuando entra; también si el +1 ocurre al equiparla/entrar/al destruir trampas. **No otorgar +1 ilimitado por cambiar y volver** antes de definir activación. |
+| **Cartel de Búsqueda** | Cuantas **más subidas de estadísticas tenga el rival**, **más daño le inflige el portador**. | Solo contar **etapas positivas activas del objetivo** (no IV/EV, stats base ni buffs pasivos invisibles) salvo aprobación expresa. Propuesta pendiente: bono porcentual por etapa positiva, con límite de daño a equilibrar. Stage de Ataque/Defensa/Velocidad/At. Esp./Def. Esp./Precisión/Evasión: definir exactamente cuáles cuentan antes de implementar. |
+
+### Reglas generales y pruebas
+
+- **Aegis:** un +1 de Defensa comúnmente da factor ×1.5; con interpretación propuesta, el +1 rinde como +2 en *el cálculo*, es decir, ×2. La interfaz continúa mostrando +1 y efectos que ignoran etapas defensivas siguen tratándose como corresponde. La idea no es «aumenta dos niveles», sino **cada nivel vale el doble**. Probar también +2..+6 y crítico/Unaware/Cuerpo Puro.
+- **Nautilo:** desciende el stage de Defensa incluso si ya estaba en 0; si había +2, un impacto lo lleva a +1. La bajada está sujeta a inmunidades ordinarias a reducciones y límites de stages salvo decisión posterior. Considerar interacción con Escudo de Aegis.
+- **Cohete:** la prioridad se **suma**, no reemplaza. Probar prioridad natural del movimiento, prioridades por habilidades, Trick Room, Psychic Terrain y encadenamiento. No todos los movimientos de Lucha son de puño.
+- **Afilar:** distinguir subidas reales de stage por uso de un movimiento cortante de doble activación en multigolpes. **Propuesta:** +1 por uso de movimiento cortante válido, no +1 por cada golpe dentro de ese mismo movimiento, para evitar explosión instantánea de +6. La protección de Ataque es una interpretación marcada, a confirmar.
+- **Rúnica:** inmunidad de daño no significa eliminar clima global, campos especiales ni trampas enemigas si no se especifica; documentar con claridad cuáles trampas se destruyen y la regla que entrega +1 At. Esp. Evitar bucle de entrada/salida.
+- **Cartel:** requiere que el rival tenga bonificaciones **positivas**; las reducciones negativas no se suman como «más stats subidas». No afectar al aliado en dobles ni aumentar daño solo por mutaciones Omega/Titan sin boosts de etapas.
+
+**QA:** combate individual y doble, cambios de posición, switches, turnos compuestos, boosts de etapas, límites ±6, estados protegidos de bajadas, golpes multigolpe, movimientos de puño/corte y sus flags, prioridades sumadas, campo psíquico, pérdida de bonus al quitar el Gear, entrada con trampas/clima y comparación de daño vs. rival con 0/+1/+6 boosts.
+
 ## Muramasa — reliquia de raids solicitada por el autor
 
 **Concepto confirmado:** **Muramasa** es un objeto/Gear anticuración y antidefensa que **reduce los efectos curativos o defensivos del rival independientemente de la fuente**. Es **fabricable con exactamente 10 Fragmentos de Muramasa**, y esos fragmentos se **obtienen en raids**. No se ha especificado una medalla como ingrediente ni se debe exigir una por defecto.
@@ -161,11 +185,12 @@ Evitar solapamiento entre **Ancla de Escape** y **Grillete Astral**: ambos deben
 - **P3:** Crisol Antídoto, Lente de Certeza, Módulo Vectorial y Ancla de Escape.
 - **P4:** Bastión Gemelo y Escudo del Último Aliento, tras QA intensiva de dobles y antiexploits.
 - **P5 (nuevos Gears):** seguir los niveles P1–P3 específicos de la sección «Nueve Gears propuestos por el autor»; no mover Berserker ni Nihil a «implementado» hasta terminar los ajustes del motor.
+- **Seis Gears nuevos (diseño confirmado):** implementar Aegis/Nautilo en etapas defensivas, Cohete en cálculo de prioridad, Afilar en movimientos cortantes, Rúnica en eventos ambientales/trampas y Cartel en evaluación de buffs positivos; verificar reglas abiertas antes de codificar.
 - **Muramasa (diseño confirmado):** implementar obtención de Fragmentos en raids y receta ×10; motor de curación/mitigación unificado por fuente, sin excepciones por procedencia, más pruebas de protecciones binarias antes de habilitarlo.
 
 ### Límite de IDs y guardado
 
-La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 utilitarios + 9 añadidos por el autor + Muramasa = **54** (sin contar Colmillo de Rayquaza si se convierte en Gear).
+La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear`; por ello solo admite **31 Gears + GEAR_NONE**. Proyección: 8 Gears existentes/acordados + 18 Sangres + 8 ideas previas + 10 utilitarios + 9 añadidos por el autor + Muramasa + 6 Gears adicionales = **60** (sin contar Colmillo de Rayquaza si se convierte en Gear).
 
 **No basta subir `GEAR_MAX_COUNT` a 128.** Se necesita una migración del campo persistente a, como mínimo, **6 bits** (hasta 63 Gears + GEAR_NONE) o idealmente **7 bits** (hasta 127 Gears + GEAR_NONE), y una auditoría de ocupación de bits/estructura, checksum, acceso `MON_DATA_GEAR`, Caja/PC y guardados antiguos. No sobrescribir bits usados por mutaciones, stamina u otros flags. Valorar una estructura de guardado ampliada y migración versionada, puesto que el proyecto admite incompatibilidad controlada entre compilaciones, siempre con respaldo de save.
 
@@ -182,6 +207,7 @@ La rama base tiene `GEAR_MAX_COUNT = 32` y **5 bits** en `PokemonSubstruct1.gear
 - Probar escape válido/prohibido, trampas, cambios forzados y reglas de combate contra entrenador.
 - Probar el Escudo con Focus Sash, Sturdy, Endure, hazards, daño residual y movimientos multigolpe (y el modo competitivo, si aplica).
 - Probar IA rival y entrenador de nivel alto con los mismos Gears que el jugador; sin ventaja oculta.
+- Probar **Aegis, Nautilo, Cohete, Afilar, Rúnica y Cartel** con stages ±6, multiplicadores reales vs. niveles visibles, contacto, puños, cortes, prioridad adicional, trampas, clima y daño frente a buffs positivos.
 - Probar **herida de Muramasa** con ataques de contacto y sin contacto, pociones bloqueadas sin consumo, 1–2 turnos posteriores y reducción aleatoria de **25–75 % a TODA curación** (movimientos, drenaje, bayas, objetos, habilidades, Gears, terreno, clima), sin doble reducción, cambios de Pokémon y combate doble.
 - Probar **Nihil** contra trampas rivales, campos ordinarios/especiales, habilidades, ataques, Teseracto y Ancla; **Bufanda** con flinch efectivo e infructuoso, PS actuales; **Midas** con finalizador distinto del que inicia, dobles, veneno/KO residual, Amuleto Moneda; **Mira** con probabilidades por etapa e inmunidad de críticos; **Espadas** con cada corte, estados, crítico, multigolpe y curación por KO; **Berserker** en defensa cero/negativa sin desbordamiento; **Anillo Feérico** en Hada, no Hada, ataques Veneno y Tóxico.
 - `make`, tests que procedan, emulador visual e inspección de guardado; **ningún check se declara aprobado sin ejecutarlo**.
