@@ -307,6 +307,9 @@ static const u8 sBagPocketTabBerries[] = _("BR");
 static const u8 sBagPocketTabKey[] = _("KY");
 static const u8 sBagPocketTabBattle[] = _("BT");
 static const u8 sBagPocketTabMedicine[] = _("MD");
+static const u8 sBagPocketTabGears[] = _("GE");
+static const u8 sBagPocketTabMail[] = _("ML");
+static const u8 sBagPocketTabMisc[] = _("MS");
 
 // Each of the seven categories occupies 16px in the 120px item-list header.
 static const u8 *const sBagPocketTabLabels[POCKETS_COUNT] =
@@ -318,6 +321,9 @@ static const u8 *const sBagPocketTabLabels[POCKETS_COUNT] =
     [POCKET_KEY_ITEMS] = sBagPocketTabKey,
     [POCKET_BATTLE_ITEMS] = sBagPocketTabBattle,
     [POCKET_MEDICINE] = sBagPocketTabMedicine,
+    [POCKET_GEARS] = sBagPocketTabGears,
+    [POCKET_MAIL] = sBagPocketTabMail,
+    [POCKET_MISC] = sBagPocketTabMisc,
 };
 static const u8 sQuickPocketTitle[] = _("POCKETS  L+R");
 static const u8 sQuickPocketInstructions[] = _("A: GO    B: BACK");
@@ -642,6 +648,10 @@ EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
 static EWRAM_DATA u8 sQuickPocketWindowId = 0; // EWRAM .sbss requires zero init; reset to WINDOW_NONE on bag open.
 static EWRAM_DATA u8 sQuickPocketSelection = 0; // Set to the actual pocket when the Bag opens.
+// EWRAM-only category views. No item is duplicated in the save file.
+static EWRAM_DATA struct ItemSlot sViewGearItems[BAG_KEYITEMS_COUNT];
+static EWRAM_DATA struct ItemSlot sViewMailItems[BAG_ITEMS_COUNT];
+static EWRAM_DATA struct ItemSlot sViewMiscItems[BAG_ITEMS_COUNT];
 
 void ResetBagScrollPositions(void)
 {
@@ -1222,7 +1232,32 @@ void UpdatePocketItemList(enum Pocket pocketId)
         return; // shouldn't even get here
 
     struct BagPocket *pocket = &gBagPockets[pocketId];
-    switch (pocketId)
+    if (pocketId >= POCKET_GEARS)
+    {
+        struct BagPocket *source = &gBagPockets[pocketId == POCKET_GEARS ? POCKET_KEY_ITEMS : POCKET_ITEMS];
+        struct ItemSlot *view = pocketId == POCKET_GEARS ? sViewGearItems
+                              : pocketId == POCKET_MAIL ? sViewMailItems : sViewMiscItems;
+        u32 count = 0;
+
+        // Quantity is encrypted in the source slot; a raw copy is necessary
+        // so the standard BagPocket reader decrypts it precisely once.
+        for (u32 i = 0; i < source->capacity; i++)
+        {
+            struct ItemSlot raw = source->itemSlots[i];
+            if (raw.itemId == ITEM_NONE)
+                continue;
+            if ((pocketId == POCKET_GEARS && Gear_FromItem(raw.itemId) == GEAR_NONE)
+             || (pocketId == POCKET_MAIL && !ItemIsMail(raw.itemId))
+             || (pocketId == POCKET_MISC && ItemIsMail(raw.itemId)))
+                continue;
+            view[count++] = raw;
+        }
+        memset(view + count, 0, (source->capacity - count) * sizeof(*view));
+        pocket->itemSlots = view;
+        pocket->capacity = source->capacity;
+        pocket->id = pocketId;
+    }
+    else switch (pocketId)
     {
     case POCKET_TM_HM:
     case POCKET_BERRIES:
@@ -1456,14 +1491,14 @@ static void DrawQuickPocketPicker(void)
                   0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
     {
-        u8 y = 15 + pocket * 14;
+        u8 y = 14 + pocket * 10;
         u16 count = gBagMenu->numItemStacks[pocket];
 
         if (!gBagMenu->hideCloseBagText && count != 0)
             count--; // "CLOSE BAG" is not an item.
 
         if (pocket == sQuickPocketSelection)
-            FillWindowPixelRect(windowId, PIXEL_FILL(8), 3, y - 1, 130, 13);
+            FillWindowPixelRect(windowId, PIXEL_FILL(8), 3, y - 1, 130, 10);
 
         BagMenu_Print(windowId, FONT_NARROW,
                       pocket == sQuickPocketSelection ? gText_SelectorArrow2 : gText_EmptyString2,
@@ -1720,7 +1755,7 @@ static void DrawPocketTabs(u8 currentPocket)
     FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1)); // Opaque dark strip, gold accents in both bag palettes
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
     {
-        u8 left = 3 + pocket * 16;
+        u8 left = 3 + pocket * 11;
         bool8 occupied = gBagMenu->numItemStacks[pocket] >
                          (gBagMenu->hideCloseBagText ? 0 : 1);
 
@@ -1729,9 +1764,9 @@ static void DrawPocketTabs(u8 currentPocket)
                       pocket == currentPocket ? COLORID_POCKET_NAME : COLORID_NORMAL);
 
         if (pocket == currentPocket)
-            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left, 13, 13, 2);
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left, 13, 10, 2);
         else if (occupied)
-            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left + 5, 13, 3, 2);
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(4), left + 4, 13, 3, 2);
     }
     CopyWindowToVram(WIN_POCKET_TABS, COPYWIN_GFX);
 }
@@ -1755,7 +1790,8 @@ static bool8 CanSwapItems(void)
     {
         // TMHMs and berries are numbered, and so may not be swapped
         if (gBagPosition.pocket != POCKET_TM_HM
-         && gBagPosition.pocket != POCKET_BERRIES)
+         && gBagPosition.pocket != POCKET_BERRIES
+         && gBagPosition.pocket < POCKET_GEARS)
             return TRUE;
     }
     return FALSE;
@@ -1951,11 +1987,17 @@ static void OpenContextMenu(u8 taskId)
             case POCKET_ITEMS:
             case POCKET_BATTLE_ITEMS:
             case POCKET_MEDICINE:
+            case POCKET_MAIL:
+            case POCKET_MISC:
                 gBagMenu->contextMenuItemsPtr = gBagMenu->contextMenuItemsBuffer;
                 gBagMenu->contextMenuNumItems = ARRAY_COUNT(sContextMenuItems_ItemsPocket);
                 memcpy(&gBagMenu->contextMenuItemsBuffer, &sContextMenuItems_ItemsPocket, sizeof(sContextMenuItems_ItemsPocket));
                 if (ItemIsMail(gSpecialVar_ItemId) == TRUE)
                     gBagMenu->contextMenuItemsBuffer[0] = ACTION_CHECK;
+                break;
+            case POCKET_GEARS:
+                gBagMenu->contextMenuItemsPtr = sContextMenuItems_Gear;
+                gBagMenu->contextMenuNumItems = ARRAY_COUNT(sContextMenuItems_Gear);
                 break;
             case POCKET_KEY_ITEMS:
                 gBagMenu->contextMenuItemsPtr = gBagMenu->contextMenuItemsBuffer;
