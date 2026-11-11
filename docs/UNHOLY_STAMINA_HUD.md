@@ -26,6 +26,7 @@ El personaje aliado usa un medidor **circular de 32×32 píxeles (4bpp)** coloca
 - El panel compacto superior de atributos deja de ser un interruptor «mostrar Stamina / ocultarla». **L/R** recorre cuatro contextos: **Stamina máxima**, **nombre del Gear**, **cantidad de mutaciones** y **EV totales**. La fórmula de Stamina coincide con combate, e IV/EV incluyen los valores efectivos de Omega y Ascendido.
 - No altera `BoxPokemon`, variables persistidas, datos de combate, índices de guardado ni estadísticas actuales; solo cambia el frontend de Resumen. El Gear se valida contra `GEAR_COUNT` antes de acceder al catálogo y los textos largos usan ajuste de tipografía.
 - El contador de mutaciones incluye el noveno bit (Ascendido), evitando el truncamiento a 8 bits ya corregido en la rama base.
+- En la página **Información**, L/R recorre: habilidad → tres páginas de nombres de mutaciones → tres páginas de **bonificaciones reales por estadística** (PS, Ataque, Defensa, Velocidad, At. Especial, Def. Especial). La visualización calcula porcentajes con `Pokemon_GetMutationStatBonusPercent`, incluida la penalización de Velocidad de Titán y la suma con Omega. No reimplementa la fórmula ni multiplica las mutaciones entre sí.
 
 **Lo que no se anuncia como terminado:** una página de *atributos ampliados* con navegación visual propia, la lista de modificadores y el historial por UID. Eso requiere construir las ventanas dedicadas y conectar el backend del PR #22, todavía experimental.
 
