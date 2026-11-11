@@ -633,7 +633,7 @@ static EWRAM_DATA struct ListBuffer2 *sListBuffer2 = 0;
 EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
 static EWRAM_DATA u8 sQuickPocketWindowId = 0; // EWRAM .sbss requires zero init; reset to WINDOW_NONE on bag open.
-static EWRAM_DATA u8 sQuickPocketSelection = POCKET_ITEMS;
+static EWRAM_DATA u8 sQuickPocketSelection = 0; // Set to the actual pocket when the Bag opens.
 
 void ResetBagScrollPositions(void)
 {
