@@ -55,4 +55,10 @@ struct UnholyMonExtEntry
 // before anyone interprets its contents. Does not modify the save or allocate.
 bool32 UnholyMonExt_Validate(const void *record, u32 availableBytes);
 
+// Shared lookup for future Stats/Mutations/Gears UI and battle systems.
+// Returns FALSE on unsupported/corrupted data or missing keys; never guesses.
+// The record must be a complete canonical, sorted envelope.
+bool32 UnholyMonExt_TryGetValue(const void *record, u32 availableBytes,
+                               u16 domain, u16 key, s32 *outValue);
+
 #endif // GUARD_UNHOLY_MON_EXT_H
