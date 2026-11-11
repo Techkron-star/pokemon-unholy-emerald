@@ -104,6 +104,7 @@ enum {
     WIN_TMHM_INFO_ICONS,
     WIN_TMHM_INFO,
     WIN_MESSAGE, // Identical to ITEMWIN_MESSAGE. Unused?
+    WIN_POCKET_TABS, // Seven real, labeled pockets above the item list
 };
 
 // Item list ID for toSwapPos to indicate an item is not currently being swapped
@@ -136,6 +137,11 @@ static void LoadBagItemListBuffers(u8);
 static void PrintPocketNames(const u8 *, const u8 *);
 static void CopyPocketNameToWindow(u32);
 static void DrawPocketIndicatorBar(u8);
+static void DrawPocketTabs(u8);
+static void OpenQuickPocketPicker(u8 taskId);
+static void CloseQuickPocketPicker(void);
+static void Task_QuickPocketPicker(u8 taskId);
+static void JumpToBagPocket(u8 taskId, u8 pocket);
 static void CreatePocketScrollArrowPair(void);
 static void CreatePocketSwitchArrowPair(void);
 static void DestroyPocketSwitchArrowPair(void);
@@ -291,6 +297,27 @@ static const struct ListMenuTemplate sItemListMenu =
 };
 
 static const u8 sText_NothingToSort[] = _("There's nothing to sort!");
+static const u8 sBagPocketTabItems[] = _("IT");
+static const u8 sBagPocketTabBalls[] = _("PB");
+static const u8 sBagPocketTabTMs[] = _("TM");
+static const u8 sBagPocketTabBerries[] = _("BR");
+static const u8 sBagPocketTabKey[] = _("KY");
+static const u8 sBagPocketTabBattle[] = _("BT");
+static const u8 sBagPocketTabMedicine[] = _("MD");
+
+// Each of the seven categories occupies 16px in the 120px item-list header.
+static const u8 *const sBagPocketTabLabels[POCKETS_COUNT] =
+{
+    [POCKET_ITEMS] = sBagPocketTabItems,
+    [POCKET_POKE_BALLS] = sBagPocketTabBalls,
+    [POCKET_TM_HM] = sBagPocketTabTMs,
+    [POCKET_BERRIES] = sBagPocketTabBerries,
+    [POCKET_KEY_ITEMS] = sBagPocketTabKey,
+    [POCKET_BATTLE_ITEMS] = sBagPocketTabBattle,
+    [POCKET_MEDICINE] = sBagPocketTabMedicine,
+};
+static const u8 sQuickPocketTitle[] = _("POCKETS  L+R");
+static const u8 sQuickPocketInstructions[] = _("A: GO    B: BACK");
 static const struct MenuAction sItemMenuActions[] = {
     [ACTION_USE]               = {gMenuText_Use,                {ItemMenu_UseOutOfBattle}},
     [ACTION_TOSS]              = {gMenuText_Toss,               {ItemMenu_Toss}},
@@ -481,7 +508,28 @@ static const struct WindowTemplate sDefaultBagWindows[] =
         .paletteNum = 15,
         .baseBlock = 0x1B1,
     },
+    [WIN_POCKET_TABS] = {
+        .bg = 0,
+        .tilemapLeft = 14,
+        .tilemapTop = 0,
+        .width = 15,
+        .height = 2,
+        .paletteNum = 1,
+        .baseBlock = 0x260,
+    },
     DUMMY_WIN_TEMPLATE,
+};
+
+// BG1 quick-picker modal, with dedicated tiles clear of the context windows.
+static const struct WindowTemplate sQuickPocketPickerWindow =
+{
+    .bg = 1,
+    .tilemapLeft = 7,
+    .tilemapTop = 2,
+    .width = 17,
+    .height = 16,
+    .paletteNum = 15,
+    .baseBlock = 0x2A0,
 };
 
 static const struct WindowTemplate sContextMenuWindowTemplates[] =
@@ -584,6 +632,8 @@ static EWRAM_DATA struct ListBuffer1 *sListBuffer1 = 0;
 static EWRAM_DATA struct ListBuffer2 *sListBuffer2 = 0;
 EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
+static EWRAM_DATA u8 sQuickPocketWindowId = WINDOW_NONE;
+static EWRAM_DATA u8 sQuickPocketSelection = POCKET_ITEMS;
 
 void ResetBagScrollPositions(void)
 {
@@ -678,6 +728,8 @@ void GoToBagMenu(u8 location, u8 pocket, MainCallback exitCallback)
          || gBagPosition.location == ITEMMENULOCATION_BERRY_TREE_MULCH
          || gBagPosition.location == ITEMMENULOCATION_RAIDEND)
             gBagMenu->pocketSwitchDisabled = TRUE;
+        sQuickPocketWindowId = WINDOW_NONE;
+        sQuickPocketSelection = gBagPosition.pocket;
         gBagMenu->newScreenCallback = NULL;
         gBagMenu->toSwapPos = NOT_SWAPPING;
         gBagMenu->pocketScrollArrowsTask = TASK_NONE;
@@ -2603,6 +2655,8 @@ static void LoadBagMenuTextWindows(void)
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
         PutWindowTilemap(i);
     }
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(0));
+    PutWindowTilemap(WIN_POCKET_TABS);
     ScheduleBgCopyTilemapToVram(0);
     ScheduleBgCopyTilemapToVram(1);
 }
