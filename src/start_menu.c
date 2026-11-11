@@ -380,6 +380,7 @@ static void OpenUnholyCraftingMenu(void)
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
     PutWindowTilemap(sUnholyCraftWindowId);
     FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
+    DrawUnholyUiPanelAccents(sUnholyCraftWindowId, 26 * 8, 17 * 8, 19);
 
     AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, 4, 3, 0, 0,
                                 sUnholyCraftTextColors, TEXT_SKIP_DRAW, sUnholyCraftTitle);
@@ -404,8 +405,10 @@ static void OpenUnholyCraftingMenu(void)
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
         // Keep the 24x24 icon clear of the recipe text and requirements.
-        gSprites[sUnholyCraftIconSpriteId].x2 = 190;
-        gSprites[sUnholyCraftIconSpriteId].y2 = 58;
+        gSprites[sUnholyCraftIconSpriteId].x = 190;
+        gSprites[sUnholyCraftIconSpriteId].y = 58;
+        gSprites[sUnholyCraftIconSpriteId].x2 = 0;
+        gSprites[sUnholyCraftIconSpriteId].y2 = 0;
     }
     CreateTask(Task_UnholyCraftingMenu, 8);
     FadeScreen(FADE_FROM_BLACK, 0);

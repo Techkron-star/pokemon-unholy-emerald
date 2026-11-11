@@ -25,6 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verificar sprites y paletas Unholy
+        run: python3 tools/unholy/validate_relic_assets.py
+
       - name: Instalar toolchain
         run: |
           sudo apt-get update
