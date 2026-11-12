@@ -1,5 +1,6 @@
 #include "global.h"
 #include "stamina_ring.h"
+#include "config/stamina.h"
 #include "test/test.h"
 
 // In-game smoke coverage of the exact 32x32 4bpp renderer used by OBJ VRAM.
@@ -39,4 +40,32 @@ TEST("Unholy circular stamina meter handles empty, partial and full values")
         EXPECT_EQ(memcmp(small, smallFull, sizeof(small)) == 0, FALSE);
         EXPECT_EQ(small[(1 * 2 + 1) * 32], 0);
     }
+}
+
+TEST("Unholy Stamina rings fit inside the left healthbox in singles and doubles")
+{
+    // Both standard and compact healthboxes anchor their 16x16 circle to
+    // the centre of the same 64x32 left sprite. The opponent circle must
+    // start below the nickname row (at least 14px from the top).
+    const s32 ringSize = 16;
+    const s32 leftBoxHalfWidth = 32;
+    const s32 leftBoxHalfHeight = 16;
+    const s32 halfRing = ringSize / 2;
+    s32 playerLeft = leftBoxHalfWidth + STAMINA_RING_PLAYER_X_OFFSET - halfRing;
+    s32 opponentLeft = leftBoxHalfWidth + STAMINA_RING_OPP_X_OFFSET - halfRing;
+    s32 playerTop = leftBoxHalfHeight + STAMINA_RING_PLAYER_Y_OFFSET - halfRing;
+    s32 opponentTop = leftBoxHalfHeight + STAMINA_RING_OPP_Y_OFFSET - halfRing;
+
+    EXPECT_EQ(playerLeft >= 0, TRUE);
+    EXPECT_EQ(playerLeft + ringSize <= 64, TRUE);
+    EXPECT_EQ(opponentLeft >= 0, TRUE);
+    EXPECT_EQ(opponentLeft + ringSize <= 64, TRUE);
+    EXPECT_EQ(playerTop >= 0, TRUE);
+    EXPECT_EQ(playerTop + ringSize <= 32, TRUE);
+    EXPECT_EQ(opponentTop >= 14, TRUE);
+    EXPECT_EQ(opponentTop + ringSize <= 32, TRUE);
+
+    // The player has room above EXP, while the rival clears the name.
+    EXPECT_EQ(playerTop, 12);
+    EXPECT_EQ(opponentTop, 14);
 }
