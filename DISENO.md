@@ -280,12 +280,39 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
 | **Ruta de Ralts (pueblo siguiente, tras la captura guiada por el padre)** | **Pokélocator** | Ítem clave del menú. Muestra todos los Pokémon de la ruta actual y se desbloquean datos según las medallas. Puede **forzar mayor probabilidad de mutación** en los salvajes de esa ruta. |
 
-### Pokélocator (idea nueva, sin implementar)
+### Pokélocator (v1 implementado; entrega por historia y mutaciones pendientes)
 - Lo entrega el padre al llegar al siguiente pueblo, después de enseñar a capturar un Ralts.
 - Funciona como el **Pokénav de Pokémon Elite Redux**: se abre desde el menú, muestra la lista de especies de la ruta y su información.
 - **Por medallas:** cada medalla desbloquea más información (especies, tasas de encuentro, probabilidad de mutación).
 - **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
 - Pendiente: qué recurso consume, si el efecto dura una sesión de encuentros o un tiempo fijo, y si las mutaciones forzadas respetan la regla de Omega (sin Omega en el Mutator).
+
+#### Implementación v1 (rama `feat/unholy-pokelocator-v1`)
+
+**Qué hace.** `ITEM_POKELOCATOR` (ID 883, ítem clave, `ITEM_USE_FIELD`) se usa desde la Mochila o registrado en SELECT, igual que la Buscaobjetos. Abre una ventana BG0 nativa (26×17 tiles) con las especies de la zona actual: icono, nombre, método, nivel, probabilidad y estado Pokédex (CAPTURADO / VISTO / SIN VER). Controles: ↑↓ cursor (con repetición y vuelta), **A** detalle de la especie (todos sus métodos), **B** atrás/salir, **L/R** filtro por método (solo métodos que existen en la zona), **←→** cambiar de mapa dentro de la misma sección del mapa regional (pisos de una cueva, etc.).
+
+**De dónde salen los datos (sin catálogos duplicados).**
+- Lee `gWildMonHeaders` in situ, con la tabla del horario activo (`GetTimeOfDayForEncounters`), igual que el motor de encuentros. Por eso el horario solo aparece reflejado porque el motor ya lo soporta.
+- Las probabilidades salen de los mismos `ENCOUNTER_CHANCE_*` que usan `ChooseWildMonIndex_*`, expuestos como accesores de solo lectura en `wild_encounter.c` (`GetWildEncounterSlotCount/Weight/GroupTotal`, con `STATIC_ASSERT` de tamaños). Los slots de la misma especie y método se fusionan (suman peso, unen rango de niveles). Cada caña (Vieja, Buena, Súper) se calcula contra su propio total. Los encuentros ocultos no tienen probabilidad definida: se muestra `--`.
+- **Clima, swarm/brote y Feebas no se muestran** porque no forman parte de las tablas leídas; el Pokélocator no los simula.
+- Información secreta: los encuentros ocultos (DexNav) solo se listan si la especie ya fue vista (`Pokelocator_IsSpeciesRevealed`).
+
+**Arquitectura.** `src/pokelocator_data.c` (lectura, filtros, cursor, zona; sin hardware ni RNG, probable de forma aislada) y `src/pokelocator.c` (pantalla). Se renderiza solo cuando cambia una entrada, no cada frame. Como máximo 3 sprites de icono; las paletas de iconos cargadas por la pantalla se liberan al salir, y la paleta 14 del tema se guarda/restaura. Estilo Eclipse/Daylight con `FLAG_UNHOLY_UI_DAYLIGHT` y los helpers compartidos de `shop.c`. Capacidad: 124 mapas reales verificados, máximo 19 filas por mapa (límite 40, con `STATIC_ASSERT`).
+
+**Por qué un ítem clave y no una opción del menú de inicio.** El menú de inicio ya llega a 10-11 entradas y su ventana mide `2·n+2` tiles (con 9 o más ya supera los 20 tiles de pantalla), así que una entrada más lo empeoraría. El ítem clave sigue el diseño ("Ítem clave del menú") y no elimina ni reemplaza nada.
+
+**Mutaciones: preparado y apagado.** `POKELOCATOR_MUTATION_MODIFIER_ENABLED` es `FALSE` (con `#error` si se activa sin proveedor). `Pokelocator_GetModifierStatus()` devuelve `UNDEFINED` y la pantalla no muestra nada. No hay costes, duración, probabilidades ni desbloqueos inventados, y la pantalla no toca el RNG de encuentros ni el estado de guardado.
+
+**Pendiente real (decisiones de diseño, no de código).**
+- **Entrega por historia:** la escena "el padre entrega el Pokélocator tras la captura guiada de Ralts" no existe en los scripts. Queda `EventScript_GivePokelocator` (idempotente, en `data/scripts/pokelocator.inc`) listo para llamarlo desde esa escena. Hasta entonces **no se consigue en una partida normal**; los scripts de debug sí lo entregan. Partidas existentes: mismo caso.
+- **Desbloqueo por medallas:** el diseño dice que cada medalla desbloquea más datos pero no fija qué dato con cuál. V1 muestra especies y probabilidades sin restricción por medalla; hay que definir los umbrales antes de aplicar filtros de progresión.
+- **Modificador de mutaciones:** definir recurso, duración, topes y regla Omega; después añadir un proveedor de solo lectura en `sModifierProviders[]`.
+- **Zonas por región:** la agrupación usa la sección del mapa regional; mapas con varias secciones no se agrupan.
+- FRLG: el ítem y la pantalla son compartidos; la entrega por script solo existe en debug.
+
+**Pruebas.** `test/pokelocator.c` (15 pruebas): suma de pesos = total por método y por caña, slots inválidos/ocultos, fusión de especies, chance en décimas, métodos de pesca, regla de revelado, filtros, ciclo L/R, cursor y listas vacías, modificador indefinido. No se tocó ningún test ni expectativa de la suite de los 112 fallos.
+
+**QA manual en mGBA (no verificado por mí).** Esta sesión no tenía toolchain ARM ni emulador: la compilación Emerald/FRLG, `make check` y la pantalla real dependen del CI y de pruebas manuales. Revisar: abrir desde la Mochila y desde SELECT; ruta con hierba, Surf, pesca y cueva; filtros L/R; A/B; ←→ en zona multi-mapa; Eclipse y Daylight; mapa sin encuentros; que no queden iconos ni ventanas residuales al salir; que el mapa recupere sus colores; nombres largos de especie; 3 filas sin texto superpuesto; Pokédex con especies vistas/capturadas/ocultas.
 
 - El reparto sobrecargado se comparó con efectos de **plumas, pesos y Golden Nugget**; falta definir exactamente la contribución de cada uno.
 - Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas, costo del simulador y listado QoL inicial: **sin cuantificar**.
