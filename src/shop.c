@@ -612,7 +612,9 @@ static void HorizonEggIconShow(void)
     sHorizonEggPaletteOwned = IndexOfSpritePaletteTag(gMonIconPaletteTable[paletteIndex].tag) == 0xFF;
     LoadMonIconPalette(SPECIES_EGG);
     // The actual Pokémon EGG icon, not a species preview or placeholder text.
-    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 112, 0, 0, TRUE);
+    // Bottom-right preview is reserved outside the five horizontal cards.
+    // It must not cover the full tier/quality labels or their price.
+    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 126, 0, 0, TRUE);
 }
 
 static void HorizonEggIconHide(void)
@@ -713,17 +715,24 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
 {
     const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
     const u8 shell = daylight ? 4 : 2;
+    const u8 highlight = daylight ? 8 : 10;
+    const u8 shadow = daylight ? 9 : 4;
     const u8 outline = quality == HORIZON_EGG_PRISMATIC ? 13
                      : quality == HORIZON_EGG_RADIANT ? 7
                      : daylight ? 10 : 3;
 
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y, 4, 1);
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 1, 6, 1);
-    FillWindowPixelRect(windowId, PIXEL_FILL(shell), x + 1, y + 2, 6, 5);
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x, y + 3, 1, 4);
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 7, y + 3, 1, 4);
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 7, 6, 1);
-    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 8, 4, 1);
+    // 14x14 miniature with shading, a rim and a reflective quality accent.
+    // Drawn into BG/window memory; no need for five additional OBJ sprites.
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 4, y, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 1, 10, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(shell), x + 2, y + 3, 10, 8);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 1, y + 4, 1, 6);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 12, y + 4, 1, 6);
+    FillWindowPixelRect(windowId, PIXEL_FILL(highlight), x + 3, y + 4, 3, 3);
+    FillWindowPixelRect(windowId, PIXEL_FILL(shadow), x + 9, y + 7, 2, 3);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 11, 10, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 4, y + 12, 6, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 6, y + 3, 2, 2);
 }
 
 // Font-aware clipping prevents long species/items from bleeding into the
@@ -847,7 +856,7 @@ static void HorizonDrawInfo(void)
             bool8 sold = HorizonEggIsSold(tier);
 
             HorizonDrawCard(panel, x, 30, 38, 42, tier == sHorizonEggSelection);
-            HorizonDrawSmallEgg(panel, x + 14, 35, quality);
+            HorizonDrawSmallEgg(panel, x + 12, 34, quality);
             HorizonPrintFit(panel, sHorizonEggCardNames[tier], x + 3, 48, 32);
             if (sold)
                 HorizonPrintFit(panel, sHorizonTextEggSold, x + 4, 60, 32);
