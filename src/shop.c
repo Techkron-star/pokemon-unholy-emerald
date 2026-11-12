@@ -736,9 +736,11 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
     FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 6, y + 3, 2, 2);
 }
 
-// Font-aware clipping prevents long species/items from bleeding into the
-// next card. Pokemon text uses EOS, not a C NUL terminator.
-static void HorizonPrintFit(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
+// Font-aware clipping and panel-specific colors keep text within its card
+// without painting a rectangle of the root window's background over the fill.
+static void HorizonPrintFitStyle(u8 panel, const u8 *source,
+                                u8 x, u8 y, u8 width, u8 fontId,
+                                const u8 *colors)
 {
     u8 text[48];
     u8 len = 0;
@@ -750,22 +752,58 @@ static void HorizonPrintFit(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
     }
     text[len] = EOS;
 
-    while (len > 0 && GetStringWidth(FONT_NARROW, text, 0) > width)
+    while (len > 0 && GetStringWidth(fontId, text, 0) > width)
         text[--len] = EOS;
 
-    AddTextPrinterParameterized4(panel, FONT_NARROW, x, y, 0, 0,
-                                 sHorizonTextColors, TEXT_SKIP_DRAW, text);
+    AddTextPrinterParameterized4(panel, fontId, x, y, 0, 0,
+                                 colors, TEXT_SKIP_DRAW, text);
 }
 
-// A native single-pixel card outline has no sprite, palette or VRAM cost.
+static void HorizonPrintFit(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
+{
+    HorizonPrintFitStyle(panel, source, x, y, width, FONT_NARROW, sHorizonTextColors);
+}
+
+static void HorizonPrintSmall(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
+{
+    HorizonPrintFitStyle(panel, source, x, y, width, FONT_SMALL, sHorizonTextColors);
+}
+
+static void HorizonPrintCardText(u8 panel, const u8 *source,
+                                 u8 x, u8 y, u8 width, bool8 selected, bool8 small)
+{
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 colors[3] =
+    {
+        daylight ? (selected ? 9 : 4) : (selected ? 4 : 1),
+        daylight ? 2 : 10,
+        daylight ? 3 : 3,
+    };
+    HorizonPrintFitStyle(panel, source, x, y, width,
+                         small ? FONT_SMALL : FONT_NARROW, colors);
+}
+
+// 4bpp BG-only card: subtle fill + strong active focus. No sprites,
+// palette allocation or state changes; same colors as Eclipse/Daylight.
 static void HorizonDrawCard(u8 panel, u8 x, u8 y, u8 width, u8 height, bool8 selected)
 {
-    const u8 line = selected ? (FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 6 : 7) : 3;
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 fill = daylight ? (selected ? 9 : 4) : (selected ? 4 : 1);
+    const u8 line = daylight ? (selected ? 7 : 3) : (selected ? 10 : 3);
+    const u8 shine = daylight ? 6 : 5;
 
+    if (width < 4 || height < 4)
+        return;
+
+    FillWindowPixelRect(panel, PIXEL_FILL(fill), x + 1, y + 1,
+                        width - 2, height - 2);
     FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, width, 1);
     FillWindowPixelRect(panel, PIXEL_FILL(line), x, y + height - 1, width, 1);
     FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, 1, height);
     FillWindowPixelRect(panel, PIXEL_FILL(line), x + width - 1, y, 1, height);
+
+    if (selected)
+        FillWindowPixelRect(panel, PIXEL_FILL(shine), x + 2, y + 1, width - 4, 2);
 }
 
 // The root page contains a small *live* preview of the selected category,
@@ -787,9 +825,9 @@ static void HorizonDrawRootPreview(u8 panel)
             enum PokemonBadge mutation = HorizonMarketGetMutation(slot);
 
             HorizonDrawCard(panel, px, py, 24, 20, FALSE);
-            HorizonPrintFit(panel, sold ? sHorizonTextSold
-                                        : GetSpeciesName(HorizonMarketGetSpecies(slot)),
-                            px + 2, py + 3, 19);
+            HorizonPrintCardText(panel, sold ? sHorizonTextSold
+                                             : GetSpeciesName(HorizonMarketGetSpecies(slot)),
+                                 px + 2, py + 3, 19, FALSE, TRUE);
             if (mutation != 0 && !sold)
                 FillWindowPixelRect(panel, PIXEL_FILL(13), px + 19, py + 2, 3, 3);
         }
@@ -803,7 +841,7 @@ static void HorizonDrawRootPreview(u8 panel)
             u8 y = 33 + i * 24;
 
             HorizonDrawCard(panel, x, y, 82, 21, FALSE);
-            HorizonPrintFit(panel, GetItemName(items[i]), x + 4, y + 4, 74);
+            HorizonPrintCardText(panel, GetItemName(items[i]), x + 4, y + 4, 74, FALSE, FALSE);
         }
     }
     else if (sHorizonSelectedTab == 3)
@@ -820,9 +858,9 @@ static void HorizonDrawRootPreview(u8 panel)
     else
     {
         HorizonDrawCard(panel, x, 34, 82, 21, FALSE);
-        HorizonPrintFit(panel, sHorizonMoveLearn, x + 9, 39, 66);
+        HorizonPrintCardText(panel, sHorizonMoveLearn, x + 9, 39, 66, FALSE, FALSE);
         HorizonDrawCard(panel, x, 58, 82, 21, FALSE);
-        HorizonPrintFit(panel, sHorizonMoveForget, x + 9, 63, 66);
+        HorizonPrintCardText(panel, sHorizonMoveForget, x + 9, 63, 66, FALSE, FALSE);
     }
 }
 
@@ -977,15 +1015,14 @@ static void HorizonDrawInfo(void)
         ConvertIntToDecimalStringN(gStringVar3, GetMoney(&gSaveBlock1Ptr->money),
                                    STR_CONV_MODE_LEFT_ALIGN, 7);
         StringAppend(gStringVar4, gStringVar3);
-        HorizonPrintFit(panel, gStringVar4, 8, 80, 115);
+        HorizonPrintSmall(panel, gStringVar4, 8, 81, 115);
 
         if (sHorizonSelectedTab == 0 && HorizonMarketHasUnseenMutation())
         {
-            HorizonPrintFit(panel, sHorizonTextRare, 128, 80, 79);
+            HorizonPrintSmall(panel, sHorizonTextRare, 128, 81, 79);
             FillWindowPixelRect(panel, PIXEL_FILL(13), 206, 84, 3, 3);
         }
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 96, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
+        HorizonPrintSmall(panel, sHorizonTextControls, 8, 97, 198);
     }
 
     CopyWindowToVram(panel, COPYWIN_FULL);
