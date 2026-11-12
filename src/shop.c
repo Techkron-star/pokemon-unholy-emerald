@@ -130,6 +130,7 @@ static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
 static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
 static EWRAM_DATA u16 sHorizonGoodsSelection = 0; // Horizontal purchase carousel.
+static EWRAM_DATA u16 sHorizonGoodsCursor[2] = {0}; // Discs/Items within this Horizon session.
 static EWRAM_DATA bool8 sHorizonMoveBrowsing = FALSE;
 static EWRAM_DATA u8 sHorizonMoveSelection = 0;
 static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
@@ -1172,7 +1173,8 @@ static void Task_HorizonPokemon(u8 taskId)
     HorizonMarketMarkPokemonSeen();
     sHorizonPokemonBrowsing = TRUE;
     sHorizonPokemonConfirm = FALSE;
-    sHorizonPokemonSelection = 0;
+    // Preserve focus while opening and closing this catalogue repeatedly.
+    // The purchase status is transient; the offer index is session-local.
     sHorizonPokemonStatus = 0;
     HorizonDrawNotification();
     HorizonDrawInfo();
@@ -1186,7 +1188,6 @@ static void Task_HorizonEggs(u8 taskId)
 
     HorizonMarketRefresh();
     sHorizonEggBrowsing = TRUE;
-    sHorizonEggSelection = 0;
     sHorizonEggStatus = 0;
     sHorizonEggConfirm = FALSE;
     HorizonEggIconShow();
@@ -1195,15 +1196,17 @@ static void Task_HorizonEggs(u8 taskId)
 
 static void Task_HorizonDiscs(u8 taskId)
 {
-    sHorizonGoodsSelection = 0;
     SetShopItemsForSale(HorizonGoodsGetDiscs());
+    sHorizonGoodsSelection = sMartInfo.itemCount != 0
+                            ? sHorizonGoodsCursor[0] % sMartInfo.itemCount : 0;
     Task_HandleShopMenuBuy(taskId);
 }
 
 static void Task_HorizonItems(u8 taskId)
 {
-    sHorizonGoodsSelection = 0;
     SetShopItemsForSale(HorizonGoodsGetItems());
+    sHorizonGoodsSelection = sMartInfo.itemCount != 0
+                            ? sHorizonGoodsCursor[1] % sMartInfo.itemCount : 0;
     Task_HandleShopMenuBuy(taskId);
 }
 
@@ -1969,6 +1972,7 @@ static void Task_BuyMenu(u8 taskId)
             {
                 sHorizonGoodsSelection = (sHorizonGoodsSelection + sMartInfo.itemCount - 1)
                                         % sMartInfo.itemCount;
+                sHorizonGoodsCursor[sHorizonSelectedTab == 1 ? 0 : 1] = sHorizonGoodsSelection;
                 PlaySE(SE_SELECT);
                 BuyMenuDrawHorizonGoods();
                 BuyMenuPrintItemDescriptionAndShowItemIcon(
@@ -1978,6 +1982,7 @@ static void Task_BuyMenu(u8 taskId)
             if (JOY_NEW(DPAD_RIGHT | R_BUTTON) && sMartInfo.itemCount != 0)
             {
                 sHorizonGoodsSelection = (sHorizonGoodsSelection + 1) % sMartInfo.itemCount;
+                sHorizonGoodsCursor[sHorizonSelectedTab == 1 ? 0 : 1] = sHorizonGoodsSelection;
                 PlaySE(SE_SELECT);
                 BuyMenuDrawHorizonGoods();
                 BuyMenuPrintItemDescriptionAndShowItemIcon(
@@ -2331,6 +2336,9 @@ void CreateHorizonShopMenu(void)
     sHorizonActive = TRUE;
     sHorizonSelectedTab = 0;
     sHorizonGoodsSelection = 0;
+    sHorizonGoodsCursor[0] = 0;
+    sHorizonGoodsCursor[1] = 0;
+    sHorizonMoveBrowsing = FALSE;
     sHorizonPokemonBrowsing = FALSE;
     sHorizonEggBrowsing = FALSE;
     sHorizonEggConfirm = FALSE;
