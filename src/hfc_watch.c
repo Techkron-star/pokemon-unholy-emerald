@@ -50,6 +50,10 @@ static void CB2_InitHfcWatch(void)
 {
     sHfcWatchState.currentSelection = 0;
     sHfcWatchState.isOpen = TRUE;
+    sHfcWatchState.pokemonOfferCount = 0;
+    sHfcWatchState.discsOfferCount = 0;
+    sHfcWatchState.itemsOfferCount = 0;
+    sHfcWatchState.eggsOfferCount = 0;
     HfcWatch_UpdateOptionStates();
     SetMainCallback2(CB2_InitHfcWatch);
 }
