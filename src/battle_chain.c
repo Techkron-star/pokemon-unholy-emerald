@@ -130,10 +130,13 @@ void Chain_ExpandTurnOrder(void)
     AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_NORMAL);
     if (secondChains)
         AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_SECOND);
-    if (!firstChains && secondChains)
-        AddTurnAction(&n, battlers, roles, first, first == rival ? CHAIN_ROLE_RIVAL_EXTRA : CHAIN_ROLE_NORMAL);
-    if (firstChains && !secondChains)
-        AddTurnAction(&n, battlers, roles, second, second == rival ? CHAIN_ROLE_RIVAL_EXTRA : CHAIN_ROLE_NORMAL);
+    // The extra action is an AI counterplay ONLY when the PLAYER chains.
+    // Never enqueue a second normal attack for a player who chose a single
+    // move: that made it repeat automatically after the opponent's move.
+    if (!firstChains && secondChains && first == rival)
+        AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_RIVAL_EXTRA);
+    if (firstChains && !secondChains && second == rival)
+        AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_RIVAL_EXTRA);
 
     for (u32 i = 0; i < n; i++)
     {

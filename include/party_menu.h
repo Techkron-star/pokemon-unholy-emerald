@@ -133,6 +133,7 @@ void ChooseContestMon(void);
 void ChoosePartyMon(void);
 void ChooseMonForMoveRelearner(void);
 void ChooseMonForHorizonMoveRelearner(void);
+void ChooseMonForHorizonMoveDeleter(void);
 void BattlePyramidChooseMonHeldItems(void);
 void DoBattlePyramidMonsHaveHeldItem(void);
 void IsSelectedMonEgg(void);

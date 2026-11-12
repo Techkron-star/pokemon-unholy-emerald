@@ -33,19 +33,15 @@
 // Pokémon restauran este % de la stamina máxima por cada KO, además de su subida de stat.
 #define STAMINA_KO_RESTORE_PERCENT      30
 
-// Opponents retain the legacy horizontal meter until their HUD is redesigned.
-#define STAMINA_BAR_Y_OFFSET            8
-#define STAMINA_BAR_PIXELS              48
-
-// Player HUD: 32x32 circular stamina gauge placed just to the lower-left
-// of the healthbox. Offsets are relative to its centre and follow healthbox
-// sliding/visibility. Keep clear of move icons and double-battle cards.
-// 16x16 ring inside the gap between nickname, HP and EXP.
-// Relative to the centre of the main 64px healthbox sprite.
-#define STAMINA_RING_PLAYER_X_OFFSET   (-13)
-#define STAMINA_RING_PLAYER_Y_OFFSET   12
+// Both HUD rings are 16x16 OBJ sprites. Sprite positions refer to the
+// LEFT 64x32 healthbox sprite's centre (see sBattlerHealthboxCoords).
+// Keep 8px of the ring ABOVE and BELOW these centres inside each box;
+// the original +12/+11 offsets placed them outside the lower border.
+// Doubles apply their existing 2-3px compact-layout correction.
+#define STAMINA_RING_PLAYER_X_OFFSET   (-16)
+#define STAMINA_RING_PLAYER_Y_OFFSET    6
 #define STAMINA_RING_OPP_X_OFFSET      (-16)
-#define STAMINA_RING_OPP_Y_OFFSET       11
+#define STAMINA_RING_OPP_Y_OFFSET       1
 #define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H

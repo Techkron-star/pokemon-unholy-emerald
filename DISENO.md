@@ -10,16 +10,16 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 
 ---
 
-## Estado de implementación (rama `feat/stamina`)
+## Estado de implementación (rama de integración apilada, noviembre 2026)
 
 | Pieza | Estado |
 |---|---|
 | Menú de debug (ítems, dinero, Pokémon) | Hecho (el de pokeemerald-expansion, activado en el menú de inicio) |
 | Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo relativo a stamina máxima (14% base + potencia efectiva/10 puntos porcentuales). Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
-| Barra de stamina | Implementada y compilada; clon de la barra de vida con colores y animación. Falta validación visual en emulador/hardware (`STAMINA_BAR_Y_OFFSET`) |
+| HUD circular de Stamina | Anillos compactos de 16×16 para aliado y rival. Offsets ajustados a partir de capturas de Pizza Boy; falta comprobar el nuevo posicionamiento en individuales y dobles |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
-| Movimientos encadenados | Implementado en combates individuales: SELECT marca el primer movimiento, A confirma el segundo; el rival obtiene una acción extra y también puede encadenar |
+| Movimientos encadenados | SELECT marca el primer movimiento y A confirma el segundo. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. La IA conserva su réplica extra cuando el jugador encadena; pendiente validar en ROM |
 | Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
 | Inicio rápido | Tras fijar el reloj se omiten TV/casa del rival/habitación, apareciendo en Pueblo Raíz justo detrás de la niña antes de subir hacia la Ruta 101 |
@@ -36,11 +36,11 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
-| Horizon Shop | Entrada en el menú principal y catálogo inicial fijo de objetos implementados; Pokémon, huevos, discos, servicios y rotación persistente pendientes |
-| Gestión de movimientos | Exclusiva de Horizon Shop: se retiran LEARN del equipo y START RELEARN del resumen; el acceso de Horizon conserva el recordador existente |
+| Horizon Shop | Cinco pestañas horizontales, catálogo Pokémon (6), huevos (5), artículos (8) y MT (6) con rotación persistente implementados en ramas apiladas. UI de compras contenida en panel nativo de 15×16 tiles; falta QA de la build más reciente |
+| Gestión de movimientos | Horizon MOVES presenta dos acciones, RELEARN y FORGET. La última reutiliza selección de Pokémon y resumen, descarta cancelar y protege el último movimiento. QA en emulador pendiente |
 | Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
 
-### Cambios recientes verificados
+### Cambios recientes y estado de verificación
 
 - `0e7f5e3c10`: encadenamiento del rival y señal visual.
 - `e4ab4be0bc`: inicio rápido hasta Route 101 y velocidades NORMAL/FAST/INSTANT.
@@ -48,6 +48,24 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 - La ROM `pokeemerald.gba` compiló correctamente después de estos cambios. La compilación muestra advertencias gráficas `libpng` existentes, pero no errores de compilación.
 - La renovación automática usa `VAR_LAST_REPEL_LURE_USED` (`0x404E`) y se puede desactivar con `I_REPEL_AUTO_RENEW`.
 - Los badges se almacenan en los bits libres del substruct seguro del Pokémon y pasan por `Get/Set(Box)MonData`, por lo que participan en el checksum normal.
+
+### Integración actual — 11 de noviembre de 2026
+
+**Rama de este lote:** `fix/unholy-chain-horizon-ui-moves-20261111`, basada en `feat/unholy-special-origin-mutations-20261111`. Las mejoras no están fusionadas con `master` ni se consideran visualmente aprobadas hasta superar CI y QA en Pizza Boy.
+
+| Prioridad | Hallazgo/cambio | Estado real |
+| --- | --- | --- |
+| P0 | El jugador ejecutaba un ataque extra sin encadenar si la IA encadenaba. Se retiró la acción `CHAIN_ROLE_NORMAL` añadida implícitamente al jugador; las acciones extras se conceden solo a la IA cuando el jugador encadena | Código corregido; prueba de turnos pendiente |
+| P0 | Horizonte ITEMS/DISCS usaba una ventana de 27×8 tiles superpuesta a dinero, descripción y cantidad. Se mantiene la ventana nativa de 15×16 y se muestran dos fichas horizontales, seleccionada/siguiente, dentro del panel | Código corregido; revisión 240×160 pendiente |
+| P0 | Círculos de Stamina fuera del marco de ambos Pokémon | Offsets para 16×16 actualizados (jugador -16,+6; rival -16,+1); revisión de dobles y textos pendiente |
+| P1 | Horizon MOVES solo abría el recordador; ahora permite elegir RELEARN o FORGET, con selector de Pokémon y pantalla de movimientos | Implementado en código; validar cancelación, HM y último movimiento |
+| P1 | Mutaciones de iniciales, regalos, guardería e intercambios NPC; bonus relativo del 15 % para tiers C/B | PR #27 apilado, pendiente de QA |
+| P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |
+| P2 | Nuevos Gears, crafteos, IA avanzada, legendarios, animaciones y Poké Simulator | Continúan pendientes de implementación/integración completa |
+
+**Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
+
+**Matriz de QA inmediata:** comprobar el marco y las etiquetas de Horizon en Eclipse/Daylight, cantidades e iconos de compra, cancelar y volver a las pestañas; anillos de ambos bandos en individual/doble y transiciones; Horizon MOVES con Pokémon de 1, 2 y 4 ataques, cancelaciones, HMs y guardado/carga; llenar MEDICINE con Debug y con pociones normales; verificar Game Boy Advance ROM final y artefacto descargable.
 
 Todos los números de balance están en `include/config/stamina.h`.
 
@@ -102,7 +120,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 
 ### Gestión de movimientos
 
-- **MOVE MANAGEMENT** aparece en el menú principal y abre la selección de Pokémon usando el flujo existente del recordador.
+- **Horizon Shop > MOVES** ofrece RELEARN y FORGET con el selector del equipo. El recordador conserva sus filtros; FORGET usa el selector de movimientos original y no permite eliminar el último movimiento del Pokémon.
 - El catálogo de movimientos conserva las categorías y restricciones ya configuradas (nivel, MT, tutor y huevo).
 - La pantalla de resumen existente gestiona el reemplazo cuando el Pokémon ya tiene cuatro movimientos; no se crea una ruta paralela para borrar HMs.
 
@@ -156,7 +174,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 
 ## Diseño de interfaz — Horizon Nebula (9 noviembre 2026)
 
-Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **diseño aprobado para implementar, no pantalla ya integrada en la ROM**. Consulta [`docs/UI_HORIZON_NEBULA.md`](docs/UI_HORIZON_NEBULA.md) para layouts, navegación, paletas Eclipse/Daylight, persistencia, límites GBA, sprites personalizados y pruebas.
+Se definió el sistema visual de Horizon Shop y sus menús. **La pantalla raíz con cinco pestañas ya está implementada en ramas apiladas; estas revisiones todavía necesitan QA en emulador**. Consulta [`docs/UI_HORIZON_NEBULA.md`](docs/UI_HORIZON_NEBULA.md) para layouts, navegación, paletas Eclipse/Daylight, persistencia, límites GBA, sprites personalizados y pruebas.
 
 - Horizon Shop abre una **pantalla raíz con cinco pestañas**: Pokémon, Discos, Objetos, Huevos, Movimientos.
 - La lista, el panel de descripción y los botones comparten estructura, pero cada pestaña utiliza reglas y flujos propios.
@@ -166,7 +184,7 @@ Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **
 - Crafting adopta panel de receta, requisitos visibles (poseído / requerido) y confirmación antes de consumir materiales.
 - Movimiento / aprender / olvidar reutiliza el flujo existente; se crea navegación uniforme, no una segunda lógica incompatible.
 
-**Estado:** especificado, pendiente de implementación en C y de validación visual en ROM/emulador.
+**Estado:** pantalla raíz y catálogos implementados en C; editor avanzado de estilos, efectos y validación visual siguen pendientes.
 
 ---
 
@@ -174,7 +192,7 @@ Se definió el sistema visual de Horizon Shop y los menús personalizados. Es **
 
 Sistema de compras y servicios accesible desde el menú principal del juego. Permite preparar y ampliar el equipo sin depender exclusivamente de los encuentros y tiendas físicas.
 
-Horizon Shop reutiliza el menú del PokéMart para objetos y discos. La rama `feat/unholy-horizon-six-stock-egg-roulette-20261110` desarrolla seis ofertas Pokémon persistentes y cinco rangos de huevos reales con calidad visual independiente por RNG. Compilación y pruebas de emulador pendientes.
+Horizon Shop reutiliza las compras del PokéMart para objetos y discos, con navegación horizontal propia; también integra seis ofertas Pokémon persistentes y cinco rangos de huevos reales con calidad independiente por RNG. Los cambios viven en PR apilados, con pruebas de emulador pendientes.
 
 ### Catálogo y progresión
 - La oferta de **Pokémon y objetos** se selecciona de forma **aleatoria (RNG)** y cambia en función del **ciclo de día y noche** del juego.
@@ -347,7 +365,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Repelente automático/renovable implementado; falta decidir y balancear el modo de repelente infinito.
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
 - PC avanzado: favoritos/protección, filtros, búsqueda y operaciones múltiples. El traslado múltiple y el cambio rápido de caja ya existen en la base.
-- Cambio/reaprendizaje de movimientos desde el equipo y eliminación de la dependencia de enseñar MO. Implementado mediante **MOVE MANAGEMENT** y el recordador existente.
+- Aprender/olvidar movimientos desde **Horizon MOVES**: código de ambas acciones integrado; todavía deben validarse cancelación, restricciones y guardado.
 - Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes. La interfaz HGSS existente ya está activada; quedan por integrar explícitamente las variantes Alpha/Super/Enraged/Omega y validar textos/pantallas en hardware.
 - Guardado fiable, versionado/migraciones y pruebas de persistencia.
 - Validación visual de la barra de stamina, encadenamiento y textos en emulador/hardware.
@@ -358,7 +376,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
 - Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
 - HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
-- Acceso contextual `LEARN` desde el menú de acciones del Pokémon: implementado para abrir directamente el gestor con el Pokémon seleccionado; queda pendiente ampliar filtros y acciones avanzadas del gestor.
+- Horizon MOVES: selector RELEARN/FORGET y protección del último ataque en código; filtros avanzados y QA pendiente. El acceso contextual `LEARN` antiguo se retiró del menú del Pokémon.
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.

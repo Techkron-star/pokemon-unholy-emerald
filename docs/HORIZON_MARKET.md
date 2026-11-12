@@ -12,9 +12,15 @@ No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las proba
 
 ## Interfaz horizontal de compra (revisión 11/11/2026)
 
-Las listas de productos de **ITEMS y DISCS** ahora usan una vista de **tres tarjetas horizontales**: oferta anterior, seleccionada y siguiente. L/R o izquierda/derecha recorren el stock circularmente; A continúa con la confirmación y cantidad del PokéMart; B regresa a Horizon en la misma pestaña. El nombre completo del objeto seleccionado se muestra debajo de las tarjetas. Se conservan la descripción, icono, precio, cantidad y límites de inventario.
+**Corrección tras las capturas de Pizza Boy:** los paneles de **ITEMS y DISCS** mantienen el área de ítems nativa de 15×16 tiles (120×128 píxeles) para no tapar el dinero, los iconos, las descripciones ni las ventanas de compra. Dentro aparecen **dos tarjetas horizontales**, el artículo seleccionado y el siguiente; L/R recorre todas las ofertas, A compra y B sale. Los nombres completos se muestran debajo de las tarjetas. Continúan intactos los precios, la cantidad, el icono y la lógica de compra de PokéMart.
 
 La navegación horizontal se activa **solo** cuando `sHorizonActive` está habilitado. Las tiendas tradicionales y su lista vertical no cambian. El cursor de la vista Horizon es transitorio: **no vuelve a sortear stock ni modifica las variables del mercado**. Se debe validar render a 240×160 y probar compras, cancelaciones, cambio de categorías, Eclipse/Daylight y retorno a START.
+
+## MOVES: recordar y olvidar (revisión 11/11/2026)
+
+La quinta pestaña ahora abre una selección **RELEARN / FORGET** dentro del panel Horizon. **RELEARN** usa el recordador de movimientos y sus categorías, mientras **FORGET** abre el selector de Pokémon y la pantalla de movimientos existente. Elegir con A elimina el ataque elegido, salvo si es el último movimiento del Pokémon. B cancela sin alterar datos. No hay costes ni servicios externos de NPC añadidos.
+
+**Pendiente de comprobar en emulador:** Pokémon de 1, 2 y 4 movimientos, huevos, cancelar en todos los niveles, ataques MO, menú de combate después de olvidar y persistencia tras guardar/cargar. No fusionar hasta validar estas rutas y el artefacto.
 
 ## Discos y Objetos: rotación persistente de stock (PR apilado)
 

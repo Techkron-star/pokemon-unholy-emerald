@@ -130,6 +130,8 @@ static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
 static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
 static EWRAM_DATA u16 sHorizonGoodsSelection = 0; // Horizontal purchase carousel.
+static EWRAM_DATA bool8 sHorizonMoveBrowsing = FALSE;
+static EWRAM_DATA u8 sHorizonMoveSelection = 0;
 static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
 static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
 static EWRAM_DATA u16 sHorizonSavedPalette[16];
@@ -236,11 +238,16 @@ static const u8 sHorizonTextDiscs[] = _("DISCS");
 static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
+static const u8 sHorizonMoveLearn[] = _("RELEARN");
+static const u8 sHorizonMoveForget[] = _("FORGET");
+static const u8 sHorizonMoveInstructions[] = _("UP/DOWN: SELECT  A: OPEN");
+static const u8 sHorizonMoveBack[] = _("B: BACK");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
-static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY  B: BACK");
+static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
+static const u8 sHorizonGoodsBack[] = _("B: BACK");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Rotating TMs.\nBy badge and time.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies +\nrotating specials.\nA: BUY");
@@ -720,6 +727,8 @@ static void HorizonDrawInfo(void)
         title = sHorizonTextPokemon;
     else if (sHorizonEggBrowsing)
         title = sHorizonTextEggs;
+    else if (sHorizonMoveBrowsing)
+        title = sHorizonTextMoves;
 
     FillWindowPixelBuffer(panel, PIXEL_FILL(1));
     DrawUnholyUiPanelAccents(panel, 27 * 8, 14 * 8, 24);
@@ -828,6 +837,21 @@ static void HorizonDrawInfo(void)
                                      sHorizonTextColors, TEXT_SKIP_DRAW,
                                      sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
     }
+    else if (sHorizonMoveBrowsing)
+    {
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 35, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW,
+                                     sHorizonMoveSelection == 0
+                                     ? COMPOUND_STRING("> RELEARN") : sHorizonMoveLearn);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 55, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW,
+                                     sHorizonMoveSelection == 1
+                                     ? COMPOUND_STRING("> FORGET") : sHorizonMoveForget);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 82, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveInstructions);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 99, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveBack);
+    }
     else
     {
         AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 34, 0, 0,
@@ -849,6 +873,40 @@ static void HorizonDrawInfo(void)
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+
+    if (sHorizonActive && sHorizonMoveBrowsing)
+    {
+        if (JOY_NEW(B_BUTTON))
+        {
+            sHorizonMoveBrowsing = FALSE;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+        }
+        else if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+        {
+            sHorizonMoveSelection ^= 1;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+        }
+        else if (JOY_NEW(A_BUTTON))
+        {
+            // Release windows before launching the normal party and move UI.
+            HorizonCloseInfoWindow();
+            ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
+            RemoveWindow(sMartInfo.windowId);
+            UnlockPlayerFieldControls();
+            DestroyTask(taskId);
+            sHorizonMoveBrowsing = FALSE;
+            sHorizonActive = FALSE;
+            sHorizonSelectedTab = 0;
+            if (sHorizonMoveSelection == 0)
+                ChooseMonForHorizonMoveRelearner();
+            else
+                ChooseMonForHorizonMoveDeleter();
+        }
+        return;
+    }
+
     if (sHorizonActive && sHorizonEggBrowsing)
     {
         if (JOY_NEW(B_BUTTON))
@@ -1096,14 +1154,9 @@ static void Task_HorizonItems(u8 taskId)
 
 static void Task_HorizonMoves(u8 taskId)
 {
-    HorizonCloseInfoWindow();
-    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
-    RemoveWindow(sMartInfo.windowId);
-    UnlockPlayerFieldControls();
-    DestroyTask(taskId);
-    sHorizonActive = FALSE;
-    sHorizonSelectedTab = 0;
-    ChooseMonForHorizonMoveRelearner();
+    sHorizonMoveBrowsing = TRUE;
+    sHorizonMoveSelection = 0;
+    HorizonDrawInfo();
 }
 
 static void Task_HandleShopMenuBuy(u8 taskId)
@@ -1427,10 +1480,12 @@ static void BuyMenuRemoveScrollIndicatorArrows(void)
 // Horizon Items and Discs: three actual products across the screen rather
 // than the traditional vertical PokéMart list.  L/R scroll a circular window
 // and the underlying purchase flow (money, quantity, stock) is unchanged.
+// The original 15x16 PokéMart ITEM_LIST region is 120x128 pixels.
+// Draw two 54px horizontal cards wholly INSIDE that region, rather than
+// stretching a 27-tile window over the other money/description dialogs.
 static void BuyMenuDrawHorizonGoods(void)
 {
     u16 count = sMartInfo.itemCount;
-    u8 selectedName[ITEM_NAME_LENGTH + 2];
 
     if (!sHorizonActive)
         return;
@@ -1438,36 +1493,33 @@ static void BuyMenuDrawHorizonGoods(void)
     FillWindowPixelBuffer(WIN_ITEM_LIST, PIXEL_FILL(1));
     if (count == 0)
     {
-        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 55, 24,
+        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 18, 48,
                                      0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                      TEXT_SKIP_DRAW, gText_SoldOut);
     }
     else
     {
-        for (u8 column = 0; column < 3; column++)
+        for (u8 column = 0; column < 2; column++)
         {
-            s32 relative = (s32)column - 1;
-            u16 index = (sHorizonGoodsSelection + count + relative) % count;
+            u16 index = (sHorizonGoodsSelection + column) % count;
             enum Item item = sMartInfo.itemList[index];
             const u8 *fullName = GetItemName(item);
             u8 label[11];
-            u8 x = 5 + column * 70;
+            u8 x = 4 + column * 56;
             u8 len = 0;
 
-            while (len < 9 && fullName[len] != EOS)
+            while (len < 8 && fullName[len] != EOS)
             {
                 label[len] = fullName[len];
                 len++;
             }
             label[len] = EOS;
 
-            // A subtle card edge distinguishes the selected slot even in
-            // the monochrome shop palette.
             FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 1 ? 3 : 2), x, 4, 64, 2);
+                                PIXEL_FILL(column == 0 ? 3 : 2), x, 10, 52, 2);
             FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 1 ? 3 : 2), x, 34, 64, 2);
-            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 3, 11,
+                                PIXEL_FILL(column == 0 ? 3 : 2), x, 47, 52, 2);
+            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 1, 18,
                                          0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                          TEXT_SKIP_DRAW, label);
 
@@ -1475,7 +1527,7 @@ static void BuyMenuDrawHorizonGoods(void)
              && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
             {
                 AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 9, 24, 0, 0,
+                                             x + 7, 32, 0, 0,
                                              sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                              TEXT_SKIP_DRAW, gText_SoldOut);
             }
@@ -1485,22 +1537,25 @@ static void BuyMenuDrawHorizonGoods(void)
                                            GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT),
                                            STR_CONV_MODE_LEFT_ALIGN, 6);
                 AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 7, 24, 0, 0,
+                                             x + 2, 32, 0, 0,
                                              sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                              TEXT_SKIP_DRAW, gStringVar1);
             }
         }
 
-        StringCopy(selectedName, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]));
-        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                     GetStringCenterAlignXOffset(FONT_NARROW, selectedName, 216),
-                                     40, 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                     TEXT_SKIP_DRAW, selectedName);
+        // The selected item is always the LEFT card. Full names that do not
+        // fit that card are printed on a dedicated line below the cards.
+        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 6, 60,
+                                     0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                     TEXT_SKIP_DRAW, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]));
     }
 
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 18, 54,
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 86,
                                  0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                  TEXT_SKIP_DRAW, sHorizonGoodsControls);
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 100,
+                                 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                 TEXT_SKIP_DRAW, sHorizonGoodsBack);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }
@@ -1582,21 +1637,10 @@ static void BuyMenuDecompressBgGraphics(void)
 
 static void BuyMenuInitWindows(void)
 {
-    if (sHorizonActive)
-    {
-        struct WindowTemplate templates[ARRAY_COUNT(sShopBuyMenuWindowTemplates)];
-        memcpy(templates, sShopBuyMenuWindowTemplates, sizeof(templates));
-        // Wide horizontal purchase cards leave the regular Mart layout alone.
-        templates[WIN_ITEM_LIST].tilemapLeft = 2;
-        templates[WIN_ITEM_LIST].tilemapTop = 4;
-        templates[WIN_ITEM_LIST].width = 27;
-        templates[WIN_ITEM_LIST].height = 8;
-        InitWindows(templates);
-    }
-    else
-    {
-        InitWindows(sShopBuyMenuWindowTemplates);
-    }
+    // Keep all five windows in their native, non-overlapping BG locations.
+    // The former 27x8 Horizon list covered the money, description and
+    // quantity dialog windows, spilling its white fill over the whole shop.
+    InitWindows(sShopBuyMenuWindowTemplates);
     DeactivateAllTextPrinters();
     LoadUserWindowBorderGfx(WIN_MONEY, 1, BG_PLTT_ID(13));
     LoadMessageBoxGfx(WIN_MONEY, 0xA, BG_PLTT_ID(14));
