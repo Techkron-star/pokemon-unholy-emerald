@@ -4,7 +4,7 @@
 extern struct ItemSlot gMartPurchaseHistory[3];
 
 void CreatePokemartMenu(const u16 *itemsForSale);
-void CreateHorizonShopMenu(void);
+void CreateHorizonShopMenu(void (*fieldReturn)(void));
 // Draws pixel-perfect Eclipse/Daylight chrome in existing GBA windows.
 void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY);
 const u16 *GetUnholyUiPalette(void);

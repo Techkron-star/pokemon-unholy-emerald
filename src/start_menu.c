@@ -136,7 +136,7 @@ static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuCraftingCallback(void);
 static bool8 StartMenuHfcWatchCallback(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
-static void OpenUnholyCraftingMenu(void);
+static EWRAM_DATA MainCallback sUnholyCraftOnClose = NULL;
 static void CloseUnholyCraftingMenu(void);
 
 // Menu callbacks
@@ -662,8 +662,23 @@ static u8 UnholyCraftSwapGear(void)
     return CRAFT_STATUS_EQUIPPED;
 }
 
-static void OpenUnholyCraftingMenu(void)
+static void ReturnFromUnholyCrafting(void)
 {
+    MainCallback onClose = sUnholyCraftOnClose;
+
+    sUnholyCraftOnClose = NULL;
+    if (onClose != NULL)
+        onClose();
+    else
+    {
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+    }
+}
+
+void OpenUnholyCraftingMenu(MainCallback onClose)
+{
+    sUnholyCraftOnClose = onClose;
     sUnholyCraftMode = 0;
     sUnholyCraftGearCursor = GEAR_VISOR_COSMICO;
     sUnholyCraftStatus = CRAFT_STATUS_READY;
@@ -676,8 +691,8 @@ static void OpenUnholyCraftingMenu(void)
     if (sUnholyCraftWindowId == 0xFF)
     {
         LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        FadeScreen(FADE_FROM_BLACK, 0);
+        ReturnFromUnholyCrafting();
         return;
     }
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
@@ -719,8 +734,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         }
         CloseUnholyCraftingMenu();
         DestroyTask(taskId);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        ReturnFromUnholyCrafting();
         return;
     }
 
@@ -768,6 +782,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         {
             CloseUnholyCraftingMenu();
             DestroyTask(taskId);
+        sUnholyCraftOnClose = NULL;
             ScriptUnfreezeObjectEvents();
             UnlockPlayerFieldControls();
             ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);
@@ -812,7 +827,7 @@ static bool8 StartMenuCraftingCallback(void)
         RemoveExtraStartMenuWindows();
         ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
         RemoveStartMenuWindow();
-        OpenUnholyCraftingMenu();
+        OpenUnholyCraftingMenu(NULL);
         return TRUE;
     }
     return FALSE;
@@ -853,7 +868,7 @@ static void BuildNormalStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     // With a watch, Horizon and PokeNav live inside its hub (one entry instead of two).
     AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
-    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
     if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
@@ -876,7 +891,7 @@ static void BuildDebugStartMenu(void)
         AddStartMenuAction(MENU_ACTION_POKEMON);
     AddStartMenuAction(MENU_ACTION_BAG);
     AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
-    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
     if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
@@ -1264,7 +1279,7 @@ static bool8 StartMenuHorizonShopCallback(void)
         PlayRainStoppingSoundEffect();
         RemoveExtraStartMenuWindows();
         CleanupOverworldWindowsAndTilemaps();
-        CreateHorizonShopMenu();
+        CreateHorizonShopMenu(NULL);
         FadeScreen(FADE_FROM_BLACK, 0);
         return TRUE;
     }

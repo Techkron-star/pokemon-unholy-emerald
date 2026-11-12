@@ -89,6 +89,7 @@ PetalburgCity_Gym_EventScript_ReturnFromWallyTutorial::
 	waitmovement 0
 	msgbox PetalburgCity_Gym_Text_DadGoCollectBadges, MSGBOX_DEFAULT
 	setvar VAR_PETALBURG_GYM_STATE, 2
+	call EventScript_GiveSuperPokeWatch
 	releaseall
 	end
 
@@ -103,6 +104,7 @@ PetalburgCity_Gym_EventScript_Norman::
 	vsseeker_rematchid TRAINER_NORMAN_1
 	lock
 	faceplayer
+	call_if_ge VAR_PETALBURG_GYM_STATE, 2, EventScript_GiveSuperPokeWatch
 	switch VAR_PETALBURG_GYM_STATE
 	case 2, PetalburgCity_Gym_EventScript_NormanNoBadges
 	case 3, PetalburgCity_Gym_EventScript_NormanOneBadge

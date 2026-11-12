@@ -419,6 +419,20 @@ static void DoStandardWildBattle(bool32 isDouble)
     TryUpdateGymLeaderRematchFromWild();
 }
 
+void BattleSetup_StartHfcRaid(void)
+{
+    LockPlayerFieldControls();
+    FreezeObjectEvents();
+    StopPlayerAvatar();
+    gMain.savedCallback = CB2_EndWildBattle;
+    gBattleTypeFlags = BATTLE_TYPE_RAID;
+    TRAINER_BATTLE_PARAM.opponentA = TRAINER_NONE;
+    CreateBattleStartTask(GetWildBattleTransition(), 0);
+    IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
+    IncrementGameStat(GAME_STAT_WILD_BATTLES);
+    IncrementDailyWildBattles();
+}
+
 void DoStandardWildBattle_Debug(void)
 {
     LockPlayerFieldControls();
@@ -695,6 +709,7 @@ static void CB2_EndWildBattle(void)
 {
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
+    gBattleTypeFlags &= ~BATTLE_TYPE_RAID;
 
     if (IsNPCFollowerWildBattle())
     {

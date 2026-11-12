@@ -41,6 +41,7 @@ u16 CountPartyAliveNonEggMons_IgnoreVar0x8004Slot(void);
 u8 CountPartyMons(void);
 u8 *StringCopyAndFillWithSpaces(u8 *dst, const u8 *src, u16 n);
 void ShowPokemonStorageSystemPC(void);
+void OpenPokemonStorageFromField(void (*returnCallback)(void));
 void ResetPokemonStorageSystem(void);
 s16 CompactPartySlots(void);
 u8 StorageGetCurrentBox(void);

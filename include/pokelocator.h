@@ -98,6 +98,6 @@ u8 Pokelocator_BuildZone(struct PokelocatorZone *zone, u16 mapGroup, u16 mapNum)
 u8 Pokelocator_GetModifierStatus(enum PokelocatorModifierId id, u8 mapSec);
 
 // UI entry point, called from the Pokélocator key item while the field is active.
-void Pokelocator_OpenFromField(void);
+void Pokelocator_OpenFromField(void (*onClose)(void));
 
 #endif // GUARD_POKELOCATOR_H

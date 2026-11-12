@@ -375,7 +375,7 @@ void ItemUseOutOfBattle_Pokelocator(u8 taskId)
 static void ItemUseOnFieldCB_Pokelocator(u8 taskId)
 {
     DestroyTask(taskId);
-    Pokelocator_OpenFromField();
+    Pokelocator_OpenFromField(NULL);
 }
 
 void ItemUseOutOfBattle_HfcWatch(u8 taskId)

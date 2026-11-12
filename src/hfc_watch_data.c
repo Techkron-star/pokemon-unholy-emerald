@@ -15,7 +15,12 @@ static const struct HfcWatchFeatureInfo sFeatures[HFC_WATCH_FEATURE_COUNT] =
 {
     [HFC_WATCH_FEATURE_HORIZON_SHOP] = { HFC_WATCH_TIER_POKE,  0, TRUE },
     [HFC_WATCH_FEATURE_POKENAV]      = { HFC_WATCH_TIER_POKE,  0, TRUE },
+    [HFC_WATCH_FEATURE_CRAFTING]     = { HFC_WATCH_TIER_POKE,  0, TRUE },
     [HFC_WATCH_FEATURE_POKELOCATOR]  = { HFC_WATCH_TIER_SUPER, 0, TRUE },
+    [HFC_WATCH_FEATURE_STORAGE]     = { HFC_WATCH_TIER_SUPER, 2, TRUE },
+    [HFC_WATCH_FEATURE_FREQUENCY]   = { HFC_WATCH_TIER_HF,    3, TRUE },
+    [HFC_WATCH_FEATURE_RAID]        = { HFC_WATCH_TIER_HF,    4, TRUE },
+    [HFC_WATCH_FEATURE_ARCHIVE]     = { HFC_WATCH_TIER_HF,    0, TRUE },
     [HFC_WATCH_FEATURE_MUTATOR]      = { HFC_WATCH_TIER_HF,    8, FALSE },
     [HFC_WATCH_FEATURE_SIMULATOR]    = { HFC_WATCH_TIER_HF,    4, FALSE },
 };
@@ -32,13 +37,13 @@ u8 HfcWatch_TierFromItems(bool8 hasPoke, bool8 hasSuper, bool8 hasHF)
     return HFC_WATCH_TIER_NONE;
 }
 
-u8 HfcWatch_GetTierMask(u8 tier)
+u16 HfcWatch_GetTierMask(u8 tier)
 {
-    u8 mask = 0, i;
+    u16 mask = 0;
 
     if (tier == HFC_WATCH_TIER_NONE || tier >= HFC_WATCH_TIER_COUNT)
         return 0;
-    for (i = 0; i < HFC_WATCH_FEATURE_COUNT; i++)
+    for (u8 i = 0; i < HFC_WATCH_FEATURE_COUNT; i++)
     {
         if (sFeatures[i].minTier <= tier)
             mask |= HFC_WATCH_FEATURE_BIT(i);
@@ -48,29 +53,31 @@ u8 HfcWatch_GetTierMask(u8 tier)
 
 bool8 HfcWatch_TierHasFeature(u8 tier, u8 feature)
 {
-    if (feature >= HFC_WATCH_FEATURE_COUNT)
-        return FALSE;
-    return (HfcWatch_GetTierMask(tier) & HFC_WATCH_FEATURE_BIT(feature)) != 0;
+    return feature < HFC_WATCH_FEATURE_COUNT
+        && tier < HFC_WATCH_TIER_COUNT
+        && tier >= sFeatures[feature].minTier;
 }
 
-enum HfcWatchAccess HfcWatch_GetAccess(u8 tier, u8 feature, u8 badges)
+enum HfcWatchAccess HfcWatch_GetAccess(u8 tier, u8 feature, struct HfcWatchProgress progress)
 {
     if (!HfcWatch_TierHasFeature(tier, feature))
         return HFC_WATCH_WRONG_TIER;
-    if (badges < sFeatures[feature].minBadges)
+    if (progress.badges < sFeatures[feature].minBadges)
         return HFC_WATCH_NEEDS_BADGES;
+    if (feature == HFC_WATCH_FEATURE_CRAFTING && !progress.craftingUnlocked)
+        return HFC_WATCH_NEEDS_UNLOCK;
     if (!sFeatures[feature].hasLauncher)
         return HFC_WATCH_SERVICE_PENDING;
     return HFC_WATCH_READY;
 }
 
-u8 HfcWatch_BuildMenu(u8 tier, u8 badges, u8 *featuresOut)
+u8 HfcWatch_BuildMenu(u8 tier, struct HfcWatchProgress progress, u8 *featuresOut)
 {
     u8 i, count = 0;
 
     for (i = 0; i < HFC_WATCH_FEATURE_COUNT; i++)
     {
-        if (HfcWatch_GetAccess(tier, i, badges) == HFC_WATCH_READY)
+        if (HfcWatch_GetAccess(tier, i, progress) == HFC_WATCH_READY)
             featuresOut[count++] = i;
     }
     return count;

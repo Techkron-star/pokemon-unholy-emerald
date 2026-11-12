@@ -905,6 +905,8 @@
 #define FLAG_0x392               0x392
 #define FLAG_0x393               0x393
 #define FLAG_0x394               0x394
+#define FLAG_DAILY_HFC_RAID      FLAG_0x393
+#define FLAG_DAILY_HFC_FREQUENCY FLAG_0x394
 #define FLAG_0x395               0x395
 #define FLAG_0x396               0x396
 #define FLAG_0x397               0x397

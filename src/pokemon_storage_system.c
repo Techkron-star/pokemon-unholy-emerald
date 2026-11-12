@@ -806,6 +806,7 @@ static struct BoxPokemon *GetCursorBoxMon(void);
 // Misc
 static void CreateMainMenu(u8, s16 *);
 static void EnterPokeStorage(u8 boxOption);
+static EWRAM_DATA MainCallback sPortableStorageReturn = NULL;
 static u8 GetCurrentBoxOption(void);
 static void ScrollBackground(void);
 static void UpdateCloseBoxButtonFlash(void);
@@ -1665,10 +1666,13 @@ static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
 
 static void CB2_ExitPokeStorage(void)
 {
+    MainCallback returnCallback = sPortableStorageReturn;
+
+    sPortableStorageReturn = NULL;
     sPreviousBoxOption = GetCurrentBoxOption();
     if (sCursorArea == CURSOR_AREA_IN_BOX)
         sLastCursorPos[StorageGetCurrentBox()] = sCursorPosition;
-    gFieldCallback = FieldTask_ReturnToPcMenu;
+    gFieldCallback = returnCallback != NULL ? returnCallback : FieldTask_ReturnToPcMenu;
     SetMainCallback2(CB2_ReturnToField);
 }
 
@@ -1998,13 +2002,19 @@ static void EnterPokeStorage(u8 boxOption)
     }
 }
 
+void OpenPokemonStorageFromField(MainCallback returnCallback)
+{
+    sPortableStorageReturn = returnCallback;
+    EnterPokeStorage(OPTION_MOVE_MONS);
+}
+
 static void CB2_ReturnToPokeStorage(void)
 {
     ResetTasks();
     sStorage = Alloc(sizeof(*sStorage));
     if (sStorage == NULL)
     {
-        if (sStorage->boxOption == OPTION_SELECT_MON)
+        if (sCurrentBoxOption == OPTION_SELECT_MON)
             SetMainCallback2(CB2_ReturnToFieldContinueScript);
         else
             SetMainCallback2(CB2_ExitPokeStorage);

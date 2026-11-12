@@ -118,6 +118,7 @@ struct ShopData
 
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
+static EWRAM_DATA MainCallback sHorizonFieldReturn = NULL;
 static EWRAM_DATA bool8 sHorizonPokemonBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
@@ -1056,6 +1057,7 @@ static void Task_ShopMenu(u8 taskId)
             DestroyTask(taskId);
             sHorizonMoveBrowsing = FALSE;
             sHorizonActive = FALSE;
+            sHorizonFieldReturn = NULL;
             sHorizonSelectedTab = 0;
             if (sHorizonMoveSelection == 0)
                 ChooseMonForHorizonMoveRelearner();
@@ -1377,9 +1379,14 @@ static void Task_HandleShopMenuQuit(u8 taskId)
         sMartInfo.callback = NULL;
         DestroyTask(taskId);
 
-        // Rebuild overworld windows and reopen START in a valid task context;
-        // do not try to draw START onto Horizon's destroyed BG tilemap.
-        CB2_ReturnToFieldWithOpenMenu();
+        if (sHorizonFieldReturn != NULL)
+        {
+            gFieldCallback = sHorizonFieldReturn;
+            sHorizonFieldReturn = NULL;
+            CB2_ReturnToField();
+        }
+        else
+            CB2_ReturnToFieldWithOpenMenu();
         return;
     }
 
@@ -2434,10 +2441,11 @@ void CreatePokemartMenu(const u16 *itemsForSale)
     SetShopMenuCallback(ScriptContext_Enable);
 }
 
-void CreateHorizonShopMenu(void)
+void CreateHorizonShopMenu(void (*fieldReturn)(void))
 {
     HorizonMarketRefresh();
     sHorizonActive = TRUE;
+    sHorizonFieldReturn = fieldReturn;
     sHorizonSelectedTab = 0;
     sHorizonGoodsSelection = 0;
     sHorizonGoodsCursor[0] = 0;
@@ -2456,8 +2464,6 @@ void CreateHorizonShopMenu(void)
     CreateShopMenu(MART_TYPE_NORMAL);
     SetShopItemsForSale(HorizonGoodsGetItems());
     ClearItemPurchases();
-    // Horizon returns through CB2_ReturnToFieldWithOpenMenu on B, not by
-    // setting a field callback that never runs on this in-field close path.
     SetShopMenuCallback(NULL);
 }
 

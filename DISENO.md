@@ -324,22 +324,23 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 
 Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otros son el mismo dispositivo con funciones recortadas (tabla `sFeatures` en `src/hfc_watch_data.c`, un `minTier` por función).
 
-| Nivel | Objeto | Funciones |
+| Reloj | Entrega | Funciones |
 |---|---|---|
-| 1 | Poké Watch | Horizon Shop y PokéNav básico |
-| 2 | Super Poke Watch | + Pokélocator |
-| 3 | HF Poke Watch | + Poké Simulator desde 4 medallas y Mutator desde 8 medallas, cuando se integren los servicios |
+| Poké Watch | La madre al poner en hora el reloj de casa | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
+| Super Poké Watch | Norman tras la captura guiada de Wally | Añade Pokélocator y las cajas del PC desde la segunda medalla. |
+| HF Poké Watch | Wattson tras la tercera medalla | Añade Archivo de anomalías, Señal mutante y una incursión diaria desde la cuarta medalla. |
 
-Implementación:
-- `src/hfc_watch_data.c` decide el nivel según el mejor reloj de la mochila y evalúa nivel, medallas y disponibilidad del servicio por separado. `test/hfc_watch.c` verifica esos límites.
-- La entrada **WATCH** agrupa Horizon y PokéNav en START, también en la ROM con debug. Los relojes son objetos clave con IDs 884–886 y se pueden usar desde la mochila o registrar en SELECT. El aviso de ofertas mutantes de Horizon se mantiene en START y en WATCH.
-- PokéNav abre su menú básico desde el primer reloj, con mapa y condición. Match Call y cintas siguen el progreso normal del juego. Usar el reloj no adelanta la entrega de Devon.
-- La madre entrega el Poké Watch al poner en hora el reloj de la casa. Una partida anterior lo recibe al hablar con ella después de haber fijado la hora. La entrega es idempotente y las mejoras conservan el reloj anterior si la mochila no admite el nuevo. Super y HF tienen scripts de entrega y HF se puede obtener con Debug.
+- **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
+- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con la madre, Norman o Wattson tras el hito correspondiente.
+- El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
 
-Pendiente:
-- Implementar la edición de IV/EV del Poké Simulator y el intento de mutación del Mutator, con precio, probabilidades y pérdida de nivel según las reglas definitivas. La comprobación de acceso HF y medallas ya está conectada al menú. WATCH muestra el servicio cuando dispone de un lanzador funcional.
-- Escenas de entrega de Super y HF. Pokélocator conserva su uso desde el objeto dedicado además del acceso por Super o HF.
-- Iconos propios para los relojes, frecuencia mutante, incursiones y archivo de anomalías según el [diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
+**Incursiones y señal, balance inicial.**
+
+- Una incursión individual por día de juego, desde una ruta al aire libre con un Pokémon capaz de combatir. El rival diario sale de un catálogo de seis especies con cuatro movimientos seleccionados, IA de salvaje avanzada, 25 IV y nivel 35–59 según medallas. Tiene una probabilidad base del 20 % de mostrar una mutación, con acceso gradual a los tiers C–S. Omega queda fuera del catálogo. Al vencer se puede usar una Poké Ball para capturarlo mediante el flujo de captura tras victoria. El intento se consume al iniciar.
+- La señal se activa una vez al día desde la tercera medalla. Aumenta entre 25 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
+- El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
+
+**Pendientes.** Implementar el Poké Simulator de IV/EV desde cuatro medallas y el Mutator desde ocho. Faltan tarifas, probabilidades y penalización de fallo. Las incursiones multijugador o con aliados, las recompensas adicionales y los iconos propios del reloj quedan para otra tanda. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
 
 ## 8. Mutator
 

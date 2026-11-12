@@ -6,6 +6,7 @@
 #include "fieldmap.h"
 #include "fishing.h"
 #include "follower_npc.h"
+#include "hfc_watch_services.h"
 #include "item.h"
 #include "random.h"
 #include "field_player_avatar.h"
@@ -510,13 +511,21 @@ static u8 PickWildMonNature(enum Species species)
     return GetSynchronizedNature(WILDMON_ORIGIN, species);
 }
 
-void CreateWildMon(enum Species species, u8 level)
+static void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost)
 {
     ZeroEnemyPartyMons();
     u32 personality = GetMonPersonality(species, GetSynchronizedGender(WILDMON_ORIGIN, species), PickWildMonNature(species), RANDOM_UNOWN_LETTER);
     CreateMonWithIVs(&gParties[B_TRAINER_OPPONENT_A][0], species, level, personality, OTID_STRUCT_PLAYER_ID, USE_RANDOM_IVS);
     GiveMonInitialMoveset(&gParties[B_TRAINER_OPPONENT_A][0]);
-    Pokemon_AssignEncounterBadges(&gParties[B_TRAINER_OPPONENT_A][0], FALSE);
+    if (boost != 0)
+        Pokemon_AssignFrequencyBadges(&gParties[B_TRAINER_OPPONENT_A][0], boost);
+    else
+        Pokemon_AssignEncounterBadges(&gParties[B_TRAINER_OPPONENT_A][0], FALSE);
+}
+
+void CreateWildMon(enum Species species, u8 level)
+{
+    CreateWildMonWithFrequency(species, level, 0);
 }
 
 #ifdef BUGFIX
@@ -579,7 +588,7 @@ bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPok
     if (gMapHeader.mapLayoutId != LAYOUT_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS && flags & WILD_CHECK_KEEN_EYE && !IsAbilityAllowingEncounter(level))
         return FALSE;
 
-    CreateWildMon(wildMonInfo->wildPokemon[wildMonIndex].species, level);
+    CreateWildMonWithFrequency(wildMonInfo->wildPokemon[wildMonIndex].species, level, HfcWatch_ConsumeFrequencyEncounter());
     return TRUE;
 }
 
@@ -590,7 +599,7 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
     u8 level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, WILD_AREA_FISHING);
 
     UpdateChainFishingStreak();
-    CreateWildMon(wildMonSpecies, level);
+    CreateWildMonWithFrequency(wildMonSpecies, level, HfcWatch_ConsumeFrequencyEncounter());
     return wildMonSpecies;
 }
 
@@ -958,7 +967,7 @@ void FishingWildEncounter(u8 rod)
         u8 level = ChooseWildMonLevel(&gWildFeebas, 0, WILD_AREA_FISHING);
 
         species = gWildFeebas.species;
-        CreateWildMon(species, level);
+        CreateWildMonWithFrequency(species, level, HfcWatch_ConsumeFrequencyEncounter());
     }
     else
     {

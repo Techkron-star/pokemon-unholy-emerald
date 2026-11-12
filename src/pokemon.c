@@ -25,6 +25,7 @@
 #include "follower_npc.h"
 #include "frontier_util.h"
 #include "graphics.h"
+#include "hfc_watch_services.h"
 #include "item.h"
 #include "link.h"
 #include "m4a.h"
@@ -3113,6 +3114,7 @@ u8 GiveCapturedMonToPlayer(struct Pokemon *mon)
 
     CopyMon(&gParties[B_TRAINER_PLAYER][i], mon, sizeof(*mon));
     gPartiesCount[B_TRAINER_PLAYER] = i + 1;
+    HfcWatch_RegisterMutation(&mon->box);
     return MON_GIVEN_TO_PARTY;
 }
 
@@ -3133,6 +3135,7 @@ u8 CopyMonToPC(struct Pokemon *mon)
             {
                 MonRestorePP(mon);
                 CopyMon(checkingMon, &mon->box, sizeof(mon->box));
+                HfcWatch_RegisterMutation(checkingMon);
                 gSpecialVar_MonBoxId = boxNo;
                 gSpecialVar_MonBoxPos = boxPos;
                 if (GetPCBoxToSendMon() != boxNo)
@@ -3679,6 +3682,11 @@ static void Pokemon_AssignBadgesWithOriginBoost(struct Pokemon *mon, bool32 trai
 void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter)
 {
     Pokemon_AssignBadgesWithOriginBoost(mon, trainerEncounter, 0);
+}
+
+void Pokemon_AssignFrequencyBadges(struct Pokemon *mon, u8 lowTierBoostPercent)
+{
+    Pokemon_AssignBadgesWithOriginBoost(mon, FALSE, lowTierBoostPercent);
 }
 
 // One roll at acquisition, not again upon hatching/evolution/trading.
@@ -7016,6 +7024,7 @@ u32 GiveScriptedMonToPlayer(struct Pokemon *mon, u8 slot)
     }
     if (sentToPc != MON_CANT_GIVE)
     {
+        HfcWatch_RegisterMutation(&mon->box);
         HandleSetPokedexFlagFromMon(mon, FLAG_SET_SEEN);
         HandleSetPokedexFlagFromMon(mon, FLAG_SET_CAUGHT);
     }

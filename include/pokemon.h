@@ -904,6 +904,7 @@ void RemoveBoxMonPPBonus(struct BoxPokemon *mon, u8 moveIndex);
 void RemoveBattleMonPPBonus(struct BattlePokemon *mon, u8 moveIndex);
 void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst);
 void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter);
+void Pokemon_AssignFrequencyBadges(struct Pokemon *mon, u8 lowTierBoostPercent);
 void Pokemon_AssignSpecialOriginBadges(struct Pokemon *mon);
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex);
 bool8 PokemonUseItemEffects(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex, u8 usedByAI);

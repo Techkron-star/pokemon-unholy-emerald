@@ -65,6 +65,7 @@ struct PokelocatorUi
     u8 ownedPaletteMask;
     bool8 paletteSaved;
     u16 savedPalette[16];
+    void (*onClose)(void);
 };
 
 static EWRAM_DATA struct PokelocatorUi sUi = {0};
@@ -479,6 +480,19 @@ static void LoadZoneMap(u8 zoneIndex)
     RefilterList();
 }
 
+static void ReturnFromLocator(void)
+{
+    void (*onClose)(void) = sUi.onClose;
+    sUi.onClose = NULL;
+    if (onClose != NULL)
+        onClose();
+    else
+    {
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+    }
+}
+
 static void CloseScreen(u8 taskId)
 {
     DestroyIcons();
@@ -491,8 +505,7 @@ static void CloseScreen(u8 taskId)
         sUi.paletteSaved = FALSE;
     }
     DestroyTask(taskId);
-    ScriptUnfreezeObjectEvents();
-    UnlockPlayerFieldControls();
+    ReturnFromLocator();
 }
 
 static void Task_Pokelocator(u8 taskId)
@@ -565,13 +578,14 @@ static void Task_Pokelocator(u8 taskId)
 }
 
 // Opens the screen over the field. Controls stay locked until the screen closes.
-void Pokelocator_OpenFromField(void)
+void Pokelocator_OpenFromField(void (*onClose)(void))
 {
     u8 i;
 
     LockPlayerFieldControls();
 
     memset(&sUi, 0, sizeof(sUi));
+    sUi.onClose = onClose;
     for (i = 0; i < POKELOCATOR_VISIBLE_ROWS; i++)
         sUi.iconSpriteIds[i] = MAX_SPRITES;
 
@@ -589,8 +603,7 @@ void Pokelocator_OpenFromField(void)
     {
         LoadPalette(sUi.savedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
         sUi.paletteSaved = FALSE;
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        ReturnFromLocator();
         return;
     }
 

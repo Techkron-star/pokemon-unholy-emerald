@@ -9903,7 +9903,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("Super Poke Watch"),
         .description = COMPOUND_STRING(
-            "Poke Watch plus\nthe Pokelocator."),
+            "Adds the locator\nand access to\nPokemon Boxes."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9918,7 +9918,7 @@ const struct ItemInfo gItemsInfo[] =
     {
         .name = ITEM_NAME("HF Poke Watch"),
         .description = COMPOUND_STRING(
-            "The complete HFC\nwrist device."),
+            "Adds daily raids,\nmutant signals,\nand the archive."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
