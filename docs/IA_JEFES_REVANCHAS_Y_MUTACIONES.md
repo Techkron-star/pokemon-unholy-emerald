@@ -23,6 +23,8 @@ Los entrenadores de ruta deben ofrecer una resistencia razonable, pero los rival
 
 **Trabajo posterior de IA:** añadir criterios conscientes del gasto de stamina, segunda acción encadenada, vulnerabilidad tras el KO, objetivos de cambio, desgaste por clima personalizado y recursos de Mega; comprobar que las nuevas prioridades no hacen que la IA se quede inmóvil o cambie eternamente.
 
+**Primer ajuste de Stamina en integración:** si varias opciones para la primera acción de un entrenador tienen la misma puntuación, elige entre las que dejan Stamina disponible. Si todas las opciones empatadas agotan al Pokémon, conserva la selección habitual. Los movimientos con una puntuación superior mantienen su prioridad. En dobles el desempate se aplica a los movimientos para un mismo objetivo. La estimación usa el coste del motor y la Stamina del propio combatiente. La segunda acción de una cadena conserva sus reglas y puede agotar al usuario.
+
 ## 3. Equipos de gimnasio: uno o más Pokémon extraordinarios
 
 **Regla solicitada:** cada uno de los ocho líderes tiene **al menos un legendario o miembro de una familia seudolegendaria**, ajustado al nivel del resto del equipo y con ataques jugables en ese momento. No regalarles estadísticas máximas, mutaciones obligatorias o megapiedras antes de que el jugador tenga herramientas comparables. Se priorizan sinergias temáticas y debilidades deliberadas.
