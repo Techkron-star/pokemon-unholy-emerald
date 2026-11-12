@@ -2806,6 +2806,13 @@ void BufferStringBattle(enum StringID stringID, enum BattlerId battler)
             }
         }
         break;
+    case STRINGID_MEGAEVOREACTING:
+        if (!(gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_LINK))
+         && !IsOnPlayerSide(gBattleScripting.battler))
+            stringPtr = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX}'s {B_LAST_ITEM} is reacting!");
+        else
+            stringPtr = gBattleStringsTable[stringID];
+        break;
     case STRINGID_TRAINERSLIDE:
         stringPtr = gBattleStruct->trainerSlideMsg;
         break;
