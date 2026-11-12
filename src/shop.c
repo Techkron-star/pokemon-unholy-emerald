@@ -684,16 +684,16 @@ static void HorizonDrawTabs(void)
         if (tab == sHorizonSelectedTab)
         {
             FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(activeAccent),
-                                x, 18, 39, 2);
+                                x, 20, 39, 2);
         }
         else
         {
             FillWindowPixelRect(sMartInfo.windowId, PIXEL_FILL(3),
-                                x + 3, 18, 33, 1);
+                                x + 3, 20, 33, 1);
         }
 
         AddTextPrinterParameterized4(sMartInfo.windowId, FONT_NARROW,
-                                    x + 4, 5, 0, 0, sHorizonTextColors,
+                                    x + 4, 3, 0, 0, sHorizonTextColors,
                                     TEXT_SKIP_DRAW, sHorizonTabLabels[tab]);
     }
 
@@ -999,17 +999,17 @@ static void HorizonDrawInfo(void)
 
             HorizonDrawCard(panel, x, 36, 92, 40, option == sHorizonMoveSelection);
             HorizonPrintCardText(panel, option == 0 ? sHorizonMoveLearn : sHorizonMoveForget,
-                                     x + 13, 46, 74, option == sHorizonMoveSelection, FONT_NARROW);
+                                     x + 13, 42, 74, option == sHorizonMoveSelection, FONT_NARROW);
             HorizonPrintCardText(panel, option == 0
                                     ? COMPOUND_STRING("Old / TM / Tutor")
                                     : COMPOUND_STRING("Remove a move"),
-                                     x + 7, 60, 78, option == sHorizonMoveSelection, FONT_SMALL_NARROW);
+                                     x + 7, 62, 78, option == sHorizonMoveSelection, FONT_SMALL_NARROW);
         }
         HorizonPrintSmall(panel, sHorizonMoveInstructions, 10, 98, 194);
     }
     else
     {
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 34, 0, 0,
+        AddTextPrinterParameterized4(panel, FONT_SMALL, 8, 34, 0, 0,
                                      sHorizonTextColors, TEXT_SKIP_DRAW,
                                      sHorizonDescriptions[sHorizonSelectedTab]);
         HorizonDrawRootPreview(panel);
