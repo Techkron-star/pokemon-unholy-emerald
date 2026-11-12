@@ -9868,6 +9868,22 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_SuperExpShare,
     },
 
+    [ITEM_POKELOCATOR] =
+    {
+        .name = ITEM_NAME("Pokelocator"),
+        .description = COMPOUND_STRING(
+            "Lists the wild\n"
+            "Pokémon of the\n"
+            "current area."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_Pokelocator,
+        .iconPic = gItemIcon_Pokelocator,
+        .iconPalette = gItemIconPalette_Pokelocator,
+    },
+
     [ITEM_GEAR_VISOR_COSMICO] =
     {
         .name = ITEM_NAME("Visor Cosmico"),

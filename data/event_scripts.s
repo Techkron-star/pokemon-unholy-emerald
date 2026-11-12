@@ -1058,6 +1058,7 @@ gStdScripts_End::
 	.include "data/scripts/config.inc"
 	.include "data/scripts/debug.inc"
 	.include "data/scripts/crafting.inc"
+	.include "data/scripts/pokelocator.inc"
 
 EventScript_WhiteOut::
 	call EverGrandeCity_HallOfFame_EventScript_ResetEliteFour
