@@ -11,6 +11,10 @@
 - `include/config/stamina.h`: offsets separados `STAMINA_RING_PLAYER_*` y `STAMINA_RING_OPP_*`; ajustables tras capturas reales en Pizza Boy. Se conservan 64 segmentos lógicos.
 - El rasterizador de 32×32 sigue disponible para regresión; `StaminaRing_RenderCompact` dibuja el de 16×16 y comparte el cálculo de porcentajes. Las pruebas GBA (`test/unholy_stamina_ring.c`) comprueban también que su centro es transparente y que vacío/lleno difieren.
 
+### Revisión de offsets por capturas de Pizza Boy — 11/11/2026
+
+Se observaron los anillos fuera del borde inferior de los cuadros de PS. Los centros del sprite de 16×16 se recolocan usando el origen del cuadro: **aliado (-16,+6)** y **rival (-16,+1)**, con los ajustes existentes de dobles. Se eliminan de la configuración las constantes obsoletas de la barra horizontal. Estos valores son un cambio de código, no una validación visual todavía; confirmar en hardware o emulador.
+
 ### Validaciones pendientes
 
 - [ ] Compilar Emerald, FireRed y LeafGreen y release.
