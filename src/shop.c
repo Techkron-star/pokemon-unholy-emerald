@@ -926,7 +926,7 @@ static void Task_ShopMenu(u8 taskId)
             PlaySE(SE_SELECT);
             HorizonDrawInfo();
         }
-        else if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+        else if (JOY_NEW(DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT | L_BUTTON | R_BUTTON))
         {
             sHorizonMoveSelection ^= 1;
             PlaySE(SE_SELECT);
@@ -967,9 +967,9 @@ static void Task_ShopMenu(u8 taskId)
             HorizonDrawInfo();
             return;
         }
-        if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
+        if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT | DPAD_UP | DPAD_DOWN | L_BUTTON | R_BUTTON))
         {
-            if (JOY_NEW(DPAD_UP))
+            if (JOY_NEW(DPAD_LEFT | DPAD_UP | L_BUTTON))
                 sHorizonEggSelection = (sHorizonEggSelection + HORIZON_EGG_TIER_COUNT - 1) % HORIZON_EGG_TIER_COUNT;
             else
                 sHorizonEggSelection = (sHorizonEggSelection + 1) % HORIZON_EGG_TIER_COUNT;
@@ -1036,9 +1036,11 @@ static void Task_ShopMenu(u8 taskId)
             HorizonDrawInfo();
             return;
         }
-        if (JOY_NEW(DPAD_UP) || JOY_NEW(DPAD_DOWN))
+        if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT | DPAD_UP | DPAD_DOWN | L_BUTTON | R_BUTTON))
         {
-            if (JOY_NEW(DPAD_UP))
+            if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HORIZON_MARKET_OFFER_COUNT;
+            else if (JOY_NEW(DPAD_LEFT | L_BUTTON))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + HORIZON_MARKET_OFFER_COUNT - 1) % HORIZON_MARKET_OFFER_COUNT;
             else
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HORIZON_MARKET_OFFER_COUNT;
@@ -1252,6 +1254,7 @@ static void Task_HandleShopMenuQuit(u8 taskId)
         sHorizonSelectedTab = 0;
         sHorizonPokemonBrowsing = FALSE;
         sHorizonEggBrowsing = FALSE;
+        sHorizonMoveBrowsing = FALSE;
         sHorizonPokemonConfirm = FALSE;
         sHorizonEggConfirm = FALSE;
         sHorizonPaletteSaved = FALSE;
