@@ -780,7 +780,10 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
     healthBarSpritePtr->hBar_GearIconSpriteId = MAX_SPRITES;
     healthBarSpritePtr->invisible = TRUE;
 
-    if (STAMINA_ENABLED)
+    // The deterministic battle test runner does not exercise the visual HUD.
+    // Keep Stamina rules active, but do not reserve extra OBJ slots for its ring
+    // in headless battle tests, where multi-trainer scenes need the sprite budget.
+    if (STAMINA_ENABLED && !gTestRunnerEnabled)
     {
         u8 staminaBarSpriteId;
         struct Sprite *staminaBarSprite;
@@ -859,7 +862,8 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
     sprite->x2 = healthbox->x2;
     sprite->y2 = healthbox->y2;
 
-    if (GEARS_ENABLED)
+    // Gear logic is tested independently of the sprite HUD.
+    if (GEARS_ENABLED && !gTestRunnerEnabled)
         UpdateHealthbarGearIcon(sprite, healthbox);
 }
 

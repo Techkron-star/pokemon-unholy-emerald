@@ -1475,6 +1475,9 @@ static u32 GetBattlerMonData(enum BattlerId battler, struct Pokemon *party, u32 
     switch (gBattleResources->bufferA[battler][1])
     {
     case REQUEST_ALL_BATTLE:
+        // Avoid transferring uninitialized padding and fields added by Unholy.
+        // The controller copies the entire BattlePokemon structure to battle RAM.
+        memset(&battleMon, 0, sizeof(battleMon));
         battleMon.species = GetMonData(&party[monId], MON_DATA_SPECIES);
         battleMon.item = GetMonData(&party[monId], MON_DATA_HELD_ITEM);
         for (size = 0; size < MAX_MON_MOVES; size++)
@@ -1506,6 +1509,8 @@ static u32 GetBattlerMonData(enum BattlerId battler, struct Pokemon *party, u32 
         battleMon.metLevel = GetMonData(&party[monId], MON_DATA_MET_LEVEL);
         battleMon.isShiny = GetMonData(&party[monId], MON_DATA_IS_SHINY);
         battleMon.affectionHearts = GetMonAffectionHearts(&party[monId]);
+        // Catch penalties, mutant stats and HUD rely on this persisted flag.
+        battleMon.specialBadges = GetMonData(&party[monId], MON_DATA_SPECIAL_BADGES);
         GetMonData(&party[monId], MON_DATA_NICKNAME, nickname);
         StringCopy_Nickname(battleMon.nickname, nickname);
         GetMonData(&party[monId], MON_DATA_OT_NAME, battleMon.otName);
