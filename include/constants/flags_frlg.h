@@ -1360,6 +1360,7 @@
 #define FLAG_UNHOLY_UI_DAYLIGHT                                      FLAG_0x82E
 #define FLAG_CRAFTING_UNLOCKED                                       FLAG_0x831
 #define FLAG_DEFEATED_SUPER_LEAGUE                                   FLAG_0x833
+#define FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED                       FLAG_0x835
 // Starter gift script used by Unholy: keep a dedicated persistent unused FRLG flag.
 #define FLAG_RECEIVED_STARTER_QOL                                     FLAG_0x832
 #define FLAG_SYS_RESET_RTC_ENABLE                                   (SYS_FLAGS + 0x37)

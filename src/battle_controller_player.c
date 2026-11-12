@@ -21,6 +21,7 @@
 #include "party_menu.h"
 #include "pokeball.h"
 #include "pokemon.h"
+#include "unholy_exp_share.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "reshow_battle_screen.h"
@@ -1468,6 +1469,8 @@ static void Task_GiveExpToMon(u8 taskId)
         {
             SetMonData(mon, MON_DATA_EXP, (B_LEVEL_UP_NOTIFICATION >= GEN_9) ? &expAfterGain : &nextLvlExp);
 
+            if (UnholyExpShare_GetActiveItem() == ITEM_OVERLOADED_EXP_SHARE)
+                UnholyExpShare_TrainIvs(mon, level);
             CalculateMonStats(mon);
 
             // Reapply Dynamax HP multiplier after stats are recalculated.
@@ -1554,6 +1557,8 @@ static void Task_GiveExpWithExpBar(u8 taskId)
                 else
                     SetMonData(mon, MON_DATA_EXP, &expOnNextLvl);
 
+                if (UnholyExpShare_GetActiveItem() == ITEM_OVERLOADED_EXP_SHARE)
+                    UnholyExpShare_TrainIvs(mon, level);
                 CalculateMonStats(mon);
 
                 // Reapply Dynamax HP multiplier after stats are recalculated.

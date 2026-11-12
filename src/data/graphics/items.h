@@ -1365,6 +1365,8 @@ const u32 gItemIcon_ExpShare[] = INCGFX_U32("graphics/items/icons/exp_share.png"
 const u16 gItemIconPalette_ExpShare[] = INCGFX_U16("graphics/items/icon_palettes/exp_share.pal", ".gbapal");
 const u32 gItemIcon_SuperExpShare[] = INCGFX_U32("graphics/items/icons/super_exp_share.png", ".4bpp.smol");
 const u16 gItemIconPalette_SuperExpShare[] = INCGFX_U16("graphics/items/icon_palettes/super_exp_share.pal", ".gbapal");
+const u32 gItemIcon_OverloadedExpShare[] = INCGFX_U32("graphics/unholy_concepts/icons/overloaded_exp_share.png", ".4bpp.smol");
+const u16 gItemIconPalette_OverloadedExpShare[] = INCGFX_U16("graphics/unholy_concepts/palettes/overloaded_exp_share.pal", ".gbapal");
 
 // Crafted Unholy Gears reuse the already-approved 24x24 concept item sprites.
 const u32 gItemIcon_Pokelocator[] = INCGFX_U32("graphics/items/icons/pokelocator.png", ".4bpp.smol");

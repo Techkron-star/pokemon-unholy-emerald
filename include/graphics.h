@@ -1276,6 +1276,8 @@ extern const u32 gItemIcon_ExpShare[];
 extern const u16 gItemIconPalette_ExpShare[];
 extern const u32 gItemIcon_SuperExpShare[];
 extern const u16 gItemIconPalette_SuperExpShare[];
+extern const u32 gItemIcon_OverloadedExpShare[];
+extern const u16 gItemIconPalette_OverloadedExpShare[];
 extern const u32 gItemIcon_Pokelocator[];
 extern const u16 gItemIconPalette_Pokelocator[];
 extern const u32 gItemIcon_VisorCosmico[];
