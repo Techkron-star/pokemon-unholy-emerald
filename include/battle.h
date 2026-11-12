@@ -582,6 +582,13 @@ struct EventStates
     enum StatChangeResolution resolution:8;
 };
 
+struct GearCycle
+{
+    u8 gear;
+    u8 phase;
+    u8 turns;
+};
+
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.
 struct BattleStruct
 {
@@ -751,18 +758,11 @@ struct BattleStruct
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
     u8 staminaExhausted[MAX_BATTLERS_COUNT];
     // Sistema de Gears (ver src/gear.c)
-    u8 gearOwner[MAX_BATTLERS_COUNT];        // índice de equipo + 1 del Pokémon dueño del estado
-    u8 gearId[MAX_BATTLERS_COUNT];           // Gear equipado (enum Gear)
-    u8 gearPhase[MAX_BATTLERS_COUNT];        // enum GearPhase
-    u8 gearTimer[MAX_BATTLERS_COUNT];        // turnos que faltan en la fase actual
+    u8 gearOwner[MAX_BATTLERS_COUNT];        // entrenador × PARTY_SIZE + índice de equipo + 1
     u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
     u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
-    // Recordar el ciclo al retirar y regresar al mismo puesto de combate.
-    // Estado efímero: se reinicia al empezar cada batalla, NO afecta al save.
-    u8 gearPartyInitialized[MAX_BATTLERS_COUNT][PARTY_SIZE];
-    u8 gearPartyId[MAX_BATTLERS_COUNT][PARTY_SIZE];
-    u8 gearPartyPhase[MAX_BATTLERS_COUNT][PARTY_SIZE];
-    u8 gearPartyTimer[MAX_BATTLERS_COUNT][PARTY_SIZE];
+    // La fase sigue al Pokémon dentro del combate, incluso al cambiar de lado en dobles.
+    struct GearCycle gearCycles[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     // Encadenado de movimientos (ver src/battle_chain.c)
     u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
