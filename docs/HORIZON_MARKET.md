@@ -16,6 +16,10 @@ No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las proba
 
 La navegación horizontal se activa **solo** cuando `sHorizonActive` está habilitado. Las tiendas tradicionales y su lista vertical no cambian. El cursor de la vista Horizon es transitorio: **no vuelve a sortear stock ni modifica las variables del mercado**. Se debe validar render a 240×160 y probar compras, cancelaciones, cambio de categorías, Eclipse/Daylight y retorno a START.
 
+## Pase de alineación y color tras las capturas
+
+Se ajustan altos de las ofertas Pokémon (nombres/precios separados), tamaños de fuente, etiquetas y coste de huevos, y el pie de MOVES que invadía el marco inferior. Las fichas tienen un relleno suave y acento temático según la selección; se reutilizan las paletas Eclipse/Daylight existentes. **Sin cambios de compra, RNG, precios, stock ni guardado.** Pendiente comprobar ambos temas y doble cancelación en Pizza Boy.
+
 ## Renovación visual de Horizon (PR #30 — 12/11/2026)
 
 - Pokémon: cuadrícula de seis fichas, marcadores de mutación y precios individuales. El texto completo de selección se muestra por debajo y no se superpone a otras ofertas.
