@@ -130,6 +130,8 @@ static EWRAM_DATA u8 sHorizonPokemonSelection = 0;
 static EWRAM_DATA u8 sHorizonPokemonStatus = 0;
 static EWRAM_DATA u8 sHorizonSelectedTab = 0;
 static EWRAM_DATA u16 sHorizonGoodsSelection = 0; // Horizontal purchase carousel.
+static EWRAM_DATA bool8 sHorizonMoveBrowsing = FALSE;
+static EWRAM_DATA u8 sHorizonMoveSelection = 0;
 static EWRAM_DATA u8 sHorizonInfoWindowId = 0; // EWRAM_DATA is zero-initialized; set to 0xFF when closed.
 static EWRAM_DATA bool8 sHorizonPaletteSaved = FALSE;
 static EWRAM_DATA u16 sHorizonSavedPalette[16];
@@ -236,6 +238,10 @@ static const u8 sHorizonTextDiscs[] = _("DISCS");
 static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
+static const u8 sHorizonMoveLearn[] = _("RELEARN");
+static const u8 sHorizonMoveForget[] = _("FORGET");
+static const u8 sHorizonMoveInstructions[] = _("UP/DOWN: SELECT  A: OPEN");
+static const u8 sHorizonMoveBack[] = _("B: BACK");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
@@ -720,6 +726,8 @@ static void HorizonDrawInfo(void)
         title = sHorizonTextPokemon;
     else if (sHorizonEggBrowsing)
         title = sHorizonTextEggs;
+    else if (sHorizonMoveBrowsing)
+        title = sHorizonTextMoves;
 
     FillWindowPixelBuffer(panel, PIXEL_FILL(1));
     DrawUnholyUiPanelAccents(panel, 27 * 8, 14 * 8, 24);
@@ -828,6 +836,21 @@ static void HorizonDrawInfo(void)
                                      sHorizonTextColors, TEXT_SKIP_DRAW,
                                      sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
     }
+    else if (sHorizonMoveBrowsing)
+    {
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 35, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW,
+                                     sHorizonMoveSelection == 0
+                                     ? COMPOUND_STRING("> RELEARN") : sHorizonMoveLearn);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 55, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW,
+                                     sHorizonMoveSelection == 1
+                                     ? COMPOUND_STRING("> FORGET") : sHorizonMoveForget);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 82, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveInstructions);
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 99, 0, 0,
+                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveBack);
+    }
     else
     {
         AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 34, 0, 0,
@@ -849,6 +872,40 @@ static void HorizonDrawInfo(void)
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+
+    if (sHorizonActive && sHorizonMoveBrowsing)
+    {
+        if (JOY_NEW(B_BUTTON))
+        {
+            sHorizonMoveBrowsing = FALSE;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+        }
+        else if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+        {
+            sHorizonMoveSelection ^= 1;
+            PlaySE(SE_SELECT);
+            HorizonDrawInfo();
+        }
+        else if (JOY_NEW(A_BUTTON))
+        {
+            // Release windows before launching the normal party and move UI.
+            HorizonCloseInfoWindow();
+            ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
+            RemoveWindow(sMartInfo.windowId);
+            UnlockPlayerFieldControls();
+            DestroyTask(taskId);
+            sHorizonMoveBrowsing = FALSE;
+            sHorizonActive = FALSE;
+            sHorizonSelectedTab = 0;
+            if (sHorizonMoveSelection == 0)
+                ChooseMonForHorizonMoveRelearner();
+            else
+                ChooseMonForHorizonMoveDeleter();
+        }
+        return;
+    }
+
     if (sHorizonActive && sHorizonEggBrowsing)
     {
         if (JOY_NEW(B_BUTTON))
@@ -1096,14 +1153,9 @@ static void Task_HorizonItems(u8 taskId)
 
 static void Task_HorizonMoves(u8 taskId)
 {
-    HorizonCloseInfoWindow();
-    ClearStdWindowAndFrameToTransparent(sMartInfo.windowId, TRUE);
-    RemoveWindow(sMartInfo.windowId);
-    UnlockPlayerFieldControls();
-    DestroyTask(taskId);
-    sHorizonActive = FALSE;
-    sHorizonSelectedTab = 0;
-    ChooseMonForHorizonMoveRelearner();
+    sHorizonMoveBrowsing = TRUE;
+    sHorizonMoveSelection = 0;
+    HorizonDrawInfo();
 }
 
 static void Task_HandleShopMenuBuy(u8 taskId)
