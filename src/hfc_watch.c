@@ -446,6 +446,7 @@ void HfcWatch_OpenRaidAfterBattle(void)
     sRaidRewardError = HFC_RAID_REWARD_OK;
     FreezeObjectEvents();
     LockPlayerFieldControls();
+    Overworld_PlaySpecialMapMusic();
     FadeInFromBlack();
     OpenPanel(HFC_WATCH_FEATURE_RAID);
 }
