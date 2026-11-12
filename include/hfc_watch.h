@@ -55,5 +55,6 @@ u8 HfcWatch_BuildMenu(u8 tier, struct HfcWatchProgress progress, u8 *featuresOut
 u8 HfcWatch_GetTier(void);
 u8 HfcWatch_CountBadges(void);
 void HfcWatch_OpenHub(bool8 fromStartMenu);
+void HfcWatch_OpenRaidAfterBattle(void);
 
 #endif // GUARD_HFC_WATCH_H

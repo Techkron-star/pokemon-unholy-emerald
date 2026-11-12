@@ -278,10 +278,10 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | **Cuarta medalla** | Repartir EXP Sobrecargado / Overloaded (nombre WIP) | Reparte EXP íntegra, concede EXP adicional, acelera crecimiento de **IVs y EVs** y hace que la **EXP adelante la eclosión de los huevos** del equipo, además de los pasos habituales. |
 | **Cuarta medalla** | Poké Simulator | Máquina para ajustar **IVs y EVs a voluntad en cada stat**, pagando Pokédólares. |
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
-| **Ruta de Ralts (pueblo siguiente, tras la captura guiada por el padre)** | **Pokélocator** | Ítem clave del menú. Muestra todos los Pokémon de la ruta actual y se desbloquean datos según las medallas. Puede **forzar mayor probabilidad de mutación** en los salvajes de esa ruta. |
+| **Segunda medalla** | **Pokélocator** | Acceso desde el Super Poké Watch. Muestra los Pokémon de la ruta actual. La Señal mutante se abre con el HF. |
 
-### Pokélocator (v1 implementado; entrega por historia y mutaciones pendientes)
-- Lo entrega el padre al llegar al siguiente pueblo, después de enseñar a capturar un Ralts.
+### Pokélocator
+- El Super Poké Watch de Brawly habilita el acceso por historia. El objeto dedicado permanece disponible en Debug.
 - Funciona como el **Pokénav de Pokémon Elite Redux**: se abre desde el menú, muestra la lista de especies de la ruta y su información.
 - **Por medallas:** cada medalla desbloquea más información (especies, tasas de encuentro, probabilidad de mutación).
 - **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
@@ -326,18 +326,28 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 
 | Reloj | Entrega | Funciones |
 |---|---|---|
-| Poké Watch | La madre al poner en hora el reloj de casa | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
-| Super Poké Watch | Norman tras la captura guiada de Wally | Añade Pokélocator y las cajas del PC desde la segunda medalla. |
-| HF Poké Watch | Wattson tras la tercera medalla | Añade Archivo de anomalías, Señal mutante y una incursión diaria desde la cuarta medalla. |
+| Poké Watch | Norman tras la captura guiada de Wally | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
+| Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
+| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante y la incursión diaria. |
 
 - **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
-- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con la madre, Norman o Wattson tras el hito correspondiente.
+- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
 - El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
 
 **Incursiones y señal, balance inicial.**
 
-- Una incursión individual por día de juego, desde una ruta al aire libre con un Pokémon capaz de combatir. El rival diario sale de un catálogo de seis especies con cuatro movimientos seleccionados, IA de salvaje avanzada, 25 IV y nivel 35–59 según medallas. Tiene una probabilidad base del 20 % de mostrar una mutación, con acceso gradual a los tiers C–S. Omega queda fuera del catálogo. Al vencer se puede usar una Poké Ball para capturarlo mediante el flujo de captura tras victoria. El intento se consume al iniciar.
-- La señal se activa una vez al día desde la tercera medalla. Aumenta entre 25 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
+- Una incursión por día, desde una ruta al aire libre. Tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar. Se conservan PS y PP entre rondas. El intento se consume al iniciar.
+- El jefe tiene una mutación aleatoria de la tabla de dificultad, con tiers C–S y exclusión de Omega. Recibe al entrar Ataque, Defensa, Ataque Especial y Defensa Especial +1 en Estándar y Avanzada, y +2 en Experta y Maestra. Experta y Maestra también dan +1 de Velocidad.
+- Al ganar se elige el lote de tres tipos de objetos o un intento de capturar al jefe. Una tirada fallida consume esa elección. La probabilidad varía cada día por dificultad, se muestra con dos decimales y se fija para las tres rondas. Si falta espacio, se puede liberar espacio y volver al panel durante la misma sesión.
+
+| Dificultad | Medallas | Niveles por ronda | Probabilidad de captura | Lote |
+|---|---:|---|---:|---|
+| Estándar | 5 | 34, 36, 40 | 20.00–35.00 % | 3 Super Balls, 2 Hiperpociones, 1 Caramelo Raro |
+| Avanzada | 6 | 40, 42, 46 | 35.01–50.00 % | 3 Ultra Balls, 2 Pociones Máximas, 1 Caramelo Raro |
+| Experta | 7 | 47, 49, 53 | 50.01–65.00 % | 4 Ultra Balls, 2 Restaurar Todo, 2 Caramelos Raros |
+| Maestra | 8 | 54, 56, 60 | 65.01–80.00 % | 5 Ultra Balls, 3 Restaurar Todo, 3 Caramelos Raros |
+
+- La señal se activa una vez al día con el HF. En la progresión actual, aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
 - El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
 
 **Pendientes.** Implementar el Poké Simulator de IV/EV desde cuatro medallas y el Mutator desde ocho. Faltan tarifas, probabilidades y penalización de fallo. Las incursiones multijugador o con aliados, las recompensas adicionales y los iconos propios del reloj quedan para otra tanda. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).

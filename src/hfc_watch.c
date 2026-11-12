@@ -49,6 +49,9 @@ static EWRAM_DATA u8 sWatchWindowId;
 static EWRAM_DATA u8 sHubFeatures[HFC_WATCH_FEATURE_COUNT];
 static EWRAM_DATA u8 sLastFeature;
 static EWRAM_DATA bool8 sReturnToStart;
+static EWRAM_DATA enum HfcRaidDifficulty sRaidDifficulty;
+static EWRAM_DATA bool8 sRaidCaptureSelected;
+static EWRAM_DATA enum HfcRaidRewardError sRaidRewardError;
 
 static void OpenHub(void);
 
@@ -130,34 +133,129 @@ static void PrintWatchText(const u8 *text, u8 x, u8 y)
     AddTextPrinterParameterized(sWatchWindowId, FONT_SMALL, text, x, y, TEXT_SKIP_DRAW, NULL);
 }
 
-static void RenderRaid(void)
+static void PrintRaidCaptureChance(u16 basisPoints, u8 y)
 {
-    static const u8 *const sRaidMessages[] =
+    u8 text[48];
+    u8 *cursor = StringCopy(text, COMPOUND_STRING("Capture chance  "));
+    cursor = ConvertUIntToDecimalStringN(cursor, basisPoints / 100, STR_CONV_MODE_LEFT_ALIGN, 3);
+    cursor = StringCopy(cursor, COMPOUND_STRING("."));
+    cursor = ConvertUIntToDecimalStringN(cursor, basisPoints % 100, STR_CONV_MODE_LEADING_ZEROS, 2);
+    StringCopy(cursor, COMPOUND_STRING("%"));
+    PrintWatchText(text, 8, y);
+}
+
+static void RenderRaidSelection(void)
+{
+    static const u8 *const sMessages[] =
     {
         [HFC_RAID_NOT_ON_ROUTE] = COMPOUND_STRING("Travel to an outdoor route."),
         [HFC_RAID_USED_TODAY] = COMPOUND_STRING("Today's raid has been used."),
-        [HFC_RAID_NEEDS_PARTY] = COMPOUND_STRING("You need a Pokémon able to fight."),
+        [HFC_RAID_NEEDS_PARTY] = COMPOUND_STRING("You need two Pokémon ready to fight."),
         [HFC_RAID_UNAVAILABLE] = COMPOUND_STRING("The raid is unavailable here."),
     };
     enum HfcWatchRaidStatus status = HfcWatch_GetRaidStatus();
+    const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(sRaidDifficulty);
+    u8 text[48];
+    u8 *cursor;
 
     if (status != HFC_RAID_READY)
     {
-        PrintWatchText(sRaidMessages[status], 8, 23);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
+        PrintWatchText(sMessages[status], 8, 23);
+        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 94);
         return;
     }
 
-    struct HfcWatchRaid raid = HfcWatch_GetDailyRaid(VarGet(VAR_DAYS), GetTrainerId(gSaveBlock2Ptr->playerTrainerId), HfcWatch_CountBadges());
-    u8 text[48];
-    u8 *cursor = StringCopy(text, GetSpeciesName(raid.species));
+    PrintWatchText(info->name, 8, 19);
+    PrintWatchText(COMPOUND_STRING("L/R  Difficulty"), 101, 19);
+    if (!HfcWatch_IsRaidDifficultyUnlocked(sRaidDifficulty, HfcWatch_CountBadges()))
+    {
+        cursor = StringCopy(text, COMPOUND_STRING("Unlocks at "));
+        cursor = ConvertUIntToDecimalStringN(cursor, info->minBadges, STR_CONV_MODE_LEFT_ALIGN, 1);
+        StringCopy(cursor, COMPOUND_STRING(" badges."));
+        PrintWatchText(text, 8, 42);
+        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 94);
+        return;
+    }
+
+    u16 day = VarGet(VAR_DAYS);
+    u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
+    struct HfcRaidOpponent boss = HfcWatch_GetRaidOpponent(day, trainerId, sRaidDifficulty, HFC_RAID_BOSS, 0);
+    cursor = StringCopy(text, COMPOUND_STRING("Boss  "));
+    cursor = StringCopy(cursor, GetSpeciesName(boss.species));
     cursor = StringCopy(cursor, COMPOUND_STRING("  Lv. "));
-    ConvertUIntToDecimalStringN(cursor, raid.level, STR_CONV_MODE_LEFT_ALIGN, 2);
-    PrintWatchText(text, 8, 20);
-    if (raid.mutation != 0)
-        PrintWatchText(HorizonMarketMutationName(raid.mutation), 8, 32);
-    PrintWatchText(COMPOUND_STRING("Defeat it, then choose a Ball."), 8, 44);
-    PrintWatchText(COMPOUND_STRING("A  Fight     B  Back"), 8, 58);
+    ConvertUIntToDecimalStringN(cursor, boss.level, STR_CONV_MODE_LEFT_ALIGN, 2);
+    PrintWatchText(text, 8, 34);
+    PrintWatchText(COMPOUND_STRING("Two doubles, then the mutated boss."), 8, 49);
+    PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 64);
+    PrintWatchText(COMPOUND_STRING("A  Start raid     B  Back"), 8, 94);
+}
+
+static void RenderRaidReward(void)
+{
+    const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(HfcWatch_GetActiveRaidDifficulty());
+
+    PrintWatchText(COMPOUND_STRING("Raid won. Choose one reward."), 8, 17);
+    PrintWatchText(sRaidCaptureSelected ? COMPOUND_STRING("  Loot    > Capture") : COMPOUND_STRING("> Loot      Capture"), 8, 31);
+    if (sRaidCaptureSelected)
+    {
+        PrintRaidCaptureChance(HfcWatch_GetActiveRaidCaptureChance(), 48);
+        PrintWatchText(COMPOUND_STRING("A failed roll ends the raid."), 8, 62);
+    }
+    else
+    {
+        for (u8 i = 0; i < HFC_RAID_LOOT_COUNT; i++)
+        {
+            u8 text[40];
+            u8 *cursor = CopyItemName(info->loot[i].item, text);
+            cursor = StringCopy(cursor, COMPOUND_STRING("  x"));
+            ConvertUIntToDecimalStringN(cursor, info->loot[i].quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+            PrintWatchText(text, 8, 45 + 11 * i);
+        }
+    }
+
+    if (sRaidRewardError == HFC_RAID_REWARD_BAG_FULL)
+        PrintWatchText(COMPOUND_STRING("Make room in the Bag."), 8, 80);
+    else if (sRaidRewardError == HFC_RAID_REWARD_STORAGE_FULL)
+        PrintWatchText(COMPOUND_STRING("Make room for a Pokémon."), 8, 80);
+    PrintWatchText(COMPOUND_STRING("L/R Choose   A Confirm   B Back"), 8, 94);
+}
+
+static void RenderRaid(void)
+{
+    const u8 *message;
+
+    switch (HfcWatch_GetRaidState())
+    {
+    case HFC_RAID_IDLE:
+        RenderRaidSelection();
+        return;
+    case HFC_RAID_NEXT_BATTLE:
+        message = HfcWatch_GetRaidStage() == HFC_RAID_BOSS
+            ? COMPOUND_STRING("Round 3/3   Mutated boss")
+            : COMPOUND_STRING("Round 2/3   Double battle");
+        PrintWatchText(message, 8, 22);
+        PrintWatchText(COMPOUND_STRING("Your party keeps its HP and PP."), 8, 42);
+        PrintWatchText(COMPOUND_STRING("A  Continue     B  Abandon"), 8, 94);
+        return;
+    case HFC_RAID_CHOOSE_REWARD:
+        RenderRaidReward();
+        return;
+    case HFC_RAID_LOOT_RECEIVED:
+        message = COMPOUND_STRING("Loot added to your Bag.");
+        break;
+    case HFC_RAID_CAPTURED:
+        message = COMPOUND_STRING("The mutant joined your collection!");
+        break;
+    case HFC_RAID_CAPTURE_FAILED:
+        message = COMPOUND_STRING("The mutant escaped.");
+        break;
+    default:
+        message = COMPOUND_STRING("The raid ended.");
+        break;
+    }
+
+    PrintWatchText(message, 8, 23);
+    PrintWatchText(COMPOUND_STRING("B  Back"), 8, 94);
 }
 
 static void RenderFrequency(void)
@@ -234,24 +332,81 @@ static void RenderPanel(u8 feature)
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
 
-static void Task_HfcWatchPanel(u8 taskId)
+static void CloseWatchPanel(u8 taskId)
 {
-    u8 feature = gTasks[taskId].data[0];
+    CloseWatchWindow();
+    DestroyTask(taskId);
+}
+
+static void HandleRaidPanelInput(u8 taskId)
+{
+    enum HfcRaidState state = HfcWatch_GetRaidState();
 
     if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);
-        CloseWatchWindow();
-        DestroyTask(taskId);
+        if (state != HFC_RAID_CHOOSE_REWARD)
+            HfcWatch_ResetRaid();
+        CloseWatchPanel(taskId);
         OpenHub();
+        return;
     }
-    else if (JOY_NEW(A_BUTTON) && feature == HFC_WATCH_FEATURE_RAID && HfcWatch_GetRaidStatus() == HFC_RAID_READY)
+
+    if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT | L_BUTTON | R_BUTTON))
+    {
+        if (state == HFC_RAID_IDLE && HfcWatch_GetRaidStatus() == HFC_RAID_READY)
+        {
+            u8 step = JOY_NEW(DPAD_LEFT | L_BUTTON) ? HFC_RAID_DIFFICULTY_COUNT - 1 : 1;
+            sRaidDifficulty = (sRaidDifficulty + step) % HFC_RAID_DIFFICULTY_COUNT;
+        }
+        else if (state == HFC_RAID_CHOOSE_REWARD)
+        {
+            sRaidCaptureSelected = !sRaidCaptureSelected;
+            sRaidRewardError = HFC_RAID_REWARD_OK;
+        }
+        else
+            return;
+
+        PlaySE(SE_SELECT);
+        RenderPanel(HFC_WATCH_FEATURE_RAID);
+        return;
+    }
+
+    if (!JOY_NEW(A_BUTTON))
+        return;
+
+    if ((state == HFC_RAID_IDLE && HfcWatch_StartDailyRaid(sRaidDifficulty))
+     || (state == HFC_RAID_NEXT_BATTLE && HfcWatch_ContinueRaid()))
     {
         PlaySE(SE_SELECT);
-        CloseWatchWindow();
-        DestroyTask(taskId);
-        if (!HfcWatch_StartDailyRaid())
-            OpenHub();
+        CloseWatchPanel(taskId);
+    }
+    else if (state == HFC_RAID_CHOOSE_REWARD)
+    {
+        sRaidRewardError = HfcWatch_ClaimRaidReward(sRaidCaptureSelected);
+        PlaySE(sRaidRewardError == HFC_RAID_REWARD_OK ? SE_SELECT : SE_FAILURE);
+        RenderPanel(HFC_WATCH_FEATURE_RAID);
+    }
+    else if (state == HFC_RAID_NEXT_BATTLE)
+    {
+        PlaySE(SE_FAILURE);
+        RenderPanel(HFC_WATCH_FEATURE_RAID);
+    }
+}
+
+static void Task_HfcWatchPanel(u8 taskId)
+{
+    u8 feature = gTasks[taskId].data[0];
+    if (gPaletteFade.active)
+        return;
+
+    if (feature == HFC_WATCH_FEATURE_RAID)
+        HandleRaidPanelInput(taskId);
+    else if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        CloseWatchPanel(taskId);
+        OpenHub();
     }
     else if (JOY_NEW(A_BUTTON) && feature == HFC_WATCH_FEATURE_FREQUENCY && HfcWatch_ActivateFrequency())
     {
@@ -262,13 +417,19 @@ static void Task_HfcWatchPanel(u8 taskId)
 
 static void OpenPanel(u8 feature)
 {
+    u8 height = 9;
+    if (feature == HFC_WATCH_FEATURE_ARCHIVE)
+        height = 18;
+    else if (feature == HFC_WATCH_FEATURE_RAID)
+        height = 14;
+
     u8 taskId = CreateTask(Task_HfcWatchPanel, HUB_TASK_PRIORITY);
     if (gTasks[taskId].func != Task_HfcWatchPanel)
     {
         ReturnFromWatch();
         return;
     }
-    if (!OpenWatchWindow(24, feature == HFC_WATCH_FEATURE_ARCHIVE ? 18 : 9))
+    if (!OpenWatchWindow(24, height))
     {
         DestroyTask(taskId);
         ReturnFromWatch();
@@ -277,6 +438,16 @@ static void OpenPanel(u8 feature)
 
     gTasks[taskId].data[0] = feature;
     RenderPanel(feature);
+}
+
+void HfcWatch_OpenRaidAfterBattle(void)
+{
+    sRaidCaptureSelected = FALSE;
+    sRaidRewardError = HFC_RAID_REWARD_OK;
+    FreezeObjectEvents();
+    LockPlayerFieldControls();
+    FadeInFromBlack();
+    OpenPanel(HFC_WATCH_FEATURE_RAID);
 }
 
 static void Task_LaunchHfcWatchFeature(u8 taskId)
@@ -404,5 +575,6 @@ void HfcWatch_OpenHub(bool8 fromStartMenu)
 
     sReturnToStart = fromStartMenu;
     sLastFeature = HFC_WATCH_FEATURE_HORIZON_SHOP;
+    sRaidDifficulty = HFC_RAID_STANDARD;
     OpenHub();
 }
