@@ -67,6 +67,19 @@ La raíz usa una ventana horizontal BG0 de 27×3 tiles desde (2,1), y el panel d
 **QA bloqueante:** abrir/cerrar Horizon diez veces desde START, entrar/salir de Pokémon y huevos con B, comprar en DISC/ITEMS y volver, cambiar de pestaña con ambos esquemas de controles, y confirmar que la tienda no deja la UI congelada ni paletas erróneas en Eclipse/Daylight. El PR está en borrador; la corrección requiere comprobarse en emulador.
 
 
+## Correcciones de alineación y paleta — capturas de Pizza Boy (12/11/2026)
+
+El pase visual posterior al PR #30 mantiene la interfaz y las mecánicas anteriores sin modificar el RNG ni los precios. Resuelve:
+- **Pokémon 3×2:** tarjetas de 66×26 px con 28 px entre inicios de fila. Especies con `FONT_SMALL` (12 px) y precios con `FONT_SMALL_NARROW` (8 px); precios y marcos dejan de tocarse. El detalle seleccionado usa la línea reservada antes del separador.
+- **Huevos:** etiquetas reducidas a 8 px, calidad desplazada debajo de la etiqueta, precio encima del separador e instrucciones de 8 px dentro del panel. Vista previa OAM desplazada 10 px hacia arriba para no tapar el pie.
+- **MOVES:** eliminada la segunda línea de controles que tocaba el marco inferior; una sola línea compacta indica L/R, A y B.
+- **Eclipse/Daylight:** fondos discretos de tarjetas y bordes distintos por selección, acentos cian o dorado/turquesa con la paleta existente y texto cuyo color de fondo coincide con la propia tarjeta (sin bloques rectangulares detrás de las letras).
+- **Raíz y mercancías:** saldo, avisos y ayudas compactos de 8 px, manteniendo fichas, precios y stock sin cambios.
+
+Los tres tamaños usados son `FONT_NARROW` (hasta 15 px, títulos), `FONT_SMALL` (hasta 12 px, nombres de tarjeta) y `FONT_SMALL_NARROW` (hasta 8 px, precio, detalles y ayudas), según `src/text.c`.
+
+**QA aún obligatorio:** capturas nuevas de Pokémon, Huevos, MOVES, Items/Discos y raíz en Eclipse **y** Daylight a 240×160; probar nombres largos, mutaciones múltiples, vendidos, confirmación, dinero insuficiente, guardar/cargar y volver a START. Una compilación correcta no verifica los offsets reales.
+
 ## Renaissance Horizon UI — entrega PR #30 (12/11/2026)
 
 Diseño implementado mediante ventanas GBA 4bpp y fuentes reales, **sin imágenes generadas** ni efectos que comprometan recursos del motor. La estructura evita los solapamientos visibles en las capturas de Pizza Boy.

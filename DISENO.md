@@ -62,6 +62,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | P1 | Mutaciones de iniciales, regalos, guardería e intercambios NPC; bonus relativo del 15 % para tiers C/B | PR #27 apilado, pendiente de QA |
 | P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |
 | P1 | Catálogos Horizon: rediseño raíz, seis Pokémon en cuadrícula 3×2, cinco huevos en carrusel, MOVES en tarjetas y objetos/MT con marcas | PR #30, implementado en código; QA visual/CI pendiente |
+| P1 | Pulido de Horizon por capturas: marcos/precios de Pokémon, etiquetas y pie de Huevos/MOVES, contraste de selección Eclipse/Daylight y tipografías de 8/12/15 px | Rama `fix/unholy-horizon-ui-alignment-colors-20261112`; código implementado, requiere CI y capturas nuevas |
 | P2 | Nuevos Gears, crafteos, IA avanzada, legendarios, animaciones y Poké Simulator | Continúan pendientes de implementación/integración completa |
 
 **Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
