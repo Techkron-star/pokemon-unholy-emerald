@@ -178,18 +178,18 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 ## 4. Gears — decisiones y código (10/11/2026)
 
 - **Slot de Gear propio**, independiente del objeto ordinario, persistente en el Pokémon; los ciclos son efímeros y no ocupan un nuevo bloque de guardado. Base del sistema: `feat/gears-system`.
-- **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Visor, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
-- **Visor Cósmico:** +20 % a ataques especiales al sobrecargarse, +10 % residual; evolución de Gafas Especiales.
+- **Ciclo**: 1 turno sobrecargado + 3 turnos residuales en Impulso, Corazón y Ski Mask; luego recomienza. Dos ataques encadenados cuentan como 1 turno. Cambiar de Pokémon no recarga el Gear gratis en el mismo combate (rama de integración).
+- **Visor Cósmico:** efectividad Fantasma ×2 por cada tipo objetivo Normal, Psíquico o Hada durante todo el combate.
 - **Corazón de Titán:** +20 % a ataques físicos al sobrecargarse, +10 % residual; evolución de Banda Músculo.
 - **Ski Mask:** +30 % a ataques Siniestros al sobrecargarse y **+21 % constante durante recarga**. No altera efectividades.
 - **Cetro Siniestro:** efectividad Siniestro ×2 por cada tipo objetivo Psíquico, Hada, Normal o Lucha. Siempre activo, sin afectar la tabla global. Contra Lucha/Hada, ×4.
-- **Impulso Cósmico:** efectividad Fantasma ×2 por cada tipo objetivo Normal, Psíquico o Hada. Siempre activo.
+- **Impulso Cósmico:** +20 % a ataques especiales al sobrecargarse y +10 % residual. Se fabrica a partir de Gafas Especiales.
 - **Permafrost Fragment:** los movimientos de daño Hielo duplican la probabilidad de congelar o Frostbite. Si el portador es tipo Hielo, cura **1/16 de los PS máximos al final de cada turno**, incluso sin atacar, como Restos. La curación no es vampirismo.
 - **Promedio de bonos coincidentes:** Gear +20 % y Gafas/Banda normal +10 % => **+15 %** total (no +32 %). Con fase residual +10 % y objeto +10 % => +10 %. Restos y Permafrost simultáneos de la misma magnitud no duplican curación.
 - **Teseracto:** consumo único, como Gema equipada. Vuelve permanentes clima, campos, salas y trampas mientras no se eliminen explícitamente; NO se implementa sin cerrar disparador y todas las interacciones.
 - **Ancla de Realidad:** elimina clima, campos, salas y trampas, **incluso los hechos permanentes por Teseracto**; lo eliminado no reaparece. Pendiente si bloquea nueva activación durante la presencia.
 - **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
-- **Alcance real en código:** seis Gears registrados con lógica de combate, recetas, acción EQUIP desde la mochila e iconos de HUD de 16×32 en la rama de integración. Queda QA del HUD en combate, del equipamiento y del guardado. Teseracto y Ancla siguen en diseño.
+- **Alcance real en código:** seis Gears registrados con lógica de combate, recetas, acción EQUIP desde la mochila e iconos de HUD de 16×32 en la rama de integración. Las incursiones Experta y Maestra y cinco combates de jefes usan Gear y objeto ordinario simultáneamente. Teseracto y Ancla siguen en diseño.
 
 ### Familia de Gears: Inyecciones sanguíneas
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
@@ -200,6 +200,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 
 ### Estado de implementación
 - Los seis Gears del sistema base y sus recursos de HUD están registrados en la rama de integración. Consultar [`docs/GEARS.md`](docs/GEARS.md) para equipamiento, recetas y pruebas.
+- Los equipos de entrenador admiten el campo `Gear:` por Pokémon. La primera selección incluye a Tate y Liza, Phoebe, Glacia y Wallace. En el quinto combate de Tate y Liza, Metagross combina su megapiedra con Corazón de Titán. Las Sangres siguen pendientes de obtención, balance y pruebas.
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
@@ -488,7 +489,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: seis piezas fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Pendientes el catálogo adicional y el equipamiento de más entrenadores.
+- Gears: seis piezas fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Pendientes las Inyecciones sanguíneas y ampliar el equipamiento a más entrenadores.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

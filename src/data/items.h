@@ -9947,7 +9947,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_VISOR_COSMICO] =
     {
         .name = ITEM_NAME("Visor Cosmico"),
-        .description = COMPOUND_STRING("Sp. moves +20%.\nThen +10%."),
+        .description = COMPOUND_STRING("Ghost hits Normal,\nPsychic and Fairy\nfor double damage."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -10003,7 +10003,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_IMPULSO_COSMICO] =
     {
         .name = ITEM_NAME("Impulso Cosmico"),
-        .description = COMPOUND_STRING("Ghost gains new\nsuper matchups."),
+        .description = COMPOUND_STRING("Sp. moves +20%.\nThen +10%."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,

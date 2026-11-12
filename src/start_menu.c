@@ -259,11 +259,11 @@ static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
 static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
-static const u8 sUnholyRecipeVisor[] = _("Special attack gear.\nAlternates overload.");
+static const u8 sUnholyRecipeVisor[] = _("Ghost type matchups.\nBuilt from astral relics.");
 static const u8 sUnholyRecipeHeart[] = _("Physical attack gear.\nAlternates overload.");
 static const u8 sUnholyRecipeMask[] = _("Dark damage gear.\nPowerful even recharging.");
 static const u8 sUnholyRecipeScepter[] = _("Dark type matchups.\nRequires Mind Badge.");
-static const u8 sUnholyRecipeImpulse[] = _("Ghost type matchups.\nBuilt from astral relics.");
+static const u8 sUnholyRecipeImpulse[] = _("Special attack gear.\nAlternates overload.");
 static const u8 sUnholyRecipeIce[] = _("Ice attacks freeze more.\nIce Pokemon regenerate.");
 static const u8 sUnholyCraftReady[] = _("Select a recipe.");
 static const u8 sUnholyCraftConfirmText[] = _("Press A again to make it.");
@@ -304,7 +304,7 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_CO
     { ITEM_OVERLOADED_EXP_SHARE, sUnholyRecipeOverloadedExp, FLAG_BADGE04_GET, 2,
       {{ ITEM_SUPER_EXP_SHARE, 1 }, { ITEM_NUGGET, 1 }} },
     { ITEM_GEAR_VISOR_COSMICO, sUnholyRecipeVisor, 0, 3,
-      {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
+      {{ ITEM_SPELL_TAG, 2 }, { ITEM_MOON_STONE, 2 }, { ITEM_STAR_PIECE, 1 }} },
     { ITEM_GEAR_CORAZON_TITAN, sUnholyRecipeHeart, 0, 3,
       {{ ITEM_MUSCLE_BAND, 1 }, { ITEM_METAL_COAT, 2 }, { ITEM_HARD_STONE, 2 }} },
     { ITEM_GEAR_SKI_MASK, sUnholyRecipeMask, 0, 3,
@@ -312,7 +312,7 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_CO
     { ITEM_GEAR_CETRO_SINIESTRO, sUnholyRecipeScepter, FLAG_BADGE07_GET, 2,
       {{ ITEM_BLACK_GLASSES, 1 }, { ITEM_SPELL_TAG, 2 }} },
     { ITEM_GEAR_IMPULSO_COSMICO, sUnholyRecipeImpulse, 0, 3,
-      {{ ITEM_SPELL_TAG, 2 }, { ITEM_MOON_STONE, 2 }, { ITEM_STAR_PIECE, 1 }} },
+      {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
     { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
       {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
 };

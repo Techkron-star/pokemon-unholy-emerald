@@ -132,21 +132,19 @@ El sistema actual cubre bonificaciones de potencia con filtros. Para un efecto d
 
 - Acceso a equipar y retirar desde el resumen o el menú de equipo.
 - Vías de obtención para Gears adicionales.
-- Entrenadores que usen Gears (campo nuevo en los datos de equipo del entrenador).
+- Extender los Gears de entrenador a más equipos y ajustar su dificultad.
 - Casos abiertos del diseño: sobrecarga con dos movimientos encadenados compatibles, y si cambiar de Pokémon debe reiniciar el ciclo.
 
 
-## Decisiones confirmadas por el autor — 10 de noviembre de 2026
-
-Los efectos **ya están especificados**, pero aún no equivalen a Gears funcionales en la ROM. En esta rama solo está reparado el motor base.
+## Efectos y estado de implementación
 
 | Gear | Efecto confirmado | Qué falta |
 |---|---|---|
 | **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |
 | **Ancla de Realidad** | Al estar en el campo elimina el clima, campos, salas y trampas, incluso los hechos permanentes mediante Teseracto. Los efectos eliminados **no reaparecen** al marcharse el portador. | Si bloquea nuevas activaciones durante su presencia, reglas de prioridad de habilidades y mensajes. |
-| **Visor Cósmico** | +20 % especial durante 1 turno sobrecargado; +10 % residual 3 turnos. | **Implementado en rama**, requiere UI y QA. |
+| **Visor Cósmico** | Ataques Fantasma del portador son supereficaces (×2 por tipo) contra Normal, Psíquico y Hada en todas las fases. | Implementado. |
 | **Corazón de Titán** | +20 % físico durante 1 turno sobrecargado; +10 % residual 3 turnos. | **Implementado en rama**, requiere UI y QA. |
-| **Impulso Cósmico** | Ataques Fantasma del portador son supereficaces (×2 por tipo) contra Normal, Psíquico y Hada **en todas las fases**. | **Implementado en rama**; la sobrecarga no agrega daños arbitrarios. |
+| **Impulso Cósmico** | +20 % especial durante un turno de sobrecarga y +10 % durante tres turnos de recarga. | Implementado. |
 | **Cetro Siniestro** | Siniestro es supereficaz contra Psíquico, Hada, Normal y Lucha, por tipo objetivo, **en todas las fases**; Lucha/Hada es ×4. | **Implementado en rama**; no altera la tabla global. |
 | **Ski Mask** | +30 % en ataques Siniestros durante turno sobrecargado; +21 % continuo durante 3 turnos de recarga; sin cambios de efectividad. | **Implementado en rama**, requiere QA. |
 | **Permafrost Fragment** | Doble probabilidad de congelación/Frostbite al dañar con Hielo; si el portador es Hielo cura **1/16 de PS máximos por turno**, sin atacar. | **Implementado en rama**, requiere QA del evento por golpe y curación con Restos. |
@@ -161,22 +159,34 @@ Cuando un Gear cíclico y un objeto equipado ordinario potencian el **mismo aspe
 - **Cambios:** fase y temporizador sobreviven al retirar y reintroducir al Pokémon durante el mismo combate. El test del motor verifica cambios cruzados en dobles y separación entre entrenadores. Falta QA visual en batallas completas.
 - Teseracto vs Ancla: el Ancla elimina incluso efectos inmortalizados. No regenerarlos desde instantáneas del Teseracto cuando el Ancla salga.
 - Permafrost: los movimientos multigolpe o en área deben tirar los estados por cada instancia **solo si el motor normalmente lo permite**. La curación es exactamente **una vez por turno al final**, al estilo Restos, sin depender de golpes. Si se equipa Restos, ambos +1/16 coincidentes se promedian (no se suman).
-- Cetro/Impulso: los cálculos de IA, interfaz de supereficacia, inmunidades y combates reales deben usar el mismo criterio; no editar permanentemente la tabla global de tipos.
+- Cetro y Visor aplican la misma regla en la IA, la interfaz de supereficacia y el cálculo de daño. La excepción se calcula para el portador en cada ataque.
 
 
 ## Fabricacion y equipamiento de Gears (rama de integracion de 10/11/2026)
 
-El panel **Crafting** conserva Eclipse/Daylight y ahora incorpora siete recetas (Super Exp. Share + seis Gears). Navegacion: L/R cambia receta; A verifica materiales y vuelve a pulsarse para confirmar; SELECT abre **EQUIP**; en EQUIP, L/R selecciona el Gear, ARRIBA/ABAJO el Pokemon y A cambia o retira el Gear. B cancela una confirmacion o sale.
+El panel **Crafting** conserva Eclipse/Daylight y ahora incorpora ocho recetas (dos mejoras de Repartir EXP y seis Gears). Navegacion: L/R cambia receta; A verifica materiales y vuelve a pulsarse para confirmar; SELECT abre **EQUIP**; en EQUIP, L/R selecciona el Gear, ARRIBA/ABAJO el Pokemon y A cambia o retira el Gear. B cancela una confirmacion o sale.
 
 Cada receta consume materiales de la mochila y entrega un objeto en el bolsillo **Gears**. EQUIP retira una copia del Gear de la mochila, guarda su ID en el slot persistente separado del objeto equipado y devuelve el Gear anterior a la mochila. Para quitarlo se selecciona REMOVE GEAR. Si la mochila no tiene espacio para devolver el anterior, se cancela el intercambio. Varias unidades permiten equipar a varios Pokémon.
 
 | Receta | Materiales consumidos | Requisito no consumible |
 | --- | --- | --- |
-| Visor Cosmico | 1 Gafas Especiales, 2 Trozos Estrella, 1 Piedra Lunar | Ninguno |
+| Visor Cósmico | 2 Hechizos, 2 Piedras Lunares, 1 Trozo Estrella | Ninguno |
 | Corazon de Titan | 1 Banda Musculo, 2 Revestimientos Metalicos, 2 Piedras Duras | Ninguno |
 | Ski Mask | 1 Gafas de Sol, 3 Gemas Siniestras, 1 Piedra Noche | Ninguno |
 | Cetro Siniestro | 1 Gafas de Sol, 2 Hechizos | Medalla Mente (7.a) |
-| Impulso Cosmico | 2 Hechizos, 2 Piedras Lunares, 1 Trozo Estrella | Ninguno |
+| Impulso Cósmico | 1 Gafas Especiales, 2 Trozos Estrella, 1 Piedra Lunar | Ninguno |
 | Fragmento de Permafrost | **2 Piedras Hielo, 1 Hielo Eterno y 1 Agua Mistica** | Ninguno |
 
 La Super Exp. Share conserva su receta original y su comprobacion por script: 1 Exp. Share + Medalla Piedra. Los IDs de item se agregan al final de la enumeracion para respetar partidas anteriores. Los Gears sin efectos implementados (Teseracto, Ancla y Colmillo) **no** se ofrecen como fabricables.
+
+## Gears en equipos de entrenador
+
+En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. El objeto del encabezado `Especie @ Objeto` ocupa su ranura habitual. Si se omite `Gear:`, el Pokémon se genera sin Gear.
+
+| Combate | Pokémon | Gear | Objeto |
+|---|---|---|---|
+| Tate y Liza | Lunatone | Impulso Cósmico | Baya Zidra |
+| Tate y Liza, cuarto equipo de revancha | Metagross | Corazón de Titán | Metagrossita |
+| Phoebe | Dusclops | Visor Cósmico | Baya Zidra |
+| Glacia | Walrein | Fragmento de Permafrost | Baya Zidra |
+| Wallace | Milotic | Impulso Cósmico | Baya Zidra |

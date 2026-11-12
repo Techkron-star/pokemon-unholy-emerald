@@ -35,15 +35,15 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_VISOR_COSMICO] =
     {
         .name = COMPOUND_STRING("Visor Cosmico"),
-        .description = COMPOUND_STRING("Potencia ataques especiales.\nSobrecarga y recarga."),
+        .description = COMPOUND_STRING("Fantasma x2 contra Normal,\nPsiquico y Hada."),
         .iconGfx = sGearIconGfx_VisorCosmico,
         .iconPal = sGearIconPal_VisorCosmico,
         .trigger = GEAR_TRIGGER_TIMED,
         .overloadTurns = 1,
         .cooldownTurns = 3,
-        .categoryMask = GEAR_CATEGORY_SPECIAL,
-        .overloadPowerPercent = 120, // +20 % durante el turno de sobrecarga
-        .residualPowerPercent = 110, // +10 % los tres turnos siguientes
+        .typeMask = GEAR_TYPE(TYPE_GHOST),
+        .overloadPowerPercent = 100,
+        .residualPowerPercent = 100,
     },
     [GEAR_CORAZON_TITAN] =
     {
@@ -87,15 +87,15 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_IMPULSO_COSMICO] =
     {
         .name = COMPOUND_STRING("Impulso Cosmico"),
-        .description = COMPOUND_STRING("Cambia efectividad\nde ataques Fantasma."),
+        .description = COMPOUND_STRING("Especiales +20% en carga.\n+10% en recarga."),
         .iconGfx = sGearIconGfx_ImpulsoCosmico,
         .iconPal = sGearIconPal_ImpulsoCosmico,
         .trigger = GEAR_TRIGGER_TIMED,
         .overloadTurns = 1,
         .cooldownTurns = 3,
-        .typeMask = GEAR_TYPE(TYPE_GHOST),
-        .overloadPowerPercent = 100,
-        .residualPowerPercent = 100,
+        .categoryMask = GEAR_CATEGORY_SPECIAL,
+        .overloadPowerPercent = 120, // +20 % durante el turno de sobrecarga
+        .residualPowerPercent = 110, // +10 % los tres turnos siguientes
     },
     [GEAR_PERMAFROST_FRAGMENT] =
     {

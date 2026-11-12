@@ -6762,7 +6762,7 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_WISE_GLASSES:
-        if (IsBattleMoveSpecial(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_VISOR_COSMICO)
+        if (IsBattleMoveSpecial(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_IMPULSO_COSMICO)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_LUSTROUS_ORB:
@@ -6804,7 +6804,7 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     // exactamente lo mismo. Se promedian sus BONIFICACIONES, por fase.
     uq4_12_t gearModifier = Gear_GetPowerModifier(battlerAtk, move, moveType);
     enum Gear activeGear = Gear_GetBattlerGear(battlerAtk);
-    if ((activeGear == GEAR_VISOR_COSMICO
+    if ((activeGear == GEAR_IMPULSO_COSMICO
          && ctx->holdEffects[battlerAtk] == HOLD_EFFECT_WISE_GLASSES
          && IsBattleMoveSpecial(move))
      || (activeGear == GEAR_CORAZON_TITAN
@@ -8208,7 +8208,7 @@ static inline void MulByTypeEffectiveness(struct DamageContext *ctx, uq4_12_t *m
          && (defType == TYPE_PSYCHIC || defType == TYPE_FAIRY
           || defType == TYPE_NORMAL || defType == TYPE_FIGHTING))
             mod = UQ_4_12(2.0);
-        else if (gear == GEAR_IMPULSO_COSMICO
+        else if (gear == GEAR_VISOR_COSMICO
               && ctx->moveType == TYPE_GHOST
               && (defType == TYPE_NORMAL || defType == TYPE_PSYCHIC || defType == TYPE_FAIRY))
             mod = UQ_4_12(2.0);
