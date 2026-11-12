@@ -36,6 +36,8 @@
 #include "party_menu.h"
 #include "pokeblock.h"
 #include "pokemon.h"
+#include "pokelocator.h"
+#include "hfc_watch.h"
 #include "script.h"
 #include "sound.h"
 #include "strings.h"
@@ -64,6 +66,8 @@ static void Task_AccessPokemonBoxLink(u8);
 static void ItemUseOnFieldCB_Bike(u8);
 static void ItemUseOnFieldCB_Rod(u8);
 static void ItemUseOnFieldCB_Itemfinder(u8);
+static void ItemUseOnFieldCB_Pokelocator(u8);
+static void ItemUseOnFieldCB_HfcWatch(u8);
 static void ItemUseOnFieldCB_Berry(u8);
 static void ItemUseOnFieldCB_WailmerPailBerry(u8);
 static void ItemUseOnFieldCB_WailmerPailSudowoodo(u8);
@@ -358,6 +362,33 @@ static void ItemUseOnFieldCB_Rod(u8 taskId)
 {
     StartFishing(GetItemSecondaryId(gSpecialVar_ItemId));
     DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_Pokelocator(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_Pokelocator;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// Same field-use pattern as the Itemfinder: the bag/registered-item task is closed
+// here and the Pokelocator screen takes over, locking and later unlocking the player.
+static void ItemUseOnFieldCB_Pokelocator(u8 taskId)
+{
+    DestroyTask(taskId);
+    Pokelocator_OpenFromField();
+}
+
+void ItemUseOutOfBattle_HfcWatch(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_HfcWatch;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// Same pattern as the Pokelocator: close the bag/registered task, the hub takes over.
+static void ItemUseOnFieldCB_HfcWatch(u8 taskId)
+{
+    DestroyTask(taskId);
+    HfcWatch_OpenHub();
 }
 
 void ItemUseOutOfBattle_Itemfinder(u8 var)

@@ -77,6 +77,12 @@ u32 ChooseHiddenMonIndex(void);
 bool32 MapHasNoEncounterData(void);
 enum TimeOfDay GetTimeOfDayForEncounters(u32 headerId, enum WildPokemonArea area);
 
+// Read-only slot data for UI tools (Pokélocator). None of these call Random().
+// A weight of 0 means "not computable" (invalid slot, or hidden encounters).
+u8 GetWildEncounterSlotCount(enum WildPokemonArea area);
+u8 GetWildEncounterSlotWeight(enum WildPokemonArea area, u8 slot);
+u8 GetWildEncounterSlotGroupTotal(enum WildPokemonArea area, u8 slot);
+
 u8 GetLandEncounterSlotForMatchCall(void);
 u8 GetWaterEncounterSlotForMatchCall(void);
 

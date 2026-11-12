@@ -45,6 +45,7 @@
 #include "sound.h"
 #include "sprite.h"
 #include "start_menu.h"
+#include "hfc_watch.h"
 #include "strings.h"
 #include "string_util.h"
 #include "task.h"
@@ -79,6 +80,7 @@ enum
     MENU_ACTION_DEXNAV,
     MENU_ACTION_HORIZON_SHOP,
     MENU_ACTION_CRAFTING,
+    MENU_ACTION_HFC_WATCH,
 };
 
 // Save status
@@ -132,6 +134,7 @@ static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuCraftingCallback(void);
+static bool8 StartMenuHfcWatchCallback(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
 static void OpenUnholyCraftingMenu(void);
 static void CloseUnholyCraftingMenu(void);
@@ -347,6 +350,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
     [MENU_ACTION_HORIZON_SHOP]    = {sText_MenuHorizonCompact, {.u8_void = StartMenuHorizonShopCallback}},
     [MENU_ACTION_CRAFTING]       = {gText_MenuCrafting, {.u8_void = StartMenuCraftingCallback}},
+    [MENU_ACTION_HFC_WATCH]      = {gText_MenuHfcWatch, {.u8_void = StartMenuHfcWatchCallback}},
 };
 
 static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
@@ -814,6 +818,20 @@ static bool8 StartMenuCraftingCallback(void)
     return FALSE;
 }
 
+// Same hand-off as the crafting menu: drop the START window, the hub opens over the field.
+static bool8 StartMenuHfcWatchCallback(void)
+{
+    if (!gPaletteFade.active)
+    {
+        RemoveExtraStartMenuWindows();
+        ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
+        RemoveStartMenuWindow();
+        HfcWatch_OpenHub();
+        return TRUE;
+    }
+    return FALSE;
+}
+
 static void AddStartMenuAction(u8 action)
 {
     AppendToList(sCurrentStartMenuActions, &sNumStartMenuActions, action);
@@ -831,11 +849,15 @@ static void BuildNormalStartMenu(void)
         AddStartMenuAction(MENU_ACTION_POKEMON);
 
     AddStartMenuAction(MENU_ACTION_BAG);
-    AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
+    // With a watch, Horizon and PokeNav live inside its hub (one entry instead of two).
+    if (HfcWatch_GetTier() != HFC_WATCH_TIER_NONE)
+        AddStartMenuAction(MENU_ACTION_HFC_WATCH);
+    else
+        AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
     if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
-    if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
+    if (HfcWatch_GetTier() == HFC_WATCH_TIER_NONE && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
 
     AddStartMenuAction(MENU_ACTION_PLAYER);
