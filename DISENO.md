@@ -242,7 +242,7 @@ Horizon Shop reutiliza las compras del PokéMart para objetos y discos, con nave
 
 ### Avisos de ofertas mutantes (10/11/2026)
 
-Al aparecer por RNG una oferta mutante, la señal se propaga sin falsos positivos: **punto rojo junto a HORIZON en el menú START** (paleta estándar), **punto rojo junto a Pokémon en Horizon** y **!!! RARE STOCK** en el panel. Los indicadores desaparecen al **abrir de verdad la sección Pokémon**, no al abrir simplemente el menú Horizon. Solo una nueva rotación con oferta mutante reactivará los avisos. Si no hay oferta mutante, no aparecen.
+Una oferta mutante nueva marca **WATCH** en START, **HORIZON** dentro del reloj y la pestaña Pokémon de Horizon. El panel muestra **!!! RARE STOCK**. Abrir la sección Pokémon limpia el aviso hasta la siguiente rotación que tenga una oferta mutante.
 
 Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusionar a master antes de CI y QA en emulador**. Seis ofertas Pokémon con una mutación máxima por individuo y cinco huevos con calidad persistente y premios de hasta tres mutaciones. El formato de guardado se describe en `docs/HORIZON_MARKET.md`.
 
@@ -331,7 +331,7 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 | Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
 | HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator e incursiones. El Mutator aparece con la octava medalla. |
 
-- **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
+- **WATCH** en START reúne las funciones disponibles. Horizon Shop se abre desde WATCH a partir del primer Poké Watch. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
 - Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
 - El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
 
@@ -488,7 +488,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: seis piezas fabricables y equipables con iconos de sobrecarga y recarga (`docs/GEARS.md`). Faltan el catálogo adicional, el equipamiento de entrenadores y el indicador numérico de turnos de recarga.
+- Gears: seis piezas fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Pendientes el catálogo adicional y el equipamiento de más entrenadores.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

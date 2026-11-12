@@ -6,10 +6,4 @@
 
 #define GEARS_ENABLED                   TRUE
 
-// Posición del icono del Gear respecto a la caja de vida (píxeles). Queda en la
-// esquina superior derecha de la caja. Si en el emulador no encaja, ajusta estos números.
-#define GEAR_ICON_X_OFFSET_PLAYER       64
-#define GEAR_ICON_X_OFFSET_OPPONENT     56
-#define GEAR_ICON_Y_OFFSET              -20
-
 #endif // GUARD_CONFIG_GEARS_H

@@ -69,6 +69,7 @@ enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item);
 // Gear del combatiente y fase actual del ciclo (se inicializa solo al entrar al campo).
 enum Gear Gear_GetBattlerGear(enum BattlerId battler);
 enum GearPhase Gear_GetPhase(enum BattlerId battler);
+u8 Gear_GetTurnsRemaining(enum BattlerId battler);
 
 // Multiplicador de potencia del movimiento (1.0 sin Gear o sin efecto). No gasta nada,
 // así que la IA y los cálculos repetidos pueden llamarlo libremente.

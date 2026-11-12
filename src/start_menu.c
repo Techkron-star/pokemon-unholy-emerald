@@ -78,7 +78,6 @@ enum
     MENU_ACTION_PYRAMID_BAG,
     MENU_ACTION_DEBUG,
     MENU_ACTION_DEXNAV,
-    MENU_ACTION_HORIZON_SHOP,
     MENU_ACTION_CRAFTING,
     MENU_ACTION_HFC_WATCH,
 };
@@ -132,7 +131,6 @@ static bool8 StartMenuBattlePyramidRetireCallback(void);
 static bool8 StartMenuBattlePyramidBagCallback(void);
 static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
-static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuCraftingCallback(void);
 static bool8 StartMenuHfcWatchCallback(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
@@ -215,7 +213,6 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 };
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
-static const u8 sText_MenuHorizonCompact[] = _("HORIZON");
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
 #define UNHOLY_CRAFT_RECIPE_COUNT 8
@@ -355,7 +352,6 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_PYRAMID_BAG]     = {gText_MenuBag,     {.u8_void = StartMenuBattlePyramidBagCallback}},
     [MENU_ACTION_DEBUG]           = {sText_MenuDebug,   {.u8_void = StartMenuDebugCallback}},
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
-    [MENU_ACTION_HORIZON_SHOP]    = {sText_MenuHorizonCompact, {.u8_void = StartMenuHorizonShopCallback}},
     [MENU_ACTION_CRAFTING]       = {gText_MenuCrafting, {.u8_void = StartMenuCraftingCallback}},
     [MENU_ACTION_HFC_WATCH]      = {gText_MenuHfcWatch, {.u8_void = StartMenuHfcWatchCallback}},
 };
@@ -887,7 +883,8 @@ static void BuildNormalStartMenu(void)
 
     AddStartMenuAction(MENU_ACTION_BAG);
     // With a watch, Horizon and PokeNav live inside its hub (one entry instead of two).
-    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
+    if (hasWatch)
+        AddStartMenuAction(MENU_ACTION_HFC_WATCH);
     if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
@@ -910,7 +907,8 @@ static void BuildDebugStartMenu(void)
     if (FlagGet(FLAG_SYS_POKEMON_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEMON);
     AddStartMenuAction(MENU_ACTION_BAG);
-    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
+    if (hasWatch)
+        AddStartMenuAction(MENU_ACTION_HFC_WATCH);
     if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
     if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
@@ -1057,8 +1055,7 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
             AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
         }
 
-        if ((sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP
-          || sCurrentStartMenuActions[index] == MENU_ACTION_HFC_WATCH)
+        if (sCurrentStartMenuActions[index] == MENU_ACTION_HFC_WATCH
          && HorizonMarketHasUnseenMutation())
         {
             // The standard menu palette already includes saturated red in color 4.
@@ -1286,21 +1283,6 @@ static bool8 StartMenuBagCallback(void)
         CleanupOverworldWindowsAndTilemaps();
         SetMainCallback2(CB2_BagMenuFromStartMenu); // Display bag menu
 
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-static bool8 StartMenuHorizonShopCallback(void)
-{
-    if (!gPaletteFade.active)
-    {
-        PlayRainStoppingSoundEffect();
-        RemoveExtraStartMenuWindows();
-        CleanupOverworldWindowsAndTilemaps();
-        CreateHorizonShopMenu(NULL);
-        FadeScreen(FADE_FROM_BLACK, 0);
         return TRUE;
     }
 

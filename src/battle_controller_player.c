@@ -1729,7 +1729,7 @@ static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
     // This label is always visible while choosing a move. The adjoining
     // number window still shows the move's PP, while STA shows energy spent.
-    static const u8 sText_StaminaCost[] = _("STA");
+    static const u8 sText_StaminaCost[] = _("STA ");
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
 

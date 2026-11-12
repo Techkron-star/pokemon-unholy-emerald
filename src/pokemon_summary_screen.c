@@ -92,6 +92,7 @@
 #define PSS_DATA_WINDOW_INFO_ID 1
 #define PSS_DATA_WINDOW_INFO_ABILITY 2
 #define PSS_DATA_WINDOW_INFO_MEMO 3
+#define PSS_INFO_DETAIL_GEAR 7
 
 // Dynamic fields for the Pokémon Skills page
 #define PSS_DATA_WINDOW_SKILLS_HELD_ITEM 0
@@ -159,6 +160,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u16 spdef; // 0x2A
         u16 speed; // 0x2C
         enum Item item; // 0x2E
+        enum Gear gear;
         u16 friendship; // 0x30
         u8 OTGender; // 0x32
         u8 nature; // 0x33
@@ -173,7 +175,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
     u8 skillsPageMode;
-    u8 mutationPage; // 0: ability, 1-3: mutation groups of three.
+    u8 infoDetailPage; // Ability, mutation lists, stat bonuses, or equipped Gear.
     bool8 isBoxMon;
     u8 curMonIndex;
     u8 maxMonIndex;
@@ -1546,6 +1548,9 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         else
             sum->isEgg = GetMonData(mon, MON_DATA_IS_EGG);
 
+        sum->gear = sum->isEgg ? GEAR_NONE : Gear_GetEquipped(mon);
+        if (sum->gear == GEAR_NONE && sMonSummaryScreen->infoDetailPage == PSS_INFO_DETAIL_GEAR)
+            sMonSummaryScreen->infoDetailPage = 0;
         break;
     case 1:
         for (i = 0; i < MAX_MON_MOVES; i++)
@@ -1756,7 +1761,10 @@ static void Task_HandleInput(u8 taskId)
             else if (sMonSummaryScreen->currPageIndex == PSS_PAGE_INFO && !sMonSummaryScreen->summary.isEgg)
             {
                 u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
-                sMonSummaryScreen->mutationPage = (sMonSummaryScreen->mutationPage + 1) % 7;
+                if (sMonSummaryScreen->infoDetailPage == 0 && sMonSummaryScreen->summary.gear != GEAR_NONE)
+                    sMonSummaryScreen->infoDetailPage = PSS_INFO_DETAIL_GEAR;
+                else
+                    sMonSummaryScreen->infoDetailPage = (sMonSummaryScreen->infoDetailPage + 1) % PSS_INFO_DETAIL_GEAR;
                 FillWindowPixelBuffer(windowId, PIXEL_FILL(0));
                 PrintMonAbilityName();
                 PrintMonAbilityDescription();
@@ -3224,6 +3232,9 @@ static void PrintNotEggInfo(void)
     ConvertIntToDecimalStringN(gStringVar2, summary->level, STR_CONV_MODE_LEFT_ALIGN, 3);
     StringAppend(gStringVar1, gStringVar2);
     PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gStringVar1, 24, 17, 0, 1);
+    if (summary->gear != GEAR_NONE)
+        PrintTextOnWindowWithFont(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, COMPOUND_STRING("G"),
+                                  17, 17, 0, 1, FONT_SMALL);
     GetMonNickname(mon, gStringVar1);
     PrintTextOnWindowToFitPx(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME, gStringVar1, 0, 1, 0, 1, WindowWidthPx(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME) - 9);
     PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gText_Slash, 0, 1, 0, 1);
@@ -3553,24 +3564,47 @@ static const u8 sUnholyMutationTitles[6][20] = {
 
 static void PrintMonAbilityName(void)
 {
-    enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-    const u8 *title = sMonSummaryScreen->mutationPage
-                    ? sUnholyMutationTitles[sMonSummaryScreen->mutationPage - 1]
-                    : gAbilitiesInfo[ability].name;
+    u8 page = sMonSummaryScreen->infoDetailPage;
+    u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
+    const u8 *title;
 
-    PrintTextOnWindowToFit(AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY), title, 0, 1, 0, 1);
+    if (page == PSS_INFO_DETAIL_GEAR)
+    {
+        u8 *end = StringCopy(gStringVar1, COMPOUND_STRING("GEAR: "));
+        StringCopy(end, gGearsInfo[sMonSummaryScreen->summary.gear].name);
+        u32 fontId = GetFontIdToFit(gStringVar1, FONT_SMALL, 0, WindowWidthPx(windowId));
+        PrintTextOnWindowWithFont(windowId, gStringVar1, 0, 0, 0, 1, fontId);
+        return;
+    }
+    else if (page != 0)
+    {
+        title = sUnholyMutationTitles[page - 1];
+    }
+    else
+    {
+        enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
+        title = gAbilitiesInfo[ability].name;
+    }
+
+    PrintTextOnWindowToFit(windowId, title, 0, 1, 0, 1);
 }
 
 static void PrintMonAbilityDescription(void)
 {
-    enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
+    u8 page = sMonSummaryScreen->infoDetailPage;
     u8 windowId = AddWindowFromTemplateList(sPageInfoTemplate, PSS_DATA_WINDOW_INFO_ABILITY);
 
-    if (sMonSummaryScreen->mutationPage == 0)
+    if (page == PSS_INFO_DETAIL_GEAR)
     {
+        const struct GearInfo *gear = &gGearsInfo[sMonSummaryScreen->summary.gear];
+        PrintTextOnWindowWithFont(windowId, gear->description, 0, 12, 0, 0, FONT_SMALL_NARROWER);
+    }
+    else if (page == 0)
+    {
+        enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
         PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
     }
-    else if (sMonSummaryScreen->mutationPage >= 4)
+    else if (page >= 4)
     {
         // Three additional views show the *actual* additive percent modifiers
         // for all six base stats, including Titan's negative Speed penalty.
@@ -3582,7 +3616,7 @@ static void PrintMonAbilityDescription(void)
         static const u8 sMinus[] = _(" -");
         static const u8 sPercent[] = _("%");
         u8 text[80];
-        u8 firstStat = (sMonSummaryScreen->mutationPage - 4) * 2;
+        u8 firstStat = (page - 4) * 2;
 
         text[0] = EOS;
         for (u32 i = firstStat; i < firstStat + 2; i++)
@@ -3621,7 +3655,7 @@ static void PrintMonAbilityDescription(void)
         u8 mutationText[80];
         u8 count = 0;
         u8 i;
-        u8 start = (sMonSummaryScreen->mutationPage - 1) * 3;
+        u8 start = (page - 1) * 3;
 
         mutationText[0] = EOS;
         for (i = start; i < start + 3; i++)

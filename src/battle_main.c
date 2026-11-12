@@ -3649,6 +3649,8 @@ bool32 EndTurnEvents(void) // Called from Battle Script
 
     for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
     {
+        if (IsBattlerAlive(battler))
+            Gear_EndOfTurn(battler);
         gChosenActionByBattler[battler] = B_ACTION_NONE;
         gChosenMoveByBattler[battler] = MOVE_NONE;
         gBattleStruct->monToSwitchIntoId[battler] = PARTY_SIZE;
@@ -4776,10 +4778,7 @@ static void TurnValuesCleanUp(bool32 endTurn)
                 gBattleMons[i].volatiles.rechargeTimer--;
 
             if (IsBattlerAlive(i))
-            {
                 Stamina_EndOfTurn(i);
-                Gear_EndOfTurn(i);
-            }
             Chain_Reset();
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;

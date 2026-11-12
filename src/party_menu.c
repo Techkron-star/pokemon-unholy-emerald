@@ -259,6 +259,7 @@ static void DisplayPartyPokemonDataForBattlePyramidHeldItem(u8);
 static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8);
 static void DisplayPartyPokemonData(u8);
 static void DisplayPartyPokemonNickname(struct Pokemon *, struct PartyMenuBox *, u8);
+static void DisplayPartyPokemonGear(struct Pokemon *, struct PartyMenuBox *);
 static void DisplayPartyPokemonLevelCheck(struct Pokemon *, struct PartyMenuBox *, u8);
 static void DisplayPartyPokemonGenderNidoranCheck(struct Pokemon *, struct PartyMenuBox *, u8);
 static void DisplayPartyPokemonHPCheck(struct Pokemon *, struct PartyMenuBox *, u8);
@@ -2587,6 +2588,32 @@ static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 col
     AddTextPrinterParameterized3(windowId, GetFontIdToFit(str, FONT_SMALL, 0, width), align[0], align[1], sFontColorTable[color], 0, str);
 }
 
+static void DisplayPartyPokemonGear(struct Pokemon *mon, struct PartyMenuBox *menuBox)
+{
+    // An 8x8 "G" badge using the party window's dark and light text colors.
+    static const u32 sBadge[] =
+    {
+        0x00222220,
+        0x02222222,
+        0x02233322,
+        0x02222232,
+        0x02233232,
+        0x02232232,
+        0x02233322,
+        0x00222220,
+    };
+    bool32 largeSlot = menuBox->infoRects == &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];
+
+    if (GetMonData(mon, MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG
+     || GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG)
+     || Gear_GetEquipped(mon) == GEAR_NONE)
+        return;
+
+    // Keep the compact badge between the gender and the description/HP area.
+    BlitBitmapToWindow(menuBox->windowId, (const u8 *)sBadge, largeSlot ? 66 : 70,
+                       largeSlot ? 2 : 12, 8, 8);
+}
+
 static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox *menuBox, u8 c)
 {
     u8 nickname[POKEMON_NAME_LENGTH + 1];
@@ -2596,6 +2623,7 @@ static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox
         if (c == 1)
             menuBox->infoRects->blitFunc(menuBox->windowId, menuBox->infoRects->dimensions[0] >> 3, menuBox->infoRects->dimensions[1] >> 3, menuBox->infoRects->dimensions[2] >> 3, menuBox->infoRects->dimensions[3] >> 3, FALSE);
         GetMonNickname(mon, nickname);
+        DisplayPartyPokemonGear(mon, menuBox);
         DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, 50);
     }
 }
@@ -7122,13 +7150,16 @@ static void TryGiveItemOrMailToSelectedMon(u8 taskId)
     // but it must never interact with MON_DATA_HELD_ITEM or its switch prompt.
     if (Gear_FromItem(gPartyMenu.bagItem) != GEAR_NONE)
     {
-        enum GearEquipResult result = Gear_TryEquipFromBag(
-            &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], gPartyMenu.bagItem);
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
+        struct PartyMenuBox *menuBox = &sPartyMenuBoxes[gPartyMenu.slotId];
+        enum GearEquipResult result = Gear_TryEquipFromBag(mon, gPartyMenu.bagItem);
         const u8 *message;
 
         switch (result)
         {
         case GEAR_EQUIP_OK:
+            DisplayPartyPokemonGear(mon, menuBox);
+            CopyWindowToVram(menuBox->windowId, COPYWIN_GFX);
             message = COMPOUND_STRING("GEAR EQUIPPED!");
             break;
         case GEAR_EQUIP_ALREADY:

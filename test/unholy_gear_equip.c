@@ -60,20 +60,32 @@ TEST("Unholy Gear cooldown follows its party member across doubles positions")
     Gear_SetEquipped(partner, GEAR_SKI_MASK);
 
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_OVERLOAD);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 1);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_SCRATCH, TYPE_NORMAL);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 0);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_CRUNCH, TYPE_DARK);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 1);
     Gear_EndOfTurn(B_BATTLER_0);
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_RECHARGING);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 3);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_CRUNCH, TYPE_DARK);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 1);
 
     gBattlerPartyIndexes[B_BATTLER_0] = 1;
     gBattlerPartyIndexes[B_BATTLER_2] = 0;
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_2), GEAR_PHASE_RECHARGING);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_2), 3);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_2], 0);
     Gear_EndOfTurn(B_BATTLER_2);
     Gear_EndOfTurn(B_BATTLER_2);
 
     gBattlerPartyIndexes[B_BATTLER_2] = 1;
     gBattlerPartyIndexes[B_BATTLER_0] = 0;
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_RECHARGING);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 1);
     Gear_EndOfTurn(B_BATTLER_0);
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_OVERLOAD);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 1);
 
     Gear_EndOfTurn(B_BATTLER_0);
     gBattleTypeFlags |= BATTLE_TYPE_MULTI;
