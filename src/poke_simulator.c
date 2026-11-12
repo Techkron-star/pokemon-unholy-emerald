@@ -127,7 +127,6 @@ void PokeSimulator_ApplyChanges(void)
 
     for (i = 0; i < SIM_STAT_COUNT; i++)
     {
-        // TODO: Aplicar IV y EV al Pokémon
     }
 
     sPokeSimulator.isConfirming = FALSE;
