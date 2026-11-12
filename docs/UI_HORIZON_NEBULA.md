@@ -1,14 +1,14 @@
 # Horizon Nebula — especificación de UI para Unholy Emerald
 
 **Fecha:** 2026-11-09  
-**Rama objetivo:** `feat/stamina`  
-**Estado:** especificación de interfaz; ninguna de las pantallas descritas se declara implementada por este documento.
+**Rama de implementación actual:** `feat/unholy-horizon-ui-polish-20261112` (PR #30, apilado sobre #29)  
+**Estado:** las pantallas base están programadas; falta validación visual 240×160 en emulador y la suite de CI. Lo restante se marca como propuesta.
 
 ## Referencias verificadas
 
 - `DISENO.md`, sección 5 (Horizon Shop): cinco categorías, progresión por medallas, RNG y ciclo de día/noche.
 - `Techkron-star/Nebulous/src/engine/nebula/themes.ts`, temas existentes `eclipse` y `daylight`.
-- `src/shop.c`: actualmente ofrece un catálogo inicial fijo de objetos. No dispone de secciones de Pokémon/huevos/discos/servicios.
+- `src/shop.c`: implementa cinco pestañas, mercado de Pokémon/huevos, objetos/MT y MOVES; el PR #30 introduce cuadrícula, tarjetas horizontales y controles por contexto. No se considera probado visualmente hasta QA.
 - `data/scripts/crafting.inc`: la receta Super Exp. Share funciona mediante un menú de script básico, aún sin interfaz de receta visual.
 - `src/option_menu.c`: configuraciones existentes; necesita una nueva preferencia persistente para tema de UI.
 
@@ -60,11 +60,31 @@ Se sustituye el stock de prueba fijo por ofertas persistentes: **ocho objetos (t
 
 
 
-El PR apilado `fix/unholy-horizon-horizontal-tabs-safe-exit-20261110` convierte las cinco tiendas de Horizon en una **barra horizontal** (PKMN / DISCS / ITEMS / EGGS / MOVES), no una lista vertical. Las flechas izquierda/derecha y L/R cambian de pestaña; A abre; B vuelve al START. Los seis Pokémon y los cinco huevos mantienen sus listas verticales internas y la compra doble A.
+Los PR apilados implementan la barra horizontal de cinco pestañas (PKMN / DISCS / ITEMS / EGGS / MOVES). La entrega de **PR #30** convierte las seis ofertas Pokémon a una **cuadrícula 3×2**, los cinco huevos a una **hilera horizontal de cinco tarjetas** con calidad visual y MOVES a dos tarjetas de servicio. Las flechas y L/R se adaptan al contexto; A compra o elige y B cancela o retrocede.
 
 La raíz usa una ventana horizontal BG0 de 27×3 tiles desde (2,1), y el panel detallado otra de 27×14 desde (2,5). El cursor se dibuja de forma propia y **no utiliza** el procesador de menú vertical del PokéMart. El cierre de Horizon destruye su ventana, el icono de huevo y su paleta temporal, y usa `CB2_ReturnToFieldWithOpenMenu` para reconstruir correctamente el campo y START. Los PokéMart convencionales conservan su ruta original.
 
 **QA bloqueante:** abrir/cerrar Horizon diez veces desde START, entrar/salir de Pokémon y huevos con B, comprar en DISC/ITEMS y volver, cambiar de pestaña con ambos esquemas de controles, y confirmar que la tienda no deja la UI congelada ni paletas erróneas en Eclipse/Daylight. El PR está en borrador; la corrección requiere comprobarse en emulador.
+
+
+## Renaissance Horizon UI — entrega PR #30 (12/11/2026)
+
+Diseño implementado mediante ventanas GBA 4bpp y fuentes reales, **sin imágenes generadas** ni efectos que comprometan recursos del motor. La estructura evita los solapamientos visibles en las capturas de Pizza Boy.
+
+| Pantalla | Geometría en píxeles locales | Controles y comportamiento |
+|---|---|---|
+| Pestañas raíz | BG0 27×3 tiles en (2,1); cinco celdas de 42 px con línea de selección | Izquierda/derecha o L/R; A entra; B vuelve a START |
+| Ficha principal | BG0 27×14 tiles en (2,5), 216×112 px | Título/tema arriba y ayudas abreviadas abajo |
+| Pokémon | Cuadrícula 3 columnas × 2 filas, tarjetas de 66×22 px, nombres recortados por medida tipográfica, precio individual y indicador mutante | Izquierda/derecha/L/R recorre columnas, arriba/abajo cambia fila; A selecciona y otra A confirma; B cancela antes de salir |
+| Huevos | Cinco tarjetas de 38×42 px, desde x=6 con paso de 41 px; miniaturas de 14×13 con sombra y borde según calidad | L/R o izquierda/derecha elige; detalle muestra grado, calidad y coste; B cancela o vuelve; especie oculta |
+| MOVES | Dos tarjetas de 92×40 px (RELEARN/FORGET); texto descriptivo recortado | Flechas y L/R alternan; A entra, B vuelve |
+| ITEMS/DISCS | Se conserva la ventana del PokéMart de **15×16 tiles** (120×128 px); seleccionado y siguiente, precio, nombre completo recortado y marcas de posición | L/R recorre stock; A compra; B sale; **nunca** invade dinero, descripción o cantidad |
+
+La posición se conserva durante una **misma sesión Horizon**, por separado para Pokémon, Huevos, Discos, Objetos y MOVES. Solo se reinicia al abrir una sesión nueva. El catálogo y el RNG **no** cambian al moverse entre tarjetas; las compras, mutaciones y grados siguen las funciones persistentes existentes.
+
+Los anchos de nombre se ajustan con `GetStringWidth(FONT_NARROW, ...)`, no mediante caracteres fijos. Los acentos de selección usan los colores existentes de Eclipse/Daylight. Las miniaturas de huevo se pintan con `FillWindowPixelRect` y el icono nativo se reserva en el lateral inferior derecho.
+
+**QA bloqueante:** emulador a 240×160, comprobar especies y MT con nombres largos, saldo de seis dígitos, compra agotada, calidad Prismática/Legendaria, precio y botón de confirmación, paletas día/noche, doble B, cancelación, selección persistente, volver de MOVES y 10 ciclos de entrada/salida. No fusionar hasta compilar y verificar visualmente.
 
 ## 2. Horizon Shop — pantalla raíz y pestañas
 
@@ -148,8 +168,8 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - [x] Inspeccionado `DISENO.md` y las paletas conceptuales de `Eclipse` / `Daylight` de Nebulous.
 - [x] Navegación, temas y contratos de pantallas definidos.
 - [ ] Implementación persistente de UI Theme en la ROM.
-- [ ] UI temática funcional de Horizon Shop con 5 pestañas.
-- [ ] Catálogos avanzados y servicios funcionales.
+- [x] UI temática de Horizon con cinco pestañas implementada en C, incluyendo rediseño PR #30; pendiente de QA real en 240×160.
+- [x] Catálogos avanzados y MOVES RELEARN/FORGET implementados en ramas apiladas; todavía deben superar QA y pruebas de guardado.
 - [x] Menú real de crafting (una receta) con panel de materiales y medalla, estados dinámicos 1/1 y 0/1, estilo Eclipse/Daylight y teclas A/B. Reutiliza script de validación y confirmación, pendiente de revisión visual en emulador.
 - [x] Se agregaron sprites indexados 24x24 con iconos dedicados para Omega Ball, Infinity Ball y Super Exp. Share, y el recurso de estrella Omega. El glint todavía necesita conectarse al combate.
 - [ ] Compilación, QA visual e integración aprobada.
