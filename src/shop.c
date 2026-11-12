@@ -897,35 +897,39 @@ static void HorizonDrawInfo(void)
         for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
         {
             u8 x = 5 + (slot % 3) * 70;
-            u8 y = 29 + (slot / 3) * 24;
+            u8 y = 28 + (slot / 3) * 28;
             const enum Species species = HorizonMarketGetSpecies(slot);
             bool8 sold = HorizonMarketOfferSold(slot);
 
-            HorizonDrawCard(panel, x, y, 66, 22, slot == sHorizonPokemonSelection);
+            HorizonDrawCard(panel, x, y, 66, 26, slot == sHorizonPokemonSelection);
             if (sold)
-                HorizonPrintFit(panel, sHorizonTextSold, x + 5, y + 2, 54);
+                HorizonPrintCardText(panel, sHorizonTextSold, x + 5, y + 3, 54,
+                                     slot == sHorizonPokemonSelection, FALSE);
             else if (species == SPECIES_NONE)
-                HorizonPrintFit(panel, COMPOUND_STRING("EMPTY"), x + 5, y + 2, 54);
+                HorizonPrintCardText(panel, COMPOUND_STRING("EMPTY"), x + 5, y + 3, 54,
+                                     slot == sHorizonPokemonSelection, FALSE);
             else
-                HorizonPrintFit(panel, GetSpeciesName(species), x + 3, y + 2,
-                                HorizonMarketGetMutation(slot) != 0 ? 53 : 59);
+                HorizonPrintCardText(panel, GetSpeciesName(species), x + 3, y + 2,
+                                     HorizonMarketGetMutation(slot) != 0 ? 52 : 58,
+                                     slot == sHorizonPokemonSelection, FALSE);
 
             if (HorizonMarketGetMutation(slot) != 0 && !sold)
-                FillWindowPixelRect(panel, PIXEL_FILL(13), x + 58, y + 6, 4, 4);
+                FillWindowPixelRect(panel, PIXEL_FILL(13), x + 59, y + 5, 4, 4);
 
             if (!sold && species != SPECIES_NONE)
             {
                 ConvertIntToDecimalStringN(gStringVar3, HorizonMarketGetPrice(slot),
                                            STR_CONV_MODE_LEFT_ALIGN, 6);
-                HorizonPrintFit(panel, gStringVar3, x + 5, y + 12, 57);
+                HorizonPrintCardText(panel, gStringVar3, x + 5, y + 15, 55,
+                                     slot == sHorizonPokemonSelection, TRUE);
             }
         }
 
         // Full selected species/mutation text, or purchase feedback, below
         // the grid. All purchase prices remain visible in the cards.
         if (sHorizonPokemonStatus != 0)
-            HorizonPrintFit(panel, sHorizonPokemonStatuses[sHorizonPokemonStatus],
-                            7, 79, 202);
+            HorizonPrintSmall(panel, sHorizonPokemonStatuses[sHorizonPokemonStatus],
+                              7, 85, 202);
         else
         {
             StringCopy(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(sHorizonPokemonSelection)));
@@ -936,11 +940,11 @@ static void HorizonDrawInfo(void)
                 StringAppend(gStringVar4, COMPOUND_STRING(" "));
             }
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
-            HorizonPrintFit(panel, gStringVar4, 7, 79, 202);
+            HorizonPrintSmall(panel, gStringVar4, 7, 85, 202);
         }
 
-        HorizonPrintFit(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
-                        6, 97, 204);
+        HorizonPrintSmall(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
+                          6, 99, 204);
     }
     else if (sHorizonEggBrowsing)
     {
