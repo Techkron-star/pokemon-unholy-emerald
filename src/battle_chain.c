@@ -98,8 +98,19 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
 static void Task_ChainOpponentSignal(u8 taskId)
 {
     enum BattlerId battler = gTasks[taskId].data[0];
-    struct Sprite *sprite = &gSprites[gBattlerSpriteIds[battler]];
+    u8 spriteId = gTasks[taskId].data[2];
+    struct Sprite *sprite;
 
+    // A faint, switch or scene transition can destroy the battler sprite
+    // before this visual task's 12-frame animation finishes.
+    if (spriteId >= MAX_SPRITES || gBattlerSpriteIds[battler] != spriteId
+     || !gSprites[spriteId].inUse)
+    {
+        DestroyTask(taskId);
+        return;
+    }
+
+    sprite = &gSprites[spriteId];
     if (++gTasks[taskId].data[1] % 2 == 0)
         sprite->invisible = !sprite->invisible;
 
@@ -112,10 +123,25 @@ static void Task_ChainOpponentSignal(u8 taskId)
 
 static void Chain_ShowOpponentSignal(enum BattlerId battler)
 {
-    u8 taskId = CreateTask(Task_ChainOpponentSignal, 0);
+    u8 taskId;
+    u32 i;
 
+    if (gBattlerSpriteIds[battler] >= MAX_SPRITES
+     || !gSprites[gBattlerSpriteIds[battler]].inUse)
+        return;
+
+    // CreateTask returns task ID zero on exhaustion, which can already be
+    // occupied. Check capacity first to avoid corrupting another task.
+    for (i = 0; i < NUM_TASKS; i++)
+        if (!gTasks[i].isActive)
+            break;
+    if (i == NUM_TASKS)
+        return;
+
+    taskId = CreateTask(Task_ChainOpponentSignal, 0);
     gTasks[taskId].data[0] = battler;
     gTasks[taskId].data[1] = 0;
+    gTasks[taskId].data[2] = gBattlerSpriteIds[battler];
 }
 
 // Rol 0: acción normal. Rol 1: segundo movimiento de una cadena. Rol 3: turno extra del rival,
