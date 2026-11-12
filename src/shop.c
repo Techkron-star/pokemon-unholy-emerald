@@ -615,7 +615,7 @@ static void HorizonEggIconShow(void)
     // The actual Pokémon EGG icon, not a species preview or placeholder text.
     // Bottom-right preview is reserved outside the five horizontal cards.
     // It must not cover the full tier/quality labels or their price.
-    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 126, 0, 0, TRUE);
+    sHorizonEggIconId = CreateMonIconIsEgg(SPECIES_EGG, SpriteCB_MonIcon, 208, 116, 0, 0, TRUE);
 }
 
 static void HorizonEggIconHide(void)
@@ -958,36 +958,39 @@ static void HorizonDrawInfo(void)
 
             HorizonDrawCard(panel, x, 30, 38, 42, tier == sHorizonEggSelection);
             HorizonDrawSmallEgg(panel, x + 12, 34, quality);
-            HorizonPrintFit(panel, sHorizonEggCardNames[tier], x + 3, 48, 32);
+            HorizonPrintCardText(panel, sHorizonEggCardNames[tier], x + 3, 49, 32,
+                                     tier == sHorizonEggSelection, TRUE);
             if (sold)
-                HorizonPrintFit(panel, sHorizonTextEggSold, x + 4, 60, 32);
+                HorizonPrintCardText(panel, sHorizonTextEggSold, x + 4, 61, 32,
+                                     tier == sHorizonEggSelection, TRUE);
             else
                 FillWindowPixelRect(panel, PIXEL_FILL(quality == HORIZON_EGG_PRISMATIC ? 13
-                                                    : quality == HORIZON_EGG_RADIANT ? 7 : 3),
-                                    x + 4, 64, 30, 2);
+                                                    : quality == HORIZON_EGG_RADIANT ? 7
+                                                    : (daylight ? 7 : 5)),
+                                    x + 4, 67, 30, 2);
         }
 
         // Detail text stops before the large animated egg icon on the right.
         if (sHorizonEggStatus != 0)
-            HorizonPrintFit(panel, sHorizonEggStatus == 2
-                                   ? sHorizonTextPrize
-                                   : sHorizonPokemonStatuses[sHorizonEggStatus],
-                            7, 78, 158);
+            HorizonPrintSmall(panel, sHorizonEggStatus == 2
+                                     ? sHorizonTextPrize
+                                     : sHorizonPokemonStatuses[sHorizonEggStatus],
+                              7, 80, 153);
         else
         {
             StringCopy(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
             StringAppend(gStringVar4, COMPOUND_STRING(" / "));
             StringAppend(gStringVar4, HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
-            HorizonPrintFit(panel, gStringVar4, 7, 76, 153);
+            HorizonPrintSmall(panel, gStringVar4, 7, 77, 155);
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
                                        STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            HorizonPrintFit(panel, gStringVar4, 7, 86, 153);
+            HorizonPrintSmall(panel, gStringVar4, 7, 87, 153);
         }
 
-        HorizonPrintFit(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
-                        6, 98, 169);
+        HorizonPrintSmall(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
+                          6, 99, 188);
     }
     else if (sHorizonMoveBrowsing)
     {
