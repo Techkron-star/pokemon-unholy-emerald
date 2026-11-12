@@ -1391,7 +1391,7 @@
 #define FLAG_UNHOLY_EXP_SHARE_ENABLED                (SYSTEM_FLAGS + 0x22) // Exp. Share normal activado
 #define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED          (SYSTEM_FLAGS + 0x23) // Super Exp. Share activado
 #define FLAG_UNHOLY_UI_DAYLIGHT                      (SYSTEM_FLAGS + 0x24) // Persistent menu appearance.
-#define FLAG_UNUSED_0x885                           (SYSTEM_FLAGS + 0x25) // Unused Flag
+#define FLAG_DEFEATED_SUPER_LEAGUE                    (SYSTEM_FLAGS + 0x25)
 #define FLAG_UNUSED_0x886                           (SYSTEM_FLAGS + 0x26) // Unused Flag
 #define FLAG_UNUSED_0x887                           (SYSTEM_FLAGS + 0x27) // Unused Flag
 
@@ -1574,8 +1574,8 @@
 #define FLAG_UNUSED_0x920                           (DAILY_FLAGS_START + 0x0)  // Unused Flag
 #define FLAG_DAILY_CONTEST_LOBBY_RECEIVED_BERRY     (DAILY_FLAGS_START + 0x1)
 #define FLAG_DAILY_SECRET_BASE                      (DAILY_FLAGS_START + 0x2)
-#define FLAG_UNUSED_0x923                           (DAILY_FLAGS_START + 0x3)  // Unused Flag
-#define FLAG_UNUSED_0x924                           (DAILY_FLAGS_START + 0x4)  // Unused Flag
+#define FLAG_DAILY_HFC_RAID                         (DAILY_FLAGS_START + 0x3)
+#define FLAG_DAILY_HFC_FREQUENCY                    (DAILY_FLAGS_START + 0x4)
 #define FLAG_UNUSED_0x925                           (DAILY_FLAGS_START + 0x5)  // Unused Flag
 #define FLAG_UNUSED_0x926                           (DAILY_FLAGS_START + 0x6)  // Unused Flag
 #define FLAG_UNUSED_0x927                           (DAILY_FLAGS_START + 0x7)  // Unused Flag

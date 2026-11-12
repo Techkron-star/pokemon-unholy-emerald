@@ -25,6 +25,8 @@
 #include "fldeff_misc.h"
 #include "follower_npc.h"
 #include "gym_leader_rematch.h"
+#include "hfc_watch.h"
+#include "hfc_watch_services.h"
 #include "item.h"
 #include "load_save.h"
 #include "malloc.h"
@@ -76,6 +78,7 @@ static void DoSafariBattle(void);
 static void DoGhostBattle(void);
 static void DoStandardWildBattle(bool32 isDouble);
 static void CB2_EndWildBattle(void);
+static void CB2_EndHfcRaidBattle(void);
 static void CB2_EndScriptedWildBattle(void);
 static void CB2_EndMarowakBattle(void);
 static void TryUpdateGymLeaderRematchFromWild(void);
@@ -419,6 +422,35 @@ static void DoStandardWildBattle(bool32 isDouble)
     TryUpdateGymLeaderRematchFromWild();
 }
 
+void BattleSetup_StartHfcRaid(bool32 isDouble, u8 bossBoost)
+{
+    LockPlayerFieldControls();
+    FreezeObjectEvents();
+    StopPlayerAvatar();
+    gMain.savedCallback = CB2_EndHfcRaidBattle;
+    gBattleTypeFlags = BATTLE_TYPE_RAID | (isDouble ? BATTLE_TYPE_DOUBLE : 0);
+    TRAINER_BATTLE_PARAM.opponentA = TRAINER_NONE;
+    memset(gQueuedStatBoosts, 0, sizeof(gQueuedStatBoosts));
+    if (bossBoost != 0)
+    {
+        struct QueuedStatBoost *boosts = &gQueuedStatBoosts[B_BATTLER_1];
+        boosts->stats = (1 << STAT_ATK) | (1 << STAT_DEF) | (1 << STAT_SPATK) | (1 << STAT_SPDEF);
+        boosts->statChanges[STAT_ATK] = bossBoost;
+        boosts->statChanges[STAT_DEF] = bossBoost;
+        boosts->statChanges[STAT_SPATK] = bossBoost;
+        boosts->statChanges[STAT_SPDEF] = bossBoost;
+        if (bossBoost > 1)
+        {
+            boosts->stats |= 1 << STAT_SPEED;
+            boosts->statChanges[STAT_SPEED] = 1;
+        }
+    }
+    CreateBattleStartTask(GetWildBattleTransition(), 0);
+    IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
+    IncrementGameStat(GAME_STAT_WILD_BATTLES);
+    IncrementDailyWildBattles();
+}
+
 void DoStandardWildBattle_Debug(void)
 {
     LockPlayerFieldControls();
@@ -695,6 +727,7 @@ static void CB2_EndWildBattle(void)
 {
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
+    gBattleTypeFlags &= ~BATTLE_TYPE_RAID;
 
     if (IsNPCFollowerWildBattle())
     {
@@ -715,6 +748,16 @@ static void CB2_EndWildBattle(void)
         DowngradeBadPoison();
         gFieldCallback = FieldCB_ReturnToFieldNoScriptCheckMusic;
     }
+}
+
+static void CB2_EndHfcRaidBattle(void)
+{
+    HfcWatch_OnRaidBattleEnd(gBattleOutcome);
+    CB2_EndWildBattle();
+    if (IsPlayerDefeated(gBattleOutcome))
+        HfcWatch_ResetRaid();
+    else
+        gFieldCallback = HfcWatch_OpenRaidAfterBattle;
 }
 
 static void CB2_EndScriptedWildBattle(void)

@@ -6,6 +6,7 @@
 #include "fieldmap.h"
 #include "fishing.h"
 #include "follower_npc.h"
+#include "hfc_watch_services.h"
 #include "item.h"
 #include "random.h"
 #include "field_player_avatar.h"
@@ -510,13 +511,21 @@ static u8 PickWildMonNature(enum Species species)
     return GetSynchronizedNature(WILDMON_ORIGIN, species);
 }
 
-void CreateWildMon(enum Species species, u8 level)
+static void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost)
 {
     ZeroEnemyPartyMons();
     u32 personality = GetMonPersonality(species, GetSynchronizedGender(WILDMON_ORIGIN, species), PickWildMonNature(species), RANDOM_UNOWN_LETTER);
     CreateMonWithIVs(&gParties[B_TRAINER_OPPONENT_A][0], species, level, personality, OTID_STRUCT_PLAYER_ID, USE_RANDOM_IVS);
     GiveMonInitialMoveset(&gParties[B_TRAINER_OPPONENT_A][0]);
-    Pokemon_AssignEncounterBadges(&gParties[B_TRAINER_OPPONENT_A][0], FALSE);
+    if (boost != 0)
+        Pokemon_AssignFrequencyBadges(&gParties[B_TRAINER_OPPONENT_A][0], boost);
+    else
+        Pokemon_AssignEncounterBadges(&gParties[B_TRAINER_OPPONENT_A][0], FALSE);
+}
+
+void CreateWildMon(enum Species species, u8 level)
+{
+    CreateWildMonWithFrequency(species, level, 0);
 }
 
 #ifdef BUGFIX
@@ -579,7 +588,7 @@ bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPok
     if (gMapHeader.mapLayoutId != LAYOUT_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS && flags & WILD_CHECK_KEEN_EYE && !IsAbilityAllowingEncounter(level))
         return FALSE;
 
-    CreateWildMon(wildMonInfo->wildPokemon[wildMonIndex].species, level);
+    CreateWildMonWithFrequency(wildMonInfo->wildPokemon[wildMonIndex].species, level, HfcWatch_ConsumeFrequencyEncounter());
     return TRUE;
 }
 
@@ -590,7 +599,7 @@ static u16 GenerateFishingWildMon(const struct WildPokemonInfo *wildMonInfo, u8 
     u8 level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, WILD_AREA_FISHING);
 
     UpdateChainFishingStreak();
-    CreateWildMon(wildMonSpecies, level);
+    CreateWildMonWithFrequency(wildMonSpecies, level, HfcWatch_ConsumeFrequencyEncounter());
     return wildMonSpecies;
 }
 
@@ -958,7 +967,7 @@ void FishingWildEncounter(u8 rod)
         u8 level = ChooseWildMonLevel(&gWildFeebas, 0, WILD_AREA_FISHING);
 
         species = gWildFeebas.species;
-        CreateWildMon(species, level);
+        CreateWildMonWithFrequency(species, level, HfcWatch_ConsumeFrequencyEncounter());
     }
     else
     {
@@ -1223,6 +1232,132 @@ u32 ChooseHiddenMonIndex(void)
         return 0xFF;
     #endif
 }
+
+// POKELOCATOR_ACCESSORS_BEGIN
+// Read-only views of the slot weights used by the ChooseWildMonIndex_* functions
+// above, so UI tools (the Pokélocator) never keep a second copy of the rates.
+// They never call Random() and never modify encounter state.
+// The weight of a slot is its cumulative threshold minus the previous threshold
+// of the same slot group.
+static const u8 sLandSlotWeights[] =
+{
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_1 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_2 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_1,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_3 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_2,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_4 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_3,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_5 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_4,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_6 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_5,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_7 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_6,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_8 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_7,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_9 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_8,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_10 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_9,
+    ENCOUNTER_CHANCE_LAND_MONS_SLOT_11 - ENCOUNTER_CHANCE_LAND_MONS_SLOT_10,
+};
+STATIC_ASSERT(ARRAY_COUNT(sLandSlotWeights) == NUM_LAND_MONS_ENCOUNTER_SLOTS, LandSlotWeightsMatchSlotCount);
+
+static const u8 sWaterSlotWeights[] =
+{
+    ENCOUNTER_CHANCE_WATER_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_WATER_MONS_SLOT_1 - ENCOUNTER_CHANCE_WATER_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_WATER_MONS_SLOT_2 - ENCOUNTER_CHANCE_WATER_MONS_SLOT_1,
+    ENCOUNTER_CHANCE_WATER_MONS_SLOT_3 - ENCOUNTER_CHANCE_WATER_MONS_SLOT_2,
+    ENCOUNTER_CHANCE_WATER_MONS_SLOT_4 - ENCOUNTER_CHANCE_WATER_MONS_SLOT_3,
+};
+STATIC_ASSERT(ARRAY_COUNT(sWaterSlotWeights) == NUM_WATER_MONS_ENCOUNTER_SLOTS, WaterSlotWeightsMatchSlotCount);
+
+static const u8 sRockSmashSlotWeights[] =
+{
+    ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_1 - ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_0,
+    ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_2 - ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_1,
+    ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_3 - ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_2,
+    ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_4 - ENCOUNTER_CHANCE_ROCK_SMASH_MONS_SLOT_3,
+};
+STATIC_ASSERT(ARRAY_COUNT(sRockSmashSlotWeights) == NUM_ROCK_SMASH_MONS_ENCOUNTER_SLOTS, RockSlotWeightsMatchSlotCount);
+
+// Fishing slots are grouped by rod: Old Rod first, then Good Rod, then Super Rod.
+static const u8 sFishingSlotWeights[] =
+{
+    ENCOUNTER_CHANCE_FISHING_MONS_OLD_ROD_SLOT_0,
+    ENCOUNTER_CHANCE_FISHING_MONS_OLD_ROD_SLOT_1 - ENCOUNTER_CHANCE_FISHING_MONS_OLD_ROD_SLOT_0,
+    ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_SLOT_2,
+    ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_SLOT_3 - ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_SLOT_2,
+    ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_SLOT_4 - ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_SLOT_3,
+    ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_5,
+    ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_6 - ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_5,
+    ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_7 - ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_6,
+    ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_8 - ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_7,
+    ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_9 - ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_SLOT_8,
+};
+STATIC_ASSERT(ARRAY_COUNT(sFishingSlotWeights) == NUM_FISHING_MONS_ENCOUNTER_SLOTS, FishingSlotWeightsMatchSlotCount);
+STATIC_ASSERT(NUM_FISHING_MONS_OLD_ROD_ENCOUNTER_SLOTS + NUM_FISHING_MONS_GOOD_ROD_ENCOUNTER_SLOTS
+              + NUM_FISHING_MONS_SUPER_ROD_ENCOUNTER_SLOTS == NUM_FISHING_MONS_ENCOUNTER_SLOTS, FishingRodGroupsCoverAllSlots);
+
+// Number of slots in the table of an area. Hidden encounters have slots but no weights.
+u8 GetWildEncounterSlotCount(enum WildPokemonArea area)
+{
+    switch (area)
+    {
+    case WILD_AREA_LAND:
+        return NUM_LAND_MONS_ENCOUNTER_SLOTS;
+    case WILD_AREA_WATER:
+        return NUM_WATER_MONS_ENCOUNTER_SLOTS;
+    case WILD_AREA_ROCKS:
+        return NUM_ROCK_SMASH_MONS_ENCOUNTER_SLOTS;
+    case WILD_AREA_FISHING:
+        return NUM_FISHING_MONS_ENCOUNTER_SLOTS;
+    case WILD_AREA_HIDDEN:
+        return NUM_HIDDEN_MONS_ENCOUNTER_SLOTS;
+    }
+    return 0;
+}
+
+// Weight of one slot, or 0 when it cannot be computed (invalid slot, or hidden
+// encounters, whose slot chances are not defined by the encounter data).
+u8 GetWildEncounterSlotWeight(enum WildPokemonArea area, u8 slot)
+{
+    switch (area)
+    {
+    case WILD_AREA_LAND:
+        return slot < ARRAY_COUNT(sLandSlotWeights) ? sLandSlotWeights[slot] : 0;
+    case WILD_AREA_WATER:
+        return slot < ARRAY_COUNT(sWaterSlotWeights) ? sWaterSlotWeights[slot] : 0;
+    case WILD_AREA_ROCKS:
+        return slot < ARRAY_COUNT(sRockSmashSlotWeights) ? sRockSmashSlotWeights[slot] : 0;
+    case WILD_AREA_FISHING:
+        return slot < ARRAY_COUNT(sFishingSlotWeights) ? sFishingSlotWeights[slot] : 0;
+    case WILD_AREA_HIDDEN:
+        break;
+    }
+    return 0;
+}
+
+// Total weight of the slot group a slot belongs to (a rod for fishing); 0 when unknown.
+u8 GetWildEncounterSlotGroupTotal(enum WildPokemonArea area, u8 slot)
+{
+    switch (area)
+    {
+    case WILD_AREA_LAND:
+        return slot < NUM_LAND_MONS_ENCOUNTER_SLOTS ? ENCOUNTER_CHANCE_LAND_MONS_TOTAL : 0;
+    case WILD_AREA_WATER:
+        return slot < NUM_WATER_MONS_ENCOUNTER_SLOTS ? ENCOUNTER_CHANCE_WATER_MONS_TOTAL : 0;
+    case WILD_AREA_ROCKS:
+        return slot < NUM_ROCK_SMASH_MONS_ENCOUNTER_SLOTS ? ENCOUNTER_CHANCE_ROCK_SMASH_MONS_TOTAL : 0;
+    case WILD_AREA_FISHING:
+        if (slot < NUM_FISHING_MONS_OLD_ROD_ENCOUNTER_SLOTS)
+            return ENCOUNTER_CHANCE_FISHING_MONS_OLD_ROD_TOTAL;
+        if (slot < NUM_FISHING_MONS_OLD_ROD_ENCOUNTER_SLOTS + NUM_FISHING_MONS_GOOD_ROD_ENCOUNTER_SLOTS)
+            return ENCOUNTER_CHANCE_FISHING_MONS_GOOD_ROD_TOTAL;
+        if (slot < NUM_FISHING_MONS_ENCOUNTER_SLOTS)
+            return ENCOUNTER_CHANCE_FISHING_MONS_SUPER_ROD_TOTAL;
+        return 0;
+    case WILD_AREA_HIDDEN:
+        break;
+    }
+    return 0;
+}
+// POKELOCATOR_ACCESSORS_END
 
 bool32 MapHasNoEncounterData(void)
 {

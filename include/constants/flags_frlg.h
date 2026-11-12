@@ -905,6 +905,8 @@
 #define FLAG_0x392               0x392
 #define FLAG_0x393               0x393
 #define FLAG_0x394               0x394
+#define FLAG_DAILY_HFC_RAID      FLAG_0x393
+#define FLAG_DAILY_HFC_FREQUENCY FLAG_0x394
 #define FLAG_0x395               0x395
 #define FLAG_0x396               0x396
 #define FLAG_0x397               0x397
@@ -1357,6 +1359,7 @@
 #define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED                          FLAG_0x82B
 #define FLAG_UNHOLY_UI_DAYLIGHT                                      FLAG_0x82E
 #define FLAG_CRAFTING_UNLOCKED                                       FLAG_0x831
+#define FLAG_DEFEATED_SUPER_LEAGUE                                   FLAG_0x833
 // Starter gift script used by Unholy: keep a dedicated persistent unused FRLG flag.
 #define FLAG_RECEIVED_STARTER_QOL                                     FLAG_0x832
 #define FLAG_SYS_RESET_RTC_ENABLE                                   (SYS_FLAGS + 0x37)

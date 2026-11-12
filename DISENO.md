@@ -94,7 +94,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |
 | P1 | Catálogos Horizon: rediseño raíz, seis Pokémon en cuadrícula 3×2, cinco huevos en carrusel, MOVES en tarjetas y objetos/MT con marcas | PR #30, implementado en código; QA visual/CI pendiente |
 | P1 | Pulido de Horizon por capturas: marcos/precios de Pokémon, etiquetas y pie de Huevos/MOVES, contraste de selección Eclipse/Daylight y tipografías de 8/12/15 px | Rama `fix/unholy-horizon-ui-alignment-colors-20261112`; código implementado, requiere CI y capturas nuevas |
-| P2 | Nuevos Gears, crafteos, IA avanzada, legendarios, animaciones y Poké Simulator | Continúan pendientes de implementación/integración completa |
+| P2 | Nuevos Gears, crafteos, IA avanzada, legendarios y animaciones | Continúan pendientes de implementación/integración completa |
 
 **Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
 
@@ -276,31 +276,107 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | **Inicio; al bajar y encontrarse con la madre** | Repartir EXP y otros objetos QoL | La madre entrega las herramientas básicas de conveniencia. Lista adicional pendiente. |
 | **Primera medalla** | Súper Repartir EXP | Cada Pokémon elegible recibe **100 % de la EXP**, sin repartirse la cifra entre el equipo. |
 | **Cuarta medalla** | Repartir EXP Sobrecargado / Overloaded (nombre WIP) | Reparte EXP íntegra, concede EXP adicional, acelera crecimiento de **IVs y EVs** y hace que la **EXP adelante la eclosión de los huevos** del equipo, además de los pasos habituales. |
-| **Cuarta medalla** | Poké Simulator | Máquina para ajustar **IVs y EVs a voluntad en cada stat**, pagando Pokédólares. |
+| **Quinta medalla, al recibir el HF** | Poké Simulator | Ajuste de IV y EV por estadística con vista previa y pago al confirmar. |
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
-| **Ruta de Ralts (pueblo siguiente, tras la captura guiada por el padre)** | **Pokélocator** | Ítem clave del menú. Muestra todos los Pokémon de la ruta actual y se desbloquean datos según las medallas. Puede **forzar mayor probabilidad de mutación** en los salvajes de esa ruta. |
+| **Segunda medalla** | **Pokélocator** | Acceso desde el Super Poké Watch. Muestra los Pokémon de la ruta actual. La Señal mutante se abre con el HF. |
 
-### Pokélocator (idea nueva, sin implementar)
-- Lo entrega el padre al llegar al siguiente pueblo, después de enseñar a capturar un Ralts.
+### Pokélocator
+- El Super Poké Watch de Brawly habilita el acceso por historia. El objeto dedicado permanece disponible en Debug.
 - Funciona como el **Pokénav de Pokémon Elite Redux**: se abre desde el menú, muestra la lista de especies de la ruta y su información.
 - **Por medallas:** cada medalla desbloquea más información (especies, tasas de encuentro, probabilidad de mutación).
 - **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
 - Pendiente: qué recurso consume, si el efecto dura una sesión de encuentros o un tiempo fijo, y si las mutaciones forzadas respetan la regla de Omega (sin Omega en el Mutator).
 
+#### Implementación v1 (rama `feat/unholy-pokelocator-v1`)
+
+**Qué hace.** `ITEM_POKELOCATOR` (ID 883, ítem clave, `ITEM_USE_FIELD`) se usa desde la Mochila o registrado en SELECT, igual que la Buscaobjetos. Abre una ventana BG0 nativa (26×17 tiles) con las especies de la zona actual: icono, nombre, método, nivel, probabilidad y estado Pokédex (CAPTURADO / VISTO / SIN VER). Controles: ↑↓ cursor (con repetición y vuelta), **A** detalle de la especie (todos sus métodos), **B** atrás/salir, **L/R** filtro por método (solo métodos que existen en la zona), **←→** cambiar de mapa dentro de la misma sección del mapa regional (pisos de una cueva, etc.).
+
+**De dónde salen los datos (sin catálogos duplicados).**
+- Lee `gWildMonHeaders` in situ, con la tabla del horario activo (`GetTimeOfDayForEncounters`), igual que el motor de encuentros. Por eso el horario solo aparece reflejado porque el motor ya lo soporta.
+- Las probabilidades salen de los mismos `ENCOUNTER_CHANCE_*` que usan `ChooseWildMonIndex_*`, expuestos como accesores de solo lectura en `wild_encounter.c` (`GetWildEncounterSlotCount/Weight/GroupTotal`, con `STATIC_ASSERT` de tamaños). Los slots de la misma especie y método se fusionan (suman peso, unen rango de niveles). Cada caña (Vieja, Buena, Súper) se calcula contra su propio total. Los encuentros ocultos no tienen probabilidad definida: se muestra `--`.
+- **Clima, swarm/brote y Feebas no se muestran** porque no forman parte de las tablas leídas; el Pokélocator no los simula.
+- Información secreta: los encuentros ocultos (DexNav) solo se listan si la especie ya fue vista (`Pokelocator_IsSpeciesRevealed`).
+
+**Arquitectura.** `src/pokelocator_data.c` (lectura, filtros, cursor, zona; sin hardware ni RNG, probable de forma aislada) y `src/pokelocator.c` (pantalla). Se renderiza solo cuando cambia una entrada, no cada frame. Como máximo 3 sprites de icono; las paletas de iconos cargadas por la pantalla se liberan al salir, y la paleta 14 del tema se guarda/restaura. Estilo Eclipse/Daylight con `FLAG_UNHOLY_UI_DAYLIGHT` y los helpers compartidos de `shop.c`. Capacidad: 124 mapas reales verificados, máximo 19 filas por mapa (límite 40, con `STATIC_ASSERT`).
+
+**Por qué un ítem clave y no una opción del menú de inicio.** El menú de inicio ya llega a 10-11 entradas y su ventana mide `2·n+2` tiles (con 9 o más ya supera los 20 tiles de pantalla), así que una entrada más lo empeoraría. El ítem clave sigue el diseño ("Ítem clave del menú") y no elimina ni reemplaza nada.
+
+**Mutaciones: preparado y apagado.** `POKELOCATOR_MUTATION_MODIFIER_ENABLED` es `FALSE` (con `#error` si se activa sin proveedor). `Pokelocator_GetModifierStatus()` devuelve `UNDEFINED` y la pantalla no muestra nada. No hay costes, duración, probabilidades ni desbloqueos inventados, y la pantalla no toca el RNG de encuentros ni el estado de guardado.
+
+**Pendiente real (decisiones de diseño, no de código).**
+- **Entrega por historia:** la escena "el padre entrega el Pokélocator tras la captura guiada de Ralts" no existe en los scripts. Queda `EventScript_GivePokelocator` (idempotente, en `data/scripts/pokelocator.inc`) listo para llamarlo desde esa escena. Hasta entonces **no se consigue en una partida normal**; los scripts de debug sí lo entregan. Partidas existentes: mismo caso.
+- **Desbloqueo por medallas:** el diseño dice que cada medalla desbloquea más datos pero no fija qué dato con cuál. V1 muestra especies y probabilidades sin restricción por medalla; hay que definir los umbrales antes de aplicar filtros de progresión.
+- **Modificador de mutaciones:** definir recurso, duración, topes y regla Omega; después añadir un proveedor de solo lectura en `sModifierProviders[]`.
+- **Zonas por región:** la agrupación usa la sección del mapa regional; mapas con varias secciones no se agrupan.
+- FRLG: el ítem y la pantalla son compartidos; la entrega por script solo existe en debug.
+
+**Pruebas.** `test/pokelocator.c` (15 pruebas): suma de pesos = total por método y por caña, slots inválidos/ocultos, fusión de especies, chance en décimas, métodos de pesca, regla de revelado, filtros, ciclo L/R, cursor y listas vacías, modificador indefinido. No se tocó ningún test ni expectativa de la suite de los 112 fallos.
+
+**QA manual en mGBA (no verificado por mí).** Esta sesión no tenía toolchain ARM ni emulador: la compilación Emerald/FRLG, `make check` y la pantalla real dependen del CI y de pruebas manuales. Revisar: abrir desde la Mochila y desde SELECT; ruta con hierba, Surf, pesca y cueva; filtros L/R; A/B; ←→ en zona multi-mapa; Eclipse y Daylight; mapa sin encuentros; que no queden iconos ni ventanas residuales al salir; que el mapa recupere sus colores; nombres largos de especie; 3 filas sin texto superpuesto; Pokédex con especies vistas/capturadas/ocultas.
+
 - El reparto sobrecargado se comparó con efectos de **plumas, pesos y Golden Nugget**; falta definir exactamente la contribución de cada uno.
-- Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas, costo del simulador y listado QoL inicial: **sin cuantificar**.
+- Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas del Repartir EXP Sobrecargado y listado QoL inicial: **sin cuantificar**.
 - Ajustar IVs/EVs en el simulador **no convierte** a un Pokémon normal en Omega.
 
 ---
 
+### HFC Watch
+
+Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otros son el mismo dispositivo con funciones recortadas (tabla `sFeatures` en `src/hfc_watch_data.c`, un `minTier` por función).
+
+| Reloj | Entrega | Funciones |
+|---|---|---|
+| Poké Watch | Norman tras la captura guiada de Wally | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
+| Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
+| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator e incursiones. El Mutator aparece con la octava medalla. |
+
+- **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
+- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
+- El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
+
+**Incursiones y señal, balance inicial.**
+
+- Una incursión por día, desde una ruta al aire libre. Tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar. Se conservan PS y PP entre rondas. El intento se consume al iniciar.
+- Cada dificultad tiene 20 jefes propios, para un total de 80 especies distintas con movimientos y equipo definidos. La rotación diaria de cada entrenador recorre los 20 jefes de su dificultad antes de repetir. Los dos dobles eligen cuatro especies diferentes de ese grupo y excluyen al jefe del día.
+- El jefe tiene una mutación aleatoria de la tabla de dificultad, con tiers C–S y exclusión de Omega. Recibe al entrar Ataque, Defensa, Ataque Especial y Defensa Especial +1 en Estándar y Avanzada, y +2 en Experta y Maestra. Experta y Maestra también dan +1 de Velocidad.
+- Al ganar se elige el lote de tres tipos de objetos o un intento de capturar al jefe. Una tirada fallida consume esa elección. La probabilidad varía cada día por dificultad, se muestra con dos decimales y se fija para las tres rondas. Si falta espacio, se puede liberar espacio y volver al panel durante la misma sesión.
+
+| Dificultad | Equipo en dobles | Equipo del jefe |
+|---|---|---|
+| Estándar | Movimientos del catálogo | Aura y mutación |
+| Avanzada | 50 % de llevar un objeto por rival | Objeto equipado |
+| Experta | Objeto por rival, Gear al 50 % y tirada de Mega al 30 % por combate | Objeto y Gear, con tirada de Mega al 55 % |
+| Maestra | Objeto por rival, Gear al 80 % y tirada de Mega al 65 % por combate | Objeto y Gear, con Mega cuando la especie es compatible |
+
+Cada combate admite una megaevolución rival. La megapiedra ocupa la ranura de objeto y el Gear conserva su propia ranura. El jefe capturado llega en su forma base y conserva la mutación. El equipo de incursión pertenece al combate.
+
+| Dificultad | Medallas | Niveles por ronda | Probabilidad de captura | Lote |
+|---|---:|---|---:|---|
+| Estándar | 5 | 34, 36, 40 | 20.00–35.00 % | 3 Super Balls, 2 Hiperpociones, 1 Caramelo Raro |
+| Avanzada | 6 | 40, 42, 46 | 35.01–50.00 % | 3 Ultra Balls, 2 Pociones Máximas, 1 Caramelo Raro |
+| Experta | 7 | 47, 49, 53 | 50.01–65.00 % | 4 Ultra Balls, 2 Restaurar Todo, 2 Caramelos Raros |
+| Maestra | 8 | 54, 56, 60 | 65.01–80.00 % | 5 Ultra Balls, 3 Restaurar Todo, 3 Caramelos Raros |
+
+- La señal se activa una vez al día con el HF. En la progresión actual, aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
+- El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
+
+**Poké Simulator.** WATCH permite elegir un Pokémon del equipo, preparar cambios de IV y EV y previsualizar sus estadísticas. La tarifa provisional cobra ₽300 por punto de IV y ₽20 por punto de EV cambiado al confirmar. Aplica los límites habituales del motor. Los huevos, Ascendidos y Omega tienen su edición bloqueada.
+
+**Pendientes.** Incursiones multijugador o con aliados, recompensas adicionales e iconos propios del reloj. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
+
 ## 8. Mutator
 
-- Tras la octava medalla, el jugador puede introducir **un Pokémon propio** y pagar dinero para intentar aplicar una **mutación aleatoria**, entre las mutaciones permitidas (por ejemplo Alpha, Super o Enraged).
-- **Más dinero invertido implica mayor probabilidad** de mutación; probabilidad y distribución final aún sin fórmula.
-- **Omega está completamente excluido** del Mutator.
-- El procedimiento provoca pérdida proporcional de niveles, **máximo 15**. Penalización por intento fallido y relación dinero/niveles: pendientes.
-- **No se puede rerollear una mutación hasta derrotar la Super Liga.** Si sale Enraged, el jugador se queda con ese resultado hasta entonces.
-- **La victoria en la Liga normal no habilita rerolls**: deben superarse los combates de la Super Liga. Los límites exactos de «acceso limitado» tras la octava medalla están por definir.
+El Mutator abre desde WATCH con el HF y ocho medallas. Se elige un Pokémon del equipo y se revisan el costo, la probabilidad y el nivel resultante antes de pagar. Los huevos y los Pokémon con Omega quedan excluidos.
+
+| Plan provisional | Costo | Probabilidad de éxito | Pérdida de nivel en caso de éxito |
+|---|---:|---:|---:|
+| Básico | ₽12 000 | 35 % | 5 % |
+| Reforzado | ₽30 000 | 60 % | 10 % |
+| Intensivo | ₽60 000 | 85 % | 15 % |
+
+- La pérdida se redondea hacia arriba, con un máximo de 15 niveles y un mínimo de nivel 1. Un fallo consume la tarifa y conserva al Pokémon. Cancelar evita el cobro y la tirada.
+- En caso de éxito, la distribución provisional para un Pokémon sin mutaciones es Alpha 25 %, Hyper 20 %, Super 15 %, Overloaded 12 %, Enraged 11 %, Ancestral 9 %, Titan 5 % y Ascendido 3 %. El resultado queda registrado en el Archivo de anomalías.
+- Con la octava medalla se puede mutar a Pokémon sin mutaciones previas. El reroll requiere el indicador persistente `FLAG_DEFEATED_SUPER_LEAGUE`, que activará el evento de victoria de la futura Super Liga. El reroll sustituye una mutación del tier más alto y conserva las demás. Los empates siguen el orden de la lista anterior. La tirada excluye las mutaciones que el Pokémon ya tiene. Al sustituir Ascendido, los EV se reducen proporcionalmente al límite de 510.
 
 ---
 
@@ -406,7 +482,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 - Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
-- Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
+- Poké Simulator integrado en WATCH con previsualización de IV y EV, límites del motor y tarifa provisional.
 - HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
 - Horizon MOVES: selector RELEARN/FORGET y protección del último ataque en código; filtros avanzados y QA pendiente. El acceso contextual `LEARN` antiguo se retiró del menú del Pokémon.
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
@@ -417,7 +493,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 ### P2 — Contenido avanzado
 
-- Mutator, reglas de reroll y pérdida de niveles.
+- Conectar el desbloqueo del reroll del Mutator al evento de victoria de la Super Liga.
 - Presets competitivos y preparación pre-jefe.
 - Super Liga, entrenadores con Omegas y recompensa Infinity Ball.
 - Estadísticas de combate, revancha de entrenadores y herramientas de búsqueda especializadas.

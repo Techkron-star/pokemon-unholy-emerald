@@ -142,9 +142,8 @@ RustboroCity_Gym_Text_GymGuidePostVictory:
 RustboroCity_Gym_Text_CraftingUnlocked:
 	.string "You know, now that you have your first\n"
 	.string "BADGE, you can improve your items.\p"
-	.string "Check the CRAFTING option in your menu\n"
-	.string "to turn your EXP. SHARE into something\n"
-	.string "even better!$"
+	.string "Open CRAFTING in your WATCH menu\n"
+	.string "to upgrade your EXP. SHARE!$"
 
 RustboroCity_Gym_Text_JoshIntro:
 	.string "Don't take us GYM TRAINERS lightly!\n"

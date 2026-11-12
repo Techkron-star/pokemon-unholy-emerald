@@ -1,4 +1,5 @@
 #include "global.h"
+#include "hfc_watch_services.h"
 #include "malloc.h"
 #include "battle_anim.h"
 #include "battle_interface.h"
@@ -3068,6 +3069,7 @@ static void UpdatePokedexForReceivedMon(u8 partyIdx)
         enum NationalDexOrder dexNum = SpeciesToNationalPokedexNum(species);
         GetSetPokedexFlag(dexNum, FLAG_SET_SEEN);
         HandleSetPokedexFlag(dexNum, FLAG_SET_CAUGHT, personality);
+        HfcWatch_RegisterMutation(&mon->box);
     }
 }
 

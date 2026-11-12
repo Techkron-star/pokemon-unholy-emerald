@@ -45,6 +45,7 @@
 #include "sound.h"
 #include "sprite.h"
 #include "start_menu.h"
+#include "hfc_watch.h"
 #include "strings.h"
 #include "string_util.h"
 #include "task.h"
@@ -79,6 +80,7 @@ enum
     MENU_ACTION_DEXNAV,
     MENU_ACTION_HORIZON_SHOP,
     MENU_ACTION_CRAFTING,
+    MENU_ACTION_HFC_WATCH,
 };
 
 // Save status
@@ -132,8 +134,9 @@ static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHorizonShopCallback(void);
 static bool8 StartMenuCraftingCallback(void);
+static bool8 StartMenuHfcWatchCallback(void);
 static void Task_UnholyCraftingMenu(u8 taskId);
-static void OpenUnholyCraftingMenu(void);
+static EWRAM_DATA MainCallback sUnholyCraftOnClose = NULL;
 static void CloseUnholyCraftingMenu(void);
 
 // Menu callbacks
@@ -347,6 +350,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
     [MENU_ACTION_HORIZON_SHOP]    = {sText_MenuHorizonCompact, {.u8_void = StartMenuHorizonShopCallback}},
     [MENU_ACTION_CRAFTING]       = {gText_MenuCrafting, {.u8_void = StartMenuCraftingCallback}},
+    [MENU_ACTION_HFC_WATCH]      = {gText_MenuHfcWatch, {.u8_void = StartMenuHfcWatchCallback}},
 };
 
 static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
@@ -658,8 +662,23 @@ static u8 UnholyCraftSwapGear(void)
     return CRAFT_STATUS_EQUIPPED;
 }
 
-static void OpenUnholyCraftingMenu(void)
+static void ReturnFromUnholyCrafting(void)
 {
+    MainCallback onClose = sUnholyCraftOnClose;
+
+    sUnholyCraftOnClose = NULL;
+    if (onClose != NULL)
+        onClose();
+    else
+    {
+        ScriptUnfreezeObjectEvents();
+        UnlockPlayerFieldControls();
+    }
+}
+
+void OpenUnholyCraftingMenu(MainCallback onClose)
+{
+    sUnholyCraftOnClose = onClose;
     sUnholyCraftMode = 0;
     sUnholyCraftGearCursor = GEAR_VISOR_COSMICO;
     sUnholyCraftStatus = CRAFT_STATUS_READY;
@@ -672,8 +691,8 @@ static void OpenUnholyCraftingMenu(void)
     if (sUnholyCraftWindowId == 0xFF)
     {
         LoadPalette(sUnholyCraftSavedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        FadeScreen(FADE_FROM_BLACK, 0);
+        ReturnFromUnholyCrafting();
         return;
     }
     SetStandardWindowBorderStyle(sUnholyCraftWindowId, FALSE);
@@ -715,8 +734,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         }
         CloseUnholyCraftingMenu();
         DestroyTask(taskId);
-        ScriptUnfreezeObjectEvents();
-        UnlockPlayerFieldControls();
+        ReturnFromUnholyCrafting();
         return;
     }
 
@@ -764,6 +782,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         {
             CloseUnholyCraftingMenu();
             DestroyTask(taskId);
+        sUnholyCraftOnClose = NULL;
             ScriptUnfreezeObjectEvents();
             UnlockPlayerFieldControls();
             ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);
@@ -808,7 +827,21 @@ static bool8 StartMenuCraftingCallback(void)
         RemoveExtraStartMenuWindows();
         ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
         RemoveStartMenuWindow();
-        OpenUnholyCraftingMenu();
+        OpenUnholyCraftingMenu(NULL);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+// Same hand-off as the crafting menu: drop the START window, the hub opens over the field.
+static bool8 StartMenuHfcWatchCallback(void)
+{
+    if (!gPaletteFade.active)
+    {
+        RemoveExtraStartMenuWindows();
+        ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
+        RemoveStartMenuWindow();
+        HfcWatch_OpenHub(TRUE);
         return TRUE;
     }
     return FALSE;
@@ -821,6 +854,8 @@ static void AddStartMenuAction(u8 action)
 
 static void BuildNormalStartMenu(void)
 {
+    bool8 hasWatch = HfcWatch_GetTier() != HFC_WATCH_TIER_NONE;
+
     if (FlagGet(FLAG_SYS_POKEDEX_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEDEX);
 
@@ -831,11 +866,12 @@ static void BuildNormalStartMenu(void)
         AddStartMenuAction(MENU_ACTION_POKEMON);
 
     AddStartMenuAction(MENU_ACTION_BAG);
-    AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
-    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+    // With a watch, Horizon and PokeNav live inside its hub (one entry instead of two).
+    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
+    if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
-    if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
 
     AddStartMenuAction(MENU_ACTION_PLAYER);
@@ -846,16 +882,18 @@ static void BuildNormalStartMenu(void)
 
 static void BuildDebugStartMenu(void)
 {
+    bool8 hasWatch = HfcWatch_GetTier() != HFC_WATCH_TIER_NONE;
+
     AddStartMenuAction(MENU_ACTION_DEBUG);
     if (FlagGet(FLAG_SYS_POKEDEX_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEDEX);
     if (FlagGet(FLAG_SYS_POKEMON_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEMON);
     AddStartMenuAction(MENU_ACTION_BAG);
-    AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
-    if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
+    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
+    if (!hasWatch && FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
-    if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
@@ -999,7 +1037,9 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
             AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
         }
 
-        if (sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
+        if ((sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP
+          || sCurrentStartMenuActions[index] == MENU_ACTION_HFC_WATCH)
+         && HorizonMarketHasUnseenMutation())
         {
             // The standard menu palette already includes saturated red in color 4.
             // A three-pixel notification dot fits in the seven-tile START menu.
@@ -1166,6 +1206,7 @@ static bool8 HandleStartMenuInput(void)
         if (gMenuCallback != StartMenuSaveCallback
             && gMenuCallback != StartMenuExitCallback
             && gMenuCallback != StartMenuDebugCallback
+            && gMenuCallback != StartMenuHfcWatchCallback
             && gMenuCallback != StartMenuSafariZoneRetireCallback
             && gMenuCallback != StartMenuBattlePyramidRetireCallback)
         {
@@ -1238,7 +1279,7 @@ static bool8 StartMenuHorizonShopCallback(void)
         PlayRainStoppingSoundEffect();
         RemoveExtraStartMenuWindows();
         CleanupOverworldWindowsAndTilemaps();
-        CreateHorizonShopMenu();
+        CreateHorizonShopMenu(NULL);
         FadeScreen(FADE_FROM_BLACK, 0);
         return TRUE;
     }

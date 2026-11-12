@@ -12274,7 +12274,7 @@ void BS_HandleFailedVictoryCatch(void)
     }
     else
     {
-        u8 hp = 0;
+        u16 hp = 0;
         gBattleMons[gBattlerTarget].hp = hp;
         SetMonData(GetBattlerMon(gBattlerTarget), MON_DATA_HP, &hp);
         gBattleStruct->victoryCatchState = VICTORY_CATCH_FAINTED;

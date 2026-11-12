@@ -1062,6 +1062,12 @@ enum __attribute__((packed)) Item
     ITEM_GEAR_CETRO_SINIESTRO = 880,
     ITEM_GEAR_IMPULSO_COSMICO = 881,
     ITEM_GEAR_PERMAFROST_FRAGMENT = 882,
+    // Key item for the in-game Pokelocator (append-only ID, save-compatible).
+    ITEM_POKELOCATOR = 883,
+    // HFC Watch tiers (key items, append-only IDs).
+    ITEM_POKE_WATCH = 884,
+    ITEM_SUPER_POKE_WATCH = 885,
+    ITEM_HF_POKE_WATCH = 886,
 
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,

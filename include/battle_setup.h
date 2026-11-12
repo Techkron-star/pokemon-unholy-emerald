@@ -82,6 +82,7 @@ extern u16 gPartnerTrainerId;
         battleParameter->params.cannotBattleText)
 
 void BattleSetup_StartWildBattle(void);
+void BattleSetup_StartHfcRaid(bool32 isDouble, u8 bossBoost);
 void BattleSetup_StartDoubleWildBattle(void);
 void BattleSetup_StartBattlePikeWildBattle(void);
 void BattleSetup_StartRoamerBattle(void);
