@@ -1530,9 +1530,13 @@ static void BuyMenuRemoveScrollIndicatorArrows(void)
 // The original 15x16 PokéMart ITEM_LIST region is 120x128 pixels.
 // Draw two 54px horizontal cards wholly INSIDE that region, rather than
 // stretching a 27-tile window over the other money/description dialogs.
+// ITEMS/DISCS use a 120x128px native PokéMart window. No additional
+// window overlaps the funds, icon, description or quantity/confirmation UI.
 static void BuyMenuDrawHorizonGoods(void)
 {
     u16 count = sMartInfo.itemCount;
+    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+    const u8 selectedAccent = daylight ? 3 : 2;
 
     if (!sHorizonActive)
         return;
@@ -1540,13 +1544,15 @@ static void BuyMenuDrawHorizonGoods(void)
     FillWindowPixelBuffer(WIN_ITEM_LIST, PIXEL_FILL(1));
     if (count == 0)
     {
-        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 18, 48,
+        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 15, 48,
                                      0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                      TEXT_SKIP_DRAW, gText_SoldOut);
     }
     else
     {
-        for (u8 column = 0; column < 2; column++)
+        // Exactly two cards: the active purchase and a preview of the next.
+        // A single-item shop never displays a fake duplicate offer.
+        for (u8 column = 0; column < 2 && column < count; column++)
         {
             u16 index = (sHorizonGoodsSelection + column) % count;
             enum Item item = sMartInfo.itemList[index];
@@ -1563,10 +1569,12 @@ static void BuyMenuDrawHorizonGoods(void)
             label[len] = EOS;
 
             FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 0 ? 3 : 2), x, 10, 52, 2);
+                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 10, 52, 2);
             FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 0 ? 3 : 2), x, 47, 52, 2);
-            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 1, 18,
+                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 47, 52, 2);
+            FillWindowPixelRect(WIN_ITEM_LIST,
+                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 10, 1, 39);
+            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 3, 18,
                                          0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                          TEXT_SKIP_DRAW, label);
 
@@ -1574,7 +1582,7 @@ static void BuyMenuDrawHorizonGoods(void)
              && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
             {
                 AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 7, 32, 0, 0,
+                                             x + 5, 32, 0, 0,
                                              sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                              TEXT_SKIP_DRAW, gText_SoldOut);
             }
@@ -1584,23 +1592,48 @@ static void BuyMenuDrawHorizonGoods(void)
                                            GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT),
                                            STR_CONV_MODE_LEFT_ALIGN, 6);
                 AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 2, 32, 0, 0,
+                                             x + 3, 32, 0, 0,
                                              sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                              TEXT_SKIP_DRAW, gStringVar1);
             }
         }
 
-        // The selected item is always the LEFT card. Full names that do not
-        // fit that card are printed on a dedicated line below the cards.
-        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 6, 60,
-                                     0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                     TEXT_SKIP_DRAW, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]));
+        // Complete selected name is clipped by glyph width, not character
+        // count; e.g. X Attack and Ability Capsule remain within 120px.
+        {
+            const u8 *itemName = GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]);
+            u8 full[24];
+            u8 length = 0;
+
+            while (length < sizeof(full) - 1 && itemName[length] != EOS)
+            {
+                full[length] = itemName[length];
+                length++;
+            }
+            full[length] = EOS;
+            while (length && GetStringWidth(FONT_NARROW, full, 0) > 108)
+                full[--length] = EOS;
+            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 6, 60,
+                                         0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                         TEXT_SKIP_DRAW, full);
+        }
+
+        // Small pagination pips show the actual number of offers. No new
+        // sprites or OBJ palettes are allocated, even with full stock.
+        for (u8 i = 0; i < count && i < 10; i++)
+        {
+            u8 x = 9 + i * 10;
+
+            FillWindowPixelRect(WIN_ITEM_LIST,
+                                PIXEL_FILL(i == sHorizonGoodsSelection ? selectedAccent : 3),
+                                x, 78, 6, i == sHorizonGoodsSelection ? 4 : 2);
+        }
     }
 
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 86,
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 90,
                                  0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                  TEXT_SKIP_DRAW, sHorizonGoodsControls);
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 100,
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 103,
                                  0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                  TEXT_SKIP_DRAW, sHorizonGoodsBack);
     PutWindowTilemap(WIN_ITEM_LIST);
