@@ -9884,6 +9884,51 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_Pokelocator,
     },
 
+    [ITEM_POKE_WATCH] =
+    {
+        .name = ITEM_NAME("Poke Watch"),
+        .description = COMPOUND_STRING(
+            "Wrist device.\nHorizon Shop\nand PokeNav."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_HfcWatch,
+        // Provisional: reuses the Pokelocator icon until watch art exists.
+        .iconPic = gItemIcon_Pokelocator,
+        .iconPalette = gItemIconPalette_Pokelocator,
+    },
+
+    [ITEM_SUPER_POKE_WATCH] =
+    {
+        .name = ITEM_NAME("Super Poke Watch"),
+        .description = COMPOUND_STRING(
+            "Poke Watch plus\nthe Pokelocator."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_HfcWatch,
+        // Provisional: reuses the Pokelocator icon until watch art exists.
+        .iconPic = gItemIcon_Pokelocator,
+        .iconPalette = gItemIconPalette_Pokelocator,
+    },
+
+    [ITEM_HF_POKE_WATCH] =
+    {
+        .name = ITEM_NAME("HF Poke Watch"),
+        .description = COMPOUND_STRING(
+            "The complete HFC\nwrist device."),
+        .price = 0,
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_HfcWatch,
+        // Provisional: reuses the Pokelocator icon until watch art exists.
+        .iconPic = gItemIcon_Pokelocator,
+        .iconPalette = gItemIconPalette_Pokelocator,
+    },
+
     [ITEM_GEAR_VISOR_COSMICO] =
     {
         .name = ITEM_NAME("Visor Cosmico"),

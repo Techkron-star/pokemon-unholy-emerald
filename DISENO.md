@@ -320,6 +320,30 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 
 ---
 
+### HFC Watch (v1 implementado: niveles y hub; Mutator/Simulador pendientes de diseño)
+
+Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otros son el mismo dispositivo con funciones recortadas (tabla `sFeatures` en `src/hfc_watch_data.c`, un `minTier` por función).
+
+| Nivel | Objeto | Funciones |
+|---|---|---|
+| 1 | Poke Watch | Horizon Shop, PokéNav |
+| 2 | Super Poke Watch | + Pokélocator |
+| 3 | HF Poke Watch | + Mutator, + Simulador |
+
+Implementación:
+- Lógica pura y testeable: `src/hfc_watch_data.c` / `include/hfc_watch.h` (nivel = mejor reloj en la mochila, máscara de funciones, lista del hub). Tests: `test/hfc_watch.c`.
+- Hub: `src/hfc_watch.c`, ventana pequeña sobre el campo con estilo START; lista solo lo que el nivel incluye **y** tiene lanzador real. Se abre desde la entrada nueva **WATCH** del menú START o al usar el objeto (clave, ID 884–886, ocupa el mismo hueco de uso que el Pokélocator).
+- Con reloj, WATCH sustituye a las entradas sueltas HORIZON y POKéNAV (una entrada en vez de dos; el menú ya llegaba a ~10 entradas). Sin reloj, el menú no cambia. El PokéNav dentro del hub exige `FLAG_SYS_POKENAV_GET`: el reloj no lo concede antes de tiempo.
+- Entrega: `data/scripts/hfc_watch.inc` (`EventScript_GivePokeWatch`, `_GiveSuperPokeWatch`, `_GiveHFPokeWatch`; cada uno quita los niveles inferiores). El debug da el HF.
+
+Decisiones y pendientes reales:
+- Mutator y Simulador NO aparecen en el hub: no hay reglas (coste, probabilidades, desbloqueo) ni pantalla. Están en la tabla solo para fijar el reparto por nivel; `HfcWatch_FeatureHasLauncher` es FALSE. Cuando se diseñen, basta añadir su lanzador y poner `hasLauncher = TRUE`.
+- El "PokéNav básico" del nivel 1 es el PokéNav del juego tal cual; el motor no tiene una versión recortada y no se ha inventado ninguna.
+- El Pokélocator sigue existiendo como objeto propio además de como función del nivel 2.
+- Sin escena de historia que entregue cada reloj (el Poke Watch debería darse al inicio): los scripts existen pero nadie los llama aún.
+- Iconos de los tres relojes provisionales (reutilizan el del Pokélocator); falta arte.
+- QA manual en mGBA: abrir WATCH desde START con cada nivel; A en cada entrada; B cierra y devuelve el control; Horizon/PokéNav/Pokélocator abren y vuelven sin ventanas residuales; usar el objeto desde la mochila y desde SELECT.
+
 ## 8. Mutator
 
 - Tras la octava medalla, el jugador puede introducir **un Pokémon propio** y pagar dinero para intentar aplicar una **mutación aleatoria**, entre las mutaciones permitidas (por ejemplo Alpha, Super o Enraged).
