@@ -10,6 +10,25 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 
 ---
 
+## Plan de producción por tandas
+
+Punto de partida: [PR #31, `678927a`](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/31), que contiene el último pulido de Horizon. La [CI del PR #30](https://github.com/Techkron-star/pokemon-unholy-emerald/actions/runs/43134287219) compiló Emerald, FireRed, LeafGreen y release, con 112 pruebas fallidas. La [CI del PR #31](https://github.com/Techkron-star/pokemon-unholy-emerald/actions/runs/43137489382) falló antes de ejecutar la suite porque el compilador rechazó `HorizonPrintFit`, una función estática sin uso. La tanda 0 empieza retirando esa función. Registrar ambos resultados por separado y comparar las pruebas por nombre y motivo con la misma configuración.
+
+| Tanda | Trabajo | Criterio de cierre |
+| --- | --- | --- |
+| **0 · ROM de referencia** | Recuperar la compilación de Horizon. Clasificar los fallos de la suite, incluidos agotamiento de sprites y casos de captura. Revisar Horizon, mochila, Stamina, cadenas y guardado. | Compilan Emerald, FireRed, LeafGreen y release. La suite se compara con #30 y se investigan las diferencias. Pruebas de compra, cancelación, guardado/carga y batallas individuales y dobles. Capturas de Horizon a 240×160 en Eclipse y Daylight. |
+| **1 · QoL de aventura** | Eliminar la animación residual del profesor en la introducción rápida si se reproduce, agilizar diálogos repetidos de jefes y construir Pokélocator de consulta por ruta reutilizando los datos de encuentros. A continuación, filtros y protección del PC y datos de variantes en Pokédex+. | Verificar partida nueva, guardado existente, primer intento/reintento, rutas con distintos métodos y horarios de encuentro y navegación del PC. El modificador de mutaciones del Pokélocator se programa cuando estén definidos su coste, duración y límites. |
+| **2 · Objetos, Gears y sprites** | Completar de punta a punta los seis Gears existentes: obtención, mochila, EQUIP, efecto y HUD. Después ampliar el catálogo por familias y balancear progresión y recetas. Conservar los iconos ya aprobados y producir los faltantes. | Probar adquisición, cancelación, inventario lleno, reemplazo del Gear, guardado y daño real. Iconos de objeto de 24×24 y HUD de dos cuadros de 16×16, en 4 bpp con índice 0 transparente, convertidos por `gbagfx` y comprobados en ambos temas. La familia Sangre tiene exactamente una entrada por cada uno de los 18 tipos. |
+| **3 · IA y jefes** | Auditar [la primera entrega de IA](docs/IA_JEFES_REVANCHAS_Y_MUTACIONES.md) contra la rama de integración y rescatar solo los cambios faltantes. Ajustar valoración de KO, efectividad, coste de Stamina, encadenamiento, cambios y fase de Gear. Introducir equipos con objeto ordinario y Gear simultáneos. | Escenarios reproducibles de entrenadores comunes y jefes en individuales y dobles: elegir ataques asequibles, evitar cambios cíclicos y cadenas inválidas, respetar la información revelada y compartir las reglas de Stamina y Gear. Probar primero un jefe completo antes de extender perfiles a toda Hoenn. |
+| **4 · Progresión y persistencia** | Implementar Repartir EXP Sobrecargado, Poké Simulator, crianza ampliada y Mutator según sus reglas. Desarrollar identidad persistente y migraciones donde la función lo requiera. | Verificar límites, costes y desbloqueos por medalla, reinicio tras guardar, recuperación ante datos dañados, traslado entre equipo/PC/guardería y exclusión de Omega del Mutator. Validar el backend extendido en una ROM de diagnóstico antes de guardar progreso allí. |
+| **5 · Combate avanzado y post-game** | Completar habilidades, estados y Gears con interacciones complejas. Añadir revanchas, Super Liga y legendarios Omega. | Probar desde una partida de campeón de Hoenn, verificar recompensas y reapariciones, y medir balance de cadenas, Gears y mutaciones en equipos completos. |
+
+**Orden de trabajo.** Partir de la última ROM verificada. Usar una rama y una revisión pequeña por entrega jugable. Para cada objeto, recorrer datos → obtención → uso → efecto → sprite → pruebas. Los sprites pueden prepararse en paralelo reutilizando las paletas e iconos existentes. La IA comparte los cálculos de coste y daño del combate; sus simulaciones deben ser de solo lectura. Antes de ampliar una familia, validar una muestra representativa en la ROM.
+
+**Decisiones ya registradas.** El [catálogo de Gears del PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) incluye las 18 Sangres y el equipamiento doble de NPC. La primera Roxanne del diseño usa **Larvitar Alfa con Teseracto y Tormenta de Arena**; su nivel, movimientos restantes y objeto ordinario siguen abiertos. Programar ese equipo cuando el Teseracto tenga activación y consumo definidos. Reaper corresponde a una segunda habilidad oculta, con su propia persistencia y elección aleatoria entre ocultas mediante el objeto apropiado. Mantener las cifras de balance propuestas como tales hasta cerrar sus reglas.
+
+---
+
 ## Estado de implementación (rama de integración apilada, noviembre 2026)
 
 | Pieza | Estado |
@@ -158,14 +177,13 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - **Teseracto:** consumo único, como Gema equipada. Vuelve permanentes clima, campos, salas y trampas mientras no se eliminen explícitamente; NO se implementa sin cerrar disparador y todas las interacciones.
 - **Ancla de Realidad:** elimina clima, campos, salas y trampas, **incluso los hechos permanentes por Teseracto**; lo eliminado no reaparece. Pendiente si bloquea nueva activación durante la presencia.
 - **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
-- **Alcance real en código:** seis Gears con IDs, fases, daño y efectividades definidos en `feat/unholy-gear-effects-20261110`; aún falta UI de equipamiento y sprite HUD 16×32. No están integrados Teseracto/Ancla, y la evolución del sistema exige QA de combates dobles y guardados.
+- **Alcance real en código:** seis Gears registrados con lógica de combate, recetas y acción EQUIP desde la mochila en la rama de integración. Quedan por integrar sus iconos específicos de HUD de 16×32 y probar los ciclos en dobles, el equipamiento y el guardado. Teseracto y Ancla siguen en diseño.
 
 ### Familia de Gears: Inyecciones sanguíneas
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
-- **Nombres establecidos:** Sangre flamígera; Sangre demoníaca; Sangre divina; Sangre escamada.
-- Afinidades tentativas —**no confirmadas por el autor**—: flamígera/Fuego; demoníaca/afinidad negativa; divina/afinidad positiva; escamada/Dragón.
+- **Catálogo de 18 Gears:** una Sangre por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígera a Fuego, Demoníaca a Siniestro, Divina a Hada y Escamada a Dragón.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
 ### Estado de implementación (10 noviembre 2026)
@@ -396,14 +414,4 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 - Personalización estética, Pokémon acompañantes, estadísticas históricas y otras mejoras que no bloquean la versión jugable.
 
-## Orden de implementación sugerido
-
-1. Cerrar P0 de movimiento, repelentes, PC, movimientos y Pokédex.
-2. Diseñar y probar guardado/migraciones antes de añadir datos persistentes de Pokémon.
-3. Implementar P1: EXP, Poké Simulator, crianza y catálogo avanzado de Horizon Shop.
-4. Completar información de combate y Gears.
-5. Implementar Mutator, Pokémon especiales y reglas de captura.
-6. Implementar estados, campos, habilidades adicionales y casos límite.
-7. Implementar Super Liga, Omegas de endgame y contenido P2/P3.
-
-Antes de programar: simular a mano en papel combates con 5 o 6 Pokémon, con sus costos de stamina, para ver si el snowball se descontrola.
+El orden de entrega y los criterios de cierre se definen en el [plan de producción por tandas](#plan-de-producción-por-tandas).

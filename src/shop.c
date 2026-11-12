@@ -758,11 +758,6 @@ static void HorizonPrintFitStyle(u8 panel, const u8 *source,
                                  colors, TEXT_SKIP_DRAW, text);
 }
 
-static void HorizonPrintFit(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
-{
-    HorizonPrintFitStyle(panel, source, x, y, width, FONT_NARROW, sHorizonTextColors);
-}
-
 static void HorizonPrintSmall(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
 {
     HorizonPrintFitStyle(panel, source, x, y, width, FONT_SMALL_NARROW, sHorizonTextColors);
