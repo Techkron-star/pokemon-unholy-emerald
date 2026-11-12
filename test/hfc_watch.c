@@ -41,24 +41,30 @@ TEST("HFC Watch tiers add the features the design assigns")
     EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT));
 }
 
-TEST("HFC Watch hub lists only launchable features and never grants the PokeNav early")
+TEST("HFC Watch opens the basic PokeNav at zero badges and lists working tools")
 {
     u8 list[HFC_WATCH_FEATURE_COUNT];
 
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_NONE, TRUE, list), 0);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_NONE, 0, list), 0);
 
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, TRUE, list), 2);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, 0, list), 2);
     EXPECT_EQ(list[0], HFC_WATCH_FEATURE_HORIZON_SHOP);
     EXPECT_EQ(list[1], HFC_WATCH_FEATURE_POKENAV);
 
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, FALSE, list), 1);
-    EXPECT_EQ(list[0], HFC_WATCH_FEATURE_HORIZON_SHOP);
-
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_SUPER, TRUE, list), 3);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_SUPER, 0, list), 3);
     EXPECT_EQ(list[2], HFC_WATCH_FEATURE_POKELOCATOR);
 
-    // Mutator and Simulator have no rules or launcher yet: HF shows the same as Super.
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_HF, TRUE, list), 3);
-    EXPECT(!HfcWatch_FeatureHasLauncher(HFC_WATCH_FEATURE_MUTATOR));
-    EXPECT(!HfcWatch_FeatureHasLauncher(HFC_WATCH_FEATURE_SIMULATOR));
+    // The HF hub can launch three tools while the paid services are pending.
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_HF, 8, list), 3);
+}
+
+TEST("HFC Watch paid services require the HF tier and their own badge thresholds")
+{
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_SIMULATOR, 8), HFC_WATCH_WRONG_TIER);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_MUTATOR, 8), HFC_WATCH_WRONG_TIER);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, 3), HFC_WATCH_NEEDS_BADGES);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, 4), HFC_WATCH_SERVICE_PENDING);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, 7), HFC_WATCH_NEEDS_BADGES);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, 8), HFC_WATCH_SERVICE_PENDING);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, 8), HFC_WATCH_WRONG_TIER);
 }

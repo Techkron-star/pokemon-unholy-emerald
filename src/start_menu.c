@@ -826,7 +826,7 @@ static bool8 StartMenuHfcWatchCallback(void)
         RemoveExtraStartMenuWindows();
         ClearStdWindowAndFrameToTransparent(GetStartMenuWindowId(), FALSE);
         RemoveStartMenuWindow();
-        HfcWatch_OpenHub();
+        HfcWatch_OpenHub(TRUE);
         return TRUE;
     }
     return FALSE;
@@ -839,6 +839,8 @@ static void AddStartMenuAction(u8 action)
 
 static void BuildNormalStartMenu(void)
 {
+    bool8 hasWatch = HfcWatch_GetTier() != HFC_WATCH_TIER_NONE;
+
     if (FlagGet(FLAG_SYS_POKEDEX_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEDEX);
 
@@ -850,14 +852,11 @@ static void BuildNormalStartMenu(void)
 
     AddStartMenuAction(MENU_ACTION_BAG);
     // With a watch, Horizon and PokeNav live inside its hub (one entry instead of two).
-    if (HfcWatch_GetTier() != HFC_WATCH_TIER_NONE)
-        AddStartMenuAction(MENU_ACTION_HFC_WATCH);
-    else
-        AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
+    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
     if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
 
-    if (HfcWatch_GetTier() == HFC_WATCH_TIER_NONE && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
 
     AddStartMenuAction(MENU_ACTION_PLAYER);
@@ -868,16 +867,18 @@ static void BuildNormalStartMenu(void)
 
 static void BuildDebugStartMenu(void)
 {
+    bool8 hasWatch = HfcWatch_GetTier() != HFC_WATCH_TIER_NONE;
+
     AddStartMenuAction(MENU_ACTION_DEBUG);
     if (FlagGet(FLAG_SYS_POKEDEX_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEDEX);
     if (FlagGet(FLAG_SYS_POKEMON_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKEMON);
     AddStartMenuAction(MENU_ACTION_BAG);
-    AddStartMenuAction(MENU_ACTION_HORIZON_SHOP);
+    AddStartMenuAction(hasWatch ? MENU_ACTION_HFC_WATCH : MENU_ACTION_HORIZON_SHOP);
     if (FlagGet(FLAG_CRAFTING_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_CRAFTING);
-    if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
+    if (!hasWatch && FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
@@ -1021,7 +1022,9 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
             AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
         }
 
-        if (sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
+        if ((sCurrentStartMenuActions[index] == MENU_ACTION_HORIZON_SHOP
+          || sCurrentStartMenuActions[index] == MENU_ACTION_HFC_WATCH)
+         && HorizonMarketHasUnseenMutation())
         {
             // The standard menu palette already includes saturated red in color 4.
             // A three-pixel notification dot fits in the seven-tile START menu.
@@ -1188,6 +1191,7 @@ static bool8 HandleStartMenuInput(void)
         if (gMenuCallback != StartMenuSaveCallback
             && gMenuCallback != StartMenuExitCallback
             && gMenuCallback != StartMenuDebugCallback
+            && gMenuCallback != StartMenuHfcWatchCallback
             && gMenuCallback != StartMenuSafariZoneRetireCallback
             && gMenuCallback != StartMenuBattlePyramidRetireCallback)
         {

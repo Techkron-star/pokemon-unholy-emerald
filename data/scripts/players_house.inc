@@ -83,6 +83,7 @@ PlayersHouse_EventScript_SkipIntroToBirch::
 	additem ITEM_BICYCLE
 	setflag FLAG_RECEIVED_STARTER_QOL
 PlayersHouse_EventScript_StarterQolDone::
+	call EventScript_GivePokeWatch
 	setvar VAR_LITTLEROOT_INTRO_STATE, 7 @ 7: Told to go meet rival
 	setflag FLAG_MET_RIVAL_MOM
 	setvar VAR_LITTLEROOT_HOUSES_STATE_BRENDAN, 2 @ 2: Met Rival's Mom
@@ -345,6 +346,7 @@ PlayersHouse_1F_Movement_MomReturnToSeatFemale:
 PlayersHouse_1F_EventScript_Mom::
 	lock
 	faceplayer
+	call_if_set FLAG_SET_WALL_CLOCK, EventScript_GivePokeWatch
 	goto_if_eq VAR_LITTLEROOT_HOUSES_STATE_MAY, 4, PlayersHouse_1F_EventScript_DontPushYourselfTooHard
 	goto_if_eq VAR_LITTLEROOT_HOUSES_STATE_BRENDAN, 4, PlayersHouse_1F_EventScript_DontPushYourselfTooHard
 	goto_if_set FLAG_HAS_MATCH_CALL, PlayersHouse_1F_EventScript_TryRegisterMom

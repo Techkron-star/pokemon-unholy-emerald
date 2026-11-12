@@ -7,19 +7,17 @@
 struct HfcWatchFeatureInfo
 {
     u8 minTier;
-    // A feature is only offered when something real can be launched. The Mutator and the
-    // Simulator have no rules (cost, odds, unlocks) in DISENO.md yet, so they stay
-    // listed here for the tier layout but never appear in the hub.
+    u8 minBadges;
     bool8 hasLauncher;
 };
 
 static const struct HfcWatchFeatureInfo sFeatures[HFC_WATCH_FEATURE_COUNT] =
 {
-    [HFC_WATCH_FEATURE_HORIZON_SHOP] = { HFC_WATCH_TIER_POKE,  TRUE },
-    [HFC_WATCH_FEATURE_POKENAV]      = { HFC_WATCH_TIER_POKE,  TRUE },
-    [HFC_WATCH_FEATURE_POKELOCATOR]  = { HFC_WATCH_TIER_SUPER, TRUE },
-    [HFC_WATCH_FEATURE_MUTATOR]      = { HFC_WATCH_TIER_HF,    FALSE },
-    [HFC_WATCH_FEATURE_SIMULATOR]    = { HFC_WATCH_TIER_HF,    FALSE },
+    [HFC_WATCH_FEATURE_HORIZON_SHOP] = { HFC_WATCH_TIER_POKE,  0, TRUE },
+    [HFC_WATCH_FEATURE_POKENAV]      = { HFC_WATCH_TIER_POKE,  0, TRUE },
+    [HFC_WATCH_FEATURE_POKELOCATOR]  = { HFC_WATCH_TIER_SUPER, 0, TRUE },
+    [HFC_WATCH_FEATURE_MUTATOR]      = { HFC_WATCH_TIER_HF,    8, FALSE },
+    [HFC_WATCH_FEATURE_SIMULATOR]    = { HFC_WATCH_TIER_HF,    4, FALSE },
 };
 
 // The best watch owned wins; lower ones in the bag are ignored.
@@ -55,26 +53,25 @@ bool8 HfcWatch_TierHasFeature(u8 tier, u8 feature)
     return (HfcWatch_GetTierMask(tier) & HFC_WATCH_FEATURE_BIT(feature)) != 0;
 }
 
-bool8 HfcWatch_FeatureHasLauncher(u8 feature)
+enum HfcWatchAccess HfcWatch_GetAccess(u8 tier, u8 feature, u8 badges)
 {
-    return feature < HFC_WATCH_FEATURE_COUNT && sFeatures[feature].hasLauncher;
+    if (!HfcWatch_TierHasFeature(tier, feature))
+        return HFC_WATCH_WRONG_TIER;
+    if (badges < sFeatures[feature].minBadges)
+        return HFC_WATCH_NEEDS_BADGES;
+    if (!sFeatures[feature].hasLauncher)
+        return HFC_WATCH_SERVICE_PENDING;
+    return HFC_WATCH_READY;
 }
 
-// Lists, in order, what the hub shows: included in the tier, launchable, and not blocked
-// by story progress (the PokeNav entry needs the PokeNav itself, so the watch cannot
-// grant it early). Returns the number of entries.
-u8 HfcWatch_BuildMenu(u8 tier, bool8 hasPokenav, u8 *featuresOut)
+u8 HfcWatch_BuildMenu(u8 tier, u8 badges, u8 *featuresOut)
 {
-    u8 mask = HfcWatch_GetTierMask(tier);
     u8 i, count = 0;
 
     for (i = 0; i < HFC_WATCH_FEATURE_COUNT; i++)
     {
-        if (!(mask & HFC_WATCH_FEATURE_BIT(i)) || !sFeatures[i].hasLauncher)
-            continue;
-        if (i == HFC_WATCH_FEATURE_POKENAV && !hasPokenav)
-            continue;
-        featuresOut[count++] = i;
+        if (HfcWatch_GetAccess(tier, i, badges) == HFC_WATCH_READY)
+            featuresOut[count++] = i;
     }
     return count;
 }

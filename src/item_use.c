@@ -388,7 +388,7 @@ void ItemUseOutOfBattle_HfcWatch(u8 taskId)
 static void ItemUseOnFieldCB_HfcWatch(u8 taskId)
 {
     DestroyTask(taskId);
-    HfcWatch_OpenHub();
+    HfcWatch_OpenHub(FALSE);
 }
 
 void ItemUseOutOfBattle_Itemfinder(u8 var)

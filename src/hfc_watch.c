@@ -2,7 +2,9 @@
 #include "hfc_watch.h"
 #include "event_data.h"
 #include "event_object_lock.h"
+#include "event_object_movement.h"
 #include "field_weather.h"
+#include "horizon_market.h"
 #include "item.h"
 #include "menu.h"
 #include "overworld.h"
@@ -11,6 +13,7 @@
 #include "pokenav.h"
 #include "script.h"
 #include "shop.h"
+#include "start_menu.h"
 #include "task.h"
 #include "text.h"
 #include "window.h"
@@ -35,9 +38,8 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_POKELOCATOR]  = sText_Pokelocator,
 };
 
-static EWRAM_DATA u8 sHubWindowId = WINDOW_NONE;
+static EWRAM_DATA u8 sHubWindowId;
 static EWRAM_DATA u8 sHubFeatures[HFC_WATCH_FEATURE_COUNT] = {0};
-static EWRAM_DATA u8 sHubCount = 0;
 
 u8 HfcWatch_GetTier(void)
 {
@@ -84,6 +86,17 @@ static void Launch(u8 feature)
     }
 }
 
+static void Task_LaunchHfcWatchFeature(u8 taskId)
+{
+    if (gPaletteFade.active)
+        return;
+
+    u8 feature = gTasks[taskId].data[1];
+    CloseHubWindow();
+    DestroyTask(taskId);
+    Launch(feature);
+}
+
 static void Task_HfcWatchHub(u8 taskId)
 {
     s8 input;
@@ -95,48 +108,90 @@ static void Task_HfcWatchHub(u8 taskId)
     if (input == MENU_NOTHING_CHOSEN)
         return;
 
+    if (input != MENU_B_PRESSED)
+    {
+        u8 feature = sHubFeatures[input];
+
+        if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP || feature == HFC_WATCH_FEATURE_POKENAV)
+        {
+            gTasks[taskId].data[1] = feature;
+            gTasks[taskId].func = Task_LaunchHfcWatchFeature;
+            FadeScreen(FADE_TO_BLACK, 0);
+        }
+        else
+        {
+            CloseHubWindow();
+            DestroyTask(taskId);
+            Launch(feature);
+        }
+        return;
+    }
+
+    bool8 fromStartMenu = gTasks[taskId].data[0];
     CloseHubWindow();
     DestroyTask(taskId);
-    if (input == MENU_B_PRESSED)
-        ReturnToField();
+    if (fromStartMenu)
+        ShowStartMenu();
     else
-        Launch(sHubFeatures[input]);
+        ReturnToField();
 }
 
-void HfcWatch_OpenHub(void)
+void HfcWatch_OpenHub(bool8 fromStartMenu)
 {
     struct WindowTemplate template = {0};
-    u8 i;
+    u8 badges = 0;
+    u8 taskId, i;
 
+    if (FuncIsActiveTask(Task_HfcWatchHub))
+        return;
+
+    FreezeObjectEvents();
     LockPlayerFieldControls();
 
-    sHubCount = HfcWatch_BuildMenu(HfcWatch_GetTier(), FlagGet(FLAG_SYS_POKENAV_GET), sHubFeatures);
-    if (sHubCount == 0)
+    for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
+        if (FlagGet(flag))
+            badges++;
+
+    u8 hubCount = HfcWatch_BuildMenu(HfcWatch_GetTier(), badges, sHubFeatures);
+    if (hubCount == 0)
     {
         ReturnToField();
         return;
     }
 
+    taskId = CreateTask(Task_HfcWatchHub, HUB_TASK_PRIORITY);
+    if (gTasks[taskId].func != Task_HfcWatchHub)
+    {
+        ReturnToField();
+        return;
+    }
+    gTasks[taskId].data[0] = fromStartMenu;
+
     template.bg = 0;
     template.tilemapLeft = 1;
     template.tilemapTop = 1;
     template.width = HUB_WINDOW_WIDTH;
-    template.height = 2 * sHubCount + 2;
+    template.height = 2 * hubCount + 2;
     template.paletteNum = 15;
     template.baseBlock = 8;
 
     sHubWindowId = AddWindow(&template);
     if (sHubWindowId == WINDOW_NONE)
     {
+        DestroyTask(taskId);
         ReturnToField();
         return;
     }
 
+    LoadMessageBoxAndBorderGfx();
     SetStandardWindowBorderStyle(sHubWindowId, FALSE);
-    for (i = 0; i < sHubCount; i++)
+    for (i = 0; i < hubCount; i++)
+    {
         AddTextPrinterParameterized(sHubWindowId, FONT_NORMAL, sFeatureNames[sHubFeatures[i]], 8, (i << 4) + 9, 0, NULL);
-    InitMenuNormal(sHubWindowId, FONT_NORMAL, 0, 9, 16, sHubCount, 0);
+        if (sHubFeatures[i] == HFC_WATCH_FEATURE_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
+            FillWindowPixelRect(sHubWindowId, PIXEL_FILL(4), 109, (i << 4) + 13, 3, 3);
+    }
+    InitMenuNormal(sHubWindowId, FONT_NORMAL, 0, 9, 16, hubCount, 0);
     PutWindowTilemap(sHubWindowId);
     CopyWindowToVram(sHubWindowId, COPYWIN_FULL);
-    CreateTask(Task_HfcWatchHub, HUB_TASK_PRIORITY);
 }

@@ -22,17 +22,25 @@ enum HfcWatchFeature
     HFC_WATCH_FEATURE_COUNT
 };
 
+enum HfcWatchAccess
+{
+    HFC_WATCH_WRONG_TIER,
+    HFC_WATCH_NEEDS_BADGES,
+    HFC_WATCH_SERVICE_PENDING,
+    HFC_WATCH_READY,
+};
+
 #define HFC_WATCH_FEATURE_BIT(feature) (1 << (feature))
 
 // Pure logic (src/hfc_watch_data.c): no hardware, no UI, no save access.
 u8 HfcWatch_TierFromItems(bool8 hasPoke, bool8 hasSuper, bool8 hasHF);
 u8 HfcWatch_GetTierMask(u8 tier);                       // features the tier includes
 bool8 HfcWatch_TierHasFeature(u8 tier, u8 feature);
-bool8 HfcWatch_FeatureHasLauncher(u8 feature);          // FALSE: rules/UI not designed yet
-u8 HfcWatch_BuildMenu(u8 tier, bool8 hasPokenav, u8 *featuresOut);
+enum HfcWatchAccess HfcWatch_GetAccess(u8 tier, u8 feature, u8 badges);
+u8 HfcWatch_BuildMenu(u8 tier, u8 badges, u8 *featuresOut);
 
 // Game side (src/hfc_watch.c).
 u8 HfcWatch_GetTier(void);
-void HfcWatch_OpenHub(void);
+void HfcWatch_OpenHub(bool8 fromStartMenu);
 
 #endif // GUARD_HFC_WATCH_H
