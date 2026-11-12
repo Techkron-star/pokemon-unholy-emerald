@@ -11,6 +11,9 @@ WILD_BATTLE_TEST("Unholy capture: ordinary wild Pokemon has no mutation penalty"
     u32 odds;
 
     GIVEN {
+        // Gen-9 missing-badge penalties are independent from mutation badges.
+        // Disable them to check the intended per-species capture odds.
+        WITH_CONFIG(B_MISSING_BADGE_CATCH_MALUS, GEN_7);
         PLAYER(SPECIES_WOBBUFFET);
         OPPONENT(SPECIES_CLEFFA);
     } WHEN {
@@ -29,6 +32,9 @@ WILD_BATTLE_TEST("Unholy capture: Alpha badge survives the battle controller")
     u16 badges = POKEMON_BADGE_ALPHA;
 
     GIVEN {
+        // Gen-9 missing-badge penalties are independent from mutation badges.
+        // Disable them to check the intended per-species capture odds.
+        WITH_CONFIG(B_MISSING_BADGE_CATCH_MALUS, GEN_7);
         PLAYER(SPECIES_WOBBUFFET);
         OPPONENT(SPECIES_CLEFFA) {
             SetMonData(gBattleTestRunnerState->data.currentMon, MON_DATA_SPECIAL_BADGES, &badges);
