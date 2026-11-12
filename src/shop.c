@@ -928,7 +928,7 @@ static void HorizonDrawInfo(void)
         // the grid. All purchase prices remain visible in the cards.
         if (sHorizonPokemonStatus != 0)
             HorizonPrintSmall(panel, sHorizonPokemonStatuses[sHorizonPokemonStatus],
-                              7, 85, 202);
+                              7, 83, 202);
         else
         {
             StringCopy(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(sHorizonPokemonSelection)));
@@ -939,7 +939,7 @@ static void HorizonDrawInfo(void)
                 StringAppend(gStringVar4, COMPOUND_STRING(" "));
             }
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
-            HorizonPrintSmall(panel, gStringVar4, 7, 85, 202);
+            HorizonPrintSmall(panel, gStringVar4, 7, 83, 202);
         }
 
         HorizonPrintSmall(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
@@ -974,18 +974,18 @@ static void HorizonDrawInfo(void)
             HorizonPrintSmall(panel, sHorizonEggStatus == 2
                                      ? sHorizonTextPrize
                                      : sHorizonPokemonStatuses[sHorizonEggStatus],
-                              7, 80, 153);
+                              7, 81, 153);
         else
         {
             StringCopy(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
             StringAppend(gStringVar4, COMPOUND_STRING(" / "));
             StringAppend(gStringVar4, HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
-            HorizonPrintSmall(panel, gStringVar4, 7, 77, 155);
+            HorizonPrintSmall(panel, gStringVar4, 7, 75, 155);
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
                                        STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            HorizonPrintSmall(panel, gStringVar4, 7, 87, 153);
+            HorizonPrintSmall(panel, gStringVar4, 7, 84, 153);
         }
 
         HorizonPrintSmall(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
