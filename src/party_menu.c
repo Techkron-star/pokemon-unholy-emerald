@@ -8180,6 +8180,8 @@ static void Task_ChoosePartyMon(u8 taskId)
 }
 
 static EWRAM_DATA bool8 sHorizonRelearnerActive = FALSE;
+static EWRAM_DATA bool8 sHorizonDeleterActive = FALSE;
+static void CB2_HorizonForgetSelectedMove(void);
 
 void ChooseMonForMoveRelearner(void)
 {
@@ -8198,6 +8200,14 @@ void ChooseMonForHorizonMoveRelearner(void)
     sHorizonRelearnerActive = TRUE;
 }
 
+// Horizon's FORGET option reuses the existing party selection and summary
+// move picker. No script context or an NPC Move Deleter is required.
+void ChooseMonForHorizonMoveDeleter(void)
+{
+    ChooseMonForMoveRelearner();
+    sHorizonDeleterActive = TRUE;
+}
+
 static void Task_ChooseMonForMoveRelearner(u8 taskId)
 {
     if (!gPaletteFade.active)
@@ -8211,7 +8221,9 @@ static void Task_ChooseMonForMoveRelearner(u8 taskId)
 static void CB2_ChooseMonForMoveRelearner(void)
 {
     bool8 fromHorizon = sHorizonRelearnerActive;
+    bool8 fromHorizonDeleter = sHorizonDeleterActive;
     sHorizonRelearnerActive = FALSE;
+    sHorizonDeleterActive = FALSE;
 
     gSpecialVar_0x8004 = GetCursorSelectionMonId();
     if (gSpecialVar_0x8004 >= PARTY_SIZE
@@ -8219,6 +8231,17 @@ static void CB2_ChooseMonForMoveRelearner(void)
      || GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_IS_EGG))
     {
         gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
+    }
+
+    if (fromHorizonDeleter && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
+    {
+        gSpecialVar_0x8005 = MAX_MON_MOVES;
+        ShowPokemonSummaryScreen(SUMMARY_MODE_SELECT_MOVE,
+                                 gParties[B_TRAINER_PLAYER],
+                                 gSpecialVar_0x8004,
+                                 gPartiesCount[B_TRAINER_PLAYER] - 1,
+                                 CB2_HorizonForgetSelectedMove);
+        return;
     }
 
     if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
@@ -8229,6 +8252,40 @@ static void CB2_ChooseMonForMoveRelearner(void)
         {
             SetMainCallback2(CB2_InitLearnMove);
             return;
+        }
+    }
+
+    gFieldCallback2 = CB2_FadeFromPartyMenu;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
+// Summary A explicitly selects the move to forget; B returns untouched.
+// Never remove the last known move or an invalid slot, even if the summary
+// unexpectedly hands back stale script variables from a previous activity.
+static void CB2_HorizonForgetSelectedMove(void)
+{
+    u8 monSlot = gSpecialVar_0x8004;
+    u8 moveSlot = gSpecialVar_0x8005;
+
+    if (gSpecialVar_Result
+     && monSlot < gPartiesCount[B_TRAINER_PLAYER]
+     && monSlot < PARTY_SIZE
+     && moveSlot < MAX_MON_MOVES)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][monSlot];
+        u8 knownMoves = 0;
+
+        if (!GetMonData(mon, MON_DATA_IS_EGG))
+        {
+            for (u8 i = 0; i < MAX_MON_MOVES; i++)
+            {
+                if (GetMonData(mon, MON_DATA_MOVE1 + i) != MOVE_NONE)
+                    knownMoves++;
+            }
+
+            if (knownMoves > 1
+             && GetMonData(mon, MON_DATA_MOVE1 + moveSlot) != MOVE_NONE)
+                MoveDeleterForgetMove();
         }
     }
 
