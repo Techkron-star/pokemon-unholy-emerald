@@ -246,7 +246,8 @@ static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
-static const u8 sHorizonGoodsControls[] = _("L/R:NEXT  A:BUY  B:EXIT");
+static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
+static const u8 sHorizonGoodsBack[] = _("B: BACK");
 static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
 static const u8 sHorizonDescDiscs[] = _("Rotating TMs.\nBy badge and time.\nA: BUY");
 static const u8 sHorizonDescItems[] = _("Basic supplies +\nrotating specials.\nA: BUY");
@@ -1549,9 +1550,12 @@ static void BuyMenuDrawHorizonGoods(void)
                                      TEXT_SKIP_DRAW, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]));
     }
 
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 9, 86,
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 86,
                                  0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
                                  TEXT_SKIP_DRAW, sHorizonGoodsControls);
+    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 100,
+                                 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
+                                 TEXT_SKIP_DRAW, sHorizonGoodsBack);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }
