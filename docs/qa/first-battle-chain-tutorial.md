@@ -6,10 +6,10 @@
 2. Hablar con la mochila de Birch. La transición a la pantalla para elegir al inicial continúa normalmente; **no** aparece el antiguo texto retrospectivo sobre la pantalla negra.
 3. Elegir un inicial. Entrar en el primer combate contra el Zigzagoon.
 4. **Una vez visibles los Pokémon en el campo**, el propio cuadro de texto del combate presenta la explicación del profesor:
-   - «In this battle, you can CHAIN two different moves!»
-   - «Each move costs STAMINA. The second follows immediately!»
+   - En FIGHT, SELECT marca el primer movimiento y A elige otro distinto para encadenar.
+   - Los movimientos cuestan Stamina. Un KO o agotar la Stamina interrumpe la cadena.
    - Recordatorio breve sobre los símbolos de mutaciones.
-5. Confirmar el texto en sus páginas y comprobar que la batalla pasa a permitir elegir movimientos. No debe haber pantalla negra de diálogo fuera del combate, congelamiento ni controles retenidos.
+5. Confirmar las cuatro páginas. En FIGHT, usar SELECT para marcar el primer movimiento, mover el cursor a otro y pulsar A. El menú debe aceptar el encadenamiento y el combate debe avanzar sin congelarse ni retener los controles.
 6. Terminar el combate y confirmar que siguen la escena de agradecimiento de Birch y el traslado al laboratorio.
 7. Comprobar que la explicación **no** se repite en combates salvajes posteriores ni en los primeros combates del rival.
 8. Probar derrota y reintento, si la ROM permite ese escenario sin reiniciar partida.
