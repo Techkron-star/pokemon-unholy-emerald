@@ -34,14 +34,37 @@ u32 Chain_GetNumTurnActions(void)
 void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
 {
     struct ChooseMoveStruct *moveInfo;
+    u32 remainingStamina;
+    u32 firstMoveCost;
 
+    // The AI must make a tactical choice, not automatically chain every turn
+    // simply because its moveset contains two different moves.
+    gBattleStruct->chainSecondPos[battler] = 0;
     if (!Chain_IsAvailable(battler)
      || firstMovePos >= MAX_MON_MOVES
-     || !Chain_IsMoveChainable(gBattleMons[battler].moves[firstMovePos]))
+     || !Chain_IsMoveChainable(gBattleMons[battler].moves[firstMovePos])
+     || Stamina_IsExhausted(battler))
         return;
 
+    remainingStamina = Stamina_GetCurrent(battler);
+    firstMoveCost = Stamina_GetMoveCost(battler, gBattleMons[battler].moves[firstMovePos]);
+    if (firstMoveCost >= remainingStamina)
+        return; // A last-effort move cannot be followed by a second action.
+
+    // In a trainer battle the AI already simulated the selected attack.
+    // If even its minimum expected damage is lethal, a chained move would
+    // only waste PP/Stamina (and will be cancelled by the KO anyway).
+    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+     && gAiLogicData != NULL && gAiBattleData != NULL)
+    {
+        enum BattlerId target = gAiBattleData->chosenTarget[battler];
+
+        if (target < gBattlersCount && IsBattlerAlive(target)
+         && gAiLogicData->simulatedDmg[battler][target][firstMovePos].minimum >= gBattleMons[target].hp)
+            return;
+    }
+
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
-    gBattleStruct->chainSecondPos[battler] = 0;
 
     for (u8 movePos = 0; movePos < MAX_MON_MOVES; movePos++)
     {
@@ -49,7 +72,8 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
          || moveInfo->moves[movePos] == moveInfo->moves[firstMovePos]
          || moveInfo->moves[movePos] == MOVE_NONE
          || moveInfo->currentPP[movePos] == 0
-         || !Chain_IsMoveChainable(moveInfo->moves[movePos]))
+         || !Chain_IsMoveChainable(moveInfo->moves[movePos])
+         || firstMoveCost + Stamina_GetMoveCost(battler, moveInfo->moves[movePos]) >= remainingStamina)
             continue;
 
         gBattleStruct->chainSecondPos[battler] = movePos + 1;
