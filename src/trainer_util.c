@@ -3,6 +3,7 @@
 #include "data.h"
 #include "battle_setup.h"
 #include "event_data.h"
+#include "gear.h"
 #include "pokemon.h"
 #include "config/special_badges.h"
 #include "constants/flags.h"
@@ -359,6 +360,8 @@ void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *tra
     SetMonData(mon, MON_DATA_IVS, &trainerMon->iv);
     CustomTrainerPartyAssignMoves(mon, trainerMon);
     SetMonData(mon, MON_DATA_HELD_ITEM, &trainerMon->heldItem);
+    if (trainerMon->gear != GEAR_NONE)
+        Gear_SetEquipped(mon, trainerMon->gear);
 
     bool32 abilitySet = FALSE;
     if (trainerMon->ability)

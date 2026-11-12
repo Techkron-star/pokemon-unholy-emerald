@@ -60,6 +60,9 @@ struct Pokemon
     struct String item;
     int header_line;
 
+    struct String gear;
+    int gear_line;
+
     struct Stats evs;
     int evs_line;
 
@@ -1450,6 +1453,13 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
                 pokemon->ability_line = value.location.line;
                 pokemon->ability = token_string(&value);
             }
+            else if (is_literal_token(&key, "Gear"))
+            {
+                if (pokemon->gear_line)
+                    any_error = !set_show_parse_error(p, key.location, "duplicate 'Gear'");
+                pokemon->gear_line = value.location.line;
+                pokemon->gear = token_string(&value);
+            }
             else if (is_literal_token(&key, "Level"))
             {
                 if (pokemon->level_line)
@@ -1521,7 +1531,7 @@ static bool parse_trainer(struct Parser *p, const struct Parsed *parsed, struct 
             }
             else
             {
-                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', or 'Tera Type'");
+                any_error = !set_show_parse_error(p, key.location, "expected one of 'EVs', 'IVs', 'Ability', 'Gear', 'Level', 'Ball', 'Happiness', 'Nature', 'Shiny', 'Dynamax Level', 'Gigantamax', 'Tera Type', or 'Tags'");
             }
         }
 
@@ -2033,6 +2043,14 @@ static void fprint_trainers(const char *output_path, FILE *f, struct Parsed *par
                 fprintf(f, "#line %d\n", pokemon->header_line);
                 fprintf(f, "            .heldItem = ");
                 fprint_constant(f, "ITEM", pokemon->item);
+                fprintf(f, ",\n");
+            }
+
+            if (pokemon->gear_line)
+            {
+                fprintf(f, "#line %d\n", pokemon->gear_line);
+                fprintf(f, "            .gear = ");
+                fprint_constant(f, "GEAR", pokemon->gear);
                 fprintf(f, ",\n");
             }
 

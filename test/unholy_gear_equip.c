@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_util.h"
 #include "malloc.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -97,6 +98,57 @@ TEST("Unholy Gear cooldown follows its party member across doubles positions")
     *mon = previousMon;
     gBattlerPartyIndexes[B_BATTLER_0] = previousLeftSlot;
     gBattlerPartyIndexes[B_BATTLER_2] = previousRightSlot;
+    gBattleTypeFlags = previousBattleType;
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
+
+TEST("Unholy Gear Cosmic effects use the correct slot and combat modifier")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    u16 previousSlot = gBattlerPartyIndexes[B_BATTLER_0];
+    u16 previousTargetSlot = gBattlerPartyIndexes[B_BATTLER_1];
+    u32 previousBattleType = gBattleTypeFlags;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
+    struct Pokemon previousMon = *mon;
+    enum Type previousTypes[3];
+    for (u8 i = 0; i < ARRAY_COUNT(previousTypes); i++)
+        previousTypes[i] = gBattleMons[B_BATTLER_1].types[i];
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleTypeFlags = 0;
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    gBattlerPartyIndexes[B_BATTLER_1] = 0;
+    CreateMonWithIVs(mon, SPECIES_GENGAR, 40, 0, OTID_STRUCT_PRESET(1), 10);
+    struct DamageContext ctx = {
+        .battlerAtk = B_BATTLER_0, .battlerDef = B_BATTLER_1,
+        .move = MOVE_SHADOW_BALL, .moveType = TYPE_GHOST,
+    };
+    gBattleMons[B_BATTLER_1].types[0] = TYPE_NORMAL;
+    gBattleMons[B_BATTLER_1].types[1] = TYPE_FAIRY;
+    gBattleMons[B_BATTLER_1].types[2] = TYPE_MYSTERY;
+
+    Gear_SetEquipped(mon, Gear_FromItem(ITEM_GEAR_VISOR_COSMICO));
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_VISOR_COSMICO);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_SHADOW_BALL, TYPE_GHOST), UQ_4_12(1.0));
+    EXPECT_EQ(CalcTypeEffectivenessMultiplier(&ctx), UQ_4_12(4.0));
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(CalcTypeEffectivenessMultiplier(&ctx), UQ_4_12(4.0));
+
+    Gear_SetEquipped(mon, Gear_FromItem(ITEM_GEAR_IMPULSO_COSMICO));
+    gBattleStruct->gearOwner[B_BATTLER_0] = 0;
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_IMPULSO_COSMICO);
+    EXPECT_EQ(CalcTypeEffectivenessMultiplier(&ctx), UQ_4_12(0.0));
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_SHADOW_BALL, TYPE_GHOST), UQ_4_12(1.2));
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_SHADOW_CLAW, TYPE_GHOST), UQ_4_12(1.0));
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_SHADOW_BALL, TYPE_GHOST), UQ_4_12(1.1));
+
+    *mon = previousMon;
+    for (u8 i = 0; i < ARRAY_COUNT(previousTypes); i++)
+        gBattleMons[B_BATTLER_1].types[i] = previousTypes[i];
+    gBattlerPartyIndexes[B_BATTLER_0] = previousSlot;
+    gBattlerPartyIndexes[B_BATTLER_1] = previousTargetSlot;
     gBattleTypeFlags = previousBattleType;
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
