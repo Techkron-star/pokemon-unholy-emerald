@@ -36,7 +36,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
 | Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
-| Horizon Shop | Cinco pestañas horizontales, catálogo Pokémon (6), huevos (5), artículos (8) y MT (6) con rotación persistente implementados en ramas apiladas. UI de compras contenida en panel nativo de 15×16 tiles; falta QA de la build más reciente |
+| Horizon Shop | PR #30: pestañas horizontales, cuadrícula Pokémon 3×2, cinco huevos horizontales, MOVES en tarjetas y objetos/MT en panel nativo; cursor conservado por sección y stock persistente. Pendiente de compilar y comprobar en Pizza Boy |
 | Gestión de movimientos | Horizon MOVES presenta dos acciones, RELEARN y FORGET. La última reutiliza selección de Pokémon y resumen, descarta cancelar y protege el último movimiento. QA en emulador pendiente |
 | Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
 
@@ -61,6 +61,7 @@ Un Esmeralda donde el combate es un juego de **tempo y riesgo**: cada KO te da v
 | P1 | Horizon MOVES solo abría el recordador; ahora permite elegir RELEARN o FORGET, con selector de Pokémon y pantalla de movimientos | Implementado en código; validar cancelación, HM y último movimiento |
 | P1 | Mutaciones de iniciales, regalos, guardería e intercambios NPC; bonus relativo del 15 % para tiers C/B | PR #27 apilado, pendiente de QA |
 | P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |
+| P1 | Catálogos Horizon: rediseño raíz, seis Pokémon en cuadrícula 3×2, cinco huevos en carrusel, MOVES en tarjetas y objetos/MT con marcas | PR #30, implementado en código; QA visual/CI pendiente |
 | P2 | Nuevos Gears, crafteos, IA avanzada, legendarios, animaciones y Poké Simulator | Continúan pendientes de implementación/integración completa |
 
 **Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
