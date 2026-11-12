@@ -191,8 +191,7 @@ static void Task_HidePartyStatusSummary_DuringBattle(u8);
 static void SpriteCB_HealthBoxOther(struct Sprite *);
 static void SpriteCB_HealthBar(struct Sprite *);
 static void SpriteCB_StaminaBar(struct Sprite *);
-static void SpriteCB_GearIcon(struct Sprite *);
-static void CreateGearIconSprite(enum BattlerId battler, u8 healthboxSpriteId, u8 data6);
+static void UpdateHealthbarGearIcon(struct Sprite *healthBar, const struct Sprite *healthbox);
 static void SpriteCB_StatusSummaryBar_Enter(struct Sprite *);
 static void SpriteCB_StatusSummaryBar_Exit(struct Sprite *);
 static void SpriteCB_StatusSummaryBalls_Enter(struct Sprite *);
@@ -665,15 +664,11 @@ static const u8 sMutationOmega[] = _(" O");
 // data fields for healthbar
 #define hBar_HealthBoxSpriteId      data[5]
 #define hBar_Data6                  data[6]
+#define hBar_GearIconSpriteId       data[7]
 
 #define hStam_HealthBoxSpriteId     data[5]
 #define hStam_Data6                 data[6]
 #define hStam_Battler               data[7]
-
-// data fields for the gear icon (esquina de la caja de vida)
-#define hGear_HealthBoxSpriteId     data[5]
-#define hGear_Data6                 data[6]
-#define hGear_Battler               data[7]
 
 static EWRAM_DATA u32 sGearIconKey[MAX_BATTLERS_COUNT] = {0}; // qué se dibujó ya en el icono (0 = nada)
 static EWRAM_DATA u8 sStaminaBarOwner[MAX_BATTLERS_COUNT] = {0};
@@ -782,6 +777,7 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
 
     healthBarSpritePtr->hBar_HealthBoxSpriteId = healthboxLeftSpriteId;
     healthBarSpritePtr->hBar_Data6 = data6;
+    healthBarSpritePtr->hBar_GearIconSpriteId = MAX_SPRITES;
     healthBarSpritePtr->invisible = TRUE;
 
     if (STAMINA_ENABLED)
@@ -807,9 +803,6 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
             sStaminaRingWasExhausted[battler] = FALSE;
         }
     }
-
-    if (GEARS_ENABLED)
-        CreateGearIconSprite(battler, healthboxLeftSpriteId, data6);
 
     CreateIndicatorSprite(battler);
 
@@ -848,27 +841,26 @@ static const u8 *GetHealthboxElementGfxPtr(u8 elementId)
 // Syncs the position of healthbar accordingly with the healthbox.
 static void SpriteCB_HealthBar(struct Sprite *sprite)
 {
-    u8 healthboxSpriteId = sprite->hBar_HealthBoxSpriteId;
+    const struct Sprite *healthbox = &gSprites[sprite->hBar_HealthBoxSpriteId];
 
     switch (sprite->hBar_Data6)
     {
     case 0:
-        sprite->x = gSprites[healthboxSpriteId].x + 16;
-        sprite->y = gSprites[healthboxSpriteId].y;
-        break;
     case 1:
-        sprite->x = gSprites[healthboxSpriteId].x + 16;
-        sprite->y = gSprites[healthboxSpriteId].y;
+        sprite->x = healthbox->x + 16;
         break;
     case 2:
     default:
-        sprite->x = gSprites[healthboxSpriteId].x + 8;
-        sprite->y = gSprites[healthboxSpriteId].y;
+        sprite->x = healthbox->x + 8;
         break;
     }
 
-    sprite->x2 = gSprites[healthboxSpriteId].x2;
-    sprite->y2 = gSprites[healthboxSpriteId].y2;
+    sprite->y = healthbox->y;
+    sprite->x2 = healthbox->x2;
+    sprite->y2 = healthbox->y2;
+
+    if (GEARS_ENABLED)
+        UpdateHealthbarGearIcon(sprite, healthbox);
 }
 
 // Circular Stamina applies to both friendly and opposing healthboxes.
@@ -940,8 +932,7 @@ static void SpriteCB_StaminaBar(struct Sprite *sprite)
         UpdateStaminaRing(sprite, battler);
 }
 
-// Icono del Gear: 16x16 en la esquina superior derecha de la caja de vida. Los tiles y la
-// paleta se copian al cambiar de Pokémon/fase (ver docs/GEARS.md); aquí solo hay un hueco vacío.
+// Gear icon: 16x16 in the corner of a visible healthbox with an equipped Gear.
 static const u32 sGearIconBlankTiles[32] = {0}; // 16x16 a 4bpp = 128 bytes
 
 static const struct OamData sOamData_GearIcon =
@@ -968,7 +959,7 @@ static const struct OamData sOamData_GearIcon =
     .oam = &sOamData_GearIcon,                          \
     .anims = gDummySpriteAnimTable,                     \
     .affineAnims = gDummySpriteAffineAnimTable,         \
-    .callback = SpriteCB_GearIcon,                      \
+    .callback = SpriteCallbackDummy,                   \
 }
 
 static const struct SpriteTemplate sGearIconSpriteTemplates[MAX_BATTLERS_COUNT] =
@@ -979,38 +970,33 @@ static const struct SpriteTemplate sGearIconSpriteTemplates[MAX_BATTLERS_COUNT] 
     GEAR_ICON_TEMPLATE(3),
 };
 
-static void CreateGearIconSprite(enum BattlerId battler, u8 healthboxSpriteId, u8 data6)
+static u8 CreateGearIconSprite(enum BattlerId battler)
 {
-    struct SpriteSheet sheet = { sGearIconBlankTiles, sizeof(sGearIconBlankTiles), TAG_GEAR_ICON_TILE_BASE + battler };
+    const struct SpriteSheet sheet = { sGearIconBlankTiles, sizeof(sGearIconBlankTiles), TAG_GEAR_ICON_TILE_BASE + battler };
     u8 spriteId;
 
+    if (IndexOfSpritePaletteTag(TAG_NONE) == 0xFF
+     || IndexOfSpriteTileTag(TAG_NONE) == 0xFF
+     || !CanAllocSpriteTiles(sheet.size / TILE_SIZE_4BPP))
+        return MAX_SPRITES;
     LoadSpriteSheet(&sheet);
-    FreeSpritePaletteByTag(TAG_GEAR_ICON_PAL_BASE + battler);
-    sGearIconKey[battler] = 0;
+    if (GetSpriteTileStartByTag(sheet.tag) == TAG_NONE)
+        return MAX_SPRITES;
 
-    spriteId = CreateSprite(&sGearIconSpriteTemplates[battler], 0, 0, 0);
-    gSprites[spriteId].hGear_HealthBoxSpriteId = healthboxSpriteId;
-    gSprites[spriteId].hGear_Data6 = data6;
-    gSprites[spriteId].hGear_Battler = battler;
-    gSprites[spriteId].invisible = TRUE;
+    spriteId = CreateSpriteUnchecked(&sGearIconSpriteTemplates[battler], 0, 0, 0);
+    if (spriteId == MAX_SPRITES)
+        FreeSpriteTilesByTag(sheet.tag);
+    else
+        sGearIconKey[battler] = 0;
+    return spriteId;
 }
 
 // Carga paleta y tiles del Gear equipado. Frame 0 = lista/sobrecarga, frame 1 = recargando.
-static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum Gear gear)
+static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum Gear gear, const struct GearInfo *info)
 {
-    const struct GearInfo *info;
-
-    // Con GEAR_NONE como único ID, no existe ningún elemento válido que dibujar.
-    // Evita indexar gGearsInfo[1] (GCC -Werror=array-bounds).
-    if (gear <= GEAR_NONE || gear >= GEAR_COUNT)
-        return FALSE;
-    info = &gGearsInfo[gear];
     u32 frame = Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING;
     u32 key = (1u << 24) | (gBattleStruct->gearOwner[battler] << 16) | (frame << 8) | gear;
     u16 palTag = TAG_GEAR_ICON_PAL_BASE + battler;
-
-    if (info->iconGfx == NULL || info->iconPal == NULL)
-        return FALSE; // Gear sin arte: no se dibuja nada
 
     if (key == sGearIconKey[battler])
         return TRUE;
@@ -1021,6 +1007,7 @@ static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum
         u32 paletteNum;
 
         FreeSpritePaletteByTag(palTag);
+        sGearIconKey[battler] = 0;
         paletteNum = LoadSpritePalette(&palette);
         if (paletteNum == 0xFF)
             return FALSE; // sin hueco de paleta libre
@@ -1032,24 +1019,41 @@ static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum
     return TRUE;
 }
 
-static void SpriteCB_GearIcon(struct Sprite *sprite)
+static void UpdateHealthbarGearIcon(struct Sprite *healthBar, const struct Sprite *healthbox)
 {
-    u8 healthboxSpriteId = sprite->hGear_HealthBoxSpriteId;
-    enum BattlerId battler = sprite->hGear_Battler;
-    enum Gear gear;
+    enum BattlerId battler = healthbox->hMain_Battler;
+    enum Gear gear = healthBar->invisible ? GEAR_NONE : Gear_GetBattlerGear(battler);
+    const struct GearInfo *info = gear > GEAR_NONE && gear < GEAR_COUNT ? &gGearsInfo[gear] : NULL;
+    u8 spriteId = healthBar->hBar_GearIconSpriteId;
+    struct Sprite *sprite;
 
-    sprite->x = gSprites[healthboxSpriteId].x + (sprite->hGear_Data6 == 2 ? GEAR_ICON_X_OFFSET_OPPONENT : GEAR_ICON_X_OFFSET_PLAYER);
-    sprite->y = gSprites[healthboxSpriteId].y + GEAR_ICON_Y_OFFSET;
-    sprite->x2 = gSprites[healthboxSpriteId].x2;
-    sprite->y2 = gSprites[healthboxSpriteId].y2;
-
-    // Sigue la visibilidad de la barra de vida (se oculta en menús, al caer un Pokémon, etc.).
-    sprite->invisible = gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible;
-    if (sprite->invisible)
+    // Give hidden boxes and battlers without a Gear no claim on OBJ resources.
+    if (info == NULL || info->iconGfx == NULL || info->iconPal == NULL)
+    {
+        if (spriteId != MAX_SPRITES)
+        {
+            DestroySprite(&gSprites[spriteId]);
+            FreeSpriteTilesByTag(TAG_GEAR_ICON_TILE_BASE + battler);
+            FreeSpritePaletteByTag(TAG_GEAR_ICON_PAL_BASE + battler);
+            healthBar->hBar_GearIconSpriteId = MAX_SPRITES;
+        }
         return;
+    }
 
-    gear = Gear_GetBattlerGear(battler);
-    sprite->invisible = gear == GEAR_NONE || !UpdateGearIcon(sprite, battler, gear);
+    if (spriteId == MAX_SPRITES)
+    {
+        spriteId = CreateGearIconSprite(battler);
+        healthBar->hBar_GearIconSpriteId = spriteId;
+        if (spriteId == MAX_SPRITES)
+            return;
+    }
+
+    sprite = &gSprites[spriteId];
+    sprite->x = healthbox->x + (healthBar->hBar_Data6 == 2 ? GEAR_ICON_X_OFFSET_OPPONENT : GEAR_ICON_X_OFFSET_PLAYER);
+    sprite->y = healthbox->y + GEAR_ICON_Y_OFFSET;
+    sprite->x2 = healthbox->x2;
+    sprite->y2 = healthbox->y2;
+    sprite->invisible = !UpdateGearIcon(sprite, battler, gear, info);
 }
 
 static void SpriteCB_HealthBoxOther(struct Sprite *sprite)

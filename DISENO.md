@@ -27,6 +27,18 @@ Punto de partida: [PR #31, `678927a`](https://github.com/Techkron-star/pokemon-u
 
 **Decisiones ya registradas.** El [catálogo de Gears del PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) incluye las 18 Sangres y el equipamiento doble de NPC. La primera Roxanne del diseño usa **Larvitar Alfa con Teseracto y Tormenta de Arena**; su nivel, movimientos restantes y objeto ordinario siguen abiertos. Programar ese equipo cuando el Teseracto tenga activación y consumo definidos. Reaper corresponde a una segunda habilidad oculta, con su propia persistencia y elección aleatoria entre ocultas mediante el objeto apropiado. Mantener las cifras de balance propuestas como tales hasta cerrar sus reglas.
 
+### Primera entrega tras la ROM de referencia
+
+La [CI de referencia del PR #32](https://github.com/Techkron-star/pokemon-unholy-emerald/actions/runs/43139031519) compiló Emerald, FireRed, LeafGreen y release. La suite registró 112 fallos, el mismo total que el PR #30.
+
+| Área | Implementado | QA |
+| --- | --- | --- |
+| QoL | Birch explica en el primer combate cómo marcar un movimiento con SELECT y elegir otro con A. El tutorial advierte que un KO o el agotamiento interrumpen el encadenamiento. | Cuatro páginas, cadena Scratch → Ember y regreso al laboratorio comprobados en mGBA. El warp tras ajustar el reloj se probó en mGBA y no reprodujo la animación residual reportada. |
+| Gears | Los seis Gears de crafteo tienen icono propio de HUD con dos estados. La recarga se guarda durante el combate por entrenador y ranura de equipo, incluso al volver por otro puesto en dobles. | La prueba de regresión del ciclo cubre ambos puestos y dos entrenadores con la misma ranura. Revisar el HUD en cambios, KO y animaciones de dobles. |
+| IA | Cuando dos primeras acciones puntúan igual, el entrenador prioriza las que evitan el agotamiento si tiene alguna. En dobles aplica el desempate entre movimientos para un mismo objetivo. | Probar el primer gimnasio y medir el efecto de las cadenas voluntarias antes de ajustar otras decisiones. |
+
+Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25 presentaciones de entrenadores en multibatalla y el intercambio de Gear desde la mochila. Quedan la suite completa y la revisión del HUD en Pizza Boy Pro.
+
 ---
 
 ## Estado de implementación (rama de integración apilada, noviembre 2026)
@@ -177,7 +189,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - **Teseracto:** consumo único, como Gema equipada. Vuelve permanentes clima, campos, salas y trampas mientras no se eliminen explícitamente; NO se implementa sin cerrar disparador y todas las interacciones.
 - **Ancla de Realidad:** elimina clima, campos, salas y trampas, **incluso los hechos permanentes por Teseracto**; lo eliminado no reaparece. Pendiente si bloquea nueva activación durante la presencia.
 - **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
-- **Alcance real en código:** seis Gears registrados con lógica de combate, recetas y acción EQUIP desde la mochila en la rama de integración. Quedan por integrar sus iconos específicos de HUD de 16×32 y probar los ciclos en dobles, el equipamiento y el guardado. Teseracto y Ancla siguen en diseño.
+- **Alcance real en código:** seis Gears registrados con lógica de combate, recetas, acción EQUIP desde la mochila e iconos de HUD de 16×32 en la rama de integración. Queda QA del HUD en combate, del equipamiento y del guardado. Teseracto y Ancla siguen en diseño.
 
 ### Familia de Gears: Inyecciones sanguíneas
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
@@ -186,8 +198,8 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - **Catálogo de 18 Gears:** una Sangre por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígera a Fuego, Demoníaca a Siniestro, Divina a Hada y Escamada a Dragón.
 - Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
 
-### Estado de implementación (10 noviembre 2026)
-- El sistema base está en `feat/gears-system`; **seis Gears tienen lógica registrada en rama experimental**, sin UI de equipamiento ni arte HUD 16×32; detalles en [`docs/GEARS.md`](docs/GEARS.md).
+### Estado de implementación
+- Los seis Gears del sistema base y sus recursos de HUD están registrados en la rama de integración. Consultar [`docs/GEARS.md`](docs/GEARS.md) para equipamiento, recetas y pruebas.
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
@@ -400,7 +412,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: sistema y icono de esquina hechos (`docs/GEARS.md`); faltan Gears concretos, interfaz de equipar, obtención, entrenadores y HUD del turno de recarga.
+- Gears: seis piezas fabricables y equipables con iconos de sobrecarga y recarga (`docs/GEARS.md`). Faltan el catálogo adicional, el equipamiento de entrenadores y el indicador numérico de turnos de recarga.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

@@ -12,6 +12,7 @@
 #include "battle_controllers.h"
 #include "battle_factory.h"
 #include "battle_setup.h"
+#include "battle_stamina.h"
 #include "battle_z_move.h"
 #include "battle_terastal.h"
 #include "data.h"
@@ -971,6 +972,41 @@ static void DoAIScoreProcessing(enum BattlerId battlerAtk, enum BattlerId battle
         AI_CompareDamagingMoves(battlerAtk, battlerDef);
 }
 
+static u32 PreferMovesThatAvoidExhaustion(enum BattlerId battler, u8 *moveIndices, u32 moveCount)
+{
+    if (!STAMINA_ENABLED || moveCount < 2
+     || !(gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+     || (gBattleTypeFlags & BATTLE_TYPE_PALACE)
+     || !BattlerHasAi(battler)
+     || gAiLogicData->aiPredictionInProgress
+     || gAiThinkingStruct->score[moveIndices[0]] <= 0)
+        return moveCount;
+
+    // Z and Max Moves can replace the selected move before stamina is spent.
+    enum Gimmick usableGimmick = gBattleStruct->gimmick.usableGimmick[battler];
+    if (usableGimmick == GIMMICK_Z_MOVE
+     || usableGimmick == GIMMICK_DYNAMAX
+     || GetActiveGimmick(battler) == GIMMICK_DYNAMAX)
+        return moveCount;
+
+    u32 stamina = Stamina_GetCurrent(battler);
+    u32 safeMoveCount = 0;
+
+    // Only break a score tie for the primary move. Chains still choose
+    // their second action separately. If every best move exhausts the
+    // battler, preserve the original choices and allow a last effort.
+    for (u32 i = 0; i < moveCount; i++)
+    {
+        u32 moveIndex = moveIndices[i];
+        enum Move move = gBattleMons[battler].moves[moveIndex];
+
+        if (Stamina_GetMoveCost(battler, move) < stamina)
+            moveIndices[safeMoveCount++] = moveIndex;
+    }
+
+    return safeMoveCount > 0 ? safeMoveCount : moveCount;
+}
+
 static struct ChosenAction ChooseMoveOrAction_Singles(enum BattlerId battler)
 {
     u8 currentMoveArray[MAX_MON_MOVES];
@@ -1008,6 +1044,8 @@ static struct ChosenAction ChooseMoveOrAction_Singles(enum BattlerId battler)
             }
         }
     }
+
+    numOfBestMoves = PreferMovesThatAvoidExhaustion(battler, consideredMoveArray, numOfBestMoves);
 
     #if TESTING
     gBattleTestRunnerState->data.trial.scoreTieCount = numOfBestMoves;
@@ -1067,6 +1105,8 @@ static struct ChosenAction ChooseMoveOrAction_Doubles(enum BattlerId battlerAtk)
                     }
                 }
             }
+
+            mostViableMovesNo = PreferMovesThatAvoidExhaustion(battlerAtk, mostViableMovesIndices, mostViableMovesNo);
 
             #if TESTING
             gBattleTestRunnerState->data.trial.scoreTieCount = mostViableMovesNo;

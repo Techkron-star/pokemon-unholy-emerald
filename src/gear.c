@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_controllers.h"
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -88,75 +89,54 @@ enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item)
     return GEAR_EQUIP_OK;
 }
 
-static void StartCycle(enum BattlerId battler, const struct GearInfo *info)
+static void StartCycle(struct GearCycle *cycle, const struct GearInfo *info)
 {
     if (info->trigger == GEAR_TRIGGER_TIMED)
     {
-        gBattleStruct->gearPhase[battler] = GEAR_PHASE_OVERLOAD;
-        gBattleStruct->gearTimer[battler] = max(info->overloadTurns, 1);
+        cycle->phase = GEAR_PHASE_OVERLOAD;
+        cycle->turns = max(info->overloadTurns, 1);
     }
     else
     {
-        gBattleStruct->gearPhase[battler] = GEAR_PHASE_ARMED;
-        gBattleStruct->gearTimer[battler] = 0;
+        cycle->phase = GEAR_PHASE_ARMED;
+        cycle->turns = 0;
     }
 }
 
-// elapsed = finales de turno que ya cuentan como parte de la recarga.
-static void StartRecharge(enum BattlerId battler, const struct GearInfo *info, u32 elapsed)
+static void StartRecharge(struct GearCycle *cycle, const struct GearInfo *info)
 {
-    s32 turns = max(info->cooldownTurns, 1) - elapsed;
-
-    if (turns <= 0)
-    {
-        StartCycle(battler, info);
-        return;
-    }
-    gBattleStruct->gearPhase[battler] = GEAR_PHASE_RECHARGING;
-    gBattleStruct->gearTimer[battler] = turns;
+    cycle->phase = GEAR_PHASE_RECHARGING;
+    cycle->turns = max(info->cooldownTurns, 1);
 }
 
-// Conserva la fase al abandonar el campo (sin guardarla en la partida).
-// Se indexa también por posición de combate: evita colisiones entre rivales
-// de entrenadores distintos que tengan el mismo índice de equipo.
-static void RememberCycle(enum BattlerId battler)
+static struct GearCycle *Prepare(enum BattlerId battler)
 {
-    u8 slot = gBattlerPartyIndexes[battler];
+    u32 slot = gBattlerPartyIndexes[battler];
 
     if (slot >= PARTY_SIZE)
-        return;
-    gBattleStruct->gearPartyInitialized[battler][slot] = TRUE;
-    gBattleStruct->gearPartyId[battler][slot] = gBattleStruct->gearId[battler];
-    gBattleStruct->gearPartyPhase[battler][slot] = gBattleStruct->gearPhase[battler];
-    gBattleStruct->gearPartyTimer[battler][slot] = gBattleStruct->gearTimer[battler];
-}
+    {
+        gBattleStruct->gearOwner[battler] = 0;
+        return NULL;
+    }
 
-// Inicializa el estado al entrar al campo y devuelve el Gear (NULL si no lleva ninguno).
-static const struct GearInfo *Prepare(enum BattlerId battler)
-{
-    u8 slot = gBattlerPartyIndexes[battler];
-    u8 owner = slot + 1;
-
+    // Dos puestos del mismo entrenador comparten equipo. Entrenadores
+    // distintos pueden tener el mismo índice de equipo sin compartir el ciclo.
+    enum BattleTrainer trainer = GetBattlerTrainer(battler);
+    u8 owner = trainer * PARTY_SIZE + slot + 1;
+    struct GearCycle *cycle = &gBattleStruct->gearCycles[trainer][slot];
     if (gBattleStruct->gearOwner[battler] != owner)
     {
+        enum Gear gear = Gear_GetEquipped(&GetTrainerParty(trainer)[slot]);
         gBattleStruct->gearOwner[battler] = owner;
-        gBattleStruct->gearId[battler] = Gear_GetEquipped(GetBattlerMon(battler));
         gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
 
-        if (slot < PARTY_SIZE
-         && gBattleStruct->gearPartyInitialized[battler][slot]
-         && gBattleStruct->gearPartyId[battler][slot] == gBattleStruct->gearId[battler])
+        if (cycle->gear != gear)
         {
-            gBattleStruct->gearPhase[battler] = gBattleStruct->gearPartyPhase[battler][slot];
-            gBattleStruct->gearTimer[battler] = gBattleStruct->gearPartyTimer[battler][slot];
-        }
-        else
-        {
-            StartCycle(battler, &gGearsInfo[gBattleStruct->gearId[battler]]);
-            RememberCycle(battler);
+            cycle->gear = gear;
+            StartCycle(cycle, &gGearsInfo[gear]);
         }
     }
-    return gBattleStruct->gearId[battler] == GEAR_NONE ? NULL : &gGearsInfo[gBattleStruct->gearId[battler]];
+    return cycle->gear == GEAR_NONE ? NULL : cycle;
 }
 
 // Solo los movimientos de daño que cumplan los filtros del Gear lo activan.
@@ -173,12 +153,13 @@ static bool32 IsCompatible(const struct GearInfo *info, enum Move move, enum Typ
     return TRUE;
 }
 
-static u32 CurrentPercent(enum BattlerId battler, const struct GearInfo *info, enum Move move, enum Type moveType)
+static u32 CurrentPercent(const struct GearCycle *cycle, enum Move move, enum Type moveType)
 {
+    const struct GearInfo *info = &gGearsInfo[cycle->gear];
     u32 percent = 0;
 
     if (IsCompatible(info, move, moveType))
-        percent = gBattleStruct->gearPhase[battler] == GEAR_PHASE_RECHARGING ? info->residualPowerPercent : info->overloadPowerPercent;
+        percent = cycle->phase == GEAR_PHASE_RECHARGING ? info->residualPowerPercent : info->overloadPowerPercent;
     return percent != 0 ? percent : 100;
 }
 
@@ -186,25 +167,28 @@ enum Gear Gear_GetBattlerGear(enum BattlerId battler)
 {
     if (!GEARS_ENABLED)
         return GEAR_NONE;
-    Prepare(battler);
-    return gBattleStruct->gearId[battler];
+    const struct GearCycle *cycle = Prepare(battler);
+    return cycle == NULL ? GEAR_NONE : cycle->gear;
 }
 
 enum GearPhase Gear_GetPhase(enum BattlerId battler)
 {
-    Prepare(battler);
-    return gBattleStruct->gearPhase[battler];
+    if (!GEARS_ENABLED)
+        return GEAR_PHASE_ARMED;
+
+    const struct GearCycle *cycle = Prepare(battler);
+    return cycle == NULL ? GEAR_PHASE_ARMED : cycle->phase;
 }
 
 uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type moveType)
 {
-    const struct GearInfo *info;
+    const struct GearCycle *cycle;
     u32 percent;
 
     if (!GEARS_ENABLED)
         return UQ_4_12(1.0);
-    info = Prepare(battler);
-    if (info == NULL)
+    cycle = Prepare(battler);
+    if (cycle == NULL)
         return UQ_4_12(1.0);
 
     // Si el movimiento ya se está ejecutando, vale lo que se fijó al empezar
@@ -212,55 +196,53 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
     if (gBattleStruct->gearSnapshotMove[battler] == move)
         percent = gBattleStruct->gearSnapshotPercent[battler];
     else
-        percent = CurrentPercent(battler, info, move, moveType);
+        percent = CurrentPercent(cycle, move, moveType);
     return (percent * 4096 + 50) / 100;
 }
 
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
 {
-    const struct GearInfo *info;
+    struct GearCycle *cycle;
 
     if (!GEARS_ENABLED)
         return;
-    info = Prepare(battler);
-    if (info == NULL)
+    cycle = Prepare(battler);
+    if (cycle == NULL)
         return;
 
+    const struct GearInfo *info = &gGearsInfo[cycle->gear];
     gBattleStruct->gearSnapshotMove[battler] = move;
-    gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(battler, info, move, moveType);
+    gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(cycle, move, moveType);
 
     if (info->trigger == GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE
-     && gBattleStruct->gearPhase[battler] == GEAR_PHASE_ARMED
+     && cycle->phase == GEAR_PHASE_ARMED
      && IsCompatible(info, move, moveType))
-        StartRecharge(battler, info, 0); // el final de este mismo turno ya cuenta
-
-    // Un U-turn/Volt Switch puede retirar al usuario antes del final del turno.
-    RememberCycle(battler);
+        StartRecharge(cycle, info); // el final de este mismo turno ya cuenta
 }
 
 void Gear_EndOfTurn(enum BattlerId battler)
 {
-    const struct GearInfo *info;
+    struct GearCycle *cycle;
 
     if (!GEARS_ENABLED)
         return;
     gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
-    info = Prepare(battler);
-    if (info == NULL)
+    cycle = Prepare(battler);
+    if (cycle == NULL)
         return;
 
-    switch (gBattleStruct->gearPhase[battler])
+    const struct GearInfo *info = &gGearsInfo[cycle->gear];
+    switch (cycle->phase)
     {
     case GEAR_PHASE_OVERLOAD:
-        if (--gBattleStruct->gearTimer[battler] == 0)
-            StartRecharge(battler, info, 0); // la recarga comienza DESPUES del ultimo turno de sobrecarga
+        if (--cycle->turns == 0)
+            StartRecharge(cycle, info);
         break;
     case GEAR_PHASE_RECHARGING:
-        if (--gBattleStruct->gearTimer[battler] == 0)
-            StartCycle(battler, info);
+        if (--cycle->turns == 0)
+            StartCycle(cycle, info);
         break;
     default:
         break;
     }
-    RememberCycle(battler);
 }
