@@ -76,6 +76,20 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
          || firstMoveCost + Stamina_GetMoveCost(battler, moveInfo->moves[movePos]) >= remainingStamina)
             continue;
 
+        // Never add a damaging follow-up that the AI already knows cannot
+        // affect its chosen target (for example Water Gun into Storm Drain).
+        // Status moves have no simulated damage by definition, so do not
+        // filter them here.
+        if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+         && gAiLogicData != NULL && gAiBattleData != NULL)
+        {
+            enum BattlerId target = gAiBattleData->chosenTarget[battler];
+
+            if (target < gBattlersCount && GetMovePower(moveInfo->moves[movePos]) != 0
+             && gAiLogicData->simulatedDmg[battler][target][movePos].maximum == 0)
+                continue;
+        }
+
         gBattleStruct->chainSecondPos[battler] = movePos + 1;
         break;
     }
