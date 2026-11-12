@@ -94,7 +94,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |
 | P1 | Catálogos Horizon: rediseño raíz, seis Pokémon en cuadrícula 3×2, cinco huevos en carrusel, MOVES en tarjetas y objetos/MT con marcas | PR #30, implementado en código; QA visual/CI pendiente |
 | P1 | Pulido de Horizon por capturas: marcos/precios de Pokémon, etiquetas y pie de Huevos/MOVES, contraste de selección Eclipse/Daylight y tipografías de 8/12/15 px | Rama `fix/unholy-horizon-ui-alignment-colors-20261112`; código implementado, requiere CI y capturas nuevas |
-| P2 | Nuevos Gears, crafteos, IA avanzada, legendarios, animaciones y Poké Simulator | Continúan pendientes de implementación/integración completa |
+| P2 | Nuevos Gears, crafteos, IA avanzada, legendarios y animaciones | Continúan pendientes de implementación/integración completa |
 
 **Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
 
@@ -276,7 +276,7 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | **Inicio; al bajar y encontrarse con la madre** | Repartir EXP y otros objetos QoL | La madre entrega las herramientas básicas de conveniencia. Lista adicional pendiente. |
 | **Primera medalla** | Súper Repartir EXP | Cada Pokémon elegible recibe **100 % de la EXP**, sin repartirse la cifra entre el equipo. |
 | **Cuarta medalla** | Repartir EXP Sobrecargado / Overloaded (nombre WIP) | Reparte EXP íntegra, concede EXP adicional, acelera crecimiento de **IVs y EVs** y hace que la **EXP adelante la eclosión de los huevos** del equipo, además de los pasos habituales. |
-| **Cuarta medalla** | Poké Simulator | Máquina para ajustar **IVs y EVs a voluntad en cada stat**, pagando Pokédólares. |
+| **Quinta medalla, al recibir el HF** | Poké Simulator | Ajuste de IV y EV por estadística con vista previa y pago al confirmar. |
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
 | **Segunda medalla** | **Pokélocator** | Acceso desde el Super Poké Watch. Muestra los Pokémon de la ruta actual. La Señal mutante se abre con el HF. |
 
@@ -315,7 +315,7 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 **QA manual en mGBA (no verificado por mí).** Esta sesión no tenía toolchain ARM ni emulador: la compilación Emerald/FRLG, `make check` y la pantalla real dependen del CI y de pruebas manuales. Revisar: abrir desde la Mochila y desde SELECT; ruta con hierba, Surf, pesca y cueva; filtros L/R; A/B; ←→ en zona multi-mapa; Eclipse y Daylight; mapa sin encuentros; que no queden iconos ni ventanas residuales al salir; que el mapa recupere sus colores; nombres largos de especie; 3 filas sin texto superpuesto; Pokédex con especies vistas/capturadas/ocultas.
 
 - El reparto sobrecargado se comparó con efectos de **plumas, pesos y Golden Nugget**; falta definir exactamente la contribución de cada uno.
-- Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas, costo del simulador y listado QoL inicial: **sin cuantificar**.
+- Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas del Repartir EXP Sobrecargado y listado QoL inicial: **sin cuantificar**.
 - Ajustar IVs/EVs en el simulador **no convierte** a un Pokémon normal en Omega.
 
 ---
@@ -328,7 +328,7 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 |---|---|---|
 | Poké Watch | Norman tras la captura guiada de Wally | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
 | Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
-| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante y la incursión diaria. |
+| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator y la incursión diaria. |
 
 - **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
 - Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
@@ -337,8 +337,18 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 **Incursiones y señal, balance inicial.**
 
 - Una incursión por día, desde una ruta al aire libre. Tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar. Se conservan PS y PP entre rondas. El intento se consume al iniciar.
+- Los cinco rivales salen de un catálogo de veinte especies con movimientos y equipo propios. Las especies habilitadas rotan por día, entrenador y dificultad. Cada incursión usa cinco especies distintas.
 - El jefe tiene una mutación aleatoria de la tabla de dificultad, con tiers C–S y exclusión de Omega. Recibe al entrar Ataque, Defensa, Ataque Especial y Defensa Especial +1 en Estándar y Avanzada, y +2 en Experta y Maestra. Experta y Maestra también dan +1 de Velocidad.
 - Al ganar se elige el lote de tres tipos de objetos o un intento de capturar al jefe. Una tirada fallida consume esa elección. La probabilidad varía cada día por dificultad, se muestra con dos decimales y se fija para las tres rondas. Si falta espacio, se puede liberar espacio y volver al panel durante la misma sesión.
+
+| Dificultad | Equipo en dobles | Equipo del jefe |
+|---|---|---|
+| Estándar | Movimientos del catálogo | Aura y mutación |
+| Avanzada | 50 % de llevar un objeto por rival | Objeto equipado |
+| Experta | Objeto por rival, Gear al 50 % y tirada de Mega al 30 % por combate | Objeto y Gear, con tirada de Mega al 55 % |
+| Maestra | Objeto por rival, Gear al 80 % y tirada de Mega al 65 % por combate | Objeto y Gear, con Mega cuando la especie es compatible |
+
+Cada combate admite una megaevolución rival. La megapiedra ocupa la ranura de objeto y el Gear conserva su propia ranura. El jefe capturado llega en su forma base y conserva la mutación. El equipo de incursión pertenece al combate.
 
 | Dificultad | Medallas | Niveles por ronda | Probabilidad de captura | Lote |
 |---|---:|---|---:|---|
@@ -350,7 +360,9 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 - La señal se activa una vez al día con el HF. En la progresión actual, aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
 - El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
 
-**Pendientes.** Implementar el Poké Simulator de IV/EV desde cuatro medallas y el Mutator desde ocho. Faltan tarifas, probabilidades y penalización de fallo. Las incursiones multijugador o con aliados, las recompensas adicionales y los iconos propios del reloj quedan para otra tanda. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
+**Poké Simulator.** WATCH permite elegir un Pokémon del equipo, preparar cambios de IV y EV y previsualizar sus estadísticas. La tarifa provisional cobra ₽300 por punto de IV y ₽20 por punto de EV cambiado al confirmar. Aplica los límites habituales del motor. Los huevos, Ascendidos y Omega tienen su edición bloqueada.
+
+**Pendientes.** El Mutator se desbloquea con ocho medallas. Faltan sus tarifas, probabilidades y penalización de fallo. Las incursiones multijugador o con aliados, las recompensas adicionales y los iconos propios del reloj quedan para otra tanda. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
 
 ## 8. Mutator
 
@@ -465,7 +477,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 - Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
 - Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
-- Poké Simulator para IVs/EVs, con costos, límites, previsualización y excepciones Omega definidos.
+- Poké Simulator integrado en WATCH con previsualización de IV y EV, límites del motor y tarifa provisional.
 - HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
 - Horizon MOVES: selector RELEARN/FORGET y protección del último ataque en código; filtros avanzados y QA pendiente. El acceso contextual `LEARN` antiguo se retiró del menú del Pokémon.
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.

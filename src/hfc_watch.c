@@ -1,4 +1,5 @@
 #include "global.h"
+#include "hfc_simulator.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
 #include "event_data.h"
@@ -43,6 +44,7 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_FREQUENCY] = COMPOUND_STRING("MUTANT SIGNAL"),
     [HFC_WATCH_FEATURE_RAID] = COMPOUND_STRING("DAILY RAID"),
     [HFC_WATCH_FEATURE_ARCHIVE] = COMPOUND_STRING("ANOMALY ARCHIVE"),
+    [HFC_WATCH_FEATURE_SIMULATOR] = COMPOUND_STRING("POKé SIMULATOR"),
 };
 
 static EWRAM_DATA u8 sWatchWindowId;
@@ -187,6 +189,12 @@ static void RenderRaidSelection(void)
     PrintWatchText(text, 8, 34);
     PrintWatchText(COMPOUND_STRING("Two doubles, then the mutated boss."), 8, 49);
     PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 64);
+    if (boss.gear != GEAR_NONE)
+        PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone + Gear")
+                                 : COMPOUND_STRING("Boss  Held item + Gear"), 8, 78);
+    else if (boss.heldItem != ITEM_NONE)
+        PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone")
+                                 : COMPOUND_STRING("Boss  Held item"), 8, 78);
     PrintWatchText(COMPOUND_STRING("A  Start raid     B  Back"), 8, 94);
 }
 
@@ -513,6 +521,11 @@ static void Task_HfcWatchHub(u8 taskId)
         CloseWatchWindow();
         DestroyTask(taskId);
         Pokelocator_OpenFromField(OpenHub);
+        break;
+    case HFC_WATCH_FEATURE_SIMULATOR:
+        CloseWatchWindow();
+        DestroyTask(taskId);
+        HfcSimulator_Open(OpenHub);
         break;
     default:
         CloseWatchWindow();

@@ -4,6 +4,7 @@
 #include "battle_setup.h"
 #include "event_data.h"
 #include "follower_npc.h"
+#include "gear.h"
 #include "item.h"
 #include "new_game.h"
 #include "overworld.h"
@@ -13,6 +14,7 @@
 #include "wild_encounter.h"
 #include "constants/flags.h"
 #include "constants/battle.h"
+#include "constants/form_change_types.h"
 #include "constants/items.h"
 #include "constants/map_types.h"
 #include "constants/moves.h"
@@ -29,32 +31,54 @@ static const struct HfcRaidDifficultyInfo sRaidDifficulties[HFC_RAID_DIFFICULTY_
     [HFC_RAID_ADVANCED] = {
         .name = COMPOUND_STRING("ADVANCED"), .minBadges = 6, .level = 40, .bossBoost = 1,
         .minCaptureChance = 3501, .maxCaptureChance = 5000,
+        .doubleItemChance = 50,
         .loot = {{ITEM_ULTRA_BALL, 3}, {ITEM_MAX_POTION, 2}, {ITEM_RARE_CANDY, 1}},
     },
     [HFC_RAID_EXPERT] = {
         .name = COMPOUND_STRING("EXPERT"), .minBadges = 7, .level = 47, .bossBoost = 2,
         .minCaptureChance = 5001, .maxCaptureChance = 6500,
+        .doubleItemChance = 100, .doubleGearChance = 50, .doubleMegaChance = 30, .bossMegaChance = 55,
         .loot = {{ITEM_ULTRA_BALL, 4}, {ITEM_FULL_RESTORE, 2}, {ITEM_RARE_CANDY, 2}},
     },
     [HFC_RAID_MASTER] = {
         .name = COMPOUND_STRING("MASTER"), .minBadges = 8, .level = 54, .bossBoost = 2,
         .minCaptureChance = 6501, .maxCaptureChance = 8000,
+        .doubleItemChance = 100, .doubleGearChance = 80, .doubleMegaChance = 65, .bossMegaChance = 100,
         .loot = {{ITEM_ULTRA_BALL, 5}, {ITEM_FULL_RESTORE, 3}, {ITEM_RARE_CANDY, 3}},
     },
 };
 
-static const struct
+struct HfcRaidSpecies
 {
     enum Species species;
     enum Move moves[MAX_MON_MOVES];
-} sRaidOpponents[] =
+    enum Item heldItem;
+    enum Item megaStone;
+    enum Gear gear;
+};
+
+static const struct HfcRaidSpecies sRaidOpponents[] =
 {
-    {SPECIES_FLYGON,    {MOVE_DRAGON_CLAW, MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_U_TURN}},
-    {SPECIES_GARDEVOIR, {MOVE_PSYCHIC, MOVE_MOONBLAST, MOVE_SHADOW_BALL, MOVE_CALM_MIND}},
-    {SPECIES_AGGRON,    {MOVE_IRON_HEAD, MOVE_ROCK_SLIDE, MOVE_EARTHQUAKE, MOVE_THUNDER_WAVE}},
-    {SPECIES_MILOTIC,   {MOVE_SURF, MOVE_ICE_BEAM, MOVE_RECOVER, MOVE_HAZE}},
-    {SPECIES_METAGROSS, {MOVE_METEOR_MASH, MOVE_ZEN_HEADBUTT, MOVE_BULLET_PUNCH, MOVE_EARTHQUAKE}},
-    {SPECIES_SALAMENCE, {MOVE_DRAGON_CLAW, MOVE_FLAMETHROWER, MOVE_CRUNCH, MOVE_DRAGON_DANCE}},
+    {SPECIES_FLYGON,    {MOVE_DRAGON_CLAW, MOVE_EARTHQUAKE, MOVE_ROCK_SLIDE, MOVE_U_TURN},         ITEM_SOFT_SAND,       ITEM_NONE,           GEAR_CORAZON_TITAN},
+    {SPECIES_GARDEVOIR, {MOVE_PSYCHIC, MOVE_MOONBLAST, MOVE_SHADOW_BALL, MOVE_CALM_MIND},          ITEM_SITRUS_BERRY,    ITEM_GARDEVOIRITE,    GEAR_VISOR_COSMICO},
+    {SPECIES_AGGRON,    {MOVE_IRON_HEAD, MOVE_ROCK_SLIDE, MOVE_EARTHQUAKE, MOVE_THUNDER_WAVE},      ITEM_SHUCA_BERRY,     ITEM_AGGRONITE,       GEAR_CORAZON_TITAN},
+    {SPECIES_MILOTIC,   {MOVE_SURF, MOVE_ICE_BEAM, MOVE_RECOVER, MOVE_HAZE},                       ITEM_LEFTOVERS,       ITEM_NONE,           GEAR_PERMAFROST_FRAGMENT},
+    {SPECIES_METAGROSS, {MOVE_METEOR_MASH, MOVE_ZEN_HEADBUTT, MOVE_BULLET_PUNCH, MOVE_EARTHQUAKE}, ITEM_OCCA_BERRY,      ITEM_METAGROSSITE,    GEAR_CORAZON_TITAN},
+    {SPECIES_SALAMENCE, {MOVE_DRAGON_CLAW, MOVE_FLAMETHROWER, MOVE_CRUNCH, MOVE_DRAGON_DANCE},     ITEM_YACHE_BERRY,     ITEM_SALAMENCITE,     GEAR_CORAZON_TITAN},
+    {SPECIES_MANECTRIC, {MOVE_THUNDERBOLT, MOVE_FLAMETHROWER, MOVE_SNARL, MOVE_VOLT_SWITCH},       ITEM_MAGNET,          ITEM_MANECTITE,       GEAR_VISOR_COSMICO},
+    {SPECIES_CAMERUPT,  {MOVE_HEAT_WAVE, MOVE_EARTH_POWER, MOVE_ROCK_SLIDE, MOVE_YAWN},            ITEM_PASSHO_BERRY,    ITEM_CAMERUPTITE,     GEAR_VISOR_COSMICO},
+    {SPECIES_ABSOL,     {MOVE_NIGHT_SLASH, MOVE_SUCKER_PUNCH, MOVE_PSYCHO_CUT, MOVE_SWORDS_DANCE}, ITEM_BLACK_GLASSES,   ITEM_ABSOLITE,        GEAR_SKI_MASK},
+    {SPECIES_ALTARIA,   {MOVE_DRAGON_PULSE, MOVE_HYPER_VOICE, MOVE_FLAMETHROWER, MOVE_ROOST},      ITEM_YACHE_BERRY,     ITEM_ALTARIANITE,     GEAR_VISOR_COSMICO},
+    {SPECIES_SHARPEDO,  {MOVE_CRUNCH, MOVE_LIQUIDATION, MOVE_ICE_FANG, MOVE_PROTECT},              ITEM_MYSTIC_WATER,    ITEM_SHARPEDONITE,    GEAR_CETRO_SINIESTRO},
+    {SPECIES_GLALIE,    {MOVE_ICE_BEAM, MOVE_FREEZE_DRY, MOVE_SHADOW_BALL, MOVE_PROTECT},          ITEM_NEVER_MELT_ICE,  ITEM_GLALITITE,       GEAR_PERMAFROST_FRAGMENT},
+    {SPECIES_HERACROSS, {MOVE_MEGAHORN, MOVE_CLOSE_COMBAT, MOVE_ROCK_BLAST, MOVE_PIN_MISSILE},     ITEM_SITRUS_BERRY,    ITEM_HERACRONITE,     GEAR_CORAZON_TITAN},
+    {SPECIES_SKARMORY,  {MOVE_DRILL_PECK, MOVE_IRON_HEAD, MOVE_ROOST, MOVE_TAILWIND},              ITEM_ROCKY_HELMET,    ITEM_NONE,           GEAR_CORAZON_TITAN},
+    {SPECIES_SCIZOR,    {MOVE_BULLET_PUNCH, MOVE_X_SCISSOR, MOVE_CLOSE_COMBAT, MOVE_SWORDS_DANCE},  ITEM_METAL_COAT,      ITEM_SCIZORITE,       GEAR_CORAZON_TITAN},
+    {SPECIES_HOUNDOOM,  {MOVE_HEAT_WAVE, MOVE_DARK_PULSE, MOVE_SLUDGE_BOMB, MOVE_NASTY_PLOT},      ITEM_CHARCOAL,        ITEM_HOUNDOOMINITE,   GEAR_SKI_MASK},
+    {SPECIES_BRELOOM,   {MOVE_MACH_PUNCH, MOVE_SEED_BOMB, MOVE_SPORE, MOVE_ROCK_TOMB},             ITEM_SITRUS_BERRY,    ITEM_NONE,           GEAR_CORAZON_TITAN},
+    {SPECIES_WALREIN,   {MOVE_ICE_BEAM, MOVE_SURF, MOVE_ICY_WIND, MOVE_PROTECT},                   ITEM_LEFTOVERS,       ITEM_NONE,           GEAR_PERMAFROST_FRAGMENT},
+    {SPECIES_LUDICOLO,  {MOVE_GIGA_DRAIN, MOVE_HYDRO_PUMP, MOVE_ICE_BEAM, MOVE_RAIN_DANCE},        ITEM_MIRACLE_SEED,    ITEM_NONE,           GEAR_VISOR_COSMICO},
+    {SPECIES_CLAYDOL,   {MOVE_EARTH_POWER, MOVE_PSYCHIC, MOVE_SHADOW_BALL, MOVE_REFLECT},          ITEM_LIGHT_CLAY,      ITEM_NONE,           GEAR_IMPULSO_COSMICO},
 };
 
 static const u16 sRaidMutations[] =
@@ -103,20 +127,93 @@ u16 HfcWatch_GetRaidCaptureChance(u16 day, u32 trainerId, enum HfcRaidDifficulty
     return info->minCaptureChance + seed % (info->maxCaptureChance - info->minCaptureChance + 1);
 }
 
+static u32 NextRaidRoll(u32 *seed, u32 limit)
+{
+    *seed = *seed * 1664525u + 1013904223u;
+    return (*seed >> 8) % limit;
+}
+
+static bool32 BuildRaidRoster(u32 seed, u8 *roster, u8 slots)
+{
+    u8 eligible[ARRAY_COUNT(sRaidOpponents)];
+    u8 count = 0;
+
+    for (u8 i = 0; i < ARRAY_COUNT(sRaidOpponents); i++)
+        if (IsSpeciesEnabled(sRaidOpponents[i].species))
+            eligible[count++] = i;
+    if (count < slots)
+        return FALSE;
+
+    for (u8 i = 0; i < slots; i++)
+    {
+        u8 chosen = NextRaidRoll(&seed, count);
+        roster[i] = eligible[chosen];
+        eligible[chosen] = eligible[--count];
+    }
+    return TRUE;
+}
+
+static bool32 HasCompatibleMegaStone(const struct HfcRaidSpecies *entry)
+{
+    const struct FormChange *form = GetSpeciesFormChanges(entry->species);
+
+    if (entry->megaStone == ITEM_NONE || form == NULL)
+        return FALSE;
+
+    for (; form->method != FORM_CHANGE_TERMINATOR; form++)
+        if (form->method == FORM_CHANGE_BATTLE_MEGA_EVOLUTION_ITEM
+         && form->param1 == entry->megaStone && IsSpeciesEnabled(form->targetSpecies))
+            return TRUE;
+    return FALSE;
+}
+
 struct HfcRaidOpponent HfcWatch_GetRaidOpponent(u16 day, u32 trainerId, enum HfcRaidDifficulty difficulty,
                                                enum HfcRaidStage stage, u8 slot)
 {
     const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(difficulty);
-    if (info == NULL || (u32)stage > HFC_RAID_BOSS || slot >= (stage == HFC_RAID_BOSS ? 1 : 2))
+    bool32 isBoss = stage == HFC_RAID_BOSS;
+    u8 slots = isBoss ? 1 : 2;
+    u8 roster[2 * HFC_RAID_BOSS + 1];
+
+    if (info == NULL || (u32)stage > HFC_RAID_BOSS || slot >= slots)
         return (struct HfcRaidOpponent){0};
 
-    u32 index = (DailyRaidSeed(day, trainerId) % ARRAY_COUNT(sRaidOpponents) + difficulty + 2 * stage + slot)
-              % ARRAY_COUNT(sRaidOpponents);
-    return (struct HfcRaidOpponent) {
-        .species = sRaidOpponents[index].species,
-        .level = info->level + (stage == HFC_RAID_BOSS ? 6 : 2 * stage),
-        .moves = sRaidOpponents[index].moves,
+    u32 seed = DailyRaidSeed(day, trainerId) ^ ((difficulty + 1) * 0x27D4EB2Du);
+    if (!BuildRaidRoster(seed, roster, ARRAY_COUNT(roster)))
+        return (struct HfcRaidOpponent){0};
+
+    const u8 *stageRoster = &roster[2 * stage];
+    const struct HfcRaidSpecies *entry = &sRaidOpponents[stageRoster[slot]];
+    u32 stageRoll = seed ^ ((stage + 1) * 0x165667B1u);
+    u32 slotRoll = stageRoll ^ ((slot + 1) * 0x85EBCA6Bu);
+    u8 itemChance = isBoss ? (difficulty >= HFC_RAID_ADVANCED ? 100 : 0) : info->doubleItemChance;
+    u8 gearChance = isBoss ? (difficulty >= HFC_RAID_EXPERT ? 100 : 0) : info->doubleGearChance;
+    u8 megaChance = isBoss ? info->bossMegaChance : info->doubleMegaChance;
+    bool32 hasItem = NextRaidRoll(&slotRoll, 100) < itemChance;
+    bool32 hasGear = NextRaidRoll(&slotRoll, 100) < gearChance;
+
+    struct HfcRaidOpponent opponent =
+    {
+        .species = entry->species,
+        .level = info->level + (isBoss ? 6 : 2 * stage),
+        .moves = entry->moves,
+        .heldItem = hasItem ? entry->heldItem : ITEM_NONE,
+        .gear = hasGear ? entry->gear : GEAR_NONE,
     };
+
+    // Both slots compute the same Mega candidate. Each double can have one Mega.
+    if (NextRaidRoll(&stageRoll, 100) < megaChance)
+    {
+        u8 candidate = NextRaidRoll(&stageRoll, slots);
+        if (!isBoss && !HasCompatibleMegaStone(&sRaidOpponents[stageRoster[candidate]]))
+            candidate ^= 1;
+        if (candidate == slot && HasCompatibleMegaStone(entry))
+        {
+            opponent.heldItem = entry->megaStone;
+            opponent.mega = TRUE;
+        }
+    }
+    return opponent;
 }
 
 u16 HfcWatch_GetRaidMutation(enum HfcRaidDifficulty difficulty, u32 roll)
@@ -141,6 +238,9 @@ enum HfcWatchRaidStatus HfcWatch_GetRaidStatus(void)
         return HFC_RAID_USED_TODAY;
     if (CountPartyAliveNonEggMonsExcept(PARTY_SIZE) < 2)
         return HFC_RAID_NEEDS_PARTY;
+    if (HfcWatch_GetRaidOpponent(VarGet(VAR_DAYS), GetTrainerId(gSaveBlock2Ptr->playerTrainerId),
+                               HFC_RAID_STANDARD, HFC_RAID_BOSS, 0).species == SPECIES_NONE)
+        return HFC_RAID_UNAVAILABLE;
     return HFC_RAID_READY;
 }
 
@@ -184,9 +284,12 @@ static void StartRaidStage(void)
             u16 mutation = HfcWatch_GetRaidMutation(sRaid.difficulty, Random32());
             SetMonData(opponent, MON_DATA_SPECIAL_BADGES, &mutation);
             CalculateMonStats(opponent);
+            // Save the permanent Pokémon before lending the encounter equipment.
             sRaid.boss = *opponent;
             bossBoost = sRaidDifficulties[sRaid.difficulty].bossBoost;
         }
+        SetMonData(opponent, MON_DATA_HELD_ITEM, &entry.heldItem);
+        Gear_SetEquipped(opponent, entry.gear);
     }
 
     sRaid.state = HFC_RAID_FIGHTING;

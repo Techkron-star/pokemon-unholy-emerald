@@ -2,6 +2,7 @@
 #define GUARD_HFC_WATCH_SERVICES_H
 
 #include "pokemon.h"
+#include "constants/gears.h"
 
 #define HFC_FREQUENCY_ENCOUNTERS 10
 
@@ -64,6 +65,10 @@ struct HfcRaidDifficultyInfo
     u8 minBadges;
     u8 level;
     u8 bossBoost;
+    u8 doubleItemChance;
+    u8 doubleGearChance;
+    u8 doubleMegaChance;
+    u8 bossMegaChance;
     u16 minCaptureChance;
     u16 maxCaptureChance;
     struct HfcRaidLoot loot[HFC_RAID_LOOT_COUNT];
@@ -74,6 +79,9 @@ struct HfcRaidOpponent
     enum Species species;
     u8 level;
     const enum Move *moves;
+    enum Item heldItem;
+    enum Gear gear;
+    bool8 mega;
 };
 
 const struct HfcRaidDifficultyInfo *HfcWatch_GetRaidDifficultyInfo(enum HfcRaidDifficulty difficulty);

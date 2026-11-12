@@ -1,7 +1,9 @@
 #include "global.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
+#include "item.h"
 #include "test/test.h"
+#include "constants/hold_effects.h"
 
 // Tests for the HFC Watch tier logic. The hub window needs mGBA (see DISENO.md).
 
@@ -65,7 +67,7 @@ TEST("HFC Watch paid services require the HF tier and their own badge thresholds
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 3}), HFC_WATCH_NEEDS_BADGES);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 4}), HFC_WATCH_SERVICE_PENDING);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 4}), HFC_WATCH_READY);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 7}), HFC_WATCH_NEEDS_BADGES);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_SERVICE_PENDING);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
@@ -158,6 +160,66 @@ TEST("HFC Watch Raid boss always rolls exactly one non-Omega mutation")
         }
     }
     EXPECT_EQ(HfcWatch_GetRaidMutation(HFC_RAID_MASTER, 7), POKEMON_BADGE_ASCENDED);
+}
+
+TEST("HFC Watch Raid rotates all twenty boss species")
+{
+    enum Species seen[20];
+    u8 count = 0;
+
+    for (u16 day = 0; day < 240 && count < ARRAY_COUNT(seen); day++)
+    {
+        enum Species species = HfcWatch_GetRaidOpponent(day, 2314, HFC_RAID_MASTER, HFC_RAID_BOSS, 0).species;
+        u8 i;
+        for (i = 0; i < count && seen[i] != species; i++)
+            ;
+        if (i == count)
+            seen[count++] = species;
+    }
+    EXPECT_EQ(count, ARRAY_COUNT(seen));
+}
+
+TEST("HFC Watch Raid equips stronger difficulties and uses at most one compatible Mega per battle")
+{
+    u16 gears[HFC_RAID_DIFFICULTY_COUNT] = {0};
+    u16 megas[HFC_RAID_DIFFICULTY_COUNT] = {0};
+    u16 items[HFC_RAID_DIFFICULTY_COUNT] = {0};
+    u16 bossMegas[HFC_RAID_DIFFICULTY_COUNT] = {0};
+    for (u16 day = 0; day < 100; day++)
+    {
+        for (enum HfcRaidDifficulty tier = 0; tier < HFC_RAID_DIFFICULTY_COUNT; tier++)
+        {
+            for (enum HfcRaidStage stage = 0; stage <= HFC_RAID_BOSS; stage++)
+            {
+                bool32 isBoss = stage == HFC_RAID_BOSS;
+                u8 megaCount = 0;
+                for (u8 slot = 0; slot < (isBoss ? 1 : 2); slot++)
+                {
+                    struct HfcRaidOpponent mon = HfcWatch_GetRaidOpponent(day, 2314, tier, stage, slot);
+                    EXPECT_EQ(mon.mega, GetItemHoldEffect(mon.heldItem) == HOLD_EFFECT_MEGA_STONE);
+                    if (mon.gear != GEAR_NONE)
+                        gears[tier]++;
+                    if (mon.heldItem != ITEM_NONE)
+                        items[tier]++;
+                    megaCount += mon.mega;
+                }
+                EXPECT(megaCount <= 1);
+                if (isBoss)
+                    bossMegas[tier] += megaCount;
+                else
+                    megas[tier] += megaCount;
+            }
+        }
+    }
+    EXPECT_EQ(items[HFC_RAID_STANDARD], 0);
+    EXPECT(items[HFC_RAID_ADVANCED] > 0);
+    EXPECT_EQ(gears[HFC_RAID_ADVANCED], 0);
+    EXPECT(gears[HFC_RAID_EXPERT] > 0);
+    EXPECT(gears[HFC_RAID_MASTER] > gears[HFC_RAID_EXPERT]);
+    EXPECT_EQ(megas[HFC_RAID_ADVANCED], 0);
+    EXPECT(megas[HFC_RAID_EXPERT] > 0);
+    EXPECT(megas[HFC_RAID_MASTER] > megas[HFC_RAID_EXPERT]);
+    EXPECT(bossMegas[HFC_RAID_MASTER] > 0);
 }
 
 TEST("HFC Watch Mutant Signal increases the relative bonus with badges")
