@@ -226,7 +226,7 @@ static const u8 sHorizonTextNeedSpace[] = _("Party/PC is full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
-static const u8 sHorizonTextEggBrowse[] = _("L/R: CHOOSE  A: BUY  B: BACK");
+static const u8 sHorizonTextEggBrowse[] = _("L/R: EGGS  A: BUY  B: BACK");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
 static const u8 sHorizonTextPrize[] = _("Egg secured!");
 static const u8 *const sHorizonPokemonStatuses[] =
@@ -249,11 +249,11 @@ static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
 static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
 static const u8 sHorizonGoodsBack[] = _("B: BACK");
-static const u8 sHorizonDescPokemon[] = _("6 rotating offers.\nMutation tiers C-B-A.\nView details to buy.");
-static const u8 sHorizonDescDiscs[] = _("6 rotating TMs.\nUnlocked by badges.\nSame stock all period.");
-static const u8 sHorizonDescItems[] = _("3 basic supplies +\n5 rotating specials.\nBrowse horizontally.");
-static const u8 sHorizonDescEggs[] = _("5 mystery egg grades.\nQuality varies by RNG.\nSpecies stays hidden.");
-static const u8 sHorizonDescMoves[] = _("Relearn old moves\nor forget a move.\nChoose your Pokemon.");
+static const u8 sHorizonDescPokemon[] = _("Six unique offers.\nBadge-gated tiers.\nFind rare mutants.");
+static const u8 sHorizonDescDiscs[] = _("Six rotating TMs.\nUnlock with badges.\nStable per period.");
+static const u8 sHorizonDescItems[] = _("Three core supplies.\nFive special offers.\nBrowse with L/R.");
+static const u8 sHorizonDescEggs[] = _("Five mystery eggs.\nVisible quality.\nHidden species.");
+static const u8 sHorizonDescMoves[] = _("Relearn or forget.\nSelect a partner.\nManage move slots.");
 static const u8 *const sHorizonDescriptions[] =
 {
     sHorizonDescPokemon, sHorizonDescDiscs, sHorizonDescItems,
@@ -768,6 +768,64 @@ static void HorizonDrawCard(u8 panel, u8 x, u8 y, u8 width, u8 height, bool8 sel
     FillWindowPixelRect(panel, PIXEL_FILL(line), x + width - 1, y, 1, height);
 }
 
+// The root page contains a small *live* preview of the selected category,
+// not a fake static advert. These simple cards render inside the existing
+// 216x112 native BG window without extra sprites, VRAM or save variables.
+static void HorizonDrawRootPreview(u8 panel)
+{
+    const u8 x = 126;
+
+    if (sHorizonSelectedTab == 0)
+    {
+        for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
+        {
+            u8 col = slot % 3;
+            u8 row = slot / 3;
+            u8 px = x + col * 27;
+            u8 py = 31 + row * 23;
+            bool8 sold = HorizonMarketOfferSold(slot);
+            enum PokemonBadge mutation = HorizonMarketGetMutation(slot);
+
+            HorizonDrawCard(panel, px, py, 24, 20, FALSE);
+            HorizonPrintFit(panel, sold ? sHorizonTextSold
+                                        : GetSpeciesName(HorizonMarketGetSpecies(slot)),
+                            px + 2, py + 3, 19);
+            if (mutation != 0 && !sold)
+                FillWindowPixelRect(panel, PIXEL_FILL(13), px + 19, py + 2, 3, 3);
+        }
+    }
+    else if (sHorizonSelectedTab == 1 || sHorizonSelectedTab == 2)
+    {
+        const u16 *items = sHorizonSelectedTab == 1 ? HorizonGoodsGetDiscs() : HorizonGoodsGetItems();
+
+        for (u8 i = 0; i < 2 && items[i] != ITEM_NONE; i++)
+        {
+            u8 y = 33 + i * 24;
+
+            HorizonDrawCard(panel, x, y, 82, 21, FALSE);
+            HorizonPrintFit(panel, GetItemName(items[i]), x + 4, y + 4, 74);
+        }
+    }
+    else if (sHorizonSelectedTab == 3)
+    {
+        for (u8 tier = 0; tier < HORIZON_EGG_TIER_COUNT; tier++)
+        {
+            u8 px = x + tier * 16;
+
+            HorizonDrawSmallEgg(panel, px, 37, HorizonEggGetQuality(tier));
+            if (HorizonEggIsSold(tier))
+                FillWindowPixelRect(panel, PIXEL_FILL(13), px + 5, 54, 4, 3);
+        }
+    }
+    else
+    {
+        HorizonDrawCard(panel, x, 34, 82, 21, FALSE);
+        HorizonPrintFit(panel, sHorizonMoveLearn, x + 9, 39, 66);
+        HorizonDrawCard(panel, x, 58, 82, 21, FALSE);
+        HorizonPrintFit(panel, sHorizonMoveForget, x + 9, 63, 66);
+    }
+}
+
 static void HorizonDrawInfo(void)
 {
     const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
@@ -911,13 +969,22 @@ static void HorizonDrawInfo(void)
         AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 34, 0, 0,
                                      sHorizonTextColors, TEXT_SKIP_DRAW,
                                      sHorizonDescriptions[sHorizonSelectedTab]);
+        HorizonDrawRootPreview(panel);
+
+        // Funds are always relevant regardless of the currently selected
+        // Horizon tab, and do not alter the market seed or purchase history.
+        StringCopy(gStringVar4, COMPOUND_STRING("MONEY "));
+        ConvertIntToDecimalStringN(gStringVar3, GetMoney(&gSaveBlock1Ptr->money),
+                                   STR_CONV_MODE_LEFT_ALIGN, 7);
+        StringAppend(gStringVar4, gStringVar3);
+        HorizonPrintFit(panel, gStringVar4, 8, 80, 115);
+
         if (sHorizonSelectedTab == 0 && HorizonMarketHasUnseenMutation())
         {
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 132, 34, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextRare);
-            FillWindowPixelRect(panel, PIXEL_FILL(13), 191, 48, 4, 4);
+            HorizonPrintFit(panel, sHorizonTextRare, 128, 80, 79);
+            FillWindowPixelRect(panel, PIXEL_FILL(13), 206, 84, 3, 3);
         }
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 94, 0, 0,
+        AddTextPrinterParameterized4(panel, FONT_NARROW, 8, 96, 0, 0,
                                      sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonTextControls);
     }
 
