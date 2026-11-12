@@ -241,8 +241,7 @@ static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonMoveLearn[] = _("RELEARN");
 static const u8 sHorizonMoveForget[] = _("FORGET");
-static const u8 sHorizonMoveInstructions[] = _("A: OPEN   B: BACK");
-static const u8 sHorizonMoveBack[] = _("L/R: SELECT SERVICE");
+static const u8 sHorizonMoveInstructions[] = _("L/R: CHOOSE   A: OPEN   B: BACK");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
@@ -999,15 +998,14 @@ static void HorizonDrawInfo(void)
             u8 x = 9 + option * 100;
 
             HorizonDrawCard(panel, x, 36, 92, 40, option == sHorizonMoveSelection);
-            HorizonPrintFit(panel, option == 0 ? sHorizonMoveLearn : sHorizonMoveForget,
-                            x + 13, 46, 74);
-            HorizonPrintFit(panel, option == 0
-                            ? COMPOUND_STRING("Old / TM / Tutor")
-                            : COMPOUND_STRING("Remove a move"),
-                            x + 7, 60, 78);
+            HorizonPrintCardText(panel, option == 0 ? sHorizonMoveLearn : sHorizonMoveForget,
+                                     x + 13, 46, 74, option == sHorizonMoveSelection, FALSE);
+            HorizonPrintCardText(panel, option == 0
+                                    ? COMPOUND_STRING("Old / TM / Tutor")
+                                    : COMPOUND_STRING("Remove a move"),
+                                     x + 7, 60, 78, option == sHorizonMoveSelection, TRUE);
         }
-        HorizonPrintFit(panel, sHorizonMoveInstructions, 10, 84, 197);
-        HorizonPrintFit(panel, sHorizonMoveBack, 10, 98, 194);
+        HorizonPrintSmall(panel, sHorizonMoveInstructions, 10, 98, 194);
     }
     else
     {
