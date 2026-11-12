@@ -913,19 +913,19 @@ static void SpriteCB_StaminaBar(struct Sprite *sprite)
     enum BattlerId battler = sprite->hStam_Battler;
     struct Sprite *box = &gSprites[healthboxSpriteId];
 
-    // Both 16x16 rings sit INSIDE the empty left-hand wedge of the box:
-    // below the nickname, just before the HP bar, above the XP rail on
-    // allied boxes.  Data6 distinguishes single/double healthbox variants.
+    // Anchor the whole 16x16 OBJ footprint to the *left* healthbox sprite,
+    // not to a screen coordinate or a different single/double layout shift.
+    // The opponent ring is deliberately lower, below the nickname; both
+    // rings stay inside the 64x32 left panel even during slide animations.
     if (IsOnPlayerSide(battler))
     {
         sprite->x = box->x + STAMINA_RING_PLAYER_X_OFFSET;
-        sprite->y = box->y + STAMINA_RING_PLAYER_Y_OFFSET - (sprite->hStam_Data6 == 1 ? 3 : 0);
+        sprite->y = box->y + STAMINA_RING_PLAYER_Y_OFFSET;
     }
     else
     {
         sprite->x = box->x + STAMINA_RING_OPP_X_OFFSET;
-        sprite->y = box->y + STAMINA_RING_OPP_Y_OFFSET - (sprite->hStam_Data6 == 2
-                                                             && GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES ? 2 : 0);
+        sprite->y = box->y + STAMINA_RING_OPP_Y_OFFSET;
     }
 
     sprite->x2 = box->x2;
