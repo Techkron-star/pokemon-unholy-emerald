@@ -215,8 +215,8 @@ static const u8 *const sHorizonTabLabels[] =
     sHorizonTabPokemon, sHorizonTabDiscs, sHorizonTabItems,
     sHorizonTabEggs, sHorizonTabMoves,
 };
-static const u8 sHorizonTextBrowse[] = _("A: BUY  B: BACK");
-static const u8 sHorizonTextConfirm[] = _("A: YES  B: BACK");
+static const u8 sHorizonTextBrowse[] = _("D-PAD: MOVE  A: BUY  B: BACK");
+static const u8 sHorizonTextConfirm[] = _("A: CONFIRM   B: CANCEL");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
 static const u8 sHorizonTextSold[] = _("SOLD");
 static const u8 sHorizonTextReady[] = _("Choose an offer.");
@@ -225,7 +225,7 @@ static const u8 sHorizonTextNeedSpace[] = _("Party/PC is full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
-static const u8 sHorizonTextEggBrowse[] = _("EGG  A: BUY B: BACK");
+static const u8 sHorizonTextEggBrowse[] = _("L/R: CHOOSE  A: BUY  B: BACK");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
 static const u8 sHorizonTextPrize[] = _("Egg secured!");
 static const u8 *const sHorizonPokemonStatuses[] =
@@ -240,24 +240,37 @@ static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonMoveLearn[] = _("RELEARN");
 static const u8 sHorizonMoveForget[] = _("FORGET");
-static const u8 sHorizonMoveInstructions[] = _("UP/DOWN: SELECT  A: OPEN");
-static const u8 sHorizonMoveBack[] = _("B: BACK");
+static const u8 sHorizonMoveInstructions[] = _("A: OPEN   B: BACK");
+static const u8 sHorizonMoveBack[] = _("L/R: SELECT SERVICE");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
 static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
-static const u8 sHorizonTextControls[] = _("LEFT/RIGHT: TABS  A: OPEN  B: EXIT");
+static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
 static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
 static const u8 sHorizonGoodsBack[] = _("B: BACK");
-static const u8 sHorizonDescPokemon[] = _("Random offers by\nbadge and day/night.\nA: OPEN POKEMON");
-static const u8 sHorizonDescDiscs[] = _("Rotating TMs.\nBy badge and time.\nA: BUY");
-static const u8 sHorizonDescItems[] = _("Basic supplies +\nrotating specials.\nA: BUY");
-static const u8 sHorizonDescEggs[] = _("Five egg grades.\nRare quality RNG.\nA: OPEN EGGS");
-static const u8 sHorizonDescMoves[] = _("Existing Move\nManager.\nA: OPEN");
+static const u8 sHorizonDescPokemon[] = _("6 rotating offers.\nMutation tiers C-B-A.\nView details to buy.");
+static const u8 sHorizonDescDiscs[] = _("6 rotating TMs.\nUnlocked by badges.\nSame stock all period.");
+static const u8 sHorizonDescItems[] = _("3 basic supplies +\n5 rotating specials.\nBrowse horizontally.");
+static const u8 sHorizonDescEggs[] = _("5 mystery egg grades.\nQuality varies by RNG.\nSpecies stays hidden.");
+static const u8 sHorizonDescMoves[] = _("Relearn old moves\nor forget a move.\nChoose your Pokemon.");
 static const u8 *const sHorizonDescriptions[] =
 {
     sHorizonDescPokemon, sHorizonDescDiscs, sHorizonDescItems,
     sHorizonDescEggs, sHorizonDescMoves,
 };
+// Compact labels are deliberate: the actual tier's full name appears in the
+// detail line, but all five slots must fit within one 216-pixel GBA window.
+static const u8 sHorizonEggLabelBasic[] = _("BASIC");
+static const u8 sHorizonEggLabelMedium[] = _("MED");
+static const u8 sHorizonEggLabelHigh[] = _("HIGH");
+static const u8 sHorizonEggLabelMythic[] = _("MYTH");
+static const u8 sHorizonEggLabelLegend[] = _("LEGEND");
+static const u8 *const sHorizonEggCardNames[HORIZON_EGG_TIER_COUNT] =
+{
+    sHorizonEggLabelBasic, sHorizonEggLabelMedium, sHorizonEggLabelHigh,
+    sHorizonEggLabelMythic, sHorizonEggLabelLegend,
+};
+
 static const u8 sHorizonTextColors[] = {1, 2, 3};
 
 static const u16 sHorizonPaletteEclipse[] =
@@ -713,6 +726,38 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
     FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 8, 4, 1);
 }
 
+// Font-aware clipping prevents long species/items from bleeding into the
+// next card. Pokemon text uses EOS, not a C NUL terminator.
+static void HorizonPrintFit(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
+{
+    u8 text[48];
+    u8 len = 0;
+
+    while (len < sizeof(text) - 1 && source[len] != EOS)
+    {
+        text[len] = source[len];
+        len++;
+    }
+    text[len] = EOS;
+
+    while (len > 0 && GetStringWidth(FONT_NARROW, text, 0) > width)
+        text[--len] = EOS;
+
+    AddTextPrinterParameterized4(panel, FONT_NARROW, x, y, 0, 0,
+                                 sHorizonTextColors, TEXT_SKIP_DRAW, text);
+}
+
+// A native single-pixel card outline has no sprite, palette or VRAM cost.
+static void HorizonDrawCard(u8 panel, u8 x, u8 y, u8 width, u8 height, bool8 selected)
+{
+    const u8 line = selected ? (FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 6 : 7) : 3;
+
+    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, width, 1);
+    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y + height - 1, width, 1);
+    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, 1, height);
+    FillWindowPixelRect(panel, PIXEL_FILL(line), x + width - 1, y, 1, height);
+}
+
 static void HorizonDrawInfo(void)
 {
     const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
@@ -739,118 +784,117 @@ static void HorizonDrawInfo(void)
 
     if (sHorizonPokemonBrowsing)
     {
-        FillWindowPixelRect(panel, PIXEL_FILL(daylight ? 7 : 5), 124, 29, 1, 73);
+        const enum PokemonBadge mutation = HorizonMarketGetMutation(sHorizonPokemonSelection);
+
+        // Six offers occupy a native 3x2 grid instead of a cramped vertical
+        // list. Every slot retains its persistent state, price and rare badge.
         for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
         {
-            u8 y = 30 + slot * 12;
-            StringCopy(gStringVar4, slot == sHorizonPokemonSelection
-                                      ? COMPOUND_STRING("> ")
-                                      : COMPOUND_STRING("  "));
-            if (HorizonMarketOfferSold(slot))
-                StringAppend(gStringVar4, sHorizonTextSold);
-            else if (HorizonMarketGetSpecies(slot) == SPECIES_NONE)
-                StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
+            u8 x = 5 + (slot % 3) * 70;
+            u8 y = 29 + (slot / 3) * 24;
+            const enum Species species = HorizonMarketGetSpecies(slot);
+            bool8 sold = HorizonMarketOfferSold(slot);
+
+            HorizonDrawCard(panel, x, y, 66, 22, slot == sHorizonPokemonSelection);
+            if (sold)
+                HorizonPrintFit(panel, sHorizonTextSold, x + 5, y + 2, 54);
+            else if (species == SPECIES_NONE)
+                HorizonPrintFit(panel, COMPOUND_STRING("EMPTY"), x + 5, y + 2, 54);
             else
-                StringAppend(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(slot)));
+                HorizonPrintFit(panel, GetSpeciesName(species), x + 3, y + 2,
+                                HorizonMarketGetMutation(slot) != 0 ? 53 : 59);
 
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 5, y, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+            if (HorizonMarketGetMutation(slot) != 0 && !sold)
+                FillWindowPixelRect(panel, PIXEL_FILL(13), x + 58, y + 6, 4, 4);
 
-            if (HorizonMarketGetMutation(slot) != 0)
-                FillWindowPixelRect(panel, PIXEL_FILL(13), 113, y + 3, 4, 4);
+            if (!sold && species != SPECIES_NONE)
+            {
+                ConvertIntToDecimalStringN(gStringVar3, HorizonMarketGetPrice(slot),
+                                           STR_CONV_MODE_LEFT_ALIGN, 6);
+                HorizonPrintFit(panel, gStringVar3, x + 5, y + 12, 57);
+            }
         }
 
-        const enum PokemonBadge mutation = HorizonMarketGetMutation(sHorizonPokemonSelection);
-        const u32 price = HorizonMarketGetPrice(sHorizonPokemonSelection);
-
-        if (mutation != 0)
+        // Full selected species/mutation text, or purchase feedback, below
+        // the grid. All purchase prices remain visible in the cards.
+        if (sHorizonPokemonStatus != 0)
+            HorizonPrintFit(panel, sHorizonPokemonStatuses[sHorizonPokemonStatus],
+                            7, 79, 202);
+        else
         {
-            StringCopy(gStringVar4, COMPOUND_STRING("!!! "));
-            StringAppend(gStringVar4, MutationTierGetName(MutationTierFromBadge(mutation)));
-            StringAppend(gStringVar4, COMPOUND_STRING(" "));
+            StringCopy(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(sHorizonPokemonSelection)));
+            StringAppend(gStringVar4, COMPOUND_STRING(" / "));
+            if (mutation != 0)
+            {
+                StringAppend(gStringVar4, MutationTierGetName(MutationTierFromBadge(mutation)));
+                StringAppend(gStringVar4, COMPOUND_STRING(" "));
+            }
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
+            HorizonPrintFit(panel, gStringVar4, 7, 79, 202);
         }
-        else
-            StringCopy(gStringVar4, HorizonMarketMutationName(mutation));
 
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 32, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
-
-        if (sHorizonPokemonStatus == 0 && price != 0)
-        {
-            StringCopy(gStringVar4, COMPOUND_STRING("COST "));
-            ConvertIntToDecimalStringN(gStringVar3, price, STR_CONV_MODE_LEFT_ALIGN, 6);
-            StringAppend(gStringVar4, gStringVar3);
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 55, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
-        }
-        else
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 65, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW,
-                                         sHorizonPokemonStatuses[sHorizonPokemonStatus]);
-
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 94, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                     sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
+        HorizonPrintFit(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
+                        6, 97, 204);
     }
     else if (sHorizonEggBrowsing)
     {
-        FillWindowPixelRect(panel, PIXEL_FILL(daylight ? 7 : 5), 124, 29, 1, 73);
+        // Five one-row egg cards, with the quality painted directly into the
+        // tiny egg. The selected grade and full price live below the carousel.
         for (u8 tier = 0; tier < HORIZON_EGG_TIER_COUNT; tier++)
         {
-            u8 y = 30 + tier * 12;
-            HorizonDrawSmallEgg(panel, 5, y, HorizonEggGetQuality(tier));
-            StringCopy(gStringVar4, tier == sHorizonEggSelection
-                                      ? COMPOUND_STRING("> ")
-                                      : COMPOUND_STRING("  "));
-            if (HorizonEggIsSold(tier))
-                StringAppend(gStringVar4, sHorizonTextEggSold);
-            else
-                StringAppend(gStringVar4, HorizonEggTierName(tier));
+            u8 x = 6 + tier * 41;
+            u8 quality = HorizonEggGetQuality(tier);
+            bool8 sold = HorizonEggIsSold(tier);
 
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 17, y, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
-            if (!HorizonEggIsSold(tier) && HorizonEggGetQuality(tier) != HORIZON_EGG_STANDARD)
-                FillWindowPixelRect(panel, PIXEL_FILL(HorizonEggGetQuality(tier) == HORIZON_EGG_PRISMATIC
-                                                     ? 13 : 7), 113, y + 3, 4, 4);
+            HorizonDrawCard(panel, x, 30, 38, 42, tier == sHorizonEggSelection);
+            HorizonDrawSmallEgg(panel, x + 14, 35, quality);
+            HorizonPrintFit(panel, sHorizonEggCardNames[tier], x + 3, 48, 32);
+            if (sold)
+                HorizonPrintFit(panel, sHorizonTextEggSold, x + 4, 60, 32);
+            else
+                FillWindowPixelRect(panel, PIXEL_FILL(quality == HORIZON_EGG_PRISMATIC ? 13
+                                                    : quality == HORIZON_EGG_RADIANT ? 7 : 3),
+                                    x + 4, 64, 30, 2);
         }
 
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 32, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                     HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
-        if (sHorizonEggStatus == 0 && !HorizonEggIsSold(sHorizonEggSelection))
+        // Detail text stops before the large animated egg icon on the right.
+        if (sHorizonEggStatus != 0)
+            HorizonPrintFit(panel, sHorizonEggStatus == 2
+                                   ? sHorizonTextPrize
+                                   : sHorizonPokemonStatuses[sHorizonEggStatus],
+                            7, 78, 158);
+        else
         {
+            StringCopy(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
+            StringAppend(gStringVar4, COMPOUND_STRING(" / "));
+            StringAppend(gStringVar4, HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
+            HorizonPrintFit(panel, gStringVar4, 7, 76, 153);
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
                                        STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 55, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW, gStringVar4);
+            HorizonPrintFit(panel, gStringVar4, 7, 86, 153);
         }
-        else
-            AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 55, 0, 0,
-                                         sHorizonTextColors, TEXT_SKIP_DRAW,
-                                         sHorizonEggStatus == 2 ? sHorizonTextPrize
-                                                                : sHorizonPokemonStatuses[sHorizonEggStatus]);
 
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 130, 94, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                     sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextBrowse);
+        HorizonPrintFit(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
+                        6, 98, 169);
     }
     else if (sHorizonMoveBrowsing)
     {
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 35, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                     sHorizonMoveSelection == 0
-                                     ? COMPOUND_STRING("> RELEARN") : sHorizonMoveLearn);
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 55, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW,
-                                     sHorizonMoveSelection == 1
-                                     ? COMPOUND_STRING("> FORGET") : sHorizonMoveForget);
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 82, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveInstructions);
-        AddTextPrinterParameterized4(panel, FONT_NARROW, 10, 99, 0, 0,
-                                     sHorizonTextColors, TEXT_SKIP_DRAW, sHorizonMoveBack);
+        for (u8 option = 0; option < 2; option++)
+        {
+            u8 x = 9 + option * 100;
+
+            HorizonDrawCard(panel, x, 36, 92, 40, option == sHorizonMoveSelection);
+            HorizonPrintFit(panel, option == 0 ? sHorizonMoveLearn : sHorizonMoveForget,
+                            x + 13, 46, 74);
+            HorizonPrintFit(panel, option == 0
+                            ? COMPOUND_STRING("Old / TM / Tutor")
+                            : COMPOUND_STRING("Remove a move"),
+                            x + 7, 60, 78);
+        }
+        HorizonPrintFit(panel, sHorizonMoveInstructions, 10, 84, 197);
+        HorizonPrintFit(panel, sHorizonMoveBack, 10, 98, 194);
     }
     else
     {
