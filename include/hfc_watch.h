@@ -3,7 +3,6 @@
 
 #include "global.h"
 
-// Número de opciones en el menú HFC Watch
 #define HFC_WATCH_OPTION_COUNT 9
 
 enum HfcWatchOption
