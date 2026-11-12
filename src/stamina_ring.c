@@ -183,23 +183,23 @@ void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted
     color = exhausted || max == 0 || current * 4 <= max ? RING_EXHAUSTED
           : current * 2 <= max ? RING_WARNING : RING_READY;
 
-    // Outer dark rim, then two concentric tracks, then filled arc.
-    // The ring interior (8,8) always stays transparent.
+    // Scale the outer rim to a four-pixel radius so the painted pixels fit
+    // the card, including when status and capture icons are present.
     for (u32 i = 0; i < STAMINA_RING_TICKS; i++)
     {
         const s8 *point = sRingPoint[i];
-        SetCompactRingPixel(tiles, 8 + point[8] / 2, 8 + point[9] / 2, RING_OUTLINE);
+        SetCompactRingPixel(tiles, 8 + point[8] / 3, 8 + point[9] / 3, RING_OUTLINE);
     }
     for (u32 i = 0; i < STAMINA_RING_TICKS; i++)
     {
         const s8 *point = sRingPoint[i];
-        SetCompactRingPixel(tiles, 8 + point[2] / 2, 8 + point[3] / 2, RING_EMPTY);
-        SetCompactRingPixel(tiles, 8 + point[4] / 2, 8 + point[5] / 2, RING_EMPTY);
+        SetCompactRingPixel(tiles, 8 + point[2] / 3, 8 + point[3] / 3, RING_EMPTY);
+        SetCompactRingPixel(tiles, 8 + point[4] / 3, 8 + point[5] / 3, RING_EMPTY);
     }
     for (u32 i = 0; i < filled; i++)
     {
         const s8 *point = sRingPoint[i];
-        SetCompactRingPixel(tiles, 8 + point[2] / 2, 8 + point[3] / 2, color);
-        SetCompactRingPixel(tiles, 8 + point[4] / 2, 8 + point[5] / 2, color);
+        SetCompactRingPixel(tiles, 8 + point[2] / 3, 8 + point[3] / 3, color);
+        SetCompactRingPixel(tiles, 8 + point[4] / 3, 8 + point[5] / 3, color);
     }
 }

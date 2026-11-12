@@ -33,15 +33,14 @@
 // Pokémon restauran este % de la stamina máxima por cada KO, además de su subida de stat.
 #define STAMINA_KO_RESTORE_PERCENT      30
 
-// Both HUD rings are 16x16 OBJ sprites. Sprite positions refer to the
-// LEFT 64x32 healthbox sprite's centre (see sBattlerHealthboxCoords).
-// Keep 8px of the ring ABOVE and BELOW these centres inside each box;
-// the original +12/+11 offsets placed them outside the lower border.
-// Doubles apply their existing 2-3px compact-layout correction.
-#define STAMINA_RING_PLAYER_X_OFFSET   (-16)
-#define STAMINA_RING_PLAYER_Y_OFFSET    6
-#define STAMINA_RING_OPP_X_OFFSET      (-16)
-#define STAMINA_RING_OPP_Y_OFFSET       1
+// Offsets from the centre of the left healthbox OBJ. The tall player box
+// has a gap above status and EXP. The other boxes use the nickname row.
+#define STAMINA_RING_PLAYER_SINGLE_X_OFFSET (-14)
+#define STAMINA_RING_PLAYER_SINGLE_Y_OFFSET  3
+#define STAMINA_RING_PLAYER_DOUBLE_X_OFFSET (-12)
+#define STAMINA_RING_OPP_X_OFFSET           (-20)
+#define STAMINA_RING_NICKNAME_Y_OFFSET      (-7)
+#define STAMINA_RING_NICKNAME_PADDING       10
 #define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H
