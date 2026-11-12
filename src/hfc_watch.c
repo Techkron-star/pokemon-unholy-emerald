@@ -1,4 +1,5 @@
 #include "global.h"
+#include "hfc_mutator.h"
 #include "hfc_simulator.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
@@ -44,6 +45,7 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_FREQUENCY] = COMPOUND_STRING("MUTANT SIGNAL"),
     [HFC_WATCH_FEATURE_RAID] = COMPOUND_STRING("DAILY RAID"),
     [HFC_WATCH_FEATURE_ARCHIVE] = COMPOUND_STRING("ANOMALY ARCHIVE"),
+    [HFC_WATCH_FEATURE_MUTATOR] = COMPOUND_STRING("MUTATOR"),
     [HFC_WATCH_FEATURE_SIMULATOR] = COMPOUND_STRING("POKé SIMULATOR"),
 };
 
@@ -182,6 +184,12 @@ static void RenderRaidSelection(void)
     u16 day = VarGet(VAR_DAYS);
     u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
     struct HfcRaidOpponent boss = HfcWatch_GetRaidOpponent(day, trainerId, sRaidDifficulty, HFC_RAID_BOSS, 0);
+    if (boss.species == SPECIES_NONE)
+    {
+        PrintWatchText(sMessages[HFC_RAID_UNAVAILABLE], 8, 42);
+        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 94);
+        return;
+    }
     cursor = StringCopy(text, COMPOUND_STRING("Boss  "));
     cursor = StringCopy(cursor, GetSpeciesName(boss.species));
     cursor = StringCopy(cursor, COMPOUND_STRING("  Lv. "));
@@ -526,6 +534,11 @@ static void Task_HfcWatchHub(u8 taskId)
         CloseWatchWindow();
         DestroyTask(taskId);
         HfcSimulator_Open(OpenHub);
+        break;
+    case HFC_WATCH_FEATURE_MUTATOR:
+        CloseWatchWindow();
+        DestroyTask(taskId);
+        HfcMutator_Open(OpenHub);
         break;
     default:
         CloseWatchWindow();

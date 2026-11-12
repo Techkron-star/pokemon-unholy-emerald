@@ -22,9 +22,6 @@
 // Tier A, S, and Omega retain their ordinary rates.
 #define SPECIAL_BADGE_SPECIAL_ORIGIN_LOW_TIER_BOOST_PERCENT 15
 
-// A paid Mutator Omega roll (10/65536) is proposed but not active.
-#define SPECIAL_BADGE_MUTATOR_OMEGA_ROLLS 10
-
 // Capture odds are intentionally harsh for special individuals.
 #define SPECIAL_BADGE_ALPHA_CAPTURE_PERCENT 75
 #define SPECIAL_BADGE_SUPER_CAPTURE_PERCENT 35

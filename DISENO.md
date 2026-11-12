@@ -328,7 +328,7 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 |---|---|---|
 | Poké Watch | Norman tras la captura guiada de Wally | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
 | Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
-| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator y la incursión diaria. |
+| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator e incursiones. El Mutator aparece con la octava medalla. |
 
 - **WATCH** en START reúne las funciones disponibles. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
 - Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
@@ -337,7 +337,7 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 **Incursiones y señal, balance inicial.**
 
 - Una incursión por día, desde una ruta al aire libre. Tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar. Se conservan PS y PP entre rondas. El intento se consume al iniciar.
-- Los cinco rivales salen de un catálogo de veinte especies con movimientos y equipo propios. Las especies habilitadas rotan por día, entrenador y dificultad. Cada incursión usa cinco especies distintas.
+- Cada dificultad tiene 20 jefes propios, para un total de 80 especies distintas con movimientos y equipo definidos. La rotación diaria de cada entrenador recorre los 20 jefes de su dificultad antes de repetir. Los dos dobles eligen cuatro especies diferentes de ese grupo y excluyen al jefe del día.
 - El jefe tiene una mutación aleatoria de la tabla de dificultad, con tiers C–S y exclusión de Omega. Recibe al entrar Ataque, Defensa, Ataque Especial y Defensa Especial +1 en Estándar y Avanzada, y +2 en Experta y Maestra. Experta y Maestra también dan +1 de Velocidad.
 - Al ganar se elige el lote de tres tipos de objetos o un intento de capturar al jefe. Una tirada fallida consume esa elección. La probabilidad varía cada día por dificultad, se muestra con dos decimales y se fija para las tres rondas. Si falta espacio, se puede liberar espacio y volver al panel durante la misma sesión.
 
@@ -362,16 +362,21 @@ Cada combate admite una megaevolución rival. La megapiedra ocupa la ranura de o
 
 **Poké Simulator.** WATCH permite elegir un Pokémon del equipo, preparar cambios de IV y EV y previsualizar sus estadísticas. La tarifa provisional cobra ₽300 por punto de IV y ₽20 por punto de EV cambiado al confirmar. Aplica los límites habituales del motor. Los huevos, Ascendidos y Omega tienen su edición bloqueada.
 
-**Pendientes.** El Mutator se desbloquea con ocho medallas. Faltan sus tarifas, probabilidades y penalización de fallo. Las incursiones multijugador o con aliados, las recompensas adicionales y los iconos propios del reloj quedan para otra tanda. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
+**Pendientes.** Incursiones multijugador o con aliados, recompensas adicionales e iconos propios del reloj. [Diseño previo del HFC Watch](https://github.com/Techkron-star/pokemon-unholy-emerald/blob/107a7f252be1ec9d6f705019c1398bd4f827a202/docs/HFC_WATCH_MUTATIONS_V2.md).
 
 ## 8. Mutator
 
-- Tras la octava medalla, el jugador puede introducir **un Pokémon propio** y pagar dinero para intentar aplicar una **mutación aleatoria**, entre las mutaciones permitidas (por ejemplo Alpha, Super o Enraged).
-- **Más dinero invertido implica mayor probabilidad** de mutación; probabilidad y distribución final aún sin fórmula.
-- **Omega está completamente excluido** del Mutator.
-- El procedimiento provoca pérdida proporcional de niveles, **máximo 15**. Penalización por intento fallido y relación dinero/niveles: pendientes.
-- **No se puede rerollear una mutación hasta derrotar la Super Liga.** Si sale Enraged, el jugador se queda con ese resultado hasta entonces.
-- **La victoria en la Liga normal no habilita rerolls**: deben superarse los combates de la Super Liga. Los límites exactos de «acceso limitado» tras la octava medalla están por definir.
+El Mutator abre desde WATCH con el HF y ocho medallas. Se elige un Pokémon del equipo y se revisan el costo, la probabilidad y el nivel resultante antes de pagar. Los huevos y los Pokémon con Omega quedan excluidos.
+
+| Plan provisional | Costo | Probabilidad de éxito | Pérdida de nivel en caso de éxito |
+|---|---:|---:|---:|
+| Básico | ₽12 000 | 35 % | 5 % |
+| Reforzado | ₽30 000 | 60 % | 10 % |
+| Intensivo | ₽60 000 | 85 % | 15 % |
+
+- La pérdida se redondea hacia arriba, con un máximo de 15 niveles y un mínimo de nivel 1. Un fallo consume la tarifa y conserva al Pokémon. Cancelar evita el cobro y la tirada.
+- En caso de éxito, la distribución provisional para un Pokémon sin mutaciones es Alpha 25 %, Hyper 20 %, Super 15 %, Overloaded 12 %, Enraged 11 %, Ancestral 9 %, Titan 5 % y Ascendido 3 %. El resultado queda registrado en el Archivo de anomalías.
+- Con la octava medalla se puede mutar a Pokémon sin mutaciones previas. El reroll requiere el indicador persistente `FLAG_DEFEATED_SUPER_LEAGUE`, que activará el evento de victoria de la futura Super Liga. El reroll sustituye una mutación del tier más alto y conserva las demás. Los empates siguen el orden de la lista anterior. La tirada excluye las mutaciones que el Pokémon ya tiene. Al sustituir Ascendido, los EV se reducen proporcionalmente al límite de 510.
 
 ---
 
@@ -488,7 +493,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 ### P2 — Contenido avanzado
 
-- Mutator, reglas de reroll y pérdida de niveles.
+- Conectar el desbloqueo del reroll del Mutator al evento de victoria de la Super Liga.
 - Presets competitivos y preparación pre-jefe.
 - Super Liga, entrenadores con Omegas y recompensa Infinity Ball.
 - Estadísticas de combate, revancha de entrenadores y herramientas de búsqueda especializadas.

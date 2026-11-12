@@ -69,7 +69,7 @@ TEST("HFC Watch paid services require the HF tier and their own badge thresholds
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 3}), HFC_WATCH_NEEDS_BADGES);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 4}), HFC_WATCH_READY);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 7}), HFC_WATCH_NEEDS_BADGES);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_SERVICE_PENDING);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_READY);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
 }
 
@@ -162,19 +162,37 @@ TEST("HFC Watch Raid boss always rolls exactly one non-Omega mutation")
     EXPECT_EQ(HfcWatch_GetRaidMutation(HFC_RAID_MASTER, 7), POKEMON_BADGE_ASCENDED);
 }
 
-TEST("HFC Watch Raid rotates all twenty boss species")
+TEST("HFC Watch Raid rotates twenty unique bosses per difficulty before repeating")
 {
-    enum Species seen[20];
+    enum Species seen[HFC_RAID_DIFFICULTY_COUNT * 20];
     u8 count = 0;
 
-    for (u16 day = 0; day < 240 && count < ARRAY_COUNT(seen); day++)
+    for (enum HfcRaidDifficulty tier = HFC_RAID_STANDARD; tier < HFC_RAID_DIFFICULTY_COUNT; tier++)
     {
-        enum Species species = HfcWatch_GetRaidOpponent(day, 2314, HFC_RAID_MASTER, HFC_RAID_BOSS, 0).species;
-        u8 i;
-        for (i = 0; i < count && seen[i] != species; i++)
-            ;
-        if (i == count)
-            seen[count++] = species;
+        const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(tier);
+        for (u16 day = 0; day < 20; day++)
+        {
+            struct HfcRaidOpponent boss = HfcWatch_GetRaidOpponent(day, 2314, tier, HFC_RAID_BOSS, 0);
+            EXPECT(boss.species != SPECIES_NONE && IsSpeciesEnabled(boss.species));
+            EXPECT_EQ(HfcWatch_GetRaidOpponent(day + 20, 2314, tier, HFC_RAID_BOSS, 0).species, boss.species);
+            for (u8 i = 0; i < count; i++)
+                EXPECT(seen[i] != boss.species);
+            seen[count++] = boss.species;
+
+            enum Species opponents[5];
+            for (u8 i = 0; i < ARRAY_COUNT(opponents); i++)
+            {
+                struct HfcRaidOpponent opponent = HfcWatch_GetRaidOpponent(day, 2314, tier, i / 2, i % 2);
+                opponents[i] = opponent.species;
+                EXPECT(opponents[i] != SPECIES_NONE);
+                EXPECT_EQ(opponent.level, info->level + (i == 4 ? 6 : (i < 2 ? 0 : 2)));
+                for (u8 earlier = 0; earlier < i; earlier++)
+                    EXPECT(opponents[earlier] != opponents[i]);
+                for (u8 move = 0; move < MAX_MON_MOVES; move++)
+                    EXPECT(opponent.moves[move] != MOVE_NONE);
+            }
+            EXPECT_EQ(opponents[4], boss.species);
+        }
     }
     EXPECT_EQ(count, ARRAY_COUNT(seen));
 }
