@@ -105,13 +105,15 @@ El sistema actual cubre bonificaciones de potencia con filtros. Para un efecto d
 ### 5. Equiparlo
 `Gear_SetEquipped(mon, GEAR_...)` lo equipa y `GEAR_NONE` lo quita. `Gear_GetEquipped(mon)` lo lee. La opción EQUIP de la mochila llama a `Gear_TryEquipFromBag`, que intercambia el Gear con el inventario y conserva el objeto equipado ordinario. El menú Crafting también permite equipar y retirar un Gear.
 
-## Cómo se ve en combate
+## Indicadores del equipo y del combate
 
-El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caja del Pokémon**, tanto del jugador como del rival. Sigue la visibilidad de la barra de vida (se oculta en menús y al caer el Pokémon) y cambia de fotograma al pasar a recarga. Si en el emulador no encaja, ajusta `GEAR_ICON_X_OFFSET_PLAYER`, `GEAR_ICON_X_OFFSET_OPPONENT` y `GEAR_ICON_Y_OFFSET` en `include/config/gears.h`.
+- Las tarjetas del equipo y el resumen muestran una **G** cuando el Pokémon tiene un Gear. En Info, pulsa L o R desde la página de habilidad para ver el nombre y el efecto del Gear.
+- En combate, el icono queda junto a la caja de vida. **!** indica sobrecarga, **+** indica que el Gear está listo y el número cuenta los turnos que faltan para que termine la recarga. El icono destella al activar la sobrecarga con un movimiento compatible y al terminar la recarga.
+- Los Gears temporizados empiezan con sobrecarga. El contador solo avanza cuando termina un turno real.
 
 ## Límites de la GBA
 
-- Cada tarjeta visible de un Pokémon con Gear y arte usa un sprite, cuatro tiles y un hueco de paleta. El HUD los libera al ocultar la tarjeta o retirar al portador. Si faltan recursos, omite el icono hasta que haya espacio y el Gear sigue funcionando.
+- Cada tarjeta visible de un Pokémon con Gear y arte usa un sprite de 32×16, ocho tiles y un hueco de paleta. El HUD los libera al ocultar la tarjeta o retirar al portador. Si faltan recursos, omite el icono hasta que haya espacio y el Gear sigue funcionando.
 - Hasta 255 Gears por el ancho del campo persistido (8 bits). La cantidad jugable depende del catálogo implementado.
 
 ## Lista de comprobación para cada Gear nuevo
@@ -131,7 +133,6 @@ El icono es un sprite de 16×16 pegado a la **esquina superior derecha de la caj
 - Acceso a equipar y retirar desde el resumen o el menú de equipo.
 - Vías de obtención para Gears adicionales.
 - Entrenadores que usen Gears (campo nuevo en los datos de equipo del entrenador).
-- Mostrar el turno restante de recarga y el Gear en el resumen en combate.
 - Casos abiertos del diseño: sobrecarga con dos movimientos encadenados compatibles, y si cambiar de Pokémon debe reiniciar el ciclo.
 
 

@@ -128,6 +128,7 @@ static struct GearCycle *Prepare(enum BattlerId battler)
     {
         enum Gear gear = Gear_GetEquipped(&GetTrainerParty(trainer)[slot]);
         gBattleStruct->gearOwner[battler] = owner;
+        gBattleStruct->gearActivations[battler] = 0;
         gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
 
         if (cycle->gear != gear)
@@ -180,6 +181,14 @@ enum GearPhase Gear_GetPhase(enum BattlerId battler)
     return cycle == NULL ? GEAR_PHASE_ARMED : cycle->phase;
 }
 
+u8 Gear_GetTurnsRemaining(enum BattlerId battler)
+{
+    if (!GEARS_ENABLED)
+        return 0;
+    const struct GearCycle *cycle = Prepare(battler);
+    return cycle == NULL ? 0 : cycle->turns;
+}
+
 uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type moveType)
 {
     const struct GearCycle *cycle;
@@ -214,10 +223,12 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
     gBattleStruct->gearSnapshotMove[battler] = move;
     gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(cycle, move, moveType);
 
-    if (info->trigger == GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE
-     && cycle->phase == GEAR_PHASE_ARMED
-     && IsCompatible(info, move, moveType))
-        StartRecharge(cycle, info); // el final de este mismo turno ya cuenta
+    if (cycle->phase != GEAR_PHASE_RECHARGING && IsCompatible(info, move, moveType))
+    {
+        gBattleStruct->gearActivations[battler]++;
+        if (info->trigger == GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE && cycle->phase == GEAR_PHASE_ARMED)
+            StartRecharge(cycle, info);
+    }
 }
 
 void Gear_EndOfTurn(enum BattlerId battler)
