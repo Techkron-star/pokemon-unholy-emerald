@@ -39,6 +39,9 @@
 #include "caps.h"
 
 #define HEALTHBOX_BG_INDEX 2
+#define HEALTHBOX_PLAYER_NICKNAME_X 16
+#define HEALTHBOX_OPP_NICKNAME_X 8
+#define HEALTHBOX_NICKNAME_WIDTH 55
 
 enum
 {   // Corresponds to gHealthboxElementsGfxTable (and the tables after it) in graphics.c
@@ -667,7 +670,6 @@ static const u8 sMutationOmega[] = _(" O");
 #define hBar_GearIconSpriteId       data[7]
 
 #define hStam_HealthBoxSpriteId     data[5]
-#define hStam_Data6                 data[6]
 #define hStam_Battler               data[7]
 
 static EWRAM_DATA u32 sGearIconKey[MAX_BATTLERS_COUNT] = {0}; // qué se dibujó ya en el icono (0 = nada)
@@ -797,7 +799,6 @@ u8 CreateBattlerHealthboxSprites(enum BattlerId battler)
             staminaBarSprite = &gSprites[staminaBarSpriteId];
             staminaBarSprite->oam.priority = 1;
             staminaBarSprite->hStam_HealthBoxSpriteId = healthboxLeftSpriteId;
-            staminaBarSprite->hStam_Data6 = data6;
             staminaBarSprite->hStam_Battler = battler;
             staminaBarSprite->invisible = TRUE;
             sStaminaBarOwner[battler] = 0;
@@ -907,25 +908,28 @@ static void UpdateStaminaRing(struct Sprite *sprite, enum BattlerId battler)
     sStaminaRingWasExhausted[battler] = exhausted;
 }
 
+static bool32 StaminaRingUsesNicknameRow(enum BattlerId battler)
+{
+    return !IsOnPlayerSide(battler) || GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES;
+}
+
 static void SpriteCB_StaminaBar(struct Sprite *sprite)
 {
     u8 healthboxSpriteId = sprite->hStam_HealthBoxSpriteId;
     enum BattlerId battler = sprite->hStam_Battler;
     struct Sprite *box = &gSprites[healthboxSpriteId];
 
-    // Anchor the whole 16x16 OBJ footprint to the *left* healthbox sprite,
-    // not to a screen coordinate or a different single/double layout shift.
-    // The opponent ring is deliberately lower, below the nickname; both
-    // rings stay inside the 64x32 left panel even during slide animations.
-    if (IsOnPlayerSide(battler))
+    if (StaminaRingUsesNicknameRow(battler))
     {
-        sprite->x = box->x + STAMINA_RING_PLAYER_X_OFFSET;
-        sprite->y = box->y + STAMINA_RING_PLAYER_Y_OFFSET;
+        sprite->x = box->x + (IsOnPlayerSide(battler)
+                            ? STAMINA_RING_PLAYER_DOUBLE_X_OFFSET
+                            : STAMINA_RING_OPP_X_OFFSET);
+        sprite->y = box->y + STAMINA_RING_NICKNAME_Y_OFFSET;
     }
     else
     {
-        sprite->x = box->x + STAMINA_RING_OPP_X_OFFSET;
-        sprite->y = box->y + STAMINA_RING_OPP_Y_OFFSET;
+        sprite->x = box->x + STAMINA_RING_PLAYER_SINGLE_X_OFFSET;
+        sprite->y = box->y + STAMINA_RING_PLAYER_SINGLE_Y_OFFSET;
     }
 
     sprite->x2 = box->x2;
@@ -2081,17 +2085,19 @@ static void SpriteCB_StatusSummaryBalls_OnSwitchout(struct Sprite *sprite)
 void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
 {
     u32 healthboxSpriteId2 = gSprites[healthboxSpriteId].oam.affineParam;
+    enum BattlerId battler = gSprites[healthboxSpriteId].hMain_Battler;
     u8 nickname[POKEMON_NAME_LENGTH + 1];
-    void *ptr;
+    u8 *nicknameEnd, *ptr;
     enum Species species;
     u8 gender;
-    struct Pokemon *illusionMon = GetIllusionMonPtr(gSprites[healthboxSpriteId].hMain_Battler);
+    struct Pokemon *illusionMon = GetIllusionMonPtr(battler);
     if (illusionMon != NULL)
         mon = illusionMon;
 
     GetMonData(mon, MON_DATA_NICKNAME, nickname);
     StringGet_Nickname(nickname);
-    ptr = StringCopy(gDisplayedStringBattle, nickname);
+    nicknameEnd = StringCopy(gDisplayedStringBattle, nickname);
+    ptr = nicknameEnd;
 
     gender = GetMonGender(mon);
     species = GetMonData(mon, MON_DATA_SPECIES);
@@ -2099,7 +2105,7 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     if ((species == SPECIES_NIDORAN_F || species == SPECIES_NIDORAN_M) && StringCompare(nickname, GetSpeciesName(species)) == 0)
         gender = 100;
 
-    if (GetBattlerSide(gSprites[healthboxSpriteId].hMain_Battler) == B_SIDE_OPPONENT && IsGhostBattleWithoutScope())
+    if (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
         gender = 100;
 
     switch (gender)
@@ -2132,18 +2138,27 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     gSprites[healthboxSpriteId].data[1] = healthboxSpriteId2;
     gSprites[healthboxSpriteId2].data[1] = SPRITE_NONE;
 
-    u32 fontId = GetFontIdToFit(gDisplayedStringBattle, FONT_SMALL, 0, 55);
+    u32 nicknameX = IsOnPlayerSide(battler) ? HEALTHBOX_PLAYER_NICKNAME_X : HEALTHBOX_OPP_NICKNAME_X;
+    u32 padding = STAMINA_ENABLED && !gTestRunnerEnabled && StaminaRingUsesNicknameRow(battler)
+                ? STAMINA_RING_NICKNAME_PADDING : 0;
+    u32 width = HEALTHBOX_NICKNAME_WIDTH - padding;
+    u32 fontId = GetFontIdToFit(gDisplayedStringBattle, FONT_SMALL, 0, width);
+    if (padding != 0
+     && nicknameEnd > gDisplayedStringBattle
+     && GetStringWidth(fontId, gDisplayedStringBattle, 0) > width)
+    {
+        u32 suffixSize = StringLength(nicknameEnd) + 1;
 
-    if (IsOnPlayerSide(gSprites[healthboxSpriteId].data[6]))
-    {
-        FillSpriteRectColor(healthboxSpriteId, 16, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 16, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
+        // Keep gender and mutation badges when shortening a wide nickname.
+        *--nicknameEnd = CHAR_ELLIPSIS;
+        while (nicknameEnd > gDisplayedStringBattle && GetStringWidth(fontId, gDisplayedStringBattle, 0) > width)
+        {
+            memmove(nicknameEnd - 1, nicknameEnd, suffixSize + 1);
+            nicknameEnd--;
+        }
     }
-    else
-    {
-        FillSpriteRectColor(healthboxSpriteId, 8, 5, 55, 11, HEALTHBOX_BG_INDEX);
-        AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, 8, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
-    }
+    FillSpriteRectColor(healthboxSpriteId, nicknameX, 5, HEALTHBOX_NICKNAME_WIDTH, 11, HEALTHBOX_BG_INDEX);
+    AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nicknameX + padding, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
 
     gSprites[healthboxSpriteId].data[1] = savedValue1;
     gSprites[healthboxSpriteId2].data[1] = savedValue2;

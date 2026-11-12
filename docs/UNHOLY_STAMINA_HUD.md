@@ -2,13 +2,13 @@
 
 ## Implementación actual (rama UI apilada sobre SaveBlock4/5)
 
-**Revisión 11/11/2026:** ambos bandos usan un medidor **circular compacto de 16×16 píxeles (4bpp)**, dentro de la tarjeta de PS entre la zona del nombre y las barras de PS/experiencia. Cada sprite ocupa **4 tiles (128 bytes)**; se utiliza una paleta compartida para todos. La posición distingue aliado/rival y simples/dobles, sigue deslizamiento, transparencia y prioridad de la caja. Es un ajuste visual; no cambia la fórmula de Stamina.
+**Revisión 12/11/2026:** ambos bandos usan un anillo visible de **9×9 px** dentro de un OBJ de 16×16 (4 tiles y una paleta compartida). En la tarjeta alta del jugador ocupa el hueco inferior izquierdo. En las demás tarjetas tiene un espacio reservado delante del nombre y deja libres los indicadores de estado y captura, la barra de PS y el nivel. Los nombres anchos se condensan y, si hace falta, se acortan conservando el género y la insignia de mutación.
 
 - `STAMINA_REGEN_PERCENT = 20`: recarga **20 %** de Stamina máxima al final del turno (antes era **12 %**). **Advertencia de balance:** 20 % recupera MÁS que 12 %, aunque la petición verbal mencionara reducirla; se ha priorizado el porcentaje explícito.
 - `src/stamina_ring.c`: rasterizador GBA eficiente sin trigonometría ni memoria dinámica; 64 segmentos de anillo, 3 píxeles de grosor, borde oscuro y centro transparente. Colores: verde (capacidad holgada), amarillo (intermedia) y rojo (baja/agotada). Al llegar a cero permanece visible el contorno oscuro.
-- `src/battle_interface.c`: jugador **y rival** dibujan el mismo círculo de 16×16 y actualizan su animación suave al gastar/recuperar Stamina; el cambio de Pokémon restablece inmediatamente el valor y evita representar al dueño anterior. Sigue al healthbox al entrar, salir, abrir menús y desvanecer.
+- `src/battle_interface.c`: jugador y rival dibujan el mismo anillo con animación suave al gastar o recuperar Stamina. El cambio de Pokémon restablece el valor mostrado. El anillo sigue la tarjeta al entrar, salir y abrir menús.
 - `src/battle_gfx_sfx_util.c`: 128 bytes reservados para **cada** círculo, incluidos rivales; disminuye el consumo de OBJ VRAM respecto al indicador anterior.
-- `include/config/stamina.h`: offsets separados `STAMINA_RING_PLAYER_*` y `STAMINA_RING_OPP_*`; ajustables tras capturas reales en Pizza Boy. Se conservan 64 segmentos lógicos.
+- `include/config/stamina.h`: anclajes separados para la tarjeta alta del jugador, la compacta del jugador y la del rival. Se conservan 64 segmentos lógicos.
 - El rasterizador de 32×32 sigue disponible para regresión; `StaminaRing_RenderCompact` dibuja el de 16×16 y comparte el cálculo de porcentajes. Las pruebas GBA (`test/unholy_stamina_ring.c`) comprueban también que su centro es transparente y que vacío/lleno difieren.
 
 ### Revisión de offsets por capturas de Pizza Boy — 11/11/2026

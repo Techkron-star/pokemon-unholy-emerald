@@ -47,7 +47,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 |---|---|
 | Menú de debug (ítems, dinero, Pokémon) | Hecho (el de pokeemerald-expansion, activado en el menú de inicio) |
 | Stamina en combate | Implementado y compilado. Máximo = 40 + nivel/2 + EV HP/8 + IV HP/2. Costo relativo a stamina máxima (14% base + potencia efectiva/10 puntos porcentuales). Recarga configurable por turno. A 0 queda agotado y pierde acciones hasta recuperar el umbral |
-| HUD circular de Stamina | Anillos compactos de 16×16 para aliado y rival. Offsets ajustados a partir de capturas de Pizza Boy; falta comprobar el nuevo posicionamiento en individuales y dobles |
+| HUD circular de Stamina | Anillo visible de 9×9 px en un OBJ de 16×16. En la tarjeta alta del aliado queda en el hueco inferior izquierdo. Las tarjetas compactas y rivales reservan espacio delante del nombre para dejar visibles PS, estado y nivel |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
 | Movimientos encadenados | SELECT marca el primer movimiento y A confirma el segundo. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. La IA conserva su réplica extra cuando el jugador encadena; pendiente validar en ROM |
@@ -88,7 +88,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | --- | --- | --- |
 | P0 | El jugador ejecutaba un ataque extra sin encadenar si la IA encadenaba. Se retiró la acción `CHAIN_ROLE_NORMAL` añadida implícitamente al jugador; las acciones extras se conceden solo a la IA cuando el jugador encadena | Código corregido; prueba de turnos pendiente |
 | P0 | Horizonte ITEMS/DISCS usaba una ventana de 27×8 tiles superpuesta a dinero, descripción y cantidad. Se mantiene la ventana nativa de 15×16 y se muestran dos fichas horizontales, seleccionada/siguiente, dentro del panel | Código corregido; revisión 240×160 pendiente |
-| P0 | Círculos de Stamina fuera del marco de ambos Pokémon | Offsets para 16×16 actualizados (jugador -16,+6; rival -16,+1); revisión de dobles y textos pendiente |
+| P0 | Anillos de Stamina desalineados o superpuestos al nombre y a los estados | Rediseñado el hueco en cada variante de tarjeta. Los apodos anchos se condensan y conservan género e insignia de mutación al abreviarse. La matriz de QA está en [HUD circular de Stamina](docs/UNHOLY_STAMINA_HUD.md) |
 | P1 | Horizon MOVES solo abría el recordador; ahora permite elegir RELEARN o FORGET, con selector de Pokémon y pantalla de movimientos | Implementado en código; validar cancelación, HM y último movimiento |
 | P1 | Mutaciones de iniciales, regalos, guardería e intercambios NPC; bonus relativo del 15 % para tiers C/B | PR #27 apilado, pendiente de QA |
 | P1 | Clasificación lógica de bolsillos y franja negra de abreviaturas | PR #25 apilado; **captura de MEDICINE vacío** requiere prueba con Debug Fill/obtención normal, no se marca como resuelto sin comprobarlo |

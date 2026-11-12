@@ -33,18 +33,14 @@
 // Pokémon restauran este % de la stamina máxima por cada KO, además de su subida de stat.
 #define STAMINA_KO_RESTORE_PERCENT      30
 
-// The 16x16 OBJ is anchored to the centre of the LEFT 64x32 healthbox.
-// Player: place the circle in the gap between nickname, HP and EXP.
-// Opponent: move it below the nickname so it never masks the species name.
-// The ring's entire 16x16 footprint stays inside the left 64x32 sprite:
-// X=-14 => left edge 10px from the panel's left edge;
-// Y=+4/+6 => top edges 12/14px and bottom edges 28/30px.
-// Identical box-local anchors work for single and double layouts: do not
-// apply extra battle-mode corrections, which previously caused overlaps.
-#define STAMINA_RING_PLAYER_X_OFFSET   (-14)
-#define STAMINA_RING_PLAYER_Y_OFFSET    4
-#define STAMINA_RING_OPP_X_OFFSET      (-14)
-#define STAMINA_RING_OPP_Y_OFFSET       6
+// Offsets from the centre of the left healthbox OBJ. The tall player box
+// has a gap above status and EXP. The other boxes use the nickname row.
+#define STAMINA_RING_PLAYER_SINGLE_X_OFFSET (-14)
+#define STAMINA_RING_PLAYER_SINGLE_Y_OFFSET  3
+#define STAMINA_RING_PLAYER_DOUBLE_X_OFFSET (-12)
+#define STAMINA_RING_OPP_X_OFFSET           (-20)
+#define STAMINA_RING_NICKNAME_Y_OFFSET      (-7)
+#define STAMINA_RING_NICKNAME_PADDING       10
 #define STAMINA_RING_SEGMENTS           64
 
 #endif // GUARD_CONFIG_STAMINA_H
