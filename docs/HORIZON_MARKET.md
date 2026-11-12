@@ -4,7 +4,7 @@
 
 ## UI de tiendas y cierre seguro
 
-Las cinco tiendas se presentan horizontalmente arriba: **PKMN · DISCS · ITEMS · EGGS · MOVES**. A abre la tienda seleccionada; izquierda/derecha o L/R cambia de pestaña; B reconstruye el campo y regresa al menú START. Los catálogos de seis Pokémon y cinco huevos siguen siendo listas internas. La salida desde Pokémon o Huevos con B cancela primero una compra en confirmación y luego vuelve a la barra superior.
+Las cinco tiendas se presentan horizontalmente arriba: **PKMN · DISCS · ITEMS · EGGS · MOVES**. A abre la tienda seleccionada; izquierda/derecha o L/R cambia de pestaña; B reconstruye el campo y regresa al menú START. Las seis ofertas Pokémon usan una cuadrícula 3×2 y los cinco huevos una hilera de tarjetas horizontales en el PR #30. La salida desde Pokémon o Huevos con B cancela primero una compra en confirmación y luego vuelve a la barra superior.
 
 No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las probabilidades. El cierre libera el sprite/paleta temporal del huevo y las ventanas antes de llamar a `CB2_ReturnToFieldWithOpenMenu`, en vez de dejar `ShowReturnToFieldStartMenu` pendiente sin ejecutar.
 
@@ -12,9 +12,19 @@ No se modifica la ruleta de huevos, los rangos, el stock, el precio ni las proba
 
 ## Interfaz horizontal de compra (revisión 11/11/2026)
 
-**Corrección tras las capturas de Pizza Boy:** los paneles de **ITEMS y DISCS** mantienen el área de ítems nativa de 15×16 tiles (120×128 píxeles) para no tapar el dinero, los iconos, las descripciones ni las ventanas de compra. Dentro aparecen **dos tarjetas horizontales**, el artículo seleccionado y el siguiente; L/R recorre todas las ofertas, A compra y B sale. Los nombres completos se muestran debajo de las tarjetas. Continúan intactos los precios, la cantidad, el icono y la lógica de compra de PokéMart.
+**Corrección tras las capturas de Pizza Boy:** los paneles de **ITEMS y DISCS** mantienen el área de ítems nativa de 15×16 tiles (120×128 píxeles) para no tapar el dinero, los iconos, las descripciones ni las ventanas de compra. Dentro aparecen **dos tarjetas horizontales**, el artículo seleccionado y el siguiente, con nombre recortado por ancho, coste y marcas de catálogo; L/R recorre las ofertas, A compra y B sale. Con un solo producto no se muestra una segunda tarjeta duplicada. Los nombres completos se muestran debajo de las tarjetas. Continúan intactos los precios, la cantidad, el icono y la lógica de compra de PokéMart.
 
 La navegación horizontal se activa **solo** cuando `sHorizonActive` está habilitado. Las tiendas tradicionales y su lista vertical no cambian. El cursor de la vista Horizon es transitorio: **no vuelve a sortear stock ni modifica las variables del mercado**. Se debe validar render a 240×160 y probar compras, cancelaciones, cambio de categorías, Eclipse/Daylight y retorno a START.
+
+## Renovación visual de Horizon (PR #30 — 12/11/2026)
+
+- Pokémon: cuadrícula de seis fichas, marcadores de mutación y precios individuales. El texto completo de selección se muestra por debajo y no se superpone a otras ofertas.
+- Huevos: cinco tarjetas en línea con huevo pixelado realzado según calidad, textos compactos y precio/estado de la selección; la ruleta de especie sigue completamente oculta.
+- MOVES: dos tarjetas visibles con selección y ayudas; se conservan las rutas previas de recordar/olvidar.
+- ITEMS/DISCS: marcas de posición y bordes seleccionados dentro del panel PokéMart nativo. No se modifica el precio ni la lógica de compra.
+- El cursor se conserva por pestaña hasta cerrar Horizon; los cambios visuales no generan RNG nuevo ni alteran el guardado.
+
+**Sin validar todavía:** prueba visual directa en Pizza Boy, estabilidad en ambos temas, retorno a START, compra/venta, múltiples visitas, textos largos y disponibilidad de sprites de huevo con OBJ saturado.
 
 ## MOVES: recordar y olvidar (revisión 11/11/2026)
 
