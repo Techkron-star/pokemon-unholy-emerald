@@ -254,7 +254,11 @@ STATIC_ASSERT(I_EXP_SHARE_ITEM < GEN_6 || I_EXP_SHARE_FLAG > TEMP_FLAGS_END, You
 void ItemUseOutOfBattle_ExpShare(u8 taskId)
 {
 #if I_EXP_SHARE_ITEM >= GEN_6
-    u16 toggleFlag = gSpecialVar_ItemId == ITEM_SUPER_EXP_SHARE ? FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED : I_EXP_SHARE_FLAG;
+    u16 toggleFlag = I_EXP_SHARE_FLAG;
+    if (gSpecialVar_ItemId == ITEM_SUPER_EXP_SHARE)
+        toggleFlag = FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED;
+    else if (gSpecialVar_ItemId == ITEM_OVERLOADED_EXP_SHARE)
+        toggleFlag = FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED;
     if (FlagGet(toggleFlag))
     {
         PlaySE(SE_PC_OFF);

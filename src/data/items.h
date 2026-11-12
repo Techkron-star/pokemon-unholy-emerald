@@ -9868,6 +9868,21 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_SuperExpShare,
     },
 
+    [ITEM_OVERLOADED_EXP_SHARE] =
+    {
+        .name = ITEM_NAME("Overload Exp. Share"),
+        .description = COMPOUND_STRING(
+            "Shares bonus EXP.\n"
+            "Trains the team\n"
+            "and warms eggs."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .type = ITEM_USE_FIELD,
+        .fieldUseFunc = ItemUseOutOfBattle_ExpShare,
+        .iconPic = gItemIcon_OverloadedExpShare,
+        .iconPalette = gItemIconPalette_OverloadedExpShare,
+    },
+
     [ITEM_POKELOCATOR] =
     {
         .name = ITEM_NAME("Pokelocator"),

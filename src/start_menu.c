@@ -218,7 +218,7 @@ static const u8 sText_MenuDebug[] = _("DEBUG");
 static const u8 sText_MenuHorizonCompact[] = _("HORIZON");
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
-#define UNHOLY_CRAFT_RECIPE_COUNT 7
+#define UNHOLY_CRAFT_RECIPE_COUNT 8
 
 enum UnholyCraftStatus
 {
@@ -228,6 +228,8 @@ enum UnholyCraftStatus
     CRAFT_STATUS_BADGE,
     CRAFT_STATUS_SPACE,
     CRAFT_STATUS_COMPLETED,
+    CRAFT_STATUS_SHARE_UPGRADED,
+    CRAFT_STATUS_SHARE_OWNED,
     CRAFT_STATUS_EMPTY_SLOT,
     CRAFT_STATUS_NO_GEAR,
     CRAFT_STATUS_EQUIPPED,
@@ -259,6 +261,7 @@ static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
 static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
+static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
 static const u8 sUnholyRecipeVisor[] = _("Special attack gear.\nAlternates overload.");
 static const u8 sUnholyRecipeHeart[] = _("Physical attack gear.\nAlternates overload.");
 static const u8 sUnholyRecipeMask[] = _("Dark damage gear.\nPowerful even recharging.");
@@ -285,6 +288,8 @@ static const u8 *const sUnholyCraftStatuses[] =
     [CRAFT_STATUS_BADGE] = sUnholyCraftNeedBadge,
     [CRAFT_STATUS_SPACE] = sUnholyCraftNoSpace,
     [CRAFT_STATUS_COMPLETED] = sUnholyCraftDone,
+    [CRAFT_STATUS_SHARE_UPGRADED] = COMPOUND_STRING("Crafted! EXP Share upgraded."),
+    [CRAFT_STATUS_SHARE_OWNED] = COMPOUND_STRING("You already have this upgrade."),
     [CRAFT_STATUS_EMPTY_SLOT] = sUnholyCraftNoMon,
     [CRAFT_STATUS_NO_GEAR] = sUnholyCraftNoGear,
     [CRAFT_STATUS_EQUIPPED] = sUnholyCraftEquipped,
@@ -299,6 +304,8 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_CO
 {
     { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE01_GET, 1,
       {{ ITEM_EXP_SHARE, 1 }} },
+    { ITEM_OVERLOADED_EXP_SHARE, sUnholyRecipeOverloadedExp, FLAG_BADGE04_GET, 2,
+      {{ ITEM_SUPER_EXP_SHARE, 1 }, { ITEM_NUGGET, 1 }} },
     { ITEM_GEAR_VISOR_COSMICO, sUnholyRecipeVisor, 0, 3,
       {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
     { ITEM_GEAR_CORAZON_TITAN, sUnholyRecipeHeart, 0, 3,
@@ -585,6 +592,8 @@ static u8 UnholyCraftCheckRecipe(const struct UnholyCraftRecipe *recipe)
 {
     if (recipe->badgeFlag != 0 && !FlagGet(recipe->badgeFlag))
         return CRAFT_STATUS_BADGE;
+    if (recipe->result == ITEM_OVERLOADED_EXP_SHARE && CheckBagHasItem(recipe->result, 1))
+        return CRAFT_STATUS_SHARE_OWNED;
 
     for (u8 i = 0; i < recipe->materialCount; i++)
     {
@@ -592,7 +601,8 @@ static u8 UnholyCraftCheckRecipe(const struct UnholyCraftRecipe *recipe)
             return CRAFT_STATUS_MATERIALS;
     }
 
-    if (!CheckBagHasSpace(recipe->result, 1))
+    if (!CheckBagHasSpace(recipe->result, 1)
+     && !(recipe->result == ITEM_OVERLOADED_EXP_SHARE && CountTotalItemQuantityInBag(ITEM_SUPER_EXP_SHARE) == 1))
         return CRAFT_STATUS_SPACE;
     return CRAFT_STATUS_READY;
 }
@@ -625,6 +635,15 @@ static u8 UnholyCraftFabricate(const struct UnholyCraftRecipe *recipe)
         return CRAFT_STATUS_SPACE;
     }
 
+    if (recipe->result == ITEM_OVERLOADED_EXP_SHARE)
+    {
+        if (gSaveBlock1Ptr->registeredItem == ITEM_SUPER_EXP_SHARE)
+            gSaveBlock1Ptr->registeredItem = ITEM_OVERLOADED_EXP_SHARE;
+        FlagClear(FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED);
+        FlagClear(I_EXP_SHARE_FLAG);
+        FlagSet(FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED);
+        return CRAFT_STATUS_SHARE_UPGRADED;
+    }
     return CRAFT_STATUS_COMPLETED;
 }
 
@@ -805,7 +824,8 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         {
             sUnholyCraftStatus = UnholyCraftFabricate(&sUnholyCraftRecipes[sUnholyCraftRecipeCursor]);
             sUnholyCraftConfirm = FALSE;
-            PlaySE(sUnholyCraftStatus == CRAFT_STATUS_COMPLETED ? SE_SUCCESS : SE_FAILURE);
+            PlaySE(sUnholyCraftStatus == CRAFT_STATUS_COMPLETED || sUnholyCraftStatus == CRAFT_STATUS_SHARE_UPGRADED
+                ? SE_SUCCESS : SE_FAILURE);
             UnholyCraftRenderMenu();
             return;
         }

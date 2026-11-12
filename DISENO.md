@@ -275,7 +275,7 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | --- | --- | --- |
 | **Inicio; al bajar y encontrarse con la madre** | Repartir EXP y otros objetos QoL | La madre entrega las herramientas básicas de conveniencia. Lista adicional pendiente. |
 | **Primera medalla** | Súper Repartir EXP | Cada Pokémon elegible recibe **100 % de la EXP**, sin repartirse la cifra entre el equipo. |
-| **Cuarta medalla** | Repartir EXP Sobrecargado / Overloaded (nombre WIP) | Reparte EXP íntegra, concede EXP adicional, acelera crecimiento de **IVs y EVs** y hace que la **EXP adelante la eclosión de los huevos** del equipo, además de los pasos habituales. |
+| **Cuarta medalla** | Repartir EXP Sobrecargado | Se fabrica en Crafteo con el Súper Repartir EXP y una Pepita. Se activa al fabricarlo y se puede apagar desde Objetos Clave. |
 | **Quinta medalla, al recibir el HF** | Poké Simulator | Ajuste de IV y EV por estadística con vista previa y pago al confirmar. |
 | **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
 | **Segunda medalla** | **Pokélocator** | Acceso desde el Super Poké Watch. Muestra los Pokémon de la ruta actual. La Señal mutante se abre con el HF. |
@@ -314,8 +314,9 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 
 **QA manual en mGBA (no verificado por mí).** Esta sesión no tenía toolchain ARM ni emulador: la compilación Emerald/FRLG, `make check` y la pantalla real dependen del CI y de pruebas manuales. Revisar: abrir desde la Mochila y desde SELECT; ruta con hierba, Surf, pesca y cueva; filtros L/R; A/B; ←→ en zona multi-mapa; Eclipse y Daylight; mapa sin encuentros; que no queden iconos ni ventanas residuales al salir; que el mapa recupere sus colores; nombres largos de especie; 3 filas sin texto superpuesto; Pokédex con especies vistas/capturadas/ocultas.
 
-- El reparto sobrecargado se comparó con efectos de **plumas, pesos y Golden Nugget**; falta definir exactamente la contribución de cada uno.
-- Conversión EXP → avance de huevos, fórmula de EXP extra, límites de estadísticas del Repartir EXP Sobrecargado y listado QoL inicial: **sin cuantificar**.
+- **Repartir EXP Sobrecargado, balance provisional.** Cada Pokémon elegible recibe la EXP íntegra una vez, con un 25 % adicional sujeto al límite de nivel. Duplica los EV de combate, incluidos los modificadores de objetos y Pokérus, con los topes habituales.
+- Cada nivel que se gana en combate sube un punto el IV más bajo que todavía pueda subir. En empate se usa el orden PS, Ataque, Defensa, Velocidad, Ataque Especial y Defensa Especial. Se respetan los IV de 31, el entrenamiento extremo y las mutaciones Ascendido y Omega.
+- Cada 256 puntos de EXP base generados por un rival adelantan un ciclo de cada huevo del equipo. El cálculo cuenta una vez por rival y conserva el sobrante mientras queden huevos por incubar. Los huevos listos eclosionan en los siguientes pasos seguros del campo.
 - Ajustar IVs/EVs en el simulador **no convierte** a un Pokémon normal en Omega.
 
 ---
@@ -480,8 +481,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 
 ### P1 — Progresión principal
 
-- Repartir EXP básico, Súper Repartir EXP y Repartir EXP Sobrecargado.
-- Crafteo inicial de Súper Repartir EXP implementado; faltan recetas adicionales, interfaz de recetas y balance económico.
+- Repartir EXP básico, Súper y Sobrecargado integrados. Pendiente el balance económico y la prueba de progresión completa.
 - Poké Simulator integrado en WATCH con previsualización de IV y EV, límites del motor y tarifa provisional.
 - HUD de batalla para mutaciones: las cajas de vida muestran la inicial de la mutación principal (`A`, `S`, `E` u `O`); el resumen conserva la lista completa.
 - Horizon MOVES: selector RELEARN/FORGET y protección del último ataque en código; filtros avanzados y QA pendiente. El acceso contextual `LEARN` antiguo se retiró del menú del Pokémon.

@@ -5193,7 +5193,7 @@ s32 CalculateFriendshipBonuses(struct Pokemon *mon, s32 modifier, enum HoldEffec
     return bonus;
 }
 
-void MonGainEVs(struct Pokemon *mon, enum Species defeatedSpecies)
+void MonGainEVs(struct Pokemon *mon, enum Species defeatedSpecies, bool32 overloaded)
 {
     u8 evs[NUM_STATS];
     u16 evIncrease = 0;
@@ -5271,6 +5271,8 @@ void MonGainEVs(struct Pokemon *mon, enum Species defeatedSpecies)
         }
 
         if (holdEffect == HOLD_EFFECT_MACHO_BRACE)
+            evIncrease *= 2;
+        if (overloaded)
             evIncrease *= 2;
 
         if (totalEVs + (s16)evIncrease > currentEVCap)

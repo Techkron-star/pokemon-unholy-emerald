@@ -2,6 +2,7 @@
 #include "pokemon.h"
 #include "battle.h"
 #include "daycare.h"
+#include "unholy_exp_share.h"
 #include "string_util.h"
 #include "caps.h"
 #include "mail.h"
@@ -1178,6 +1179,8 @@ static bool32 TryToHatchEgg(struct DayCare *daycare)
 
 bool8 ShouldEggHatch(void)
 {
+    if (UnholyExpShare_FindReadyEgg())
+        return TRUE;
     return TryToHatchEgg(&gSaveBlock1Ptr->daycare);
 }
 
