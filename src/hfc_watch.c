@@ -40,58 +40,49 @@ static const u8 *sHfcWatchOptionDescriptions[HFC_WATCH_COUNT] = {
 // Banderas requeridas para cada opción (0 = sin requisito especial)
 static const u16 sHfcWatchRequiredFlags[HFC_WATCH_COUNT] = {
     FLAG_HORIZON_UNLOCKED,   // HORIZON
-    FLAG_POKENAV_UNLOCKED,   // POKENAV
+    FLAG_SYS_POKENAV_GET,   // POKENAV
     FLAG_POKELOCATOR_UNLOCKED, // POKELOCATOR
     FLAG_CRAFTING_UNLOCKED,  // CRAFTING
     FLAG_PC_UNLOCKED,        // PC
     FLAG_ANOMALY_ARCHIVE_UNLOCKED, // ANOMALY_ARCHIVE
     FLAG_MUTANT_SIGNAL_UNLOCKED, // MUTANT_SIGNAL
     FLAG_POKE_SIMULATOR_UNLOCKED, // POKE_SIMULATOR
-    FLAG_RAID_BATTLE_UNLOCKED, // RAID_BATTLE
+    FLAG_RAIDS_UNLOCKED, // RAID_BATTLE
 };
 
 // Inicializar la pantalla de HFC Watch
 static void CB2_InitHfcWatch(void)
 {
-    // Inicializar estado
     sHfcWatchState.currentSelection = 0;
     sHfcWatchState.isOpen = TRUE;
-
-    // Actualizar estados de las opciones
+    sHfcWatchState.scrollOffset = 0;
+    sHfcWatchState.visibleCards = 3;
     HfcWatch_UpdateOptionStates();
-
-    // Crear ventanas de UI (pestañas, paneles, lista de opciones)
-    // TODO: Implementar creación de ventanas con CreateWindowFromRect
-
     SetMainCallback2(CB2_InitHfcWatch);
 }
 
-// Abrir HFC Watch desde el menú START
 void OpenHfcWatchFromStartMenu(void)
 {
     SetMainCallback2(CB2_InitHfcWatch);
 }
 
-// Cerrar HFC Watch de forma segura
 void CloseHfcWatch(void)
 {
-    // Liberar ventanas de UI creadas
-    // TODO: Destruir ventanas
-
-    // Reconstruir el campo y el menú START
     SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
 }
 
-// Manejo de entrada de usuario en HFC Watch
 void HfcWatch_HandleInput(void)
 {
-    // Navegación arriba/abajo entre opciones
     if (JOY_NEW(DPAD_UP))
     {
         if (sHfcWatchState.currentSelection > 0)
             sHfcWatchState.currentSelection--;
         else
             sHfcWatchState.currentSelection = HFC_WATCH_COUNT - 1;
+        if (sHfcWatchState.currentSelection < sHfcWatchState.scrollOffset)
+            sHfcWatchState.scrollOffset = sHfcWatchState.currentSelection;
+        else if (sHfcWatchState.currentSelection >= sHfcWatchState.scrollOffset + sHfcWatchState.visibleCards)
+            sHfcWatchState.scrollOffset = sHfcWatchState.currentSelection - sHfcWatchState.visibleCards + 1;
         PlaySE(SE_SELECT);
     }
     else if (JOY_NEW(DPAD_DOWN))
@@ -100,10 +91,13 @@ void HfcWatch_HandleInput(void)
             sHfcWatchState.currentSelection++;
         else
             sHfcWatchState.currentSelection = 0;
+        if (sHfcWatchState.currentSelection < sHfcWatchState.scrollOffset)
+            sHfcWatchState.scrollOffset = sHfcWatchState.currentSelection;
+        else if (sHfcWatchState.currentSelection >= sHfcWatchState.scrollOffset + sHfcWatchState.visibleCards)
+            sHfcWatchState.scrollOffset = sHfcWatchState.currentSelection - sHfcWatchState.visibleCards + 1;
         PlaySE(SE_SELECT);
     }
 
-    // A para seleccionar opción
     if (JOY_NEW(A_BUTTON))
     {
         if (HfcWatch_IsOptionUnlocked(sHfcWatchState.currentSelection))
@@ -112,7 +106,7 @@ void HfcWatch_HandleInput(void)
         }
         else
         {
-            PlaySE(SE_FAILURE); // Sonido de acción no disponible
+            PlaySE(SE_FAILURE);
         }
     }
     else if (JOY_NEW(B_BUTTON))
@@ -122,7 +116,6 @@ void HfcWatch_HandleInput(void)
     }
 }
 
-// Actualizar estados de las opciones (desbloqueadas/bloqueadas)
 void HfcWatch_UpdateOptionStates(void)
 {
     u8 i;
@@ -134,50 +127,70 @@ void HfcWatch_UpdateOptionStates(void)
     }
 }
 
-// Verificar si una opción está desbloqueada
 bool8 HfcWatch_IsOptionUnlocked(enum HfcWatchOption option)
 {
     u16 requiredFlag = sHfcWatchRequiredFlags[option];
-
     if (requiredFlag == 0)
         return TRUE;
-
     return FlagGet(requiredFlag);
 }
 
-// Lanzar una opción seleccionada
 void HfcWatch_LaunchOption(enum HfcWatchOption option)
 {
     switch (option)
     {
         case HFC_WATCH_HORIZON:
-            // TODO: Llamar a OpenHorizonFromStartMenu() o equivalente
             break;
         case HFC_WATCH_POKENAV:
-            // TODO: Abrir PokéNav
             break;
         case HFC_WATCH_POKELOCATOR:
-            // TODO: Abrir Poké Locator
+            OpenPokeLocatorFromHfcWatch();
             break;
         case HFC_WATCH_CRAFTING:
-            // TODO: Abrir menú de crafteo
             break;
         case HFC_WATCH_PC:
-            // TODO: Abrir PC
             break;
         case HFC_WATCH_ANOMALY_ARCHIVE:
-            // TODO: Abrir Archivo de anomalías
             break;
         case HFC_WATCH_MUTANT_SIGNAL:
-            // TODO: Abrir Señal mutante
             break;
         case HFC_WATCH_POKE_SIMULATOR:
-            // TODO: Abrir Poké Simulator
             break;
         case HFC_WATCH_RAID_BATTLE:
-            // TODO: Abrir Incursiones
             break;
-        default:
-            break;
+        default: break;
+    }
+}
+
+void HfcWatch_DrawCards(void)
+{
+    u8 i;
+    u8 yPos = 40;
+    for (i = sHfcWatchState.scrollOffset; i < HFC_WATCH_COUNT && i < sHfcWatchState.scrollOffset + sHfcWatchState.visibleCards; i++)
+    {
+        u8 cardY = yPos + (i - sHfcWatchState.scrollOffset) * 40;
+        HfcWatch_DrawCard(i, 20, cardY);
+    }
+}
+
+void HfcWatch_DrawCard(u8 index, u8 x, u8 y)
+{
+    u8 optionIndex = sHfcWatchState.scrollOffset + index;
+    if (optionIndex >= HFC_WATCH_COUNT)
+        return;
+
+    enum HfcWatchOption option = (enum HfcWatchOption)sHfcWatchState.optionsState[optionIndex];
+    enum HfcWatchOptionState state = sHfcWatchState.optionsState[option];
+
+    PrintTextOnWindow(sHfcWatchWindowIds[optionIndex], sHfcWatchOptionNames[option], x + 10, y + 10, 0, 1);
+    PrintTextOnWindow(sHfcWatchWindowIds[optionIndex], sHfcWatchOptionDescriptions[option], x + 10, y + 30, 0, 1);
+
+    if (sHfcWatchState.optionsState[option] == HFC_WATCH_LOCKED)
+    {
+        PrintTextOnWindow(sHfcWatchWindowIds[optionIndex], gText_Locked, x + 10, y + 50, 0, 1);
+    }
+
+    if (sHfcWatchState.currentSelection == option)
+    {
     }
 }
