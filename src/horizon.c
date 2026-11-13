@@ -58,8 +58,12 @@ static void CB2_InitHorizon(void)
 // Abrir Horizon desde el menú START
 void OpenHorizonFromStartMenu(void)
 {
-    // Verificar si Horizon está disponible
-    // TODO: Verificar flags de desbloqueo (ej. FLAG_HORIZON_UNLOCKED)
+    // Verificar si Horizon está desbloqueado
+    if (!FlagGet(FLAG_HORIZON_UNLOCKED))
+    {
+        PlaySE(SE_FAILURE);
+        return;
+    }
 
     SetMainCallback2(CB2_InitHorizon);
 }
@@ -108,21 +112,23 @@ void Horizon_HandleInput(void)
     }
 }
 
-// Actualizar stock persistente basado en semillas
+// Actualizar stock persistente basado en variables de SaveBlock
 void Horizon_UpdateStock(void)
 {
-    // TODO: Leer semillas persistentes desde variables de SaveBlock
-    // sHorizonState.pokemonOfferCount se basa en 0x40F7–0x40FE
-    // sHorizonState.discsOfferCount se basa en 0x40B8 y 0x40BB
-    // sHorizonState.itemsOfferCount se basa en 0x40B8 y 0x40BB
-    // sHorizonState.eggsOfferCount se basa en 0x40DB, 0x40DC, 0x40E5, etc.
+    // Leer semillas persistentes desde SaveBlock1
+    // gSaveBlock1Ptr->horizonSeedDiscs  -> controla stock de MTs (DISCS)
+    // gSaveBlock1Ptr->horizonSeedItems  -> controla stock de ítems (ITEMS)
+    u32 discsSeed = gSaveBlock1Ptr->horizonSeedDiscs;
+    u32 itemsSeed = gSaveBlock1Ptr->horizonSeedItems;
 
-    // Por ahora inicializar contadores en 0 hasta conectar con SaveBlock
-    sHorizonState.pokemonOfferCount = 0;
-    sHorizonState.discsOfferCount = 0;
-    sHorizonState.itemsOfferCount = 0;
-    sHorizonState.eggsOfferCount = 0;
-    sHorizonState.rareStockAlert = FALSE;
+    // Generar conteos de ofertas basados en las semillas
+    sHorizonState.pokemonOfferCount = 2;  // Siempre 2 ofertas de Pokémon
+    sHorizonState.discsOfferCount   = (discsSeed % 6) + 1;   // 1-6 MTs
+    sHorizonState.itemsOfferCount   = (itemsSeed % 8) + 1;   // 1-8 ítems
+    sHorizonState.eggsOfferCount    = (discsSeed % 5) + 1;   // 1-5 huevos
+
+    // Alerta de stock raro si alguna semilla indica oferta especial
+    sHorizonState.rareStockAlert = ((discsSeed & 0xFF) == 0xFF) || ((itemsSeed & 0xFF) == 0xFF);
 }
 
 // Verificar si hay stock raro disponible

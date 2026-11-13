@@ -51,6 +51,7 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 #include "hfc_watch.h"
+#include "horizon.h"
 
 // Menu actions
 enum
@@ -71,6 +72,7 @@ enum
     MENU_ACTION_DEBUG,
     MENU_ACTION_DEXNAV,
     MENU_ACTION_HFC_WATCH,
+    MENU_ACTION_HORIZON,
 };
 
 // Save status
@@ -114,6 +116,7 @@ static bool8 StartMenuBattlePyramidBagCallback(void);
 static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
 static bool8 StartMenuHfcWatchCallback(void);
+static bool8 StartMenuHorizonCallback(void);
 
 // Menu callbacks
 static bool8 SaveStartCallback(void);
@@ -192,6 +195,7 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
 static const u8 sText_MenuHfcWatch[] = _("Poké Watch");
+static const u8 sText_MenuHorizon[] = _("Mercado Horizon");
 
 static const struct MenuAction sStartMenuItems[] =
 {
@@ -211,6 +215,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_DEBUG]           = {sText_MenuDebug,   {.u8_void = StartMenuDebugCallback}},
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
     [MENU_ACTION_HFC_WATCH]       = {sText_MenuHfcWatch, {.u8_void = StartMenuHfcWatchCallback}},
+    [MENU_ACTION_HORIZON]         = {sText_MenuHorizon,  {.u8_void = StartMenuHorizonCallback}},
 };
 
 static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
@@ -346,6 +351,9 @@ static void BuildNormalStartMenu(void)
     if (FlagGet(FLAG_POKELOCATOR_UNLOCKED) == TRUE)
         AddStartMenuAction(MENU_ACTION_HFC_WATCH);
 
+    if (FlagGet(FLAG_HORIZON_UNLOCKED) == TRUE)
+        AddStartMenuAction(MENU_ACTION_HORIZON);
+
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
     AddStartMenuAction(MENU_ACTION_OPTION);
@@ -363,6 +371,7 @@ static void BuildDebugStartMenu(void)
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
     AddStartMenuAction(MENU_ACTION_HFC_WATCH);
+    AddStartMenuAction(MENU_ACTION_HORIZON);
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
     AddStartMenuAction(MENU_ACTION_OPTION);
@@ -1518,6 +1527,14 @@ static bool8 StartMenuHfcWatchCallback(void)
     RemoveExtraStartMenuWindows();
     HideStartMenu();
     OpenHfcWatchFromStartMenu();
+    return TRUE;
+}
+
+static bool8 StartMenuHorizonCallback(void)
+{
+    RemoveExtraStartMenuWindows();
+    HideStartMenu();
+    OpenHorizonFromStartMenu();
     return TRUE;
 }
 
