@@ -7,6 +7,7 @@
 #include "sound.h"
 #include "text.h"
 #include "window.h"
+#include "script.h"
 
 // Estado del menú HFC Watch
 static EWRAM_DATA struct HfcWatchState sHfcWatchState = {0};

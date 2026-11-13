@@ -3,6 +3,26 @@
 
 #include "global.h"
 
+// Declaraciones de strings de texto (definidos en data/text/hfc_watch.inc)
+extern const u8 gText_HfcWatch_Horizon[];
+extern const u8 gText_HfcWatch_HorizonDesc[];
+extern const u8 gText_HfcWatch_PokeNav[];
+extern const u8 gText_HfcWatch_PokeNavDesc[];
+extern const u8 gText_HfcWatch_PokeLocator[];
+extern const u8 gText_HfcWatch_PokeLocatorDesc[];
+extern const u8 gText_HfcWatch_Crafting[];
+extern const u8 gText_HfcWatch_CraftingDesc[];
+extern const u8 gText_HfcWatch_PC[];
+extern const u8 gText_HfcWatch_PCDesc[];
+extern const u8 gText_HfcWatch_AnomalyArchive[];
+extern const u8 gText_HfcWatch_AnomalyArchiveDesc[];
+extern const u8 gText_HfcWatch_MutantSignal[];
+extern const u8 gText_HfcWatch_MutantSignalDesc[];
+extern const u8 gText_HfcWatch_PokeSimulator[];
+extern const u8 gText_HfcWatch_PokeSimulatorDesc[];
+extern const u8 gText_HfcWatch_RaidBattle[];
+extern const u8 gText_HfcWatch_RaidBattleDesc[];
+
 // Número de opciones en el menú HFC Watch
 #define HFC_WATCH_OPTION_COUNT 9
 
