@@ -476,7 +476,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Correr automáticamente, correr en interiores y opción de movimiento acelerado. Implementado con `OW_AUTO_RUN`; mantener A permite caminar despacio.
 - Repelente automático/renovable implementado; falta decidir y balancear el modo de repelente infinito.
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
-- PC avanzado: favoritos/protección, filtros, búsqueda y operaciones múltiples. El traslado múltiple y el cambio rápido de caja ya existen en la base.
+- PC avanzado: favoritos con protección frente a liberación y búsqueda combinada por especie seleccionada, tipo, mutación, favorito, shiny y Gear implementados; ver [controles y QA pendiente](docs/PC_QOL.md). El traslado múltiple y el cambio rápido de caja ya existen en la base. Falta validar navegación, guardado/carga y aspecto en emulador/hardware.
 - Aprender/olvidar movimientos desde **Horizon MOVES**: código de ambas acciones integrado; todavía deben validarse cancelación, restricciones y guardado.
 - Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes. La interfaz HGSS existente ya está activada; quedan por integrar explícitamente las variantes Alpha/Super/Enraged/Omega y validar textos/pantallas en hardware.
 - Guardado fiable, versionado/migraciones y pruebas de persistencia.

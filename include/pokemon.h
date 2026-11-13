@@ -127,6 +127,7 @@ enum MonData {
     MON_DATA_EVOLUTION_TRACKER,
     MON_DATA_SPECIAL_BADGES,
     MON_DATA_GEAR,
+    MON_DATA_IS_FAVORITE,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
@@ -296,7 +297,7 @@ struct BoxPokemon
     u8 isEgg:1;
     u8 blockBoxRS:1; // Unused, but Pokémon Box Ruby & Sapphire will refuse to deposit a Pokémon with this flag set.
     u8 daysSinceFormChange:3; // 7 days.
-    u8 unused_13:1;
+    u8 isFavorite:1; // PC favorite/protection; formerly unused, same save layout.
     u8 otName[PLAYER_NAME_LENGTH];
     u8 markings:4;
     u8 compressedStatus:4;
