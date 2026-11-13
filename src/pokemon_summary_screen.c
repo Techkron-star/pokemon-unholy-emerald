@@ -1,3 +1,4 @@
+successfully downloaded text file (SHA: 801dfe07ed7a08c08847554a11686baa004cb5be)
 #include "global.h"
 #include "main.h"
 #include "battle.h"
@@ -166,6 +167,10 @@ static EWRAM_DATA struct PokemonSummaryScreenData
         u32 OTID; // 0x48
         enum Type teraType;
         u8 mintNature;
+        // --- Unholy Emerald: Stamina y mutación visibles en resumen ---
+        u16 staminaMax;        // Stamina máxima
+        u32 mutationMask;      // Máscara de mutaciones activas
+        u8  mutationTier;      // Tier de mutación (C/B/A/S/Ω)
     } summary;
     u16 bgTilemapBuffers[PSS_PAGE_COUNT][2][0x400];
     u8 mode;
@@ -1567,6 +1572,9 @@ static bool8 ExtractMonDataToSummaryStruct(struct Pokemon *mon)
         sum->ribbonCount = GetMonData(mon, MON_DATA_RIBBON_COUNT);
         sum->teraType = GetMonData(mon, MON_DATA_TERA_TYPE);
         sum->isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
+        sum->staminaMax = GetMonData(mon, MON_DATA_STAMINA_MAX);
+        sum->mutationMask = GetMonData(mon, MON_DATA_MUTATION_MASK);
+        sum->mutationTier = GetMonData(mon, MON_DATA_MUTATION_TIER);
         return TRUE;
     }
     sMonSummaryScreen->switchCounter++;
@@ -3224,6 +3232,16 @@ static void PrintNotEggInfo(void)
     PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gText_Slash, 0, 1, 0, 1);
     PrintTextOnWindowToFitPx(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, GetSpeciesName(summary->species2), 6, 1, 0, 1, WindowWidthPx(PSS_LABEL_WINDOW_PORTRAIT_SPECIES) - 9);
     PrintGenderSymbol(mon, summary->species2);
+
+    // --- Unholy Emerald: Mostrar stamina máxima en pantalla INFO ---
+    if (summary->staminaMax > 0)
+    {
+        u8 staminaX = WindowWidthPx(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME) - 40;
+        if (staminaX < 24) staminaX = 24;
+        ConvertIntToDecimalStringN(gStringVar1, summary->staminaMax, STR_CONV_MODE_LEFT_ALIGN, 3);
+        PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME, gStringVar1, staminaX, 9, 0, 2);
+    }
+
     PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME);
     PutWindowTilemap(PSS_LABEL_WINDOW_PORTRAIT_SPECIES);
 }

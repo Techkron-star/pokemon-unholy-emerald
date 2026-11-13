@@ -1567,6 +1567,16 @@
 #define FLAG_UNUSED_0x91E                           (SYSTEM_FLAGS + 0xBE) // Unused Flag
 #define FLAG_UNUSED_0x91F                           (SYSTEM_FLAGS + 0xBF) // Unused Flag
 
+// HFC Watch feature unlock flags
+#define FLAG_POKELOCATOR_UNLOCKED                   (SYSTEM_FLAGS + 0xC0)
+#define FLAG_HORIZON_UNLOCKED                       (SYSTEM_FLAGS + 0xC1)
+#define FLAG_CRAFTING_UNLOCKED                      (SYSTEM_FLAGS + 0xC2)
+#define FLAG_PC_UNLOCKED                            (SYSTEM_FLAGS + 0xC3)
+#define FLAG_ANOMALY_ARCHIVE_UNLOCKED               (SYSTEM_FLAGS + 0xC4)
+#define FLAG_MUTANT_SIGNAL_UNLOCKED                 (SYSTEM_FLAGS + 0xC5)
+#define FLAG_POKE_SIMULATOR_UNLOCKED                (SYSTEM_FLAGS + 0xC6)
+#define FLAG_RAIDS_UNLOCKED                         (SYSTEM_FLAGS + 0xC7)
+
 // Daily Flags
 // These flags are cleared once per day
 // The start and end are byte-aligned because the flags are cleared in byte increments

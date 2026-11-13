@@ -2426,6 +2426,18 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
                 }.combinedValue;
             }
             break;
+        case MON_DATA_STAMINA_CURRENT:
+            retVal = mon->staminaCurrent;
+            break;
+        case MON_DATA_STAMINA_MAX:
+            retVal = mon->staminaMax;
+            break;
+        case MON_DATA_MUTATION_MASK:
+            retVal = mon->mutationMask;
+            break;
+        case MON_DATA_MUTATION_TIER:
+            retVal = mon->mutationTier;
+            break;
         default:
             break;
         }
