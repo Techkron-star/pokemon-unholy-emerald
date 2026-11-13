@@ -2223,6 +2223,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             retVal = moves->gear | (moves->gearHigh << 5);
             break;
         }
+        case MON_DATA_IS_FAVORITE:
+            retVal = boxMon->isFavorite;
+            break;
         case MON_DATA_EXP:
             retVal = GetSubstruct0(boxMon)->experience;
             break;
@@ -2755,6 +2758,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             moves->gearHigh = data[0] >> 5;
             break;
         }
+        case MON_DATA_IS_FAVORITE:
+            boxMon->isFavorite = data[0] != 0;
+            break;
         case MON_DATA_EXP:
             SET32(GetSubstruct0(boxMon)->experience);
             break;

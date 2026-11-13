@@ -239,6 +239,9 @@ jobs:
       - name: Native Unholy save-schema smoke test
         run: sh tools/unholy/host_save_schema.sh
 
+      - name: Native PC search checks
+        run: sh tools/unholy/host_pc_search.sh
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04
