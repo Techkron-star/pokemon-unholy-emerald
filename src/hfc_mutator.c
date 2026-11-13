@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "battle.h"
 #include "event_data.h"
 #include "hfc_mutator.h"
@@ -67,10 +68,12 @@ static EWRAM_DATA struct
     u8 window;
 } sMutator;
 
+static EWRAM_DATA struct UnholyUiPalette sUiPalette;
+
 static const struct WindowTemplate sMutatorWindow =
 {
     .bg = 0, .tilemapLeft = 1, .tilemapTop = 1, .width = 26,
-    .height = 17, .paletteNum = 15, .baseBlock = 8,
+    .height = 17, .paletteNum = 14, .baseBlock = 0x20,
 };
 
 static const u8 *const sMessages[] =
@@ -208,7 +211,7 @@ static struct Pokemon *SelectedMon(void)
 
 static void Print(const u8 *text, u8 x, u8 y)
 {
-    AddTextPrinterParameterized(sMutator.window, FONT_SMALL, text, x, y, TEXT_SKIP_DRAW, NULL);
+    UnholyUi_Print(sMutator.window, y >= 32 ? FONT_SMALL_NARROW : FONT_SMALL, x, y, 200 - min(x, 200), text);
 }
 
 static void PrintAmount(const u8 *label, u32 amount, const u8 *suffix, u8 x, u8 y, u8 digits)
@@ -224,14 +227,14 @@ static void PrintAmount(const u8 *label, u32 amount, const u8 *suffix, u8 x, u8 
 static void RenderParty(void)
 {
     bool32 canReroll = FlagGet(FLAG_DEFEATED_SUPER_LEAGUE);
-    Print(COMPOUND_STRING("Choose a party Pokémon."), 8, 18);
+    Print(COMPOUND_STRING("Choose a party Pokémon."), 8, 23);
     if (sMutator.count == 0)
         Print(COMPOUND_STRING("Your party is empty."), 8, 42);
 
     for (u8 i = 0; i < sMutator.count; i++)
     {
         struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sMutator.slots[i]];
-        u8 y = 32 + 13 * i;
+        u8 y = 37 + 11 * i;
         u8 name[POKEMON_NAME_LENGTH + 1];
         GetMonData(mon, MON_DATA_NICKNAME, name);
         if (i == sMutator.cursor)
@@ -243,7 +246,7 @@ static void RenderParty(void)
             Print(COMPOUND_STRING("Reroll"), 115, y);
     }
     if (sMutator.result != HFC_MUTATOR_READY)
-        Print(sMessages[sMutator.result], 8, 112);
+        Print(sMessages[sMutator.result], 8, 108);
     Print(COMPOUND_STRING("A  Choose      B  Back"), 8, 124);
 }
 
@@ -254,13 +257,13 @@ static void RenderPlans(void)
     u16 badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
     u8 name[POKEMON_NAME_LENGTH + 1];
     GetMonData(mon, MON_DATA_NICKNAME, name);
-    Print(name, 8, 19);
+    UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 8, 24, 76, name);
     PrintAmount(COMPOUND_STRING("Current Lv. "), level, NULL, 8, 32, 3);
     Print(COMPOUND_STRING("On success"), 149, 32);
     if (badges != 0)
     {
-        Print(COMPOUND_STRING("Replace"), 91, 19);
-        Print(HorizonMarketMutationName(GetPrimaryMutation(badges)), 133, 19);
+        UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 91, 24, 40, COMPOUND_STRING("Replace"));
+        UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 133, 24, 67, HorizonMarketMutationName(GetPrimaryMutation(badges)));
     }
     for (enum HfcMutatorPlan plan = 0; plan < HFC_MUTATOR_PLAN_COUNT; plan++)
     {
@@ -274,7 +277,7 @@ static void RenderPlans(void)
     }
     PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 91, MAX_MONEY_DIGITS);
     Print(sMutator.result == HFC_MUTATOR_INSUFFICIENT_FUNDS ? sMessages[sMutator.result]
-          : COMPOUND_STRING("The fee applies even if the roll fails."), 8, 112);
+          : COMPOUND_STRING("The fee applies even if the roll fails."), 8, 108);
     Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A  Pay and roll      B  Cancel")
                                              : COMPOUND_STRING("A  Review plan      B  Back"), 8, 124);
 }
@@ -296,8 +299,7 @@ static void RenderResult(void)
 
 static void Render(void)
 {
-    FillWindowPixelBuffer(sMutator.window, PIXEL_FILL(1));
-    Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("CONFIRM MUTATION") : COMPOUND_STRING("MUTATOR"), 8, 5);
+    UnholyUi_Frame(sMutator.window, sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("CONFIRM MUTATION") : COMPOUND_STRING("MUTATOR"));
     switch (sMutator.screen)
     {
     case MUTATOR_PARTY:
@@ -353,6 +355,7 @@ static void Task_Mutator(u8 taskId)
         {
             ClearStdWindowAndFrameToTransparent(sMutator.window, TRUE);
             RemoveWindow(sMutator.window);
+            UnholyUi_ReleasePalette(&sUiPalette);
             DestroyTask(taskId);
             PlaySE(SE_SELECT);
             sMutator.returnToWatch();
@@ -430,7 +433,7 @@ void HfcMutator_Open(void (*returnToWatch)(void))
             sMutator.slots[sMutator.count++] = slot;
 
     LoadMessageBoxAndBorderGfx();
-    SetStandardWindowBorderStyle(sMutator.window, FALSE);
+    UnholyUi_AcquirePalette(&sUiPalette, 14);
     PutWindowTilemap(sMutator.window);
     Render();
 }

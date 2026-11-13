@@ -2,10 +2,30 @@
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
 #include "item.h"
+#include "string_util.h"
 #include "test/test.h"
 #include "constants/hold_effects.h"
 
 // Tests for the HFC Watch tier logic. The hub window needs mGBA (see DISENO.md).
+
+TEST("HFC Watch locked rows explain tier, badges and story without granting access")
+{
+    struct HfcWatchProgress progress = {.badges = 1};
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_STORAGE, progress),
+        COMPOUND_STRING("REQUIRES SUPER POKé WATCH")), 0);
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_STORAGE, progress),
+        COMPOUND_STRING("2 BADGES")), 0);
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_CRAFTING, progress),
+        COMPOUND_STRING("UNLOCK CRAFTING AFTER ROXANNE")), 0);
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress),
+        COMPOUND_STRING("8 BADGES")), 0);
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, progress),
+        COMPOUND_STRING("UNAVAILABLE")), 0);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress), HFC_WATCH_NEEDS_BADGES);
+    progress.badges = 8;
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress),
+        COMPOUND_STRING("READY")), 0);
+}
 
 TEST("HFC Watch tier is the best watch owned")
 {

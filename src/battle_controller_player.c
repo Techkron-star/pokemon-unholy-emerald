@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_arena.h"
@@ -52,6 +53,8 @@
 #include "battle_stamina.h"
 #include "test/battle.h"
 
+static void DrawChainPreview(enum BattlerId battler);
+
 static void PlayerHandleLoadMonSprite(enum BattlerId battler);
 static void PlayerHandleDrawTrainerPic(enum BattlerId battler);
 static void PlayerHandleTrainerSlide(enum BattlerId battler);
@@ -79,7 +82,7 @@ static void PlayerHandleEndLinkBattle(enum BattlerId battler);
 static void PlayerHandleBattleDebug(enum BattlerId battler);
 
 static void PlayerBufferRunCommand(enum BattlerId battler);
-static const u8 sText_ChainMarked[] = _("▶2");
+
 
 static void MoveSelectionDisplayPPNumber(enum BattlerId battler);
 static void MoveSelectionDisplayPPString(enum BattlerId battler);
@@ -769,6 +772,9 @@ void HandleInputChooseMove(enum BattlerId battler)
             gMultiUsePlayerCursor = GetDefaultSelectionTarget(battler, GetMoveTarget(moveInfo->moves[first]));
         }
 
+        ClearWindowTilemap(B_WIN_DUMMY);
+        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+
         switch (canSelectTarget)
         {
         case 0:
@@ -820,8 +826,7 @@ void HandleInputChooseMove(enum BattlerId battler)
         {
             gBattleStruct->chainFirstPos[battler] = gMoveSelectionCursor[battler] + 1;
             PlaySE(SE_SELECT);
-            StringCopy(gDisplayedStringBattle, sText_ChainMarked);
-            BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
+            MoveSelectionDisplayPPString(battler);
         }
         else
         {
@@ -832,6 +837,8 @@ void HandleInputChooseMove(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         gBattleStruct->chainFirstPos[battler] = 0;
+        ClearWindowTilemap(B_WIN_DUMMY);
+        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
         gBattleStruct->gimmick.playerSelect = FALSE;
         if (gBattleStruct->zmove.viewing)
         {
@@ -1725,6 +1732,45 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
     }
 }
 
+static void DrawChainPreview(enum BattlerId battler)
+{
+    struct ChooseMoveStruct *info = (struct ChooseMoveStruct *)&gBattleResources->bufferA[battler][4];
+    u8 selected = gMoveSelectionCursor[battler];
+    u8 marked = gBattleStruct->chainFirstPos[battler];
+    u8 first = marked ? marked - 1 : selected;
+    bool8 secondValid = marked && selected != first && info->currentPP[selected] != 0
+                     && Chain_IsMoveChainable(info->moves[selected]);
+    u32 cost = Stamina_GetMoveCost(battler, info->moves[first]);
+    const u8 colors[] = {14, 13, 15};
+    u8 text[64];
+    if (!Chain_IsAvailable(battler) || gBattleStruct->descriptionSubmenu || gBattleStruct->zmove.viewing)
+    {
+        ClearWindowTilemap(B_WIN_DUMMY);
+        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+        return;
+    }
+    FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
+    StringCopy(text, COMPOUND_STRING("1 "));
+    StringAppend(text, GetMoveName(info->moves[first]));
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 0, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    StringCopy(text, COMPOUND_STRING("2 "));
+    StringAppend(text, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 112, 0, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    if (secondValid)
+        cost += Stamina_GetMoveCost(battler, info->moves[selected]);
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 8, 0, 0, colors, TEXT_SKIP_DRAW,
+        marked ? COMPOUND_STRING("SELECT:CANCEL A:USE") : COMPOUND_STRING("SELECT:CHAIN"));
+    StringCopy(text, COMPOUND_STRING("STA "));
+    ConvertUIntToDecimalStringN(text + StringLength(text), cost, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(text, COMPOUND_STRING(" / "));
+    ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    if (cost > Stamina_GetCurrent(battler))
+        StringAppend(text, COMPOUND_STRING(" !"));
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 138, 8, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    PutWindowTilemap(B_WIN_DUMMY);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
+}
+
 static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
     // This label is always visible while choosing a move. The adjoining
@@ -1743,6 +1789,7 @@ static void MoveSelectionDisplayPPString(enum BattlerId battler)
                                    STR_CONV_MODE_LEFT_ALIGN, 3);
     }
     BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
+    DrawChainPreview(battler);
 }
 
 static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
@@ -1753,9 +1800,8 @@ static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
     if (gBattleResources->bufferA[battler][2] == TRUE) // check if we didn't want to display PP number
         return;
 
-    // Update energy on every cursor move; preserve the ▶2 chain marker.
-    if (gBattleStruct->chainFirstPos[battler] == 0)
-        MoveSelectionDisplayPPString(battler);
+    MoveSelectionDisplayPPString(battler);
+    DrawChainPreview(battler);
     SetPPNumbersPaletteInMoveSelection(battler);
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     txtPtr = ConvertIntToDecimalStringN(gDisplayedStringBattle, moveInfo->currentPP[gMoveSelectionCursor[battler]], STR_CONV_MODE_RIGHT_ALIGN, 2);

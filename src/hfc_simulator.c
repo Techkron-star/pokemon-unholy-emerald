@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "battle.h"
 #include "hfc_simulator.h"
 #include "menu.h"
@@ -36,6 +37,8 @@ static EWRAM_DATA struct
     enum SimulatorMode mode;
 } sSimulator;
 
+static EWRAM_DATA struct UnholyUiPalette sUiPalette;
+
 static const struct WindowTemplate sSimulatorWindow =
 {
     .bg = 0,
@@ -43,8 +46,8 @@ static const struct WindowTemplate sSimulatorWindow =
     .tilemapTop = 1,
     .width = 26,
     .height = 17,
-    .paletteNum = 15,
-    .baseBlock = 8,
+    .paletteNum = 14,
+    .baseBlock = 0x20,
 };
 
 static const enum Stat sStatOrder[NUM_STATS] =
@@ -153,14 +156,14 @@ static struct Pokemon *SelectedMon(void)
 
 static void PrintText(const u8 *text, u8 x, u8 y)
 {
-    AddTextPrinterParameterized(sSimulator.window, FONT_SMALL, text, x, y, TEXT_SKIP_DRAW, NULL);
+    UnholyUi_Print(sSimulator.window, (y >= 32 && y <= 112) || y >= 120 ? FONT_SMALL_NARROW : FONT_SMALL, x, y, 200 - min(x, 200), text);
 }
 
 static void PrintNumber(u32 number, u8 x, u8 y, u8 digits)
 {
     u8 text[12];
     ConvertUIntToDecimalStringN(text, number, STR_CONV_MODE_LEFT_ALIGN, digits);
-    PrintText(text, x, y);
+    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, x, y, 200 - min(x, 200), text);
 }
 
 static void PrintMoney(const u8 *label, u32 amount, u8 x, u8 y)
@@ -168,19 +171,19 @@ static void PrintMoney(const u8 *label, u32 amount, u8 x, u8 y)
     u8 text[28];
     u8 *end = StringCopy(text, label);
     ConvertUIntToDecimalStringN(end, amount, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
-    PrintText(text, x, y);
+    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, x, y, 200 - min(x, 200), text);
 }
 
 static void RenderParty(void)
 {
-    PrintText(COMPOUND_STRING("Choose a party Pokémon."), 8, 18);
+    PrintText(COMPOUND_STRING("Choose a party Pokémon."), 8, 23);
     if (sSimulator.partyCount == 0)
         PrintText(COMPOUND_STRING("Your party is empty."), 8, 42);
     for (u8 i = 0; i < sSimulator.partyCount; i++)
     {
         struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sSimulator.partySlots[i]];
         const u8 *reason = GetLockReason(mon);
-        u8 y = 32 + 13 * i;
+        u8 y = 37 + 11 * i;
         u8 name[POKEMON_NAME_LENGTH + 1];
         if (i == sSimulator.partyIndex)
             PrintText(COMPOUND_STRING(">"), 8, y);
@@ -189,7 +192,7 @@ static void RenderParty(void)
         if (reason != NULL)
             PrintText(reason, 107, y);
     }
-    PrintText(sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300     EV point ¥20"), 8, 112);
+    PrintText(sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300     EV point ¥20"), 8, 108);
     PrintText(COMPOUND_STRING("A  Edit      B  Back"), 8, 124);
 }
 
@@ -207,15 +210,15 @@ static void RenderSpread(void)
     ApplyValues(&preview, &sSimulator.draft);
 
     GetMonData(mon, MON_DATA_NICKNAME, name);
-    PrintText(name, 8, 19);
-    PrintText(sSimulator.editingEvs ? COMPOUND_STRING("IV") : COMPOUND_STRING(">IV"), 80, 19);
-    PrintText(sSimulator.editingEvs ? COMPOUND_STRING(">EV") : COMPOUND_STRING("EV"), 108, 19);
-    PrintText(COMPOUND_STRING("Current > New"), 141, 19);
+    PrintText(name, 8, 24);
+    PrintText(sSimulator.editingEvs ? COMPOUND_STRING("IV") : COMPOUND_STRING(">IV"), 80, 24);
+    PrintText(sSimulator.editingEvs ? COMPOUND_STRING(">EV") : COMPOUND_STRING("EV"), 108, 24);
+    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, 138, 26, 62, COMPOUND_STRING("OLD > NEW"));
 
     for (u8 row = 0; row < NUM_STATS; row++)
     {
         enum Stat stat = sStatOrder[row];
-        u8 y = 31 + 11 * row;
+        u8 y = 39 + 10 * row;
         if (row == sSimulator.row && sSimulator.mode == SIMULATOR_EDIT)
             PrintText(COMPOUND_STRING(">"), 8, y);
         PrintText(sStatNames[stat], 20, y);
@@ -226,15 +229,15 @@ static void RenderSpread(void)
         PrintNumber(GetMonData(&preview, MON_DATA_MAX_HP + stat), 174, y, 5);
     }
 
-    PrintText(evText, 8, 100);
-    PrintMoney(COMPOUND_STRING("Cost ¥"), CalculateCost(mon, &sSimulator.draft), 73, 100);
-    PrintMoney(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), 135, 100);
+    PrintText(evText, 8, 98);
+    PrintMoney(COMPOUND_STRING("Cost ¥"), CalculateCost(mon, &sSimulator.draft), 73, 98);
+    PrintMoney(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), 135, 98);
     if (sSimulator.notice != NULL)
-        PrintText(sSimulator.notice, 8, 112);
+        PrintText(sSimulator.notice, 8, 108);
     else if (sSimulator.mode == SIMULATOR_REVIEW)
-        PrintText(COMPOUND_STRING("Apply this spread and pay?"), 8, 112);
+        PrintText(COMPOUND_STRING("Apply this spread and pay?"), 8, 108);
     else
-        PrintText(COMPOUND_STRING("Left/Right 1   L/R 10   SELECT IV/EV"), 8, 112);
+        PrintText(COMPOUND_STRING("Left/Right 1   L/R 10   SELECT IV/EV"), 8, 108);
 
     if (sSimulator.mode == SIMULATOR_REVIEW)
         PrintText(COMPOUND_STRING("A  Pay      B  Keep editing"), 8, 124);
@@ -244,8 +247,7 @@ static void RenderSpread(void)
 
 static void Render(void)
 {
-    FillWindowPixelBuffer(sSimulator.window, PIXEL_FILL(1));
-    PrintText(COMPOUND_STRING("POKé SIMULATOR"), 8, 5);
+    UnholyUi_Frame(sSimulator.window, COMPOUND_STRING("POKé SIMULATOR"));
     if (sSimulator.mode == SIMULATOR_PARTY)
         RenderParty();
     else
@@ -258,6 +260,7 @@ static void Close(u8 taskId)
     void (*returnToWatch)(void) = sSimulator.returnToWatch;
     ClearStdWindowAndFrameToTransparent(sSimulator.window, TRUE);
     RemoveWindow(sSimulator.window);
+    UnholyUi_ReleasePalette(&sUiPalette);
     DestroyTask(taskId);
     returnToWatch();
 }
@@ -420,7 +423,7 @@ void HfcSimulator_Open(void (*returnToWatch)(void))
     }
 
     LoadMessageBoxAndBorderGfx();
-    SetStandardWindowBorderStyle(sSimulator.window, FALSE);
+    UnholyUi_AcquirePalette(&sUiPalette, 14);
     PutWindowTilemap(sSimulator.window);
     Render();
 }

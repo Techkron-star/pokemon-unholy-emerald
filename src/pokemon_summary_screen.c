@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_summary_ui.h"
 #include "battle_stamina.h"
 #include "gear.h"
 #include "main.h"
@@ -1198,6 +1199,12 @@ u32 GetAdjustedIvData(struct Pokemon *mon, u32 stat)
 
 void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, void (*callback)(void))
 {
+    if (!UnholySummary_TryOpen(mode, mons, monIndex, maxMonIndex, callback))
+        ShowPokemonSummaryScreenLegacy(mode, mons, monIndex, maxMonIndex, callback);
+}
+
+void ShowPokemonSummaryScreenLegacy(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, void (*callback)(void))
+{
     sMonSummaryScreen = AllocZeroed(sizeof(*sMonSummaryScreen));
     sMonSummaryScreen->mode = mode;
     if (monIndex == PC_MON_CHOSEN)
@@ -1261,6 +1268,12 @@ void ShowPokemonSummaryScreen(u8 mode, void *mons, u8 monIndex, u8 maxMonIndex, 
         gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
 
     SetMainCallback2(CB2_InitSummaryScreen);
+}
+
+void ShowPokemonSummaryScreenLegacyPage(u8 mode, void *mons, u8 index, u8 last, void (*callback)(void), u8 page)
+{
+    ShowPokemonSummaryScreenLegacy(mode, mons, index, last, callback);
+    sMonSummaryScreen->currPageIndex = page;
 }
 
 void ShowSelectMovePokemonSummaryScreen(struct Pokemon *mons, u8 monIndex, void (*callback)(void), u16 newMove)

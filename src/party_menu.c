@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_stamina.h"
 #include "malloc.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -211,6 +212,7 @@ struct PartyMenuBox
 static EWRAM_DATA struct PartyMenuInternal *sPartyMenuInternal = NULL;
 EWRAM_DATA struct PartyMenu gPartyMenu = {0};
 static EWRAM_DATA struct PartyMenuBox *sPartyMenuBoxes = NULL;
+static EWRAM_DATA u8 sStaminaPromptSlot;
 static EWRAM_DATA u8 *sPartyBgGfxTilemap = NULL;
 static EWRAM_DATA u8 *sPartyBgTilemapBuffer = NULL;
 EWRAM_DATA bool8 gPartyMenuUseExitCallback = 0;
@@ -1510,6 +1512,13 @@ void Task_HandleChooseMonInput(u8 taskId)
             RefreshPartyMenu();
             break;
         }
+
+        if (gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && gPartyMenu.action == PARTY_ACTION_CHOOSE_MON
+         && gTasks[taskId].func == Task_HandleChooseMonInput && sStaminaPromptSlot != *slotPtr)
+        {
+            sStaminaPromptSlot = *slotPtr;
+            DisplayPartyMenuStdMessage(PARTY_MSG_CHOOSE_MON);
+        }
     }
 }
 
@@ -2367,6 +2376,7 @@ static enum CanMoveBeLearned CanTeachMove(struct Pokemon *mon, enum Move move)
 
 static void InitPartyMenuWindows(enum PartyMenuLayout layout)
 {
+    sStaminaPromptSlot = PARTY_SIZE;
     switch (layout)
     {
     case PARTY_LAYOUT_MULTI_SHOWCASE:
@@ -2853,7 +2863,22 @@ void DisplayPartyMenuStdMessage(u32 stringId)
         }
         DrawStdFrameWithCustomTileAndPalette(*windowPtr, FALSE, 0x4F, 13);
         StringExpandPlaceholders(gStringVar4, sActionStringTable[stringId]);
-        AddTextPrinterParameterized(*windowPtr, FONT_NORMAL, gStringVar4, 0, 1, 0, 0);
+        if (gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && gPartyMenu.action == PARTY_ACTION_CHOOSE_MON
+         && gPartyMenu.slotId < gPartiesCount[B_TRAINER_PLAYER]
+         && (stringId == PARTY_MSG_CHOOSE_MON || stringId == PARTY_MSG_CHOOSE_MON_OR_CANCEL))
+        {
+            struct Pokemon *mon = GetPartyMonFromPartyMenuId(gPartyMenu.slotId);
+            if (!GetMonData(mon, MON_DATA_IS_EGG))
+            {
+                u8 *cursor = StringCopy(gStringVar4, COMPOUND_STRING("HP "));
+                cursor = ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
+                cursor = StringCopy(cursor, COMPOUND_STRING("/"));
+                cursor = ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_MAX_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
+                cursor = StringCopy(cursor, COMPOUND_STRING("  STA MAX "));
+                ConvertUIntToDecimalStringN(cursor, Stamina_CalcMaxForMon(mon), STR_CONV_MODE_LEFT_ALIGN, 3);
+            }
+        }
+        AddTextPrinterParameterized(*windowPtr, FONT_SMALL_NARROW, gStringVar4, 0, 1, 0, 0);
         ScheduleBgCopyTilemapToVram(2);
     }
 }
