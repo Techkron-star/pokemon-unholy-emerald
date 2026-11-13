@@ -1,4 +1,5 @@
 #include "global.h"
+#include "mutation_icons.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_anim_scripts.h"
@@ -336,6 +337,10 @@ static void Nop(void)
 void LaunchBattleAnimation(u32 animType, u32 animId)
 {
     s32 i;
+
+    // Yield the optional HUD icon banks before any animation allocates OBJ palettes.
+    if (!gTestRunnerEnabled && !IsContest())
+        MutationIcon_ClearBattle();
 
     if (gTestRunnerEnabled)
     {

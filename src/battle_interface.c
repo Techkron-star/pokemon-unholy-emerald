@@ -1,4 +1,5 @@
 #include "global.h"
+#include "mutation_icons.h"
 #include "malloc.h"
 #include "battle.h"
 #include "pokemon.h"
@@ -646,11 +647,6 @@ static const union TextColor sHealthBoxTextColor =
     .accent = 0
 };
 
-static const u8 sMutationAlpha[] = _(" A");
-static const u8 sMutationSuper[] = _(" S");
-static const u8 sMutationEnraged[] = _(" E");
-static const u8 sMutationOmega[] = _(" O");
-
 // Because the healthbox is too large to fit into one sprite, it is divided into two sprites.
 // healthboxLeft  or healthboxMain  is the left part that is used as the 'main' sprite.
 // healthboxRight or healthboxOther is the right part of the healthbox.
@@ -866,6 +862,22 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
     // Gear logic is tested independently of the sprite HUD.
     if (GEARS_ENABLED && !gTestRunnerEnabled)
         UpdateHealthbarGearIcon(sprite, healthbox);
+    if (!gTestRunnerEnabled && !gAnimScriptActive)
+    {
+        enum BattlerId battler = healthbox->hMain_Battler;
+        struct Pokemon *mon = GetIllusionMonPtr(battler);
+        if (mon == NULL)
+            mon = GetBattlerMon(battler);
+        u16 badges = healthbox->invisible || !IsBattlerAlive(battler)
+                   || (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
+                   ? 0 : GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+        s16 x = healthbox->x + (!IsOnPlayerSide(battler) ? 102
+              : GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES ? -72 : 32);
+        s16 y = healthbox->y + (!IsOnPlayerSide(battler) ? 0
+              : GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES ? -2 : -20);
+        if (MutationIcon_UpdateBattle(battler, healthbox, badges, x, y))
+            UpdateNickInHealthbox(sprite->hBar_HealthBoxSpriteId, mon);
+    }
 }
 
 // Circular Stamina applies to both friendly and opposing healthboxes.
@@ -2202,6 +2214,8 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     u32 healthboxSpriteId2 = gSprites[healthboxSpriteId].oam.affineParam;
     enum BattlerId battler = gSprites[healthboxSpriteId].hMain_Battler;
     u8 nickname[POKEMON_NAME_LENGTH + 1];
+    // The optional icon can redraw this label while a battle message is printing.
+    u8 displayName[64];
     u8 *nicknameEnd, *ptr;
     enum Species species;
     u8 gender;
@@ -2211,7 +2225,7 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
 
     GetMonData(mon, MON_DATA_NICKNAME, nickname);
     StringGet_Nickname(nickname);
-    nicknameEnd = StringCopy(gDisplayedStringBattle, nickname);
+    nicknameEnd = StringCopy(displayName, nickname);
     ptr = nicknameEnd;
 
     gender = GetMonGender(mon);
@@ -2237,14 +2251,16 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     }
 
     ptr += StringLength(ptr);
-    if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_OMEGA)
-        StringCopy(ptr, sMutationOmega);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ENRAGED)
-        StringCopy(ptr, sMutationEnraged);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_SUPER)
-        StringCopy(ptr, sMutationSuper);
-    else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ALPHA)
-        StringCopy(ptr, sMutationAlpha);
+    u16 mutations = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+    if (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
+        mutations = 0;
+    if (!MutationIcon_BattleVisible(battler))
+    {
+        StringCopy(ptr, MutationIcon_BattleLabel(mutations));
+        ptr += StringLength(ptr);
+    }
+    if (mutations & (mutations - 1))
+        StringCopy(ptr, COMPOUND_STRING("+"));
 
     //  Don't assume that healthbox sprites don't have data in the fields used for sprite printing
     //  and set up temporary values with what's needed
@@ -2257,23 +2273,23 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     u32 padding = STAMINA_ENABLED && !gTestRunnerEnabled && StaminaRingUsesNicknameRow(battler)
                 ? STAMINA_RING_NICKNAME_PADDING : 0;
     u32 width = HEALTHBOX_NICKNAME_WIDTH - padding;
-    u32 fontId = GetFontIdToFit(gDisplayedStringBattle, FONT_SMALL, 0, width);
+    u32 fontId = GetFontIdToFit(displayName, FONT_SMALL, 0, width);
     if (padding != 0
-     && nicknameEnd > gDisplayedStringBattle
-     && GetStringWidth(fontId, gDisplayedStringBattle, 0) > width)
+     && nicknameEnd > displayName
+     && GetStringWidth(fontId, displayName, 0) > width)
     {
         u32 suffixSize = StringLength(nicknameEnd) + 1;
 
         // Keep gender and mutation badges when shortening a wide nickname.
         *--nicknameEnd = CHAR_ELLIPSIS;
-        while (nicknameEnd > gDisplayedStringBattle && GetStringWidth(fontId, gDisplayedStringBattle, 0) > width)
+        while (nicknameEnd > displayName && GetStringWidth(fontId, displayName, 0) > width)
         {
             memmove(nicknameEnd - 1, nicknameEnd, suffixSize + 1);
             nicknameEnd--;
         }
     }
     FillSpriteRectColor(healthboxSpriteId, nicknameX, 5, HEALTHBOX_NICKNAME_WIDTH, 11, HEALTHBOX_BG_INDEX);
-    AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nicknameX + padding, 3, 0, 0, sHealthBoxTextColor, 0, gDisplayedStringBattle);
+    AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nicknameX + padding, 3, 0, 0, sHealthBoxTextColor, 0, displayName);
 
     gSprites[healthboxSpriteId].data[1] = savedValue1;
     gSprites[healthboxSpriteId2].data[1] = savedValue2;

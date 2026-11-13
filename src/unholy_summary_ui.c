@@ -1,4 +1,5 @@
 #include "global.h"
+#include "mutation_icons.h"
 #include "unholy_summary_ui.h"
 #include "unholy_mon_summary.h"
 #include "unholy_ui.h"
@@ -39,6 +40,7 @@ static EWRAM_DATA struct NativeSummary
     struct UnholyMonSummary values;
     u16 tilemap[32 * 32];
     u16 portrait;
+    u8 mutationIcons[10];
     u8 window;
     u8 mode;
     u8 index;
@@ -122,6 +124,15 @@ static void DestroyPortrait(void)
     if (sSummary->portrait < MAX_SPRITES)
         FreeAndDestroyMonPicSprite(sSummary->portrait);
     sSummary->portrait = SPRITE_NONE;
+}
+
+static void DestroyMutationIcons(void)
+{
+    for (u8 i = 0; i < ARRAY_COUNT(sSummary->mutationIcons); i++)
+    {
+        MutationIcon_Destroy(sSummary->mutationIcons[i]);
+        sSummary->mutationIcons[i] = MAX_SPRITES;
+    }
 }
 
 static void Info(void)
@@ -216,11 +227,17 @@ static void Gear(void)
     }
     else if (sSummary->detail == 1)
     {
-        Print(9, 42, 204, COMPOUND_STRING("COMBINED MUTATIONS"));
         for (u8 i = 0; i < ARRAY_COUNT(sBadges); i++)
         {
             if (values->mutationBadges & sBadges[i])
-                Print(9 + (i % 2) * 106, 58 + (i / 2) * 13, 101, HorizonMarketMutationName(sBadges[i]));
+            {
+                u8 x = 9 + (i % 3) * 70;
+                u8 y = 39 + (i / 3) * 28;
+                const u8 *name = HorizonMarketMutationName(sBadges[i]);
+                u16 width = GetStringWidth(FONT_SMALL_NARROW, name, 0);
+                sSummary->mutationIcons[i] = MutationIcon_Create(sBadges[i], x + 42, y + 16, 0);
+                UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, x + (68 - min(width, 68)) / 2, y + 16, 68, name);
+            }
         }
         if (values->mutationBadges == 0)
             Print(9, 65, 204, COMPOUND_STRING("NONE"));
@@ -247,7 +264,16 @@ static void Render(void)
     u8 name[POKEMON_NAME_LENGTH + 1];
     u8 text[32];
     GetMonData(&sSummary->mon, MON_DATA_NICKNAME, name);
-    UnholyUi_Frame(sSummary->window, name);
+    DestroyMutationIcons();
+    u16 badges = GetMonData(&sSummary->mon, MON_DATA_IS_EGG) ? 0 : sSummary->values.mutationBadges;
+    UnholyUi_Frame(sSummary->window, COMPOUND_STRING(""));
+    Print(7, 4, badges ? 136 : 160, name);
+    if (badges)
+    {
+        sSummary->mutationIcons[9] = MutationIcon_Create(MutationIcon_BadgeAt(badges, 0), 163, 18, 0);
+        if (badges & (badges - 1))
+            Print(166, 4, 8, COMPOUND_STRING("+"));
+    }
     StringCopy(text, COMPOUND_STRING("Lv "));
     ConvertUIntToDecimalStringN(text + StringLength(text), GetMonData(&sSummary->mon, MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
     Print(174, 4, 42, text);
@@ -292,6 +318,8 @@ static void Cleanup(void)
 {
     SetVBlankCallback(NULL);
     DestroyPortrait();
+    DestroyMutationIcons();
+    gReservedSpritePaletteCount = 0;
     FreeAllWindowBuffers();
     UnsetBgTilemapBuffer(0);
 }
@@ -373,15 +401,19 @@ static void Init(void)
     SetGpuReg(REG_OFFSET_WINOUT, 0);
     ResetBgsAndClearDma3BusyFlags(0);
     InitBgsFromTemplates(0, &sBg, 1);
+    ResetAllBgsCoordinates();
     memset(sSummary->tilemap, 0, sizeof(sSummary->tilemap));
     SetBgTilemapBuffer(0, sSummary->tilemap);
     ResetSpriteData();
     FreeAllSpritePalettes();
+    // The portrait helper draws directly into OBJ bank 0.
+    gReservedSpritePaletteCount = 1;
     ResetTasks();
     ResetPaletteFade();
     if (!InitWindows(sWindows))
     {
         void (*callback)(void) = sSummary->callback;
+        gReservedSpritePaletteCount = 0;
         FreeAllWindowBuffers();
         UnsetBgTilemapBuffer(0);
         Free(sSummary);
@@ -392,6 +424,8 @@ static void Init(void)
     DeactivateAllTextPrinters();
     sSummary->window = 0;
     sSummary->portrait = SPRITE_NONE;
+    for (u8 i = 0; i < ARRAY_COUNT(sSummary->mutationIcons); i++)
+        sSummary->mutationIcons[i] = MAX_SPRITES;
     LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     LoadPalette(GetUnholyUiPalette() + 1, BG_PLTT_ID(0), PLTT_SIZEOF(1));
     ReadMon();

@@ -14,7 +14,7 @@ REGISTERED = ("infinity_ball", "omega_ball", "super_exp_share")
 SIGNATURE = bytes((137, 80, 78, 71, 13, 10, 26, 10))
 
 
-def check_png(path):
+def check_png(path, size=24):
     data = path.read_bytes()
     if not data.startswith(SIGNATURE):
         raise ValueError("invalid PNG signature")
@@ -39,8 +39,8 @@ def check_png(path):
             if "IHDR" in seen or length != 13:
                 raise ValueError("invalid IHDR")
             header = struct.unpack(">IIBBBBB", payload)
-            if header != (24, 24, 4, 3, 0, 0, 0):
-                raise ValueError(f"expected 24x24 indexed PNG, got {header}")
+            if header != (size, size, 4, 3, 0, 0, 0):
+                raise ValueError(f"expected {size}x{size} indexed PNG, got {header}")
         if kind == b"PLTE":
             if plte is not None or length != 48:
                 raise ValueError("expected 16 RGB palette entries")
@@ -61,7 +61,7 @@ def check_png(path):
         raise ValueError("missing PNG chunks")
     if transparency != bytes((0,)):
         raise ValueError("palette index 0 must be transparent")
-    if len(zlib.decompress(compressed)) != 24 * 13:
+    if len(zlib.decompress(compressed)) != size * (size // 2 + 1):
         raise ValueError("unexpected decompressed pixel data size")
     return plte
 
