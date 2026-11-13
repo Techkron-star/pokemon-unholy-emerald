@@ -50,6 +50,7 @@
 #include "constants/battle_frontier.h"
 #include "constants/rgb.h"
 #include "constants/songs.h"
+#include "hfc_watch.h"
 
 // Menu actions
 enum
@@ -69,6 +70,7 @@ enum
     MENU_ACTION_PYRAMID_BAG,
     MENU_ACTION_DEBUG,
     MENU_ACTION_DEXNAV,
+    MENU_ACTION_HFC_WATCH,
 };
 
 // Save status
@@ -111,6 +113,7 @@ static bool8 StartMenuBattlePyramidRetireCallback(void);
 static bool8 StartMenuBattlePyramidBagCallback(void);
 static bool8 StartMenuDebugCallback(void);
 static bool8 StartMenuDexNavCallback(void);
+static bool8 StartMenuHfcWatchCallback(void);
 
 // Menu callbacks
 static bool8 SaveStartCallback(void);
@@ -188,6 +191,7 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 };
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
+static const u8 sText_MenuHfcWatch[] = _("Poké Watch");
 
 static const struct MenuAction sStartMenuItems[] =
 {
@@ -206,6 +210,7 @@ static const struct MenuAction sStartMenuItems[] =
     [MENU_ACTION_PYRAMID_BAG]     = {gText_MenuBag,     {.u8_void = StartMenuBattlePyramidBagCallback}},
     [MENU_ACTION_DEBUG]           = {sText_MenuDebug,   {.u8_void = StartMenuDebugCallback}},
     [MENU_ACTION_DEXNAV]          = {gText_MenuDexNav,  {.u8_void = StartMenuDexNavCallback}},
+    [MENU_ACTION_HFC_WATCH]       = {sText_MenuHfcWatch, {.u8_void = StartMenuHfcWatchCallback}},
 };
 
 static const struct BgTemplate sBgTemplates_LinkBattleSave[] =
@@ -338,6 +343,9 @@ static void BuildNormalStartMenu(void)
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
 
+    if (FlagGet(FLAG_POKELOCATOR_UNLOCKED) == TRUE)
+        AddStartMenuAction(MENU_ACTION_HFC_WATCH);
+
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
     AddStartMenuAction(MENU_ACTION_OPTION);
@@ -354,6 +362,7 @@ static void BuildDebugStartMenu(void)
     AddStartMenuAction(MENU_ACTION_BAG);
     if (FlagGet(FLAG_SYS_POKENAV_GET) == TRUE)
         AddStartMenuAction(MENU_ACTION_POKENAV);
+    AddStartMenuAction(MENU_ACTION_HFC_WATCH);
     AddStartMenuAction(MENU_ACTION_PLAYER);
     AddStartMenuAction(MENU_ACTION_SAVE);
     AddStartMenuAction(MENU_ACTION_OPTION);
@@ -1501,6 +1510,14 @@ void AppendToList(u8 *list, u8 *pos, u8 newEntry)
 static bool8 StartMenuDexNavCallback(void)
 {
     CreateTask(Task_OpenDexNavFromStartMenu, 0);
+    return TRUE;
+}
+
+static bool8 StartMenuHfcWatchCallback(void)
+{
+    RemoveExtraStartMenuWindows();
+    HideStartMenu();
+    OpenHfcWatchFromStartMenu();
     return TRUE;
 }
 
