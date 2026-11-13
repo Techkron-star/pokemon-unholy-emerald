@@ -242,6 +242,9 @@ jobs:
       - name: Native PC search checks
         run: sh tools/unholy/host_pc_search.sh
 
+      - name: Mutation badge asset validation
+        run: python3 tools/unholy/validate_mutation_badges.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04
