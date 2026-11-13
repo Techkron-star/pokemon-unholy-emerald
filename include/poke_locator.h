@@ -1,5 +1,5 @@
 #ifndef GUARD_POKE_LOCATOR_H
-#define GUARD_HFC_WATCH_H
+#define GUARD_POKE_LOCATOR_H
 
 #include "global.h"
 

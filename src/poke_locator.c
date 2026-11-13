@@ -12,35 +12,56 @@
 #include "battle_setup.h"
 #include "overworld.h"
 
+// Estado del Pokémon Locator
 static EWRAM_DATA struct PokeLocatorState sPokeLocator = {0};
 
-static const u16 sRoute101Pokemon[] = {
-    SPECIES_POOCHYENA,
-    SPECIES_ZIGZAGOON,
-    SPECIES_POOCHYENA,
-    SPECIES_POOCHYENA,
-    SPECIES_ZIGZAGOON,
+// Lista de Pokémon disponibles en Ruta 101 (área inicial)
+static const struct PokeLocatorEntry sRoute101Pokemon[] = {
+    {SPECIES_POOCHYENA,  5,  8,  0},
+    {SPECIES_ZIGZAGOON,  5,  8,  1},
+    {SPECIES_POOCHYENA,  6,  6,  2},
+    {SPECIES_POOCHYENA,  7,  4,  3},
+    {SPECIES_ZIGZAGOON,  6,  4,  4},
 };
 
+// Función auxiliar para obtener el nombre de una especie
+static const u8 *GetSpeciesName(u16 species)
+{
+    switch (species)
+    {
+        case SPECIES_POOCHYENA:   return gText_Poochyena;
+        case SPECIES_ZIGZAGOON:   return gText_Zigzagoon;
+        default:                  return gText_Poochyena;
+    }
+}
+
+// Inicializar el Pokémon Locator
 static void CB2_InitPokeLocator(void)
 {
     sPokeLocator.currentSelection = 0;
     sPokeLocator.scrollOffset = 0;
     sPokeLocator.isOpen = TRUE;
     sPokeLocator.count = 5;
+    for (u8 i = 0; i < sPokeLocator.count; i++)
+    {
+        sPokeLocator.entries[i] = sRoute101Pokemon[i];
+    }
     SetMainCallback2(CB2_InitPokeLocator);
 }
 
+// Abrir Poké Locator desde HFC Watch
 void OpenPokeLocatorFromHfcWatch(void)
 {
     SetMainCallback2(CB2_InitPokeLocator);
 }
 
+// Cerrar Poké Locator de forma segura
 void ClosePokeLocator(void)
 {
     SetMainCallback2(CB2_InitHfcWatch);
 }
 
+// Manejo de entrada de usuario en Poké Locator
 void PokeLocator_HandleInput(void)
 {
     if (JOY_NEW(DPAD_UP))
@@ -49,6 +70,10 @@ void PokeLocator_HandleInput(void)
             sPokeLocator.currentSelection--;
         else
             sPokeLocator.currentSelection = sPokeLocator.count - 1;
+        if (sPokeLocator.currentSelection < sPokeLocator.scrollOffset)
+            sPokeLocator.scrollOffset = sPokeLocator.currentSelection;
+        else if (sPokeLocator.currentSelection >= sPokeLocator.scrollOffset + 4)
+            sPokeLocator.scrollOffset = sPokeLocator.currentSelection - 3;
         PlaySE(SE_SELECT);
     }
     else if (JOY_NEW(DPAD_DOWN))
@@ -57,6 +82,10 @@ void PokeLocator_HandleInput(void)
             sPokeLocator.currentSelection++;
         else
             sPokeLocator.currentSelection = 0;
+        if (sPokeLocator.currentSelection < sPokeLocator.scrollOffset)
+            sPokeLocator.scrollOffset = sPokeLocator.currentSelection;
+        else if (sPokeLocator.currentSelection >= sPokeLocator.scrollOffset + 4)
+            sPokeLocator.scrollOffset = sPokeLocator.currentSelection - 3;
         PlaySE(SE_SELECT);
     }
 
@@ -74,10 +103,13 @@ void PokeLocator_HandleInput(void)
     }
 }
 
+// Actualizar pantalla del Poké Locator
 void PokeLocator_UpdateDisplay(void)
 {
+    // La visualización se maneja en el menú HFC Watch
 }
 
+// Iniciar batalla con el Pokémon seleccionado
 void PokeLocator_StartBattleWithSelected(void)
 {
     u16 species = sPokeLocator.entries[sPokeLocator.currentSelection].species;
@@ -86,7 +118,14 @@ void PokeLocator_StartBattleWithSelected(void)
     CB2_InitWildBattle();
 }
 
+// Cargar Pokémon del área actual
 void PokeLocator_LoadAreaPokemon(void)
 {
     sPokeLocator.count = 5;
+    for (u8 i = 0; i < sPokeLocator.count; i++)
+    {
+        sPokeLocator.entries[i] = sRoute101Pokemon[i];
+    }
+    sPokeLocator.currentSelection = 0;
+    sPokeLocator.scrollOffset = 0;
 }
