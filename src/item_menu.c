@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "item_menu.h"
 #include "battle.h"
 #include "battle_controllers.h"
@@ -505,8 +506,8 @@ static const struct WindowTemplate sQuickPocketPickerWindow =
     .tilemapLeft = 7,
     .tilemapTop = 2,
     .width = 17,
-    .height = 16,
-    .paletteNum = 15,
+    .height = 17,
+    .paletteNum = 14,
     .baseBlock = 0x2A0,
 };
 
@@ -610,6 +611,7 @@ static EWRAM_DATA struct ListBuffer1 *sListBuffer1 = 0;
 static EWRAM_DATA struct ListBuffer2 *sListBuffer2 = 0;
 EWRAM_DATA enum Item gSpecialVar_ItemId = 0;
 static EWRAM_DATA struct TempWallyBag *sTempWallyBag = 0;
+static EWRAM_DATA struct UnholyUiPalette sPocketPalette;
 static EWRAM_DATA u8 sQuickPocketWindowId = 0; // EWRAM .sbss requires zero init; reset to WINDOW_NONE on bag open.
 static EWRAM_DATA u8 sQuickPocketSelection = 0; // Set to the actual pocket when the Bag opens.
 // Every displayed row refers to one real, encrypted, save-backed ItemSlot.
@@ -728,7 +730,8 @@ void GoToBagMenu(u8 location, u8 pocket, MainCallback exitCallback)
          || gBagPosition.location == ITEMMENULOCATION_RAIDEND)
             gBagMenu->pocketSwitchDisabled = TRUE;
         sQuickPocketWindowId = WINDOW_NONE;
-        sQuickPocketSelection = gBagPosition.pocket;
+        UnholyUi_AcquirePalette(&sPocketPalette, 14);
+    sQuickPocketSelection = gBagPosition.pocket;
         gBagMenu->newScreenCallback = NULL;
         gBagMenu->toSwapPos = NOT_SWAPPING;
         gBagMenu->pocketScrollArrowsTask = TASK_NONE;
@@ -1441,39 +1444,24 @@ static void ReturnToItemList(u8 taskId)
 // changes which of the seven *existing* Bag pockets is currently displayed.
 static void DrawQuickPocketPicker(void)
 {
-    u8 windowId = sQuickPocketWindowId;
-
-    if (windowId == WINDOW_NONE)
+    u8 window = sQuickPocketWindowId;
+    if (window == WINDOW_NONE)
         return;
-
-    // Palette 15 is the standard menu palette (color 10 black, 8 blue).
-    FillWindowPixelBuffer(windowId, PIXEL_FILL(10));
-    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketTitle, 8, 2,
-                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+    UnholyUi_Frame(window, sQuickPocketTitle);
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
     {
-        u8 y = 14 + pocket * 10;
+        u8 y = 23 + pocket * 13;
         u16 count = gBagMenu->numItemStacks[pocket];
-
+        bool8 selected = pocket == sQuickPocketSelection;
         if (!gBagMenu->hideCloseBagText && count != 0)
-            count--; // "CLOSE BAG" is not an item.
-
-        if (pocket == sQuickPocketSelection)
-            FillWindowPixelRect(windowId, PIXEL_FILL(8), 3, y - 1, 130, 10);
-
-        BagMenu_Print(windowId, FONT_NARROW,
-                      pocket == sQuickPocketSelection ? gText_SelectorArrow2 : gText_EmptyString2,
-                      5, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
-        BagMenu_Print(windowId, FONT_NARROW, gPocketNamesStringsTable[pocket],
-                      20, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
-
+            count--;
+        UnholyUi_Card(window, 4, y, 128, 13, selected);
+        UnholyUi_PrintOnFill(window, FONT_SMALL, 9, y, 98, UnholyUi_CardFill(selected), gPocketNamesStringsTable[pocket]);
         ConvertIntToDecimalStringN(gStringVar3, count, STR_CONV_MODE_RIGHT_ALIGN, 3);
-        BagMenu_Print(windowId, FONT_NARROW, gStringVar3,
-                      110, y, 0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 111, y + 2, 19, UnholyUi_CardFill(selected), gStringVar3);
     }
-    BagMenu_Print(windowId, FONT_NARROW, sQuickPocketInstructions, 9, 115,
-                  0, 0, TEXT_SKIP_DRAW, COLORID_NORMAL);
-    CopyWindowToVram(windowId, COPYWIN_GFX);
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 7, 123, 122, sQuickPocketInstructions);
+    CopyWindowToVram(window, COPYWIN_GFX);
 }
 
 static void OpenQuickPocketPicker(u8 taskId)
@@ -1505,6 +1493,7 @@ static void CloseQuickPocketPicker(void)
     ClearStdWindowAndFrameToTransparent(sQuickPocketWindowId, FALSE);
     ClearWindowTilemap(sQuickPocketWindowId);
     RemoveWindow(sQuickPocketWindowId);
+    UnholyUi_ReleasePalette(&sPocketPalette);
     sQuickPocketWindowId = WINDOW_NONE;
     ScheduleBgCopyTilemapToVram(1);
 }

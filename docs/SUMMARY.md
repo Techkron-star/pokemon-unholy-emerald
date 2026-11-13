@@ -3,6 +3,7 @@
 - [README](./README.md)
 - [Unholy Emerald · IA y revanchas de jefes](./IA_JEFES_REVANCHAS_Y_MUTACIONES.md)
 - [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
+- [Unholy Emerald · Interfaz nativa 240 × 160](./UI_NATIVE_240.md)
 - [Unholy Emerald · Horizon Market y alertas mutantes](./HORIZON_MARKET.md)
 - [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)

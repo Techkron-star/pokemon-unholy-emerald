@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "event_data.h"
 #include "constants/flags.h"
 #include "bg.h"
@@ -293,7 +294,12 @@ static const u16 sHorizonPaletteDaylight[] =
 // Shared GBA palette used by crafting and Horizon. Theme preference lives in save flags.
 const u16 *GetUnholyUiPalette(void)
 {
-    return FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonPaletteDaylight : sHorizonPaletteEclipse;
+    return GetUnholyUiPaletteForTheme(FlagGet(FLAG_UNHOLY_UI_DAYLIGHT));
+}
+
+const u16 *GetUnholyUiPaletteForTheme(bool8 daylight)
+{
+    return daylight ? sHorizonPaletteDaylight : sHorizonPaletteEclipse;
 }
 
 // The UI is rendered as native 4bpp window pixels: no fake full-screen bitmap.
@@ -646,7 +652,6 @@ static void HorizonOpenInfoWindow(void)
         sHorizonPaletteSaved = FALSE;
         return;
     }
-    SetStandardWindowBorderStyle(sHorizonInfoWindowId, FALSE);
     PutWindowTilemap(sHorizonInfoWindowId);
     HorizonDrawInfo();
 }
@@ -782,23 +787,7 @@ static void HorizonPrintCardText(u8 panel, const u8 *source,
 // palette allocation or state changes; same colors as Eclipse/Daylight.
 static void HorizonDrawCard(u8 panel, u8 x, u8 y, u8 width, u8 height, bool8 selected)
 {
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    const u8 fill = daylight ? (selected ? 9 : 4) : (selected ? 4 : 1);
-    const u8 line = daylight ? (selected ? 7 : 3) : (selected ? 10 : 3);
-    const u8 shine = daylight ? 6 : 5;
-
-    if (width < 4 || height < 4)
-        return;
-
-    FillWindowPixelRect(panel, PIXEL_FILL(fill), x + 1, y + 1,
-                        width - 2, height - 2);
-    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, width, 1);
-    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y + height - 1, width, 1);
-    FillWindowPixelRect(panel, PIXEL_FILL(line), x, y, 1, height);
-    FillWindowPixelRect(panel, PIXEL_FILL(line), x + width - 1, y, 1, height);
-
-    if (selected)
-        FillWindowPixelRect(panel, PIXEL_FILL(shine), x + 2, y + 1, width - 4, 2);
+    UnholyUi_Card(panel, x, y, width, height, selected);
 }
 
 // The root page contains a small *live* preview of the selected category,
@@ -973,8 +962,9 @@ static void HorizonDrawInfo(void)
                               7, 81, 153);
         else
         {
-            StringCopy(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
-            StringAppend(gStringVar4, COMPOUND_STRING(" / "));
+            StringCopy(gStringVar4, COMPOUND_STRING("RANK "));
+            StringAppend(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
+            StringAppend(gStringVar4, COMPOUND_STRING("  QUALITY "));
             StringAppend(gStringVar4, HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
             HorizonPrintSmall(panel, gStringVar4, 7, 75, 155);
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));

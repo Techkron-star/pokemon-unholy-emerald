@@ -1,4 +1,5 @@
 #include "global.h"
+#include "shop.h"
 #include "text.h"
 #include "text_window.h"
 #include "window.h"
@@ -204,7 +205,7 @@ const u16 *GetTextWindowPalette(u8 id)
 
 const u16 *GetOverworldTextboxPalettePtr(void)
 {
-    return gMessageBox_Pal;
+    return GetUnholyUiPalette();
 }
 
 // Effectively LoadUserWindowBorderGfx but specifying the bg directly instead of a window from that bg

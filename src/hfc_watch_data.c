@@ -25,6 +25,29 @@ static const struct HfcWatchFeatureInfo sFeatures[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_SIMULATOR]    = { HFC_WATCH_TIER_HF,    4, TRUE },
 };
 
+const u8 *HfcWatch_GetRequirement(u8 tier, u8 feature, struct HfcWatchProgress progress)
+{
+    static const u8 *const badges[] =
+    {
+        COMPOUND_STRING("0 BADGES"), COMPOUND_STRING("1 BADGE"), COMPOUND_STRING("2 BADGES"),
+        COMPOUND_STRING("3 BADGES"), COMPOUND_STRING("4 BADGES"), COMPOUND_STRING("5 BADGES"),
+        COMPOUND_STRING("6 BADGES"), COMPOUND_STRING("7 BADGES"), COMPOUND_STRING("8 BADGES"),
+    };
+    if (feature >= HFC_WATCH_FEATURE_COUNT)
+        return COMPOUND_STRING("UNAVAILABLE");
+    switch (HfcWatch_GetAccess(tier, feature, progress))
+    {
+    case HFC_WATCH_WRONG_TIER:
+        return sFeatures[feature].minTier == HFC_WATCH_TIER_HF ? COMPOUND_STRING("REQUIRES HF POKé WATCH")
+             : sFeatures[feature].minTier == HFC_WATCH_TIER_SUPER ? COMPOUND_STRING("REQUIRES SUPER POKé WATCH")
+             : COMPOUND_STRING("REQUIRES POKé WATCH");
+    case HFC_WATCH_NEEDS_BADGES: return badges[sFeatures[feature].minBadges];
+    case HFC_WATCH_NEEDS_UNLOCK: return COMPOUND_STRING("UNLOCK CRAFTING AFTER ROXANNE");
+    case HFC_WATCH_SERVICE_PENDING: return COMPOUND_STRING("COMING SOON");
+    default: return COMPOUND_STRING("READY");
+    }
+}
+
 // The best watch owned wins; lower ones in the bag are ignored.
 u8 HfcWatch_TierFromItems(bool8 hasPoke, bool8 hasSuper, bool8 hasHF)
 {

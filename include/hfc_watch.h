@@ -50,6 +50,7 @@ u16 HfcWatch_GetTierMask(u8 tier);
 bool8 HfcWatch_TierHasFeature(u8 tier, u8 feature);
 enum HfcWatchAccess HfcWatch_GetAccess(u8 tier, u8 feature, struct HfcWatchProgress progress);
 u8 HfcWatch_BuildMenu(u8 tier, struct HfcWatchProgress progress, u8 *featuresOut);
+const u8 *HfcWatch_GetRequirement(u8 tier, u8 feature, struct HfcWatchProgress progress);
 
 // Game side (src/hfc_watch.c).
 u8 HfcWatch_GetTier(void);

@@ -76,7 +76,8 @@ void PrepareNamebox(u32 tileNum)
     FillNamebox();
 
     u8 colors[3] = {TEXT_COLOR_TRANSPARENT, OW_NAME_BOX_FOREGROUND_COLOR, OW_NAME_BOX_SHADOW_COLOR};
-    int strX = GetStringCenterAlignXOffset(fontId, strbuf, (winWidth * 8));
+    fontId = GetFontIdToFit(strbuf, fontId, 0, winWidth * 8);
+    int strX = max(0, GetStringCenterAlignXOffset(fontId, strbuf, winWidth * 8));
     if (matchCall)
     {
         colors[1] = 1;

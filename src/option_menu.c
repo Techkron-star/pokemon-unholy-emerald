@@ -1,4 +1,6 @@
 #include "global.h"
+#include "shop.h"
+#include "unholy_ui.h"
 #include "event_data.h"
 #include "constants/flags.h"
 #include "option_menu.h"
@@ -11,6 +13,7 @@
 #include "scanline_effect.h"
 #include "sprite.h"
 #include "strings.h"
+#include "string_util.h"
 #include "task.h"
 #include "text.h"
 #include "text_window.h"
@@ -419,20 +422,18 @@ static void HighlightOptionMenuItem(u8 index)
 
 static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
 {
-    u8 dst[16];
-    u16 i;
-
-    for (i = 0; *text != EOS && i < ARRAY_COUNT(dst) - 1; i++)
-        dst[i] = *(text++);
-
-    if (style != 0)
+    const u8 colors[] = {1, 2, 1};
+    // Choice strings start with two color commands; the shared palette owns color.
+    while (*text == EXT_CTRL_CODE_BEGIN)
     {
-        dst[2] = TEXT_COLOR_RED;
-        dst[5] = TEXT_COLOR_LIGHT_RED;
+        text++;
+        text += GetExtCtrlCodeLength(*text);
     }
-
-    dst[i] = EOS;
-    AddTextPrinterParameterized(WIN_OPTIONS, FONT_NORMAL, dst, x, y + 1, TEXT_SKIP_DRAW, NULL);
+    u32 font = GetFontIdToFit(text, FONT_SMALL, 0, 208 - x);
+    AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y + 1, 0, 0,
+        colors, TEXT_SKIP_DRAW, text);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(style ? 7 : 1), x, y + 13,
+        min(208 - x, GetStringWidth(font, text, 0)), 1);
 }
 
 static u8 TextSpeed_ProcessInput(u8 selection)
@@ -561,6 +562,10 @@ static u8 UiTheme_ProcessInput(u8 selection)
 
 static void UiTheme_DrawChoices(u8 selection)
 {
+    const u16 *palette = GetUnholyUiPaletteForTheme(selection);
+    LoadPalette(palette, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
+    LoadPalette(palette, BG_PLTT_ID(7), PLTT_SIZE_4BPP);
+    LoadPalette(palette + 1, BG_PLTT_ID(0), PLTT_SIZEOF(1));
     FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_UITHEME, 102, 13);
     DrawOptionMenuChoice(selection ? sText_UiThemeDaylight : sText_UiThemeEclipse,
                          117, YPOS_UITHEME, 1);
@@ -673,7 +678,7 @@ static void ButtonMode_DrawChoices(u8 selection)
 static void DrawHeaderText(void)
 {
     FillWindowPixelBuffer(WIN_HEADER, PIXEL_FILL(1));
-    AddTextPrinterParameterized(WIN_HEADER, FONT_NORMAL, gText_Option, 8, 1, TEXT_SKIP_DRAW, NULL);
+    UnholyUi_Print(WIN_HEADER, FONT_SMALL, 8, 1, 192, gText_Option);
     CopyWindowToVram(WIN_HEADER, COPYWIN_FULL);
 }
 
@@ -683,7 +688,7 @@ static void DrawOptionMenuTexts(void)
 
     FillWindowPixelBuffer(WIN_OPTIONS, PIXEL_FILL(1));
     for (i = 0; i < MENUITEM_COUNT; i++)
-        AddTextPrinterParameterized(WIN_OPTIONS, FONT_NORMAL, sOptionMenuItemsNames[i], 8, (i * 13) + 1, TEXT_SKIP_DRAW, NULL);
+        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, (i * 13) + 1, 94, sOptionMenuItemsNames[i]);
     CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
 }
 

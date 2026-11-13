@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "item.h"
 #include "item_icon.h"
 #include "config/save.h"
@@ -255,7 +256,6 @@ static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
 static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
 static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
-static const u8 sUnholyCraftTextColors[] = {1, 2, 3};
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
 static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
@@ -332,7 +332,7 @@ static const enum Item sUnholyGearItems[GEAR_COUNT] =
 static const struct WindowTemplate sUnholyCraftWindow =
 {
     .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
-    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x100,
+    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x20,
 };
 
 static const struct MenuAction sStartMenuItems[] =
@@ -492,24 +492,21 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
 
 static void UnholyCraftPrint(u8 x, u8 y, const u8 *text)
 {
-    AddTextPrinterParameterized4(sUnholyCraftWindowId, FONT_NARROW, x, y, 0, 0,
-                                 sUnholyCraftTextColors, TEXT_SKIP_DRAW, text);
+    UnholyUi_Print(sUnholyCraftWindowId, y >= 120 ? FONT_SMALL_NARROW : FONT_SMALL,
+        x, y, 200 - min(x, 200), text);
 }
 
 static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *ingredient)
 {
     u16 owned = CountTotalItemQuantityInBag(ingredient->itemId);
-
-    StringCopy(gStringVar4, GetItemName(ingredient->itemId));
-    StringAppend(gStringVar4, COMPOUND_STRING("  "));
-    ConvertIntToDecimalStringN(gStringVar2, owned, STR_CONV_MODE_LEFT_ALIGN, 3);
-    StringAppend(gStringVar4, gStringVar2);
-    StringAppend(gStringVar4, COMPOUND_STRING("/"));
-    ConvertIntToDecimalStringN(gStringVar3, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
-    StringAppend(gStringVar4, gStringVar3);
-    if (owned >= ingredient->quantity)
-        StringAppend(gStringVar4, COMPOUND_STRING(" OK"));
-    UnholyCraftPrint(8, 82 + row * 12, gStringVar4);
+    u8 y = 82 + row * 12;
+    u8 *cursor = ConvertUIntToDecimalStringN(gStringVar4, owned, STR_CONV_MODE_LEFT_ALIGN, 3);
+    cursor = StringCopy(cursor, COMPOUND_STRING("/"));
+    ConvertUIntToDecimalStringN(cursor, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, y, 122, GetItemName(ingredient->itemId));
+    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 136, y, 44, gStringVar4);
+    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 181, y + 2, 20,
+        owned >= ingredient->quantity ? COMPOUND_STRING("OK") : COMPOUND_STRING("NEED"));
 }
 
 static void UnholyCraftRenderMenu(void)
@@ -517,9 +514,7 @@ static void UnholyCraftRenderMenu(void)
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sUnholyCraftSkinDaylight : sUnholyCraftSkinEclipse;
     enum Item iconItem;
 
-    FillWindowPixelBuffer(sUnholyCraftWindowId, PIXEL_FILL(1));
-    DrawUnholyUiPanelAccents(sUnholyCraftWindowId, 26 * 8, 17 * 8, 19);
-    UnholyCraftPrint(4, 3, sUnholyCraftTitle);
+    UnholyUi_Frame(sUnholyCraftWindowId, sUnholyCraftTitle);
     UnholyCraftPrint(137, 3, skin);
 
     if (sUnholyCraftMode == 0)
@@ -529,7 +524,12 @@ static void UnholyCraftRenderMenu(void)
         StringCopy(gStringVar4, COMPOUND_STRING("> "));
         StringAppend(gStringVar4, GetItemName(recipe->result));
         UnholyCraftPrint(4, 23, gStringVar4);
-        UnholyCraftPrint(8, 40, sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus]);
+        const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 40, 168, description);
+        while (*description != EOS && *description != CHAR_NEWLINE)
+            description++;
+        if (*description == CHAR_NEWLINE)
+            UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 52, 168, description + 1);
         UnholyCraftPrint(4, 69, sUnholyCraftRequirements);
 
         for (u8 i = 0; i < recipe->materialCount; i++)
