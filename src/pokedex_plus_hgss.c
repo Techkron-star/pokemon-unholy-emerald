@@ -25,6 +25,7 @@
 #include "pokedex.h"
 #include "pokedex_common.h"
 #include "pokedex_plus_hgss.h"
+#include "pokedex_variants.h"
 #include "pokedex_area_screen.h"
 #include "pokedex_cry_screen.h"
 #include "pokemon_icon.h"
@@ -1353,6 +1354,9 @@ bool32 Task_TryLoadInfoScreen_HGSS(u8 taskId)
             gTasks[taskId].tMonSpriteId = (u16)CreateMonSpriteFromNationalDexNumber(sPokedexListItem->dexNum, MON_PAGE_X, MON_PAGE_Y, 0);
             gSprites[gTasks[taskId].tMonSpriteId].oam.priority = 0;
         }
+        // Reserve a line under the portrait for the variants action.
+        if (gTasks[taskId].tMonSpriteId < MAX_SPRITES)
+            gSprites[gTasks[taskId].tMonSpriteId].y = 48;
         gMain.state++;
         break;
     case 6:
@@ -1405,6 +1409,14 @@ bool32 TryHandleInfoScreenInput_HGSS(u8 taskId)
 {
     if (!POKEDEX_PLUS_HGSS)
         return FALSE;
+
+    if (JOY_NEW(A_BUTTON | SELECT_BUTTON))
+    {
+        bool32 opened = sPokedexListItem->owned
+            && PokedexVariants_Open(NationalPokedexNumToSpeciesForm(sPokedexListItem->dexNum), taskId);
+        PlaySE(opened ? SE_SELECT : SE_FAILURE);
+        return TRUE;
+    }
 
     if (POKEDEX_PLUS_HGSS && ((JOY_NEW(DPAD_RIGHT) || (JOY_NEW(R_BUTTON) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_LR))))
     {
@@ -1785,6 +1797,8 @@ static void PrintMonInfo(u32 num, u32 value, u32 owned, u32 newEntry)
     //Type Icon(s)
     if (owned)
         PrintCurrentSpeciesTypeInfo(newEntry, species);
+    if (!newEntry)
+        PrintInfoScreenTextSmall(owned ? COMPOUND_STRING("A: VARIANTS") : COMPOUND_STRING("CAPTURE FOR VARIANTS"), FONT_SMALL_NARROW, 4, 79);
 }
 
 #define MALE_PERSONALITY 0xFE
