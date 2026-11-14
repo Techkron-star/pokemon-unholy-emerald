@@ -143,6 +143,7 @@ void MutationIcon_Destroy(u8 id)
     s32 index = ArtIndex(&gSprites[id]);
     if (index < 0)
         return;
+    FreeSpriteOamMatrix(&gSprites[id]);
     DestroySprite(&gSprites[id]);
     for (u8 i = 0; i < MAX_SPRITES; i++)
         if (gSprites[i].inUse && gSprites[i].template == &sTemplates[index])
@@ -169,6 +170,7 @@ void MutationIcon_ClearBattle(void)
     {
         MutationIcon_Destroy(sBattleIcons[i]);
         sBattleIcons[i] = MAX_SPRITES;
+        sBattleShown[i] = FALSE;
     }
 }
 
@@ -191,6 +193,9 @@ bool32 MutationIcon_ReleaseBattlePalette(void)
             {
                 MutationIcon_Destroy(sBattleIcons[j]);
                 sBattleIcons[j] = MAX_SPRITES;
+                // A released/recreated icon may recover in the same frame.
+                // Force the name/gutter redraw even then, clearing its fallback.
+                sBattleShown[j] = FALSE;
             }
         if (IndexOfSpritePaletteTag(MUTATION_TAG_BASE + art) == 0xFF)
             return TRUE;
@@ -228,7 +233,27 @@ bool32 MutationIcon_UpdateBattle(u8 battler, const struct Sprite *box, u16 badge
     if (badge == 0)
         return BattleVisualChanged(battler);
     if (id == MAX_SPRITES)
+    {
         id = sBattleIcons[battler] = MutationIcon_Create(badge, x, y, box->oam.priority);
+        if (id != MAX_SPRITES)
+        {
+            // The name/level gutter is eight pixels wide. Scale only the battle
+            // instance; Summary keeps the original sixteen-pixel artwork.
+            u8 matrix = AllocOamMatrix();
+            if (matrix == 0xFF)
+            {
+                MutationIcon_Destroy(id);
+                id = sBattleIcons[battler] = MAX_SPRITES;
+            }
+            else
+            {
+                gSprites[id].oam.affineMode = ST_OAM_AFFINE_NORMAL;
+                gSprites[id].oam.matrixNum = matrix;
+                // The dummy affine animation never rewrites this fixed matrix.
+                SetOamMatrix(matrix, 0x200, 0, 0, 0x200);
+            }
+        }
+    }
     if (id == MAX_SPRITES)
         return BattleVisualChanged(battler);
     gSprites[id].x = x;

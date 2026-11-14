@@ -871,10 +871,9 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
         u16 badges = healthbox->invisible || !IsBattlerAlive(battler)
                    || (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
                    ? 0 : GetMonData(mon, MON_DATA_SPECIAL_BADGES);
-        s16 x = healthbox->x + (!IsOnPlayerSide(battler) ? 102
-              : GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES ? -72 : 32);
-        s16 y = healthbox->y + (!IsOnPlayerSide(battler) ? 0
-              : GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES ? -2 : -20);
+        // Fixed gutter between the rendered nickname and the level/gimmick.
+        s16 x = healthbox->x + (IsOnPlayerSide(battler) ? 36 : 28);
+        s16 y = healthbox->y - 6;
         if (MutationIcon_UpdateBattle(battler, healthbox, badges, x, y))
             UpdateNickInHealthbox(sprite->hBar_HealthBoxSpriteId, mon);
     }
@@ -972,8 +971,8 @@ static EWRAM_DATA u32 sGearHudTiles[8 * TILE_SIZE_4BPP / sizeof(u32)];
 
 static const struct OamData sOamData_GearIcon =
 {
-    .shape = SPRITE_SHAPE(32x16),
-    .size = SPRITE_SIZE(32x16),
+    .shape = SPRITE_SHAPE(16x32),
+    .size = SPRITE_SIZE(16x32),
     .priority = 1,
 };
 
@@ -1010,7 +1009,7 @@ static u8 CreateGearIconSprite(enum BattlerId battler)
 static void SetGearHudPixel(u8 x, u8 y, u8 color)
 {
     u8 *tiles = (u8 *)sGearHudTiles;
-    u8 *pixel = &tiles[(4 * (y / 8) + x / 8) * TILE_SIZE_4BPP + 4 * (y % 8) + (x % 8) / 2];
+    u8 *pixel = &tiles[(2 * (y / 8) + x / 8) * TILE_SIZE_4BPP + 4 * (y % 8) + (x % 8) / 2];
     u8 shift = (x & 1) * 4;
     *pixel = (*pixel & ~(0xF << shift)) | (color << shift);
 }
@@ -1020,7 +1019,7 @@ static void DrawGearHudGlyph(u8 left, u16 pattern, u8 color)
     for (u8 y = 0; y < 5; y++)
         for (u8 x = 0; x < 3; x++)
             if (pattern & (1 << (14 - 3 * y - x)))
-                SetGearHudPixel(left + x, 5 + y, color);
+                SetGearHudPixel(left + x, 17 + y, color);
 }
 
 static void DrawGearHudBadge(u16 badge, const u16 *palette, bool32 flash)
@@ -1056,18 +1055,19 @@ static void DrawGearHudBadge(u16 badge, const u16 *palette, bool32 flash)
     }
 
     u8 width = badge >= GEAR_HUD_READY || badge < 10 ? 1 : (badge < 100 ? 2 : 3);
-    for (u8 y = 3; y < 12; y++)
-        for (u8 x = 16; x < 16 + 4 * width + 2; x++)
+    u8 left = (16 - (4 * width + 2)) / 2;
+    for (u8 y = 16; y < 23; y++)
+        for (u8 x = left; x < left + 4 * width + 2; x++)
             SetGearHudPixel(x, y, dark);
 
     if (badge == GEAR_HUD_READY)
-        DrawGearHudGlyph(17, 0b000010111010000, light);
+        DrawGearHudGlyph(left + 1, 0b000010111010000, light);
     else if (badge == GEAR_HUD_OVERLOAD)
-        DrawGearHudGlyph(17, 0b010010010000010, light);
+        DrawGearHudGlyph(left + 1, 0b010010010000010, light);
     else
         for (u8 digit = width; digit != 0; digit--)
         {
-            DrawGearHudGlyph(17 + 4 * (digit - 1), sDigits[badge % 10], light);
+            DrawGearHudGlyph(left + 1 + 4 * (digit - 1), sDigits[badge % 10], light);
             badge /= 10;
         }
 }
@@ -1123,8 +1123,9 @@ static bool32 UpdateGearIcon(struct Sprite *sprite, enum BattlerId battler, enum
     {
         const u32 *frame = info->iconGfx + recharging * 32;
         memset(sGearHudTiles, 0, sizeof(sGearHudTiles));
-        CpuCopy32(frame, &sGearHudTiles[0], 2 * TILE_SIZE_4BPP);
-        CpuCopy32(frame + 16, &sGearHudTiles[32], 2 * TILE_SIZE_4BPP);
+        // 16x16 art above a centered status/cooldown badge. The 23 visible
+        // rows fit the 25-pixel spacing of double-battle healthboxes.
+        CpuCopy32(frame, sGearHudTiles, 4 * TILE_SIZE_4BPP);
         DrawGearHudBadge(badge, info->iconPal, flash);
         CpuCopy32(sGearHudTiles, (void *)(OBJ_VRAM0 + sprite->oam.tileNum * TILE_SIZE_4BPP), sizeof(sGearHudTiles));
         sprite->gHud_DrawKey = key;
@@ -1162,21 +1163,9 @@ static void UpdateHealthbarGearIcon(struct Sprite *healthBar, const struct Sprit
     }
 
     struct Sprite *sprite = &gSprites[spriteId];
-    if (!IsOnPlayerSide(battler))
-    {
-        sprite->x = healthbox->x + 78;
-        sprite->y = healthbox->y;
-    }
-    else if (GetBattlerCoordsIndex(battler) == BATTLE_COORDS_DOUBLES)
-    {
-        sprite->x = healthbox->x - 48;
-        sprite->y = healthbox->y - 2;
-    }
-    else
-    {
-        sprite->x = healthbox->x + 56;
-        sprite->y = healthbox->y - 20;
-    }
+    // Place the vertical Gear column on the side facing the battlefield.
+    sprite->x = healthbox->x + (IsOnPlayerSide(battler) ? -44 : 76);
+    sprite->y = healthbox->y;
     sprite->x2 = healthbox->x2;
     sprite->y2 = healthbox->y2;
     sprite->oam.priority = healthbox->oam.priority;
@@ -2254,13 +2243,6 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     u16 mutations = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
     if (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
         mutations = 0;
-    if (!MutationIcon_BattleVisible(battler))
-    {
-        StringCopy(ptr, MutationIcon_BattleLabel(mutations));
-        ptr += StringLength(ptr);
-    }
-    if (mutations & (mutations - 1))
-        StringCopy(ptr, COMPOUND_STRING("+"));
 
     //  Don't assume that healthbox sprites don't have data in the fields used for sprite printing
     //  and set up temporary values with what's needed
@@ -2272,9 +2254,9 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
     u32 nicknameX = IsOnPlayerSide(battler) ? HEALTHBOX_PLAYER_NICKNAME_X : HEALTHBOX_OPP_NICKNAME_X;
     u32 padding = STAMINA_ENABLED && !gTestRunnerEnabled && StaminaRingUsesNicknameRow(battler)
                 ? STAMINA_RING_NICKNAME_PADDING : 0;
-    u32 width = HEALTHBOX_NICKNAME_WIDTH - padding;
+    u32 width = HEALTHBOX_NICKNAME_WIDTH - padding - (mutations ? 9 : 0);
     u32 fontId = GetFontIdToFit(displayName, FONT_SMALL, 0, width);
-    if (padding != 0
+    if ((padding != 0 || mutations != 0)
      && nicknameEnd > displayName
      && GetStringWidth(fontId, displayName, 0) > width)
     {
@@ -2288,8 +2270,25 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
             nicknameEnd--;
         }
     }
-    FillSpriteRectColor(healthboxSpriteId, nicknameX, 5, HEALTHBOX_NICKNAME_WIDTH, 11, HEALTHBOX_BG_INDEX);
+    FillSpriteRectColor(healthboxSpriteId, nicknameX, 5, HEALTHBOX_NICKNAME_WIDTH + 1, 11, HEALTHBOX_BG_INDEX);
+    FillSpriteRectColor(healthboxSpriteId, nicknameX + 48, 14, 8, 3, HEALTHBOX_BG_INDEX);
+    if (mutations & (mutations - 1))
+    {
+        // Keep the combination marker under its symbol, leaving the full
+        // nickname budget available to the name and gender.
+        FillSpriteRectColor(healthboxSpriteId, nicknameX + 51, 15, 3, 1, 1);
+        FillSpriteRectColor(healthboxSpriteId, nicknameX + 52, 14, 1, 3, 1);
+    }
     AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nicknameX + padding, 3, 0, 0, sHealthBoxTextColor, 0, displayName);
+    if (MutationIcon_BadgeAt(mutations, 0) && !MutationIcon_BattleVisible(battler))
+    {
+        // Fallback occupies the same gutter, never extra nickname characters.
+        const u8 *label = MutationIcon_BattleLabel(mutations) + 1;
+        u32 labelFont = GetFontIdToFit(label, FONT_SMALL, 0, 8);
+        AddSpriteTextPrinterParameterized6(healthboxSpriteId, labelFont, nicknameX + 48, 3, 0, 0,
+            sHealthBoxTextColor, 0, label);
+    }
+
 
     gSprites[healthboxSpriteId].data[1] = savedValue1;
     gSprites[healthboxSpriteId2].data[1] = savedValue2;

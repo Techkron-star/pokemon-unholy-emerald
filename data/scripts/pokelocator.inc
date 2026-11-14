@@ -22,5 +22,5 @@ EventScript_PokelocatorSearchUnavailable::
 	end
 
 PokelocatorText_SearchUnavailable:
-	.string "This Pokémon can't be found here\n"
-	.string "right now. Try searching again.$"
+	.string "{STR_VAR_1}\n"
+	.string "Open the locator to review the target.$"

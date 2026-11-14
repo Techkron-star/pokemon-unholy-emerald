@@ -1,52 +1,81 @@
-# Pokélocator: catálogo, búsqueda y captura
+# Pokélocator: catálogo, obtención y búsqueda
 
-El localizador de Unholy ofrece un catálogo de especies de la zona, colección y datos de especie, elección de método, búsqueda y captura nativa. La referencia funcional es Elite Redux; la composición, navegación y Señal mutante pertenecen a Unholy. No se habilita el DexNav de rastreo del motor.
+El localizador usa las tablas y las reglas de Unholy. Elite Redux sirve de referencia funcional; la interfaz, los desbloqueos y la Señal mutante pertenecen a Unholy. No habilita rastreo, proximidad, estrellas ni niveles de búsqueda heredados del motor.
 
 ## Catálogo y controles
 
-- Cuatro tarjetas visibles en una cuadrícula 2×2. Cada especie aparece una sola vez aunque exista en hierba, Surf y varias cañas.
-- **L/R:** categorías ALL, GRASS/CAVE, SURF, RODS y OTHER. Las tres cañas conservan sus slots y requisitos independientes en la ficha.
-- **SELECT:** colección ALL → MISSING → CAUGHT. Se combina con la categoría de encuentro. El progreso cuenta especies únicas y los filtros vacíos muestran su estado explícitamente.
-- **Cruceta:** recorrer tarjetas y páginas, incluida la última página incompleta. **A:** abrir la ficha. **B:** volver al menú de origen.
-- **START → Tools → Browse area:** consultar otros pisos/mapas de la misma zona con L/R. Solo se buscan encuentros en el mapa donde está el jugador.
+- Seis iconos por página, especies únicas por categoría, incluidas las no vistas. La ficha lateral muestra nombre, número nacional, tipos, habilidades ordinarias y habilidad oculta de la especie; no predice las habilidades o mutaciones del ejemplar que se generará. Los nombres completos se consultan en **Species Profile**.
+- **L/R:** solo categorías presentes y desbloqueadas. Hierba/cueva, agua, pesca, Golpe Roca y ocultos tienen grupos separados. Las cañas mantienen sus propios slots y requisitos. Miel y Headbutt no tienen tablas en esta rama: no se inventan encuentros ni pestañas vacías.
+- El contador **CAUGHT x/y** y **COMPLETE** cuentan especies únicas de la categoría. La marca inferior de cada icono indica capturado.
+- **Cruceta:** seleccionar. **A:** Search / Obtain One / Register Target for R / Species Profile. **SELECT:** obtener todos o solo nuevos **de la categoría seleccionada**. **B:** cancelar o regresar al origen.
+- **START → Tools:** otros pisos de la zona, Señal mutante y filtro ALL/MISSING/CAUGHT. Consultar otro piso no permite obtener ni buscar allí. El filtro de colección no reduce silenciosamente el alcance de ALL o NEW.
+- Las estadísticas completas, movimientos, evoluciones y edición se mantienen en Pokédex/Resumen.
 
-## Ficha y búsqueda
+## Obtención gratuita
 
-La ficha tiene tres pestañas mediante L/R: **HABITAT**, **STATS** y **TRAITS**. Izquierda/derecha recorre especies sin volver al catálogo. Habitat permite elegir con arriba/abajo un método real de esa especie, con nivel, tasa y requisito pendiente. Stats muestra las seis estadísticas base; Traits muestra las dos habilidades ordinarias y la oculta de la especie. Estos datos no son IV, habilidad ni mutaciones predichas de un ejemplar aún no generado.
+**Obtain One**, **Obtain All** y **Obtain Only New** preparan una revisión antes de entregar. ALL incluye especies ya capturadas; NEW usa el registro de capturados, no la posesión actual. Se deduplican especies presentes en varias cañas.
 
-**A → Prepare Search** revisa especie, método, nivel, Balls disponibles, destino equipo/PC, almacenamiento lleno y cargas de Señal. **B** cancela sin generar un Pokémon ni consumir RNG o cargas. **A → Begin Search** revalida e inicia un combate salvaje normal; se captura usando una Ball desde la Mochila. No se capturan especies automáticamente. Sin Balls se advierte que solo se podrá combatir; llenar el almacenamiento también muestra una advertencia.
+La revisión muestra cantidad, nivel, destino equipo/PC y espacio libre. **B no genera Pokémon, consume RNG ni cambia el registro.** Antes de confirmar se comprueba espacio para todo el lote. Se revalidan mapa, horario, categoría, desbloqueos, especies, registro y nivel confirmado; si cambiaron se exige revisar de nuevo. Una entrega nativa inesperadamente fallida informa la cantidad realmente entregada.
 
-Al reabrir en el mismo mapa se recuperan categoría, filtro, especie y método si siguen disponibles. Esta selección dura la sesión y se reconstruye contra las tablas actuales; no añade campos al guardado ni conserva datos de una tabla antigua. Si una captura elimina el objetivo del filtro MISSING, se selecciona otra especie válida o el estado vacío.
+Se usa `ScriptGiveMon` y la entrega nativa al equipo y luego al PC, con sus reglas de origen especial, mutaciones y registro en Pokédex. No cuesta Balls, dinero ni puntos. No consume cargas de Señal, que se aplican a encuentros salvajes. El resultado informa cantidades entregadas al equipo y al PC y refresca el progreso.
 
-## Señal mutante
+## Topes por medallas para toda la partida
 
-**START → Tools → Mutant Signal** muestra los nueve símbolos de mutación, sus tiradas base `1/N`, el estado y las cargas disponibles. Se indica que las combinaciones pasan por compuertas adicionales. Las cifras proceden de `config/special_badges.h`: no se presentan como probabilidad final de una combinación.
+Por decisión del usuario, los topes nativos están activos globalmente, tanto en EXP de combate como en caramelos y entregas del localizador:
 
-**A** abre una confirmación con las reglas del servicio existente: HF Poké Watch, medallas y reloj, una activación diaria, diez encuentros de ese mapa y mejora relativa de las tiradas C/B. A/S/Omega conservan sus tasas. **B** no consume el uso diario. Confirmar llama a `HfcWatch_ActivateFrequency`; el localizador no duplica sus flags, balance o contadores. La vista obtiene el boost guardado al activar, no uno recalculado al ganar otra medalla. Dibujarla nunca consume cargas. La búsqueda confirmada consume una carga mediante el mismo generador que los encuentros normales.
-
-El modificador independiente de mutaciones pendiente de diseño permanece desactivado. No se inventan costes, duración, probabilidades ni desbloqueos por medalla adicionales a los del WATCH.
-
-## Requisitos y datos
-
-| Método | Requisito para Buscar |
+| Progreso | Nivel máximo |
 | --- | --- |
-| Hierba/cueva | Estar en tierra y tener un Pokémon apto para combatir |
-| Surf | Estar surfeando o bajo el agua |
-| Cañas | Poseer la caña elegida y estar en una posición donde el motor permite pescar |
-| Golpe Roca | Movimiento de campo desbloqueado y un miembro del equipo que lo conozca |
-| Ocultos | Haber visto la especie; también se aplica tierra/agua según su tabla |
+| Sin medallas | 15 |
+| 1 / 2 / 3 / 4 medallas | 19 / 24 / 29 / 31 |
+| 5 / 6 / 7 / 8 medallas | 33 / 42 / 46 / 58 |
+| Campeón | 100 |
 
-Se comprueban mapa, horario y disponibilidad al confirmar y después de cerrar la ventana. Se elige un slot de la especie respetando los pesos de su método/caña; el nivel se obtiene con `ChooseWildMonLevel`. No se inventan niveles intermedios uniendo slots. Consultar, filtrar y rechazar búsquedas no cambia el RNG ni el equipo enemigo. Buscar evita la tirada al caminar y el repelente como acción manual. Safari, Pirámide y bloqueos de encuentros/captura impiden Buscar.
+Una recompensa grande de EXP se recorta al límite. Los Pokémon de partidas existentes que ya lo superen conservan nivel y EXP; no ganan más hasta que el progreso lo permita. Los caramelos no pueden elevarlos ni reducirlos. No cambian los topes de EV.
 
-La ventana devuelve la paleta del campo y libera iconos al salir o pasar al combate. Los textos reservan 12 píxeles reales por línea, aunque la métrica de la fuente estrecha anuncie 8; los tiles terminan antes del marco estándar.
+## Búsqueda dirigida y R
+
+**Search** revisa método, niveles salvajes, Balls, capacidad y cargas de Señal. **B** cancela sin efectos; **A** revalida y crea un combate salvaje normal. La captura en combate usa una Ball. La búsqueda guarda el objetivo para **R**, también disponible mediante **Register Target for R**. En el campo, estando quieto, R repite especie y método contra la tabla del mapa actual; si falta allí, muestra el motivo y no genera un ejemplar alternativo.
+
+El objetivo se guarda en una variable de eventos reservada, con marcador de formato y validación de especie/método. Emerald usa el antiguo `VAR_ROUTE102_STATE`, sin consumidores de historia; FRLG usa `VAR_0x40F2`. No se amplía ni mueve el SaveBlock. La navegación recuerda su selección durante la sesión; el objetivo R sobrevive a guardar/cargar.
+
+| Método | Desbloqueo del catálogo | Condiciones adicionales para Search |
+| --- | --- | --- |
+| Hierba/cueva | Tabla presente | Pokémon sano y terreno con encuentros terrestres |
+| Agua | Surf desbloqueado | Estar surfeando o bajo el agua |
+| Pesca | Poseer la caña correspondiente | Posición nativa válida para pescar |
+| Golpe Roca | Movimiento de campo desbloqueado | Un miembro del equipo lo conoce y estar en tierra |
+| Ocultos | Campeón y entrenadores normales del mapa derrotados | Tierra/agua según la tabla |
+
+Tras desbloquear ocultos se muestran también las especies no vistas. Los entrenadores exigidos se obtienen de los eventos nativos del mapa, no de IDs importados de Elite Redux. Obtener directamente no exige estar en hierba, surfear ni tener un equipo sano; sí respeta el mapa y los desbloqueos.
+
+Safari, Pirámide, batalla en curso, bloqueos de encuentros/captura e impedimentos de historia bloquean obtención y búsqueda. Esta rama no contiene un modo de captura única por ruta; no se inventa una restricción de ese tipo. Search respeta pesos por slot/caña y `ChooseWildMonLevel`; no une rangos para inventar niveles intermedios.
+
+## Señal y presentación
+
+**Tools → Mutant Signal** conserva las nueve mutaciones, tiradas base `1/N`, cargas y confirmación del servicio existente: HF Watch, medallas/reloj, una activación diaria y diez encuentros del mapa. La mejora C/B es relativa; A/S/Omega mantienen sus tasas. Consultar nunca consume cargas; Search confirmado usa el generador nativo y consume una.
+
+Eclipse y Daylight comparten geometría 240×160. Los textos reservan 12 píxeles reales por línea; catálogo y modales usan tiles por debajo del límite de 512 del bloque del campo y liberan iconos/paletas al regresar.
 
 ## Verificación
 
-- `test/pokelocator.c`: cuatro pruebas de búsqueda y cuatro de catálogo adicionales a las 15 originales. Comprueban slots separados, cañas, entradas inválidas, rechazo sin efectos, deduplicación, filtros combinados, cuadrícula impar/vacía y lectura sin cambiar tablas/RNG.
-- `test/hfc_watch.c`: lectura del boost almacenado sin consumir cargas, mapa distinto y cargas agotadas.
-- Emerald compila con `UNUSED_ERROR=1`. Escena de campo preparada en mGBA: catálogo, pestañas, requisitos de Señal, confirmación, cancelación y activación nativa con 10 cargas y boost de 35 %. Al cerrar no quedan paletas de los nueve símbolos.
-- La búsqueda anterior verificó Poochyena capturado como segundo miembro, 10 → 9 Master Balls, resultado `B_OUTCOME_CAUGHT`, Pokédex CAUGHT y regreso al campo. La comprobación del flujo ampliado y la suite nativa se registran en el PR.
+`test/pokelocator.c` cubre tablas, slots, cañas, deduplicación, filtros y navegación. `test/pokelocator_plus.c` cubre los nueve hitos de nivel, caramelos, objetivo R inválido, grupos separados, revisión sin RNG, entrega al equipo/PC, ALL/NEW y cajas llenas. `test/battle/level_caps.c` comprueba recompensas grandes al borde del tope y Pokémon que ya lo superan. Las pruebas de fórmulas de EXP declaran progreso de Campeón para no confundirse con los límites de historia.
 
-Pendientes de QA: partida natural, todos los mapas/métodos, equipo y cajas llenos, hardware.
+QA en mGBA (Eclipse y Daylight): catálogo, revisión/entrega individual, lote NEW, cancelación, registro R y combate nativo, regreso al campo, PP separado de stamina, combate doble sin cadena según sus reglas existentes, Resumen sin mutaciones y con las nueve, mochila de diez categorías y selector desplazable/reabierto. Se conservan capturas nativas de 240×160 en `docs/images/locator-plus-*`.
 
-Referencia de funciones: [código del localizador de Elite Redux](https://github.com/Elite-Redux/eliteredux/blob/master/src/dexnav.c). No se importa código ni arte de esa referencia.
+Pendiente: recorrido natural completo de la historia, todos los mapas/horarios, todos los métodos y hardware real.
+
+Referencia: [DexNav+ de Elite Redux, rama upcoming](https://github.com/Elite-Redux/eliteredux-source/blob/upcoming/src/dexnav.c). No se importa código ni arte de esa referencia.
+
+## Capturas nativas
+
+| Eclipse | Daylight |
+| --- | --- |
+| ![Catálogo](images/locator-plus-catalog.png) | ![Catálogo](images/locator-plus-daylight.png) |
+| ![Mochila](images/locator-plus-bag-v2.png) | ![Selector desplazado a Miscelánea](images/locator-plus-picker-try.png) |
+| ![Nueve mutaciones](images/locator-plus-summary-mutations.png) | ![Nueve mutaciones](images/locator-plus-summary-daylight.png) |
+
+![Revisión de obtención](images/locator-plus-obtain.png) ![Solo nuevos](images/locator-plus-new.png)
+
+![Combate individual](images/locator-plus-battle-moves.png) ![Combate doble](images/locator-plus-double-moves.png)
+
+![Sin mutaciones](images/locator-plus-summary-none.png)

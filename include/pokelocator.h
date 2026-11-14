@@ -20,7 +20,7 @@ enum PokelocatorMethod
     POKELOCATOR_METHOD_OLD_ROD,
     POKELOCATOR_METHOD_GOOD_ROD,
     POKELOCATOR_METHOD_SUPER_ROD,
-    POKELOCATOR_METHOD_HIDDEN,    // DexNav hidden encounters; secret until the species is seen
+    POKELOCATOR_METHOD_HIDDEN,    // hidden table; live catalog gates by Champion and map trainers
     POKELOCATOR_METHOD_COUNT
 };
 
@@ -33,9 +33,13 @@ enum PokelocatorGroup
     POKELOCATOR_GROUP_LAND,
     POKELOCATOR_GROUP_WATER,
     POKELOCATOR_GROUP_RODS,
-    POKELOCATOR_GROUP_OTHER,
+    POKELOCATOR_GROUP_ROCKS,
+    POKELOCATOR_GROUP_HONEY,
+    POKELOCATOR_GROUP_HIDDEN,
     POKELOCATOR_GROUP_COUNT,
 };
+
+#define POKELOCATOR_GROUP_OTHER POKELOCATOR_GROUP_ROCKS
 
 enum PokelocatorCollectionFilter
 {
@@ -137,6 +141,7 @@ enum PokelocatorSearchStatus
     POKELOCATOR_SEARCH_UNAVAILABLE,
     POKELOCATOR_SEARCH_NO_PARTY,
     POKELOCATOR_SEARCH_NEED_LAND,
+    POKELOCATOR_SEARCH_NEED_GRASS,
     POKELOCATOR_SEARCH_NEED_SURF,
     POKELOCATOR_SEARCH_NEED_ROD,
     POKELOCATOR_SEARCH_NEED_WATER,
@@ -151,6 +156,29 @@ u8 Pokelocator_SelectSearchSlot(const struct WildPokemonInfo *info, u16 species,
 u8 Pokelocator_GetSearchStatus(u16 headerId, u16 species, u8 method);
 bool32 Pokelocator_CreateSearchMon(u16 headerId, u16 species, u8 method);
 const u8 *Pokelocator_GetSearchMessage(u8 status);
+
+enum PokelocatorObtainKind { POKELOCATOR_OBTAIN_ONE, POKELOCATOR_OBTAIN_ALL, POKELOCATOR_OBTAIN_NEW };
+enum PokelocatorObtainStatus
+{
+    POKELOCATOR_OBTAIN_READY, POKELOCATOR_OBTAIN_WRONG_AREA, POKELOCATOR_OBTAIN_BLOCKED,
+    POKELOCATOR_OBTAIN_EMPTY, POKELOCATOR_OBTAIN_NO_SPACE, POKELOCATOR_OBTAIN_CHANGED,
+};
+struct PokelocatorObtainPlan
+{
+    u16 header, selectedSpecies, species[POKELOCATOR_MAX_ROWS];
+    u8 group, kind, count, level;
+};
+struct PokelocatorObtainResult { u8 status, party, pc; };
+bool32 Pokelocator_IsMethodUnlocked(u16 header, u8 method);
+void Pokelocator_BuildAvailableList(struct PokelocatorList *list, u16 header);
+u16 Pokelocator_CountFreeSlots(void);
+u8 Pokelocator_PrepareObtain(struct PokelocatorObtainPlan *plan, u16 header, u8 group, u8 kind, u16 species);
+struct PokelocatorObtainResult Pokelocator_ExecuteObtain(const struct PokelocatorObtainPlan *plan);
+const u8 *Pokelocator_GetObtainMessage(u8 status);
+bool32 Pokelocator_RegisterTarget(u16 species, u8 method);
+bool32 Pokelocator_ReadTarget(u16 *species, u8 *method);
+bool32 Pokelocator_QueueSearch(u16 header, u16 species, u8 method);
+bool32 Pokelocator_TryQuickSearch(void);
 
 // UI entry point, called from the Pokélocator key item while the field is active.
 void Pokelocator_OpenFromField(void (*onClose)(void));

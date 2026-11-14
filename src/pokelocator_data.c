@@ -146,7 +146,9 @@ bool8 Pokelocator_MethodInGroup(u8 method, u8 group)
     case POKELOCATOR_GROUP_LAND: return method == POKELOCATOR_METHOD_LAND;
     case POKELOCATOR_GROUP_WATER: return method == POKELOCATOR_METHOD_WATER;
     case POKELOCATOR_GROUP_RODS: return method >= POKELOCATOR_METHOD_OLD_ROD && method <= POKELOCATOR_METHOD_SUPER_ROD;
-    default: return method == POKELOCATOR_METHOD_ROCKS || method == POKELOCATOR_METHOD_HIDDEN;
+    case POKELOCATOR_GROUP_ROCKS: return method == POKELOCATOR_METHOD_ROCKS;
+    case POKELOCATOR_GROUP_HIDDEN: return method == POKELOCATOR_METHOD_HIDDEN;
+    default: return FALSE; // No native honey encounter table.
     }
 }
 

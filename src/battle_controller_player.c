@@ -53,6 +53,7 @@
 #include "battle_stamina.h"
 #include "test/battle.h"
 
+static void ClearChainPreview(void);
 static void DrawChainPreview(enum BattlerId battler);
 
 static void PlayerHandleLoadMonSprite(enum BattlerId battler);
@@ -772,8 +773,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             gMultiUsePlayerCursor = GetDefaultSelectionTarget(battler, GetMoveTarget(moveInfo->moves[first]));
         }
 
-        ClearWindowTilemap(B_WIN_DUMMY);
-        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+        ClearChainPreview();
 
         switch (canSelectTarget)
         {
@@ -837,8 +837,7 @@ void HandleInputChooseMove(enum BattlerId battler)
     {
         PlaySE(SE_SELECT);
         gBattleStruct->chainFirstPos[battler] = 0;
-        ClearWindowTilemap(B_WIN_DUMMY);
-        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+        ClearChainPreview();
         gBattleStruct->gimmick.playerSelect = FALSE;
         if (gBattleStruct->zmove.viewing)
         {
@@ -1732,6 +1731,26 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
     }
 }
 
+static void ClearChainPreview(void)
+{
+    ClearWindowTilemap(B_WIN_DUMMY);
+    ClearWindowTilemap(B_WIN_CHAIN_HELP);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+    CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_MAP);
+}
+
+static void PrintChainSlot(u8 x, u8 number, const u8 *name)
+{
+    const u8 colors[] = {14, 13, 15};
+    u8 text[64];
+    ConvertIntToDecimalStringN(text, number, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringAppend(text, COMPOUND_STRING(" "));
+    StringAppend(text, name);
+    while (GetStringWidth(FONT_SMALL_NARROW, text, 0) > 51 && StringLength(text) > 2)
+        text[StringLength(text) - 1] = EOS;
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, x, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+}
+
 static void DrawChainPreview(enum BattlerId battler)
 {
     struct ChooseMoveStruct *info = (struct ChooseMoveStruct *)&gBattleResources->bufferA[battler][4];
@@ -1742,53 +1761,34 @@ static void DrawChainPreview(enum BattlerId battler)
                      && Chain_IsMoveChainable(info->moves[selected]);
     u32 cost = Stamina_GetMoveCost(battler, info->moves[first]);
     const u8 colors[] = {14, 13, 15};
-    u8 text[64];
-    if (!Chain_IsAvailable(battler) || gBattleStruct->descriptionSubmenu || gBattleStruct->zmove.viewing)
-    {
-        ClearWindowTilemap(B_WIN_DUMMY);
-        CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
-        return;
-    }
+    u8 text[32];
+    if (gBattleStruct->descriptionSubmenu || gBattleStruct->zmove.viewing)
+    { ClearChainPreview(); return; }
+    if (secondValid) cost += Stamina_GetMoveCost(battler, info->moves[selected]);
     FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
-    StringCopy(text, COMPOUND_STRING("1 "));
-    StringAppend(text, GetMoveName(info->moves[first]));
-    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 0, 0, 0, colors, TEXT_SKIP_DRAW, text);
-    StringCopy(text, COMPOUND_STRING("2 "));
-    StringAppend(text, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
-    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 112, 0, 0, 0, colors, TEXT_SKIP_DRAW, text);
-    if (secondValid)
-        cost += Stamina_GetMoveCost(battler, info->moves[selected]);
-    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 8, 0, 0, colors, TEXT_SKIP_DRAW,
-        marked ? COMPOUND_STRING("SELECT:CANCEL A:USE") : COMPOUND_STRING("SELECT:CHAIN"));
+    if (Chain_IsAvailable(battler))
+    {
+        PrintChainSlot(1, 1, GetMoveName(info->moves[first]));
+        PrintChainSlot(55, 2, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("SELECT"));
+        PutWindowTilemap(B_WIN_DUMMY);
+    }
+    else ClearWindowTilemap(B_WIN_DUMMY);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
+    FillWindowPixelBuffer(B_WIN_CHAIN_HELP, PIXEL_FILL(14));
     StringCopy(text, COMPOUND_STRING("STA "));
     ConvertUIntToDecimalStringN(text + StringLength(text), cost, STR_CONV_MODE_LEFT_ALIGN, 3);
-    StringAppend(text, COMPOUND_STRING(" / "));
+    StringAppend(text, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
-    if (cost > Stamina_GetCurrent(battler))
-        StringAppend(text, COMPOUND_STRING(" !"));
-    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 138, 8, 0, 0, colors, TEXT_SKIP_DRAW, text);
-    PutWindowTilemap(B_WIN_DUMMY);
-    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
+    if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
+    AddTextPrinterParameterized4(B_WIN_CHAIN_HELP, FONT_SMALL_NARROW, 0, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    PutWindowTilemap(B_WIN_CHAIN_HELP);
+    CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_FULL);
 }
 
 static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
-    // This label is always visible while choosing a move. The adjoining
-    // number window still shows the move's PP, while STA shows energy spent.
-    static const u8 sText_StaminaCost[] = _("STA ");
-    struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
-    enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
-
-    if (move == MOVE_NONE)
-        StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
-    else
-    {
-        StringCopy(gDisplayedStringBattle, sText_StaminaCost);
-        ConvertIntToDecimalStringN(gDisplayedStringBattle + StringLength(gDisplayedStringBattle),
-                                   Stamina_GetMoveCost(battler, move),
-                                   STR_CONV_MODE_LEFT_ALIGN, 3);
-    }
-    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
+    BattlePutTextOnWindow(gText_MoveInterfacePP, B_WIN_PP);
     DrawChainPreview(battler);
 }
 
@@ -1866,6 +1866,7 @@ static void TryMoveSelectionDisplayMoveDescription(enum BattlerId battler)
 
 static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
 {
+    ClearChainPreview();
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleResources->bufferA[battler][4]);
     enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
     u16 pwr = GetMovePower(move);
@@ -1940,7 +1941,7 @@ void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
     src[0] = baseTileNum + 1;
     src[1] = baseTileNum + 2;
 
-    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 55 + (cursorPosition & 2), 1, 2, 0x11);
+    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 56 + (cursorPosition & 2), 1, 2, 0x11);
     CopyBgTilemapBufferToVram(0);
 }
 
@@ -1950,7 +1951,7 @@ void MoveSelectionDestroyCursorAt(u8 cursorPosition)
     src[0] = 0x1016;
     src[1] = 0x1016;
 
-    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 55 + (cursorPosition & 2), 1, 2, 0x11);
+    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 56 + (cursorPosition & 2), 1, 2, 0x11);
     CopyBgTilemapBufferToVram(0);
 }
 
