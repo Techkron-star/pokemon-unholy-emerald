@@ -77,7 +77,7 @@ static const u8 *Status(u8 status)
     case UNHOLY_MOVE_NEEDS_LEVEL: return COMPOUND_STRING("LEVEL");
     case UNHOLY_MOVE_NEEDS_DISC: return COMPOUND_STRING("NEED DISC");
     case UNHOLY_MOVE_CANNOT_FORGET: return COMPOUND_STRING("FIELD MOVE: USE THE MOVE DELETER");
-    case UNHOLY_MOVE_CHANGED: return COMPOUND_STRING("POKéMON CHANGED - REVIEW AGAIN");
+    case UNHOLY_MOVE_CHANGED: return COMPOUND_STRING("TRY AGAIN");
     default: return COMPOUND_STRING("UNAVAILABLE");
     }
 }
@@ -102,7 +102,7 @@ static void CostText(u8 *text)
         end = StringAppend(end, COMPOUND_STRING(" / NEED "));
         ConvertUIntToDecimalStringN(end, sMoves->catalog.level[sMoves->move], STR_CONV_MODE_LEFT_ALIGN, 3);
     }
-    else StringCopy(text, COMPOUND_STRING("COMPATIBLE ROUTE - NO ITEM COST"));
+    else StringCopy(text, COMPOUND_STRING("NO ITEM NEEDED"));
 }
 
 static void Description(enum Move move)
@@ -146,9 +146,9 @@ static void Render(void)
             UnholyUi_PrintOnFill(0, FONT_SMALL_NARROW, 11, y + 1, 141, fill, GetMoveName(move));
             UnholyUi_PrintOnFill(0, FONT_SMALL_NARROW, 156, y + 1, 57, fill, Status(state));
         }
-        if (!count) Print(12, 64, 200, COMPOUND_STRING("NO MOVES IN THIS CATEGORY"));
-        Footer(sMoves->notice != NULL ? sMoves->notice : COMPOUND_STRING("LEFT/RIGHT OR L/R: SOURCE A:DETAIL"),
-            sMoves->editable ? COMPOUND_STRING("SELECT:MOVE SLOTS B:BACK") : COMPOUND_STRING("READ ONLY - B:BACK"));
+        if (!count) Print(12, 64, 200, COMPOUND_STRING("NO MOVES"));
+        Footer(sMoves->notice != NULL ? sMoves->notice : COMPOUND_STRING("L/R:SOURCE  A:DETAIL"),
+            sMoves->editable ? COMPOUND_STRING("SELECT:MOVE SLOTS  B:BACK") : COMPOUND_STRING("B:BACK"));
     }
     else if (sMoves->mode == MOVE_DETAIL)
     {
@@ -178,41 +178,43 @@ static void Render(void)
         Description(sMoves->move);
         CostText(text);
         Print(8, 103, 207, text);
-        Footer(sMoves->notice != NULL ? sMoves->notice : sMoves->editable ? COMPOUND_STRING("A:CHOOSE A SLOT B:CATALOG") : COMPOUND_STRING("READ ONLY - MOVE TO PARTY TO TEACH"),
-            COMPOUND_STRING("ONLY MOVES COMPATIBLE WITH THIS SPECIES"));
+        Footer(sMoves->notice != NULL ? sMoves->notice : sMoves->editable ? COMPOUND_STRING("A:CHOOSE SLOT") : COMPOUND_STRING("MOVE TO YOUR PARTY TO TEACH"),
+            COMPOUND_STRING("B:BACK"));
     }
     else if (sMoves->mode == MOVE_SLOT || sMoves->mode == MOVE_ORDER)
     {
         bool8 ordering = sMoves->mode == MOVE_ORDER;
-        Print(8, 24, 207, ordering ? COMPOUND_STRING("CURRENT MOVE SLOTS") : COMPOUND_STRING("CHOOSE THE SLOT TO REPLACE"));
+        Print(8, 24, 207, ordering ? COMPOUND_STRING("MOVE SLOTS") : COMPOUND_STRING("CHOOSE A SLOT"));
         for (u8 i = 0; i < MAX_MON_MOVES; i++)
         {
             enum Move move = GetMonData(&sMoves->mon, MON_DATA_MOVE1 + i);
             bool8 selected = i == sMoves->slot;
             u8 y = 43 + i * 15, fill = UnholyUi_CardFill(selected);
             UnholyUi_Card(0, 6, y, 212, 15, selected);
-            UnholyUi_PrintOnFill(0, FONT_SMALL_NARROW, 11, y + 1, 139, fill, move == MOVE_NONE ? COMPOUND_STRING("-- EMPTY --") : GetMoveName(move));
+            UnholyUi_PrintOnFill(0, FONT_SMALL_NARROW, 11, y + 1, 139, fill, move == MOVE_NONE ? COMPOUND_STRING("EMPTY") : GetMoveName(move));
             u8 *end = StringCopy(text, sMoves->marked == i ? COMPOUND_STRING("> PP ") : COMPOUND_STRING("PP "));
             ConvertUIntToDecimalStringN(end, GetMonData(&sMoves->mon, MON_DATA_PP1 + i), STR_CONV_MODE_LEFT_ALIGN, 3);
             UnholyUi_PrintOnFill(0, FONT_SMALL_NARROW, 164, y + 1, 47, fill, text);
         }
-        Footer(sMoves->notice != NULL ? sMoves->notice : ordering ? COMPOUND_STRING("A:MARK / SWAP START:FORGET B:BACK") : COMPOUND_STRING("A:REVIEW REPLACEMENT B:MOVE DETAILS"),
-            ordering ? COMPOUND_STRING("PP AND PP UPS MOVE WITH THEIR SLOT") : GetMoveName(sMoves->move));
+        const u8 *controls = !ordering ? COMPOUND_STRING("A:REVIEW  B:BACK")
+                          : sMoves->marked < MAX_MON_MOVES ? COMPOUND_STRING("A:SWAP  B:CANCEL")
+                          : COMPOUND_STRING("A:MARK  START:FORGET  B:BACK");
+        Footer(sMoves->notice != NULL ? sMoves->notice : ordering ? COMPOUND_STRING("") : GetMoveName(sMoves->move),
+            controls);
     }
     else
     {
         bool8 deleting = sMoves->mode == MOVE_DELETE;
-        Print(8, 24, 207, deleting ? COMPOUND_STRING("FORGET THIS MOVE?") : COMPOUND_STRING("CONFIRM MOVE LEARNING"));
+        Print(8, 24, 207, deleting ? COMPOUND_STRING("FORGET THIS MOVE?") : COMPOUND_STRING("LEARN THIS MOVE?"));
         Print(8, 43, 207, GetMoveName(GetMonData(&sMoves->mon, MON_DATA_MOVE1 + sMoves->slot)));
         if (!deleting)
         {
-            Print(8, 60, 207, COMPOUND_STRING("BECOMES:"));
+            Print(8, 60, 207, COMPOUND_STRING("LEARN:"));
             Print(8, 74, 207, GetMoveName(sMoves->move));
             CostText(text);
             Print(8, 95, 207, text);
         }
-        else Print(8, 76, 207, COMPOUND_STRING("THE LAST KNOWN MOVE CANNOT BE DELETED"));
-        Footer(COMPOUND_STRING("A:CONFIRM B:CANCEL"), deleting ? COMPOUND_STRING("OTHER MOVES KEEP THEIR PP AND PP UPS") : COMPOUND_STRING("COSTS ARE CHECKED AGAIN BEFORE LEARNING"));
+        Footer(COMPOUND_STRING(""), COMPOUND_STRING("A:CONFIRM  B:CANCEL"));
     }
     PutWindowTilemap(0);
     CopyWindowToVram(0, COPYWIN_FULL);
@@ -321,10 +323,14 @@ static void Input(u8 taskId)
     else if (sMoves->mode == MOVE_DELETE && JOY_NEW(A_BUTTON))
     {
         enum Move move = GetMonData(&sMoves->mon, MON_DATA_MOVE1 + sMoves->slot);
-        bool32 done = !memcmp(ActualMon(), &sMoves->plan.before, sizeof(struct Pokemon)) && UnholyMoves_Forget(sMoves->partySlot, sMoves->slot, move);
+        bool32 sameMon = memcmp(ActualMon(), &sMoves->plan.before, sizeof(struct Pokemon)) == 0;
+        bool32 done = sameMon && UnholyMoves_Forget(sMoves->partySlot, sMoves->slot, move);
         Refresh();
         sMoves->mode = MOVE_ORDER;
-        sMoves->notice = done ? COMPOUND_STRING("MOVE FORGOTTEN") : COMPOUND_STRING("CANNOT DELETE AN EMPTY / LAST MOVE");
+        sMoves->notice = done ? COMPOUND_STRING("MOVE FORGOTTEN")
+                             : !sameMon ? COMPOUND_STRING("TRY AGAIN")
+                             : move == MOVE_NONE ? COMPOUND_STRING("THIS SLOT IS EMPTY")
+                             : COMPOUND_STRING("KEEP AT LEAST ONE MOVE");
     }
     else return;
     PlaySE(SE_SELECT);

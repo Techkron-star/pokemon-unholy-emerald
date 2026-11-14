@@ -251,7 +251,7 @@ struct UnholyCraftRecipe
 };
 
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
-static const u8 sUnholyCraftRequirements[] = _("MATERIALS / UNLOCK");
+static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
 static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
@@ -259,21 +259,21 @@ static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
 static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
-static const u8 sUnholyRecipeVisor[] = _("Ghost type matchups.\nBuilt from astral relics.");
-static const u8 sUnholyRecipeHeart[] = _("Physical attack gear.\nAlternates overload.");
-static const u8 sUnholyRecipeMask[] = _("Dark damage gear.\nPowerful even recharging.");
-static const u8 sUnholyRecipeScepter[] = _("Dark type matchups.\nRequires Mind Badge.");
-static const u8 sUnholyRecipeImpulse[] = _("Special attack gear.\nAlternates overload.");
+static const u8 sUnholyRecipeVisor[] = _("Changes Ghost type\nmatchups.");
+static const u8 sUnholyRecipeHeart[] = _("Boosts physical moves.");
+static const u8 sUnholyRecipeMask[] = _("Boosts Dark moves.");
+static const u8 sUnholyRecipeScepter[] = _("Changes Dark type\nmatchups.");
+static const u8 sUnholyRecipeImpulse[] = _("Boosts special moves.");
 static const u8 sUnholyRecipeIce[] = _("Ice attacks freeze more.\nIce Pokemon regenerate.");
 static const u8 sUnholyCraftReady[] = _("Select a recipe.");
-static const u8 sUnholyCraftConfirmText[] = _("Press A again to make it.");
+static const u8 sUnholyCraftConfirmText[] = _("Craft this item?");
 static const u8 sUnholyCraftNeedMats[] = _("Missing materials.");
 static const u8 sUnholyCraftNeedBadge[] = _("Badge not yet earned.");
 static const u8 sUnholyCraftNoSpace[] = _("No room in the Bag.");
-static const u8 sUnholyCraftDone[] = _("Crafted! Gear added to Bag.");
+static const u8 sUnholyCraftDone[] = _("Added to the Bag.");
 static const u8 sUnholyCraftNoMon[] = _("Empty party slot.");
 static const u8 sUnholyCraftNoGear[] = _("That Gear is not in Bag.");
-static const u8 sUnholyCraftEquipped[] = _("Gear installed in own slot.");
+static const u8 sUnholyCraftEquipped[] = _("Gear equipped.");
 static const u8 sUnholyCraftAlready[] = _("Already equipped.");
 static const u8 sUnholyCraftError[] = _("Unable to finish. Try again.");
 
@@ -537,7 +537,7 @@ static void UnholyCraftRenderMenu(void)
         if (recipe->badgeFlag)
             UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
                              FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("BADGE: OK") : COMPOUND_STRING("BADGE: LOCKED"));
-        UnholyCraftPrint(4, 122, sUnholyCraftControls);
+        UnholyCraftPrint(4, 122, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else
@@ -546,7 +546,7 @@ static void UnholyCraftRenderMenu(void)
         enum Gear existing = Gear_GetEquipped(mon);
         enum Gear chosen = sUnholyCraftGearCursor;
 
-        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP / REMOVE GEAR"));
+        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP GEAR"));
         StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(sUnholyGearItems[chosen]));
         UnholyCraftPrint(6, 39, gStringVar4);
 

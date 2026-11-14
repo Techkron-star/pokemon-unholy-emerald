@@ -647,14 +647,12 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_MISTYTERRAINPREVENTS]                 = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX} surrounds itself with a protective mist!"),
     [STRINGID_GRASSYTERRAINHEALS]                   = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX} is healed by the grassy terrain!"),
     [STRINGID_PERMAFROSTHEALS]                      = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX} regained HP with Permafrost!"),
-    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("PROF. BIRCH: In FIGHT,\n"
-                                                                     "mark a move with SELECT.\p"
-                                                                     "Choose a different move\n"
-                                                                     "with A to CHAIN.\p"
-                                                                     "Moves cost STAMINA. A KO\n"
-                                                                     "or running out stops the chain.\p"
-                                                                     "Watch for rare mutation\n"
-                                                                     "symbols, too!"),
+    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press SELECT\n"
+                                                                     "to mark your first move.\p"
+                                                                     "Pick a different move with A\n"
+                                                                     "to chain them.\p"
+                                                                     "A KO or too little stamina\n"
+                                                                     "stops the chain."),
     [STRINGID_ELECTRICTERRAINPREVENTS]              = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX} surrounds itself with electrified terrain!"),
     [STRINGID_PSYCHICTERRAINPREVENTS]               = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} is protected by the Psychic Terrain!"),
     [STRINGID_SAFETYGOGGLESPROTECTED]               = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} is not affected thanks to its {B_LAST_ITEM}!"),
