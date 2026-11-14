@@ -226,6 +226,18 @@ u16 UnholyEvolution_RequirementCount(const struct UnholyEvolutionOption *option)
     return count;
 }
 
+static const u8 *TimeName(u16 time)
+{
+    switch (time)
+    {
+    case TIME_MORNING: return COMPOUND_STRING("MORNING");
+    case TIME_DAY: return COMPOUND_STRING("DAY");
+    case TIME_EVENING: return COMPOUND_STRING("DUSK");
+    case TIME_NIGHT: return COMPOUND_STRING("NIGHT");
+    default: return COMPOUND_STRING("UNKNOWN");
+    }
+}
+
 void UnholyEvolution_RequirementText(const struct UnholyEvolutionOption *option, u16 line, u8 *text)
 {
     const struct Evolution *row = Entry(option->source, option->entry);
@@ -257,7 +269,7 @@ void UnholyEvolution_RequirementText(const struct UnholyEvolutionOption *option,
     case IF_GENDER: StringCopy(text, p->arg1 == MON_FEMALE ? COMPOUND_STRING("FEMALE") : COMPOUND_STRING("MALE")); break;
     case IF_TIME: case IF_NOT_TIME:
         end = StringCopy(text, p->condition == IF_NOT_TIME ? COMPOUND_STRING("NOT ") : COMPOUND_STRING("TIME: "));
-        StringAppend(end, p->arg1 == TIME_NIGHT ? COMPOUND_STRING("NIGHT") : p->arg1 == TIME_DAY ? COMPOUND_STRING("DAY") : COMPOUND_STRING("DUSK / MORNING")); break;
+        StringAppend(end, TimeName(p->arg1)); break;
     case IF_ATK_GT_DEF: StringCopy(text, COMPOUND_STRING("ATTACK > DEFENSE")); break;
     case IF_ATK_EQ_DEF: StringCopy(text, COMPOUND_STRING("ATTACK = DEFENSE")); break;
     case IF_ATK_LT_DEF: StringCopy(text, COMPOUND_STRING("ATTACK < DEFENSE")); break;
@@ -345,7 +357,8 @@ void UnholyEvolution_ProgressText(struct Pokemon *mon, u8 partySlot, const struc
     case IF_MIN_OVERWORLD_STEPS: Progress(text, COMPOUND_STRING("LEAD STEPS "), mon == GetFirstLiveMon() ? gFollowerSteps : 0, p->arg1); break;
     case IF_CRITICAL_HITS_GE: Progress(text, COMPOUND_STRING("CRITICAL HITS "), partySlot < PARTY_SIZE ? gPartyCriticalHits[partySlot] : 0, p->arg1); break;
     case IF_TIME: case IF_NOT_TIME:
-        StringAppend(text, GetTimeOfDay() == p->arg1 ? COMPOUND_STRING(" (NOW)") : COMPOUND_STRING(" (OTHER TIME)")); break;
+        StringAppend(text, COMPOUND_STRING(" / NOW "));
+        StringAppend(text, TimeName(GetTimeOfDay())); break;
     default: break;
     }
 }
