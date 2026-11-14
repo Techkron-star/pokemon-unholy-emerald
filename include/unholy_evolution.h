@@ -47,6 +47,7 @@ bool32 UnholyEvolution_GetOption(struct Pokemon *mon, enum Species viewSpecies, 
                                 u8 partySlot, struct UnholyEvolutionOption *out);
 u16 UnholyEvolution_RequirementCount(const struct UnholyEvolutionOption *option);
 void UnholyEvolution_RequirementText(const struct UnholyEvolutionOption *option, u16 line, u8 *text);
+void UnholyEvolution_ProgressText(struct Pokemon *mon, u8 partySlot, const struct UnholyEvolutionOption *option, u16 line, u8 *text);
 void UnholyEvolution_StatusText(const struct UnholyEvolutionOption *option, u8 *text);
 u8 UnholyEvolution_Prepare(u8 partySlot, u16 entry, struct UnholyEvolutionPlan *plan);
 // Only consumes the confirmed recipe. The caller starts the native evolution scene.

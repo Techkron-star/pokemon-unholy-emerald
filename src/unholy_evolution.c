@@ -2,11 +2,13 @@
 #include "unholy_evolution.h"
 #include "battle.h"
 #include "event_data.h"
+#include "event_object_movement.h"
 #include "item.h"
 #include "main.h"
 #include "overworld.h"
 #include "pokemon.h"
 #include "region_map.h"
+#include "rtc.h"
 #include "string_util.h"
 #include "constants/hold_effects.h"
 #include "constants/items.h"
@@ -286,6 +288,65 @@ void UnholyEvolution_RequirementText(const struct UnholyEvolutionOption *option,
         StringCopy(text, p->arg1 == WEATHER_RAIN ? COMPOUND_STRING("LOCAL WEATHER: RAIN")
                        : p->arg1 == WEATHER_FOG ? COMPOUND_STRING("LOCAL WEATHER: FOG") : COMPOUND_STRING("REQUIRED LOCAL WEATHER")); break;
     default: StringCopy(text, COMPOUND_STRING("THIS POKéMON'S NATURAL BRANCH")); break;
+    }
+}
+
+static void Progress(u8 *text, const u8 *label, u32 current, u32 required)
+{
+    u8 *end = StringCopy(text, label);
+    end = Num(end, current);
+    end = StringAppend(end, COMPOUND_STRING(" / "));
+    Num(end, required);
+}
+
+void UnholyEvolution_ProgressText(struct Pokemon *mon, u8 partySlot, const struct UnholyEvolutionOption *option, u16 line, u8 *text)
+{
+    UnholyEvolution_RequirementText(option, line, text);
+    if (!ValidMon(mon) || GetMonData(mon, MON_DATA_SPECIES) != option->source) return;
+    const struct Evolution *row = Entry(option->source, option->entry);
+    if (row == NULL || line >= UnholyEvolution_RequirementCount(option)) return;
+    if (line == 0)
+    {
+        if (row->method == EVO_LEVEL || row->method == EVO_LEVEL_BATTLE_ONLY)
+            Progress(text, COMPOUND_STRING("LEVEL "), GetMonData(mon, MON_DATA_LEVEL), max(1, row->param));
+        else if (row->method == EVO_ITEM || (row->method == EVO_TRADE && option->costCount))
+        {
+            u16 item = row->method == EVO_ITEM ? row->param : option->costs[0].item;
+            u32 count = CountTotalItemQuantityInBag(item) + (GetMonData(mon, MON_DATA_HELD_ITEM) == item && row->method == EVO_TRADE);
+            u8 *end = StringCopy(text, GetItemName(item));
+            Progress(end, COMPOUND_STRING(" "), count, 1);
+        }
+        return;
+    }
+    const struct EvolutionParam *p = &row->params[line - 1];
+    u32 tracker = GetMonData(mon, MON_DATA_EVOLUTION_TRACKER);
+    switch (p->condition)
+    {
+    case IF_MIN_FRIENDSHIP: Progress(text, COMPOUND_STRING("FRIENDSHIP "), GetMonData(mon, MON_DATA_FRIENDSHIP), p->arg1); break;
+    case IF_MIN_BEAUTY: case IF_MIN_COOLNESS: case IF_MIN_SMARTNESS: case IF_MIN_TOUGHNESS: case IF_MIN_CUTENESS:
+    {
+        u16 field = p->condition == IF_MIN_BEAUTY ? MON_DATA_BEAUTY : p->condition == IF_MIN_COOLNESS ? MON_DATA_COOL
+                  : p->condition == IF_MIN_SMARTNESS ? MON_DATA_SMART : p->condition == IF_MIN_TOUGHNESS ? MON_DATA_TOUGH : MON_DATA_CUTE;
+        Progress(text, p->condition == IF_MIN_BEAUTY ? COMPOUND_STRING("BEAUTY ") : COMPOUND_STRING("CONTEST STAT "), GetMonData(mon, field), p->arg1);
+        break;
+    }
+    case IF_HOLD_ITEM: case IF_BAG_ITEM_COUNT:
+    {
+        u32 count = CountTotalItemQuantityInBag(p->arg1);
+        if (p->condition == IF_HOLD_ITEM) count += GetMonData(mon, MON_DATA_HELD_ITEM) == p->arg1;
+        u8 *end = StringCopy(text, GetItemName(p->arg1));
+        Progress(end, COMPOUND_STRING(" "), count, p->condition == IF_HOLD_ITEM ? 1 : p->arg2);
+        break;
+    }
+    case IF_USED_MOVE_X_TIMES: Progress(text, COMPOUND_STRING("MOVE USES "), tracker, p->arg2); break;
+    case IF_DEFEAT_X_WITH_ITEMS: Progress(text, COMPOUND_STRING("REQUIRED WINS "), tracker, p->arg3); break;
+    case IF_RECOIL_DAMAGE_GE: Progress(text, COMPOUND_STRING("RECOIL "), tracker, p->arg1); break;
+    case IF_CURRENT_DAMAGE_GE: Progress(text, COMPOUND_STRING("HP LOST "), GetMonData(mon, MON_DATA_MAX_HP) - GetMonData(mon, MON_DATA_HP), p->arg1); break;
+    case IF_MIN_OVERWORLD_STEPS: Progress(text, COMPOUND_STRING("LEAD STEPS "), mon == GetFirstLiveMon() ? gFollowerSteps : 0, p->arg1); break;
+    case IF_CRITICAL_HITS_GE: Progress(text, COMPOUND_STRING("CRITICAL HITS "), partySlot < PARTY_SIZE ? gPartyCriticalHits[partySlot] : 0, p->arg1); break;
+    case IF_TIME: case IF_NOT_TIME:
+        StringAppend(text, GetTimeOfDay() == p->arg1 ? COMPOUND_STRING(" (NOW)") : COMPOUND_STRING(" (OTHER TIME)")); break;
+    default: break;
     }
 }
 

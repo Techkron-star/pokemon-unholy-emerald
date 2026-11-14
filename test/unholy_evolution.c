@@ -8,6 +8,7 @@
 #include "main.h"
 #include "malloc.h"
 #include "random.h"
+#include "string_util.h"
 #include "test/test.h"
 #include "constants/items.h"
 
@@ -206,5 +207,27 @@ TEST("Evolution QoL retains friendship, Everstone and egg restrictions and previ
     EXPECT_EQ(option.status, UNHOLY_EVO_INVALID);
     EXPECT_EQ(UnholyEvolution_Count(SPECIES_NONE), 0);
     EXPECT_EQ(UnholyEvolution_Count(SPECIES_VENUSAUR), 0);
+    End(old);
+}
+
+TEST("Evolution QoL shows current friendship and level beside their requirements")
+{
+    struct EvolutionBackup *old = Begin(SPECIES_PICHU, 5);
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
+    u8 friendship = 42;
+    SetMonData(mon, MON_DATA_FRIENDSHIP, &friendship);
+    struct UnholyEvolutionOption option = Find(SPECIES_PIKACHU);
+    u8 text[128], expected[128];
+    UnholyEvolution_ProgressText(mon, 0, &option, 0, text);
+    EXPECT_EQ(StringCompare(text, COMPOUND_STRING("LEVEL 5 / 1")), 0);
+    const struct Evolution *rows = GetSpeciesEvolutions(SPECIES_PICHU);
+    for (u16 i = 0; rows[option.entry].params[i].condition != CONDITIONS_END; i++)
+        if (rows[option.entry].params[i].condition == IF_MIN_FRIENDSHIP)
+        {
+            UnholyEvolution_ProgressText(mon, 0, &option, i + 1, text);
+            u8 *end = StringCopy(expected, COMPOUND_STRING("FRIENDSHIP 42 / "));
+            ConvertUIntToDecimalStringN(end, rows[option.entry].params[i].arg1, STR_CONV_MODE_LEFT_ALIGN, 5);
+            EXPECT_EQ(StringCompare(text, expected), 0);
+        }
     End(old);
 }

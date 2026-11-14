@@ -427,3 +427,22 @@ void HfcSimulator_Open(void (*returnToWatch)(void))
     PutWindowTilemap(sSimulator.window);
     Render();
 }
+
+void HfcSimulator_OpenForParty(u8 partySlot, void (*onReturn)(void))
+{
+    HfcSimulator_Open(onReturn);
+    if (FindTaskIdByFunc(Task_Simulator) == TASK_NONE) return;
+    for (u8 i = 0; i < sSimulator.partyCount; i++)
+        if (sSimulator.partySlots[i] == partySlot)
+        {
+            sSimulator.partyIndex = i;
+            sSimulator.notice = GetLockReason(SelectedMon());
+            if (sSimulator.notice == NULL)
+            {
+                HfcSimulator_ReadValues(SelectedMon(), &sSimulator.draft);
+                sSimulator.mode = SIMULATOR_EDIT;
+            }
+            Render();
+            return;
+        }
+}
