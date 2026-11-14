@@ -27,6 +27,34 @@ enum PokelocatorMethod
 // Filter value 0 shows every method; value n + 1 shows only method n.
 #define POKELOCATOR_FILTER_ALL 0
 
+enum PokelocatorGroup
+{
+    POKELOCATOR_GROUP_ALL,
+    POKELOCATOR_GROUP_LAND,
+    POKELOCATOR_GROUP_WATER,
+    POKELOCATOR_GROUP_RODS,
+    POKELOCATOR_GROUP_OTHER,
+    POKELOCATOR_GROUP_COUNT,
+};
+
+enum PokelocatorCollectionFilter
+{
+    POKELOCATOR_COLLECTION_ALL,
+    POKELOCATOR_COLLECTION_MISSING,
+    POKELOCATOR_COLLECTION_CAUGHT,
+    POKELOCATOR_COLLECTION_COUNT,
+};
+
+enum PokelocatorGridDirection
+{
+    POKELOCATOR_GRID_LEFT,
+    POKELOCATOR_GRID_RIGHT,
+    POKELOCATOR_GRID_UP,
+    POKELOCATOR_GRID_DOWN,
+};
+
+typedef u8 (*PokelocatorDexStateFn)(enum Species species);
+
 enum PokelocatorDexState
 {
     POKELOCATOR_DEX_UNKNOWN,
@@ -90,6 +118,11 @@ bool8 Pokelocator_RowHasChance(const struct PokelocatorRow *row);
 u8 Pokelocator_BuildFilteredIndex(const struct PokelocatorList *list, u8 filter, u8 *indexOut);
 u8 Pokelocator_NextFilter(u8 methodMask, u8 filter, s8 direction);
 void Pokelocator_MoveCursor(u8 *cursor, u8 *scroll, u8 count, u8 visibleRows, s8 delta);
+bool8 Pokelocator_MethodInGroup(u8 method, u8 group);
+u8 Pokelocator_BuildCatalogIndex(const struct PokelocatorList *list, u8 group, u8 collection,
+                               PokelocatorDexStateFn dexState, u8 *indexOut);
+u8 Pokelocator_GetSpeciesMethods(const struct PokelocatorList *list, u16 species, u8 *indexOut);
+void Pokelocator_MoveGrid(u8 *cursor, u8 *scroll, u8 count, u8 direction);
 
 // Game-state helpers.
 u8 Pokelocator_GetDexState(enum Species species);

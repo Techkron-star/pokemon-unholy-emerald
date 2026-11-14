@@ -6,6 +6,81 @@
 #include "test/test.h"
 #include "constants/species.h"
 
+static u8 CatalogDexState(enum Species species)
+{
+    return species == SPECIES_MAGIKARP ? POKELOCATOR_DEX_CAUGHT : POKELOCATOR_DEX_SEEN;
+}
+
+TEST("Pokelocator catalog counts a species once even across grass surf and several rods")
+{
+    const struct PokelocatorList list = {.count = 5, .rows = {
+        {.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_WATER},
+        {.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_OLD_ROD},
+        {.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_GOOD_ROD},
+        {.species = SPECIES_RALTS, .method = POKELOCATOR_METHOD_LAND},
+        {.species = SPECIES_RALTS, .method = POKELOCATOR_METHOD_HIDDEN},
+    }};
+    u8 index[POKELOCATOR_MAX_ROWS];
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_ALL, POKELOCATOR_COLLECTION_ALL, CatalogDexState, index), 2);
+    EXPECT_EQ(index[0], 0);
+    EXPECT_EQ(index[1], 3);
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_RODS, POKELOCATOR_COLLECTION_ALL, CatalogDexState, index), 1);
+    EXPECT_EQ(index[0], 1);
+    EXPECT_EQ(Pokelocator_GetSpeciesMethods(&list, SPECIES_MAGIKARP, index), 3);
+    EXPECT_EQ(index[2], 2);
+}
+
+TEST("Pokelocator missing and caught filters combine with habitat without leaking another method")
+{
+    const struct PokelocatorList list = {.count = 3, .rows = {
+        {.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_OLD_ROD},
+        {.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_WATER},
+        {.species = SPECIES_RALTS, .method = POKELOCATOR_METHOD_LAND},
+    }};
+    u8 index[POKELOCATOR_MAX_ROWS];
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_ALL, POKELOCATOR_COLLECTION_MISSING, CatalogDexState, index), 1);
+    EXPECT_EQ(index[0], 2);
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_RODS, POKELOCATOR_COLLECTION_MISSING, CatalogDexState, index), 0);
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_RODS, POKELOCATOR_COLLECTION_CAUGHT, CatalogDexState, index), 1);
+    EXPECT_EQ(index[0], 0);
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_COUNT, POKELOCATOR_COLLECTION_ALL, CatalogDexState, index), 0);
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_ALL, POKELOCATOR_COLLECTION_COUNT, CatalogDexState, index), 0);
+}
+
+TEST("Pokelocator grid wraps safely on odd final pages and on an empty collection")
+{
+    u8 cursor = 3, scroll = 0;
+    Pokelocator_MoveGrid(&cursor, &scroll, 5, POKELOCATOR_GRID_DOWN);
+    EXPECT_EQ(cursor, 1);
+    EXPECT_EQ(scroll, 0);
+    cursor = 2;
+    Pokelocator_MoveGrid(&cursor, &scroll, 5, POKELOCATOR_GRID_DOWN);
+    EXPECT_EQ(cursor, 4);
+    EXPECT_EQ(scroll, 4);
+    Pokelocator_MoveGrid(&cursor, &scroll, 5, POKELOCATOR_GRID_RIGHT);
+    EXPECT_EQ(cursor, 0);
+    EXPECT_EQ(scroll, 0);
+    Pokelocator_MoveGrid(&cursor, &scroll, 5, POKELOCATOR_GRID_UP);
+    EXPECT_EQ(cursor, 4);
+    cursor = 99;
+    Pokelocator_MoveGrid(&cursor, &scroll, 1, POKELOCATOR_GRID_DOWN);
+    EXPECT_EQ(cursor, 0);
+    Pokelocator_MoveGrid(&cursor, &scroll, 0, POKELOCATOR_GRID_LEFT);
+    EXPECT_EQ(cursor, 0);
+    EXPECT_EQ(scroll, 0);
+}
+
+TEST("Pokelocator collection filtering is read only and does not alter encounter slots")
+{
+    struct PokelocatorList list = {.count = 1, .rows = {{.species = SPECIES_MAGIKARP, .method = POKELOCATOR_METHOD_OLD_ROD, .minLevel = 5, .maxLevel = 10, .weight = 70}}};
+    struct PokelocatorList before = list;
+    rng_value_t rng = gRngValue;
+    u8 index[POKELOCATOR_MAX_ROWS];
+    EXPECT_EQ(Pokelocator_BuildCatalogIndex(&list, POKELOCATOR_GROUP_ALL, POKELOCATOR_COLLECTION_CAUGHT, CatalogDexState, index), 1);
+    EXPECT_EQ(memcmp(&list, &before, sizeof(list)), 0);
+    EXPECT_EQ(memcmp(&rng, &gRngValue, sizeof(rng)), 0);
+}
+
 TEST("Pokelocator search preserves weighted slots instead of inventing levels between them")
 {
     struct WildPokemon mons[NUM_LAND_MONS_ENCOUNTER_SLOTS] = {0};

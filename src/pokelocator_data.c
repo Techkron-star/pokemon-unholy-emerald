@@ -136,6 +136,83 @@ static struct PokelocatorRow *FindRow(struct PokelocatorList *list, enum Species
     return NULL;
 }
 
+bool8 Pokelocator_MethodInGroup(u8 method, u8 group)
+{
+    if (method >= POKELOCATOR_METHOD_COUNT || group >= POKELOCATOR_GROUP_COUNT)
+        return FALSE;
+    switch (group)
+    {
+    case POKELOCATOR_GROUP_ALL: return TRUE;
+    case POKELOCATOR_GROUP_LAND: return method == POKELOCATOR_METHOD_LAND;
+    case POKELOCATOR_GROUP_WATER: return method == POKELOCATOR_METHOD_WATER;
+    case POKELOCATOR_GROUP_RODS: return method >= POKELOCATOR_METHOD_OLD_ROD && method <= POKELOCATOR_METHOD_SUPER_ROD;
+    default: return method == POKELOCATOR_METHOD_ROCKS || method == POKELOCATOR_METHOD_HIDDEN;
+    }
+}
+
+u8 Pokelocator_BuildCatalogIndex(const struct PokelocatorList *list, u8 group, u8 collection,
+                               PokelocatorDexStateFn dexState, u8 *indexOut)
+{
+    u8 count = 0;
+    if (group >= POKELOCATOR_GROUP_COUNT || collection >= POKELOCATOR_COLLECTION_COUNT)
+        return 0;
+    for (u8 i = 0; i < list->count; i++)
+    {
+        const struct PokelocatorRow *row = &list->rows[i];
+        if (!Pokelocator_MethodInGroup(row->method, group))
+            continue;
+        bool8 caught = dexState != NULL && dexState(row->species) == POKELOCATOR_DEX_CAUGHT;
+        if ((collection == POKELOCATOR_COLLECTION_MISSING && caught)
+         || (collection == POKELOCATOR_COLLECTION_CAUGHT && !caught))
+            continue;
+        u8 j;
+        for (j = 0; j < count; j++)
+            if (list->rows[indexOut[j]].species == row->species)
+                break;
+        if (j == count)
+            indexOut[count++] = i;
+    }
+    return count;
+}
+
+u8 Pokelocator_GetSpeciesMethods(const struct PokelocatorList *list, u16 species, u8 *indexOut)
+{
+    u8 count = 0;
+    for (u8 i = 0; i < list->count && count < POKELOCATOR_METHOD_COUNT; i++)
+        if (list->rows[i].species == species)
+            indexOut[count++] = i;
+    return count;
+}
+
+void Pokelocator_MoveGrid(u8 *cursor, u8 *scroll, u8 count, u8 direction)
+{
+    if (count == 0)
+    {
+        *cursor = *scroll = 0;
+        return;
+    }
+    u8 position = *cursor < count ? *cursor : 0;
+    switch (direction)
+    {
+    case POKELOCATOR_GRID_LEFT: position = (position + count - 1) % count; break;
+    case POKELOCATOR_GRID_RIGHT: position = (position + 1) % count; break;
+    case POKELOCATOR_GRID_UP:
+        if (position >= 2)
+            position -= 2;
+        else
+        {
+            u8 last = count - 1;
+            if ((last & 1) != (position & 1) && last > 0)
+                last--;
+            position = last;
+        }
+        break;
+    case POKELOCATOR_GRID_DOWN: position = position + 2 < count ? position + 2 : position & 1; break;
+    }
+    *cursor = position;
+    *scroll = position / 4 * 4;
+}
+
 void Pokelocator_ClearList(struct PokelocatorList *list)
 {
     list->count = 0;

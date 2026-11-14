@@ -292,7 +292,7 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 
 #### Búsqueda y captura
 
-La consulta se amplía con **A en la ficha → SEARCH**: inicia un combate salvaje con la especie seleccionada en el mapa actual y permite capturar desde la Mochila. Revalida horario, método y requisitos de Surf/caña/Golpe Roca. Los detalles y la QA están en [Pokélocator: búsqueda y captura](docs/POKELOCATOR_SEARCH.md). Consultar y cancelar siguen siendo de solo lectura; solo confirmar Buscar consume las tiradas normales del encuentro.
+El catálogo agrupa especies, combina categorías de encuentro con filtros de colección y cuenta progreso sin duplicar métodos. La ficha ofrece Habitat, Stats y Traits. **A en la ficha → revisar búsqueda → confirmar** inicia un combate salvaje con la especie y método elegidos en el mapa actual; permite capturar desde la Mochila. Tools integra la Señal mutante existente con requisitos, tiradas base, contador y confirmación. Revalida horario y requisitos de Surf/caña/Golpe Roca. Los detalles y la QA están en [Pokélocator: búsqueda y captura](docs/POKELOCATOR_SEARCH.md). Consultar y cancelar siguen siendo de solo lectura; solo confirmar Buscar consume las tiradas normales del encuentro.
 
 #### Implementación v1 (rama `feat/unholy-pokelocator-v1`)
 

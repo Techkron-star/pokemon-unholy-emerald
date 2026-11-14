@@ -1,10 +1,34 @@
 #include "global.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
+#include "event_data.h"
 #include "item.h"
 #include "string_util.h"
 #include "test/test.h"
 #include "constants/hold_effects.h"
+#include "constants/maps.h"
+
+TEST("HFC Watch active signal reads the stored boost and never consumes a display charge")
+{
+    u16 oldMap = VarGet(VAR_HFC_FREQUENCY_MAP);
+    u16 oldCharge = VarGet(VAR_HFC_FREQUENCY_CHARGE);
+    bool8 oldUsed = FlagGet(FLAG_DAILY_HFC_FREQUENCY);
+    u16 here = ((u8)gSaveBlock1Ptr->location.mapGroup << 8) | (u8)gSaveBlock1Ptr->location.mapNum;
+    FlagSet(FLAG_DAILY_HFC_FREQUENCY);
+    VarSet(VAR_HFC_FREQUENCY_MAP, here);
+    VarSet(VAR_HFC_FREQUENCY_CHARGE, (30 << 8) | 10);
+    EXPECT_EQ(HfcWatch_GetActiveFrequencyBoost(), 30);
+    EXPECT_EQ(HfcWatch_GetFrequencyRemaining(), 10);
+    EXPECT_EQ(VarGet(VAR_HFC_FREQUENCY_CHARGE), (30 << 8) | 10);
+    VarSet(VAR_HFC_FREQUENCY_MAP, here ^ 1);
+    EXPECT_EQ(HfcWatch_GetActiveFrequencyBoost(), 0);
+    VarSet(VAR_HFC_FREQUENCY_MAP, here);
+    VarSet(VAR_HFC_FREQUENCY_CHARGE, 30 << 8);
+    EXPECT_EQ(HfcWatch_GetActiveFrequencyBoost(), 0);
+    VarSet(VAR_HFC_FREQUENCY_MAP, oldMap);
+    VarSet(VAR_HFC_FREQUENCY_CHARGE, oldCharge);
+    if (!oldUsed) FlagClear(FLAG_DAILY_HFC_FREQUENCY);
+}
 
 // Tests for the HFC Watch tier logic. The hub window needs mGBA (see DISENO.md).
 

@@ -1,12 +1,17 @@
 #include "global.h"
 #include "pokelocator.h"
-#include "config/pokelocator.h"
+#include "battle_main.h"
 #include "dma3.h"
 #include "event_data.h"
 #include "event_object_lock.h"
+#include "hfc_watch.h"
+#include "hfc_watch_services.h"
+#include "horizon_market.h"
+#include "item.h"
 #include "main.h"
 #include "map_name_popup.h"
 #include "menu.h"
+#include "mutation_icons.h"
 #include "overworld.h"
 #include "palette.h"
 #include "pokemon.h"
@@ -19,168 +24,139 @@
 #include "string_util.h"
 #include "task.h"
 #include "text.h"
+#include "unholy_ui.h"
 #include "window.h"
+#include "config/special_badges.h"
+#include "constants/flags.h"
+#include "constants/items.h"
 #include "constants/map_types.h"
-#include "constants/rgb.h"
 #include "constants/songs.h"
 
-// Pokélocator screen. It follows the on-field window pattern of the crafting menu and
-// Horizon: one native BG0 window, the shared Eclipse/Daylight palette in slot 14 (saved
-// and restored on exit), and at most POKELOCATOR_VISIBLE_ROWS mon icon sprites.
-// The screen only renders when an input changes something, never every frame.
+#define VISIBLE_CARDS 4
+#define WIN_LEFT 16
+#define WIN_TOP 8
+#define WIN_WIDTH 208
+#define WIN_HEIGHT 144
+#define ICON_PALETTES 6
+#define MUTATION_COUNT 9
 
-#define POKELOCATOR_VISIBLE_ROWS 3
-#define POKELOCATOR_NUM_ICON_PALETTES 6
-
-// Window geometry in pixels. The window sits at tile (2, 1), i.e. pixel (16, 8).
-#define WIN_PIXEL_LEFT   16
-#define WIN_PIXEL_TOP    8
-#define WIN_WIDTH        (26 * 8)
-#define WIN_HEIGHT       (17 * 8)
-#define HEADER_DIVIDER_Y 20
-
-// Species cards: 3 rows of 30 px at a 32 px pitch, between the two dividers.
-#define CARD_X      4
-#define CARD_WIDTH  200
-#define CARD_TOP    22
-#define CARD_PITCH  32
-#define CARD_HEIGHT 30
-
-enum PokelocatorMode
-{
-    MODE_LIST,
-    MODE_DETAIL,
-};
+enum LocatorMode { MODE_LIST, MODE_DETAIL, MODE_SEARCH, MODE_TOOLS, MODE_SIGNAL, MODE_SIGNAL_CONFIRM };
+enum DetailPage { PAGE_HABITAT, PAGE_STATS, PAGE_TRAITS, PAGE_COUNT };
 
 struct PokelocatorUi
 {
     struct PokelocatorList list;
     struct PokelocatorZone zone;
-    u8 filteredIndex[POKELOCATOR_MAX_ROWS];
-    u8 filteredCount;
-    u8 filter;
-    u8 cursor;
-    u8 scroll;
-    u8 mode;
-    u8 windowId;
-    u8 iconSpriteIds[POKELOCATOR_VISIBLE_ROWS];
-    u8 ownedPaletteMask;
-    bool8 paletteSaved;
-    u16 savedPalette[16];
+    struct UnholyUiPalette palette;
+    u8 catalog[POKELOCATOR_MAX_ROWS];
+    u8 methods[POKELOCATOR_METHOD_COUNT];
+    u8 count, cursor, scroll, methodCount, methodCursor;
+    u8 group, collection, mode, page, toolCursor, windowId;
+    u8 iconIds[VISIBLE_CARDS], mutationIds[MUTATION_COUNT], ownedPalettes;
     void (*onClose)(void);
 };
 
+// Resume only within this field session. No per-species save allocation or invented
+// search-level bonuses: existing saves and native encounter generation stay intact.
+struct LocatorSelection
+{
+    u16 originHeader, viewHeader, species;
+    u8 method, group, collection;
+    bool8 valid;
+};
 static EWRAM_DATA struct PokelocatorUi sUi = {0};
-
-static const struct WindowTemplate sWindowTemplate =
+static EWRAM_DATA struct LocatorSelection sRemember = {0};
+static const struct WindowTemplate sWindow =
 {
-    .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
-    // 64 + 442 tiles ends before the field's standard frame at tile 0x214.
-    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x40,
+    .bg = 0, .tilemapLeft = 2, .tilemapTop = 1, .width = 26, .height = 18,
+    .paletteNum = 14, .baseBlock = 0x40,
 };
-STATIC_ASSERT(0x40 + 26 * 17 <= STD_WINDOW_BASE_TILE_NUM, PokelocatorDoesNotOverwriteItsBorder);
+STATIC_ASSERT(0x40 + 26 * 18 <= STD_WINDOW_BASE_TILE_NUM, LocatorTilesBeforeFrame);
 
-static const u8 sTextColors[] = {1, 2, 3};
-
-static const u8 sText_NoWildMons[] = _("NO WILD POKéMON HERE.");
-static const u8 sText_FilterAll[] = _("ALL");
-static const u8 sText_Caught[] = _("CAUGHT");
-static const u8 sText_Seen[] = _("SEEN");
-static const u8 sText_Unseen[] = _("UNSEEN");
-static const u8 sText_ControlsList[] = _("A:INFO L/R:FILTER B:EXIT");
-static const u8 sText_ControlsListAreas[] = _("A:INFO L/R:FILTER <>:AREA B:EXIT");
-static const u8 sText_ControlsEmpty[] = _("B:EXIT");
-static const u8 sText_ControlsEmptyAreas[] = _("<>:AREA B:EXIT");
-
-static const u8 *const sMethodLabels[POKELOCATOR_METHOD_COUNT] =
+static const u8 *const sGroups[] =
 {
-    [POKELOCATOR_METHOD_LAND]      = COMPOUND_STRING("GRASS"),
-    [POKELOCATOR_METHOD_WATER]     = COMPOUND_STRING("SURF"),
-    [POKELOCATOR_METHOD_ROCKS]     = COMPOUND_STRING("ROCK SMASH"),
-    [POKELOCATOR_METHOD_OLD_ROD]   = COMPOUND_STRING("OLD ROD"),
-    [POKELOCATOR_METHOD_GOOD_ROD]  = COMPOUND_STRING("GOOD ROD"),
-    [POKELOCATOR_METHOD_SUPER_ROD] = COMPOUND_STRING("SUPER ROD"),
-    [POKELOCATOR_METHOD_HIDDEN]    = COMPOUND_STRING("HIDDEN"),
+    COMPOUND_STRING("ALL"), COMPOUND_STRING("GRASS"), COMPOUND_STRING("SURF"),
+    COMPOUND_STRING("RODS"), COMPOUND_STRING("OTHER"),
 };
-static const u8 sText_MethodCave[] = _("CAVE");
+static const u8 *const sCollections[] =
+{
+    COMPOUND_STRING("ALL"), COMPOUND_STRING("MISSING"), COMPOUND_STRING("CAUGHT"),
+};
+static const u8 *const sMethods[] =
+{
+    COMPOUND_STRING("GRASS"), COMPOUND_STRING("SURF"), COMPOUND_STRING("ROCK SMASH"),
+    COMPOUND_STRING("OLD ROD"), COMPOUND_STRING("GOOD ROD"), COMPOUND_STRING("SUPER ROD"),
+    COMPOUND_STRING("HIDDEN"),
+};
+static const u16 sMutationBadges[] =
+{
+    POKEMON_BADGE_ALPHA, POKEMON_BADGE_HYPER, POKEMON_BADGE_SUPER,
+    POKEMON_BADGE_OVERLOADED, POKEMON_BADGE_ENRAGED, POKEMON_BADGE_ANCESTRAL,
+    POKEMON_BADGE_TITAN, POKEMON_BADGE_ASCENDED, POKEMON_BADGE_OMEGA,
+};
+static const u16 sMutationRates[] =
+{
+    SPECIAL_BADGE_ALPHA_DENOMINATOR, SPECIAL_BADGE_HYPER_DENOMINATOR, SPECIAL_BADGE_SUPER_DENOMINATOR,
+    SPECIAL_BADGE_OVERLOADED_DENOMINATOR, SPECIAL_BADGE_ENRAGED_DENOMINATOR, SPECIAL_BADGE_ANCESTRAL_DENOMINATOR,
+    SPECIAL_BADGE_TITAN_DENOMINATOR, SPECIAL_BADGE_ASCENDED_DENOMINATOR, SPECIAL_BADGE_OMEGA_DENOMINATOR,
+};
 
-static void Task_Pokelocator(u8 taskId);
-static void Task_StartSearch(u8 taskId);
 extern const u8 EventScript_PokelocatorSearchBattle[];
 extern const u8 EventScript_PokelocatorSearchUnavailable[];
+static void Task_Locator(u8 taskId);
+static void Task_StartSearch(u8 taskId);
 
-// ---------------------------------------------------------------------------------
-// Text helpers
-// ---------------------------------------------------------------------------------
-
-// Underground maps call their land encounters "CAVE" instead of "GRASS".
-static const u8 *GetMethodLabel(u8 method)
+static void Print(u16 x, u16 y, u16 width, const u8 *text)
 {
-    if (method == POKELOCATOR_METHOD_LAND && sUi.zone.count != 0)
+    UnholyUi_Print(sUi.windowId, FONT_SMALL_NARROW, x, y, width, text);
+}
+
+static void Number(u8 *text, u32 value)
+{
+    ConvertIntToDecimalStringN(text, value, STR_CONV_MODE_LEFT_ALIGN, 5);
+}
+
+static u16 Header(void)
+{
+    return sUi.zone.count ? sUi.zone.headerIds[sUi.zone.current] : HEADER_NONE;
+}
+
+static const struct PokelocatorRow *CatalogRow(void)
+{
+    return sUi.count ? &sUi.list.rows[sUi.catalog[sUi.cursor]] : NULL;
+}
+
+static const struct PokelocatorRow *SearchRow(void)
+{
+    return sUi.methodCount ? &sUi.list.rows[sUi.methods[sUi.methodCursor]] : NULL;
+}
+
+static const u8 *MethodName(u8 method)
+{
+    if (method == POKELOCATOR_METHOD_LAND && Header() != HEADER_NONE)
     {
-        const struct WildPokemonHeader *header = &gWildMonHeaders[sUi.zone.headerIds[sUi.zone.current]];
-
-        if (Overworld_GetMapHeaderByGroupAndId(header->mapGroup, header->mapNum)->mapType == MAP_TYPE_UNDERGROUND)
-            return sText_MethodCave;
+        const struct WildPokemonHeader *h = &gWildMonHeaders[Header()];
+        if (Overworld_GetMapHeaderByGroupAndId(h->mapGroup, h->mapNum)->mapType == MAP_TYPE_UNDERGROUND)
+            return COMPOUND_STRING("CAVE");
     }
-    return sMethodLabels[method];
+    return sMethods[method];
 }
 
-static const u8 *GetFilterLabel(u8 filter)
+static const u8 *DexLabel(u16 species)
 {
-    return filter == POKELOCATOR_FILTER_ALL ? sText_FilterAll : GetMethodLabel(filter - 1);
-}
-
-// Prints text clipped to a pixel width so it can never run into a neighbouring field.
-static void PrintFit(u8 x, u8 y, u8 width, u8 fontId, const u8 *colors, const u8 *source)
-{
-    u8 text[48];
-    u8 len = 0;
-
-    while (len < sizeof(text) - 1 && source[len] != EOS)
+    switch (Pokelocator_GetDexState(species))
     {
-        text[len] = source[len];
-        len++;
+    case POKELOCATOR_DEX_CAUGHT: return COMPOUND_STRING("CAUGHT");
+    case POKELOCATOR_DEX_SEEN: return COMPOUND_STRING("SEEN");
+    default: return COMPOUND_STRING("NEW");
     }
-    text[len] = EOS;
-
-    while (len > 0 && GetStringWidth(fontId, text, 0) > width)
-        text[--len] = EOS;
-
-    AddTextPrinterParameterized4(sUi.windowId, fontId, x, y, 0, 0, colors, TEXT_SKIP_DRAW, text);
 }
 
-static void PrintRightAligned(u8 rightX, u8 y, u8 fontId, const u8 *colors, const u8 *text)
+static u8 *Levels(u8 *dst, const struct PokelocatorRow *row)
 {
-    s32 width = GetStringWidth(fontId, text, 0);
-
-    AddTextPrinterParameterized4(sUi.windowId, fontId, width < rightX ? rightX - width : 0, y,
-                                 0, 0, colors, TEXT_SKIP_DRAW, text);
-}
-
-// "20%" for whole percentages, "0.5%" otherwise; "--" when the chance cannot be computed.
-static u8 *AppendChance(u8 *dst, const struct PokelocatorRow *row)
-{
-    u16 tenths;
-
-    if (!Pokelocator_RowHasChance(row))
-        return StringCopy(dst, COMPOUND_STRING("--"));
-
-    tenths = Pokelocator_GetChanceTenths(row);
-    dst = ConvertIntToDecimalStringN(dst, tenths / 10, STR_CONV_MODE_LEFT_ALIGN, 3);
-    if (tenths % 10 != 0)
-    {
-        dst = StringAppend(dst, COMPOUND_STRING("."));
-        dst = ConvertIntToDecimalStringN(dst, tenths % 10, STR_CONV_MODE_LEFT_ALIGN, 1);
-    }
-    return StringAppend(dst, COMPOUND_STRING("%"));
-}
-
-static u8 *AppendLevels(u8 *dst, const struct PokelocatorRow *row)
-{
-    dst = StringCopy(dst, COMPOUND_STRING("LV "));
+    dst = StringCopy(dst, COMPOUND_STRING("Lv "));
     dst = ConvertIntToDecimalStringN(dst, row->minLevel, STR_CONV_MODE_LEFT_ALIGN, 3);
-    if (row->maxLevel != row->minLevel)
+    if (row->minLevel != row->maxLevel)
     {
         dst = StringAppend(dst, COMPOUND_STRING("-"));
         dst = ConvertIntToDecimalStringN(dst, row->maxLevel, STR_CONV_MODE_LEFT_ALIGN, 3);
@@ -188,314 +164,410 @@ static u8 *AppendLevels(u8 *dst, const struct PokelocatorRow *row)
     return dst;
 }
 
-static const u8 *GetDexLabel(enum Species species)
+static void Chance(u8 *dst, const struct PokelocatorRow *row)
 {
-    switch (Pokelocator_GetDexState(species))
+    if (!Pokelocator_RowHasChance(row))
     {
-    case POKELOCATOR_DEX_CAUGHT:
-        return sText_Caught;
-    case POKELOCATOR_DEX_SEEN:
-        return sText_Seen;
-    default:
-        return sText_Unseen;
+        StringCopy(dst, COMPOUND_STRING("--"));
+        return;
     }
+    u16 chance = Pokelocator_GetChanceTenths(row);
+    dst = ConvertIntToDecimalStringN(dst, chance / 10, STR_CONV_MODE_LEFT_ALIGN, 3);
+    if (chance % 10)
+    {
+        dst = StringAppend(dst, COMPOUND_STRING("."));
+        dst = ConvertIntToDecimalStringN(dst, chance % 10, STR_CONV_MODE_LEFT_ALIGN, 1);
+    }
+    StringAppend(dst, COMPOUND_STRING("%"));
 }
 
-// ---------------------------------------------------------------------------------
-// Icons: only the visible rows own a sprite; palettes are loaded on demand and the ones
-// this screen loaded are freed again, so nothing outlives the screen.
-// ---------------------------------------------------------------------------------
+static void SetMethods(u8 preferred)
+{
+    const struct PokelocatorRow *row = CatalogRow();
+    sUi.methodCount = row ? Pokelocator_GetSpeciesMethods(&sUi.list, row->species, sUi.methods) : 0;
+    sUi.methodCursor = 0;
+    for (u8 i = 0; i < sUi.methodCount; i++)
+        if (sUi.list.rows[sUi.methods[i]].method == preferred)
+            sUi.methodCursor = i;
+}
+
+static void Refilter(u16 preferredSpecies, u8 preferredMethod)
+{
+    sUi.count = Pokelocator_BuildCatalogIndex(&sUi.list, sUi.group, sUi.collection,
+                                            Pokelocator_GetDexState, sUi.catalog);
+    sUi.cursor = sUi.scroll = 0;
+    for (u8 i = 0; i < sUi.count; i++)
+        if (sUi.list.rows[sUi.catalog[i]].species == preferredSpecies)
+            sUi.cursor = i;
+    sUi.scroll = sUi.cursor / VISIBLE_CARDS * VISIBLE_CARDS;
+    SetMethods(preferredMethod);
+}
+
+static void LoadArea(u8 area)
+{
+    sUi.zone.current = area;
+    if (sUi.zone.count)
+        Pokelocator_BuildListForHeader(&sUi.list, Header(), Pokelocator_IsSpeciesRevealed);
+    else
+        Pokelocator_ClearList(&sUi.list);
+    Refilter(SPECIES_NONE, POKELOCATOR_METHOD_COUNT);
+}
 
 static void DestroyIcons(void)
 {
-    u8 i;
-
-    for (i = 0; i < POKELOCATOR_VISIBLE_ROWS; i++)
+    for (u8 i = 0; i < MUTATION_COUNT; i++)
     {
-        if (sUi.iconSpriteIds[i] != MAX_SPRITES)
-        {
-            FreeAndDestroyMonIconSprite(&gSprites[sUi.iconSpriteIds[i]]);
-            sUi.iconSpriteIds[i] = MAX_SPRITES;
-        }
+        MutationIcon_Destroy(sUi.mutationIds[i]);
+        sUi.mutationIds[i] = MAX_SPRITES;
     }
-    for (i = 0; i < POKELOCATOR_NUM_ICON_PALETTES; i++)
+    for (u8 i = 0; i < VISIBLE_CARDS; i++)
     {
-        if (sUi.ownedPaletteMask & (1 << i))
+        if (sUi.iconIds[i] != MAX_SPRITES)
+            FreeAndDestroyMonIconSprite(&gSprites[sUi.iconIds[i]]);
+        sUi.iconIds[i] = MAX_SPRITES;
+    }
+    for (u8 i = 0; i < ICON_PALETTES; i++)
+        if (sUi.ownedPalettes & (1 << i))
             FreeSpritePaletteByTag(gMonIconPaletteTable[i].tag);
-    }
-    sUi.ownedPaletteMask = 0;
+    sUi.ownedPalettes = 0;
 }
 
-static void CreateIcon(u8 slot, enum Species species, s16 x, s16 y)
+static void MonIcon(u8 slot, u16 species, s16 x, s16 y)
 {
-    u8 paletteIndex = GetMonIconPaletteIndexFromSpecies(species);
-    u16 tag = gMonIconPaletteTable[paletteIndex].tag;
-    u8 spriteId;
-
+    u8 palette = GetMonIconPaletteIndexFromSpecies(species);
+    u16 tag = gMonIconPaletteTable[palette].tag;
     if (IndexOfSpritePaletteTag(tag) == 0xFF)
     {
         LoadMonIconPalette(species);
-        // No free palette slot: show the card without an icon instead of garbage colors.
         if (IndexOfSpritePaletteTag(tag) == 0xFF)
             return;
-        sUi.ownedPaletteMask |= 1 << paletteIndex;
+        sUi.ownedPalettes |= 1 << palette;
     }
-
-    spriteId = CreateMonIconNoPersonality(species, SpriteCB_MonIcon, x, y, 0);
-    if (spriteId == MAX_SPRITES)
-        return;
-    // Same priority as the window layer, so the icon is drawn above it.
-    gSprites[spriteId].oam.priority = 0;
-    sUi.iconSpriteIds[slot] = spriteId;
-}
-
-// ---------------------------------------------------------------------------------
-// Drawing
-// ---------------------------------------------------------------------------------
-
-static void DrawCard(u8 x, u8 y, u8 width, u8 height, bool8 selected)
-{
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    const u8 fill = daylight ? (selected ? 9 : 4) : (selected ? 4 : 1);
-    const u8 line = daylight ? (selected ? 7 : 3) : (selected ? 10 : 3);
-    const u8 shine = daylight ? 6 : 5;
-
-    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(fill), x + 1, y + 1, width - 2, height - 2);
-    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(line), x, y, width, 1);
-    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(line), x, y + height - 1, width, 1);
-    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(line), x, y, 1, height);
-    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(line), x + width - 1, y, 1, height);
-    if (selected)
-        FillWindowPixelRect(sUi.windowId, PIXEL_FILL(shine), x + 2, y + 1, width - 4, 2);
-}
-
-// Text colors that match the fill of a card, so no rectangle shows behind the letters.
-static void GetCardColors(bool8 selected, u8 *colors)
-{
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-
-    colors[0] = daylight ? (selected ? 9 : 4) : (selected ? 4 : 1);
-    colors[1] = daylight ? 2 : 10;
-    colors[2] = 3;
+    u8 sprite = CreateMonIconNoPersonality(species, SpriteCB_MonIcon, WIN_LEFT + x, WIN_TOP + y, 0);
+    if (sprite != MAX_SPRITES)
+    {
+        gSprites[sprite].oam.priority = 0;
+        sUi.iconIds[slot] = sprite;
+    }
 }
 
 static void DrawHeader(void)
 {
-    u8 buffer[32];
-    u8 *end;
+    u8 text[48];
+    const u8 *title = COMPOUND_STRING("POKéLOCATOR");
+    if (sUi.mode == MODE_TOOLS) title = COMPOUND_STRING("SCAN TOOLS");
+    if (sUi.mode == MODE_SIGNAL || sUi.mode == MODE_SIGNAL_CONFIRM) title = COMPOUND_STRING("MUTANT SIGNAL");
+    if (sUi.mode == MODE_SEARCH) title = COMPOUND_STRING("PREPARE SEARCH");
+    UnholyUi_Frame(sUi.windowId, title);
+    // The native narrow font draws 12 pixels despite its 8-pixel metric.
+    // Reserve two full lines and move the shared footer separator above them.
+    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(1), 5, WIN_HEIGHT - 19, WIN_WIDTH - 10, 1);
+    FillWindowPixelRect(sUi.windowId, PIXEL_FILL(3), 5, 117, WIN_WIDTH - 10, 1);
+    GetMapName(text, sUi.zone.mapSec, 0);
+    UnholyUi_Print(sUi.windowId, FONT_SMALL_NARROW, 112, 6, 90, text);
+}
 
-    if (sUi.zone.count != 0)
+static void Footer(const u8 *first, const u8 *second)
+{
+    Print(5, 118, 198, first);
+    Print(5, 130, 198, second);
+}
+
+static void DrawCatalog(void)
+{
+    u8 text[64], indexes[POKELOCATOR_MAX_ROWS];
+    for (u8 i = 0; i < POKELOCATOR_GROUP_COUNT; i++)
     {
-        end = GetMapName(buffer, sUi.zone.mapSec, 0);
-        if (sUi.zone.count > 1)
+        u8 x = 4 + i * 40;
+        UnholyUi_Card(sUi.windowId, x, 21, 39, 14, i == sUi.group);
+        const u8 *label = i == POKELOCATOR_GROUP_LAND ? MethodName(POKELOCATOR_METHOD_LAND) : sGroups[i];
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 3, 22, 33,
+                            UnholyUi_CardFill(i == sUi.group), label);
+    }
+    if (!sUi.count)
+    {
+        Print(9, 55, 190, sUi.list.count == 0 ? COMPOUND_STRING("NO WILD POKéMON IN THIS AREA")
+              : sUi.collection == POKELOCATOR_COLLECTION_MISSING ? COMPOUND_STRING("NO MISSING SPECIES IN THIS FILTER")
+              : COMPOUND_STRING("NO SPECIES MATCH THIS FILTER"));
+        Print(9, 70, 190, COMPOUND_STRING("L/R: METHOD   SELECT: COLLECTION"));
+    }
+    for (u8 i = 0; i < VISIBLE_CARDS && sUi.scroll + i < sUi.count; i++)
+    {
+        u8 position = sUi.scroll + i;
+        const struct PokelocatorRow *row = &sUi.list.rows[sUi.catalog[position]];
+        u8 x = 4 + (i % 2) * 102, y = 36 + (i / 2) * 34;
+        bool8 selected = position == sUi.cursor;
+        u8 fill = UnholyUi_CardFill(selected);
+        UnholyUi_Card(sUi.windowId, x, y, 98, 33, selected);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 34, y + 1, 61, fill, GetSpeciesName(row->species));
+        Levels(text, row);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 34, y + 15, 33, fill, text);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 67, y + 15, 29, fill, DexLabel(row->species));
+        MonIcon(i, row->species, x + 16, y + 16);
+    }
+    u8 total = Pokelocator_BuildCatalogIndex(&sUi.list, sUi.group, POKELOCATOR_COLLECTION_ALL,
+                                            Pokelocator_GetDexState, indexes);
+    u8 caught = Pokelocator_BuildCatalogIndex(&sUi.list, sUi.group, POKELOCATOR_COLLECTION_CAUGHT,
+                                             Pokelocator_GetDexState, indexes);
+    u8 *end = StringCopy(text, COMPOUND_STRING("CAUGHT "));
+    end = ConvertIntToDecimalStringN(end, caught, STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringAppend(end, COMPOUND_STRING("/"));
+    end = ConvertIntToDecimalStringN(end, total, STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringAppend(end, COMPOUND_STRING("  SHOW: "));
+    StringAppend(end, sCollections[sUi.collection]);
+    Print(5, 104, 166, text);
+    end = ConvertIntToDecimalStringN(text, sUi.count ? sUi.cursor + 1 : 0, STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringAppend(end, COMPOUND_STRING("/"));
+    ConvertIntToDecimalStringN(end, sUi.count, STR_CONV_MODE_LEFT_ALIGN, 2);
+    Print(177, 104, 28, text);
+    Footer(COMPOUND_STRING("A:DETAIL  L/R:METHOD  SELECT:COLLECTION"), COMPOUND_STRING("+:CHOOSE  START:TOOLS  B:BACK"));
+}
+
+static void DrawSpeciesHeader(void)
+{
+    const struct PokelocatorRow *row = CatalogRow();
+    u8 text[64];
+    for (u8 page = 0; page < PAGE_COUNT; page++)
+    {
+        u8 x = 4 + page * 68;
+        UnholyUi_Card(sUi.windowId, x, 21, 65, 14, sUi.page == page);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 8, 22, 56,
+            UnholyUi_CardFill(sUi.page == page), page == PAGE_HABITAT ? COMPOUND_STRING("HABITAT") : page == PAGE_STATS ? COMPOUND_STRING("STATS") : COMPOUND_STRING("TRAITS"));
+    }
+    UnholyUi_Print(sUi.windowId, FONT_NARROW, 40, 35, 162, GetSpeciesName(row->species));
+    u8 *end = StringCopy(text, gTypesInfo[GetSpeciesType(row->species, 0)].name);
+    if (GetSpeciesType(row->species, 0) != GetSpeciesType(row->species, 1))
+    {
+        end = StringAppend(end, COMPOUND_STRING(" / "));
+        StringAppend(end, gTypesInfo[GetSpeciesType(row->species, 1)].name);
+    }
+    Print(40, 50, 112, text);
+    Print(160, 50, 43, DexLabel(row->species));
+    MonIcon(0, row->species, 20, 48);
+}
+
+static void DrawDetail(void)
+{
+    const struct PokelocatorRow *selected = SearchRow();
+    u8 text[80];
+    DrawSpeciesHeader();
+    if (sUi.page == PAGE_HABITAT)
+    {
+        u8 first = sUi.methodCursor >= 3 ? sUi.methodCursor - 2 : 0;
+        for (u8 i = first; i < sUi.methodCount && i < first + 3; i++)
         {
-            end = StringAppend(end, COMPOUND_STRING("  "));
-            end = ConvertIntToDecimalStringN(end, sUi.zone.current + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+            const struct PokelocatorRow *row = &sUi.list.rows[sUi.methods[i]];
+            u8 y = 64 + (i - first) * 14;
+            bool8 focused = i == sUi.methodCursor;
+            u8 fill = UnholyUi_CardFill(focused);
+            UnholyUi_Card(sUi.windowId, 4, y, 200, 14, focused);
+            UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 8, y + 1, 80, fill, MethodName(row->method));
+            Levels(text, row);
+            UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 91, y + 1, 58, fill, text);
+            Chance(text, row);
+            UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 164, y + 1, 36, fill, text);
+        }
+        u8 status = Pokelocator_GetSearchStatus(Header(), selected->species, selected->method);
+        Print(5, 106, 198, status == POKELOCATOR_SEARCH_READY ? COMPOUND_STRING("METHOD READY - A TO PREPARE SEARCH") : Pokelocator_GetSearchMessage(status));
+        Footer(COMPOUND_STRING("A:SEARCH  UP/DN:METHOD  L/R:PAGE"), COMPOUND_STRING("<>:SPECIES  B:CATALOG"));
+    }
+    else if (sUi.page == PAGE_STATS)
+    {
+        static const u8 *const labels[] =
+        {
+            COMPOUND_STRING("HP"), COMPOUND_STRING("ATK"), COMPOUND_STRING("DEF"),
+            COMPOUND_STRING("SPE"), COMPOUND_STRING("SPA"), COMPOUND_STRING("SPD"),
+        };
+        Print(5, 63, 198, COMPOUND_STRING("BASE STATS"));
+        for (u8 i = 0; i < NUM_STATS; i++)
+        {
+            u8 x = 5 + i % 2 * 102, y = 76 + i / 2 * 14;
+            Print(x, y, 27, labels[i]);
+            Number(text, GetSpeciesBaseStat(selected->species, i));
+            Print(x + 29, y, 33, text);
+        }
+        Footer(COMPOUND_STRING("A:SEARCH  L/R:PAGE  <>:SPECIES"), COMPOUND_STRING("B:CATALOG"));
+    }
+    else
+    {
+        for (u8 i = 0; i < NUM_ABILITY_SLOTS; i++)
+        {
+            enum Ability ability = GetSpeciesAbility(selected->species, i);
+            u8 y = 64 + i * 17;
+            Print(5, y, 24, i == 2 ? COMPOUND_STRING("HA") : i == 0 ? COMPOUND_STRING("A1") : COMPOUND_STRING("A2"));
+            Print(30, y, 171, ability == ABILITY_NONE ? COMPOUND_STRING("--") : gAbilitiesInfo[ability].name);
+        }
+        Footer(COMPOUND_STRING("A:SEARCH  L/R:PAGE  <>:SPECIES"), COMPOUND_STRING("B:CATALOG"));
+    }
+}
+
+static u32 CountBalls(void)
+{
+    u32 count = 0;
+    for (u32 i = 0; i < gBagPockets[POCKET_POKE_BALLS].capacity; i++)
+    {
+        enum Item item = GetBagItemId(POCKET_POKE_BALLS, i);
+        if (item != ITEM_NONE && item != ITEM_SAFARI_BALL && item != ITEM_PARK_BALL)
+            count += GetBagItemQuantity(POCKET_POKE_BALLS, i);
+    }
+    return count;
+}
+
+static void DrawSearch(void)
+{
+    const struct PokelocatorRow *row = SearchRow();
+    u8 text[80];
+    UnholyUi_Print(sUi.windowId, FONT_NARROW, 40, 26, 162, GetSpeciesName(row->species));
+    Print(40, 43, 110, MethodName(row->method));
+    Levels(text, row);
+    Print(151, 43, 52, text);
+    MonIcon(0, row->species, 20, 39);
+    u8 *end = StringCopy(text, COMPOUND_STRING("POKé BALLS: "));
+    Number(end, CountBalls());
+    Print(7, 64, 194, text);
+    Print(7, 78, 194, IsPlayerPartyAndPokemonStorageFull() ? COMPOUND_STRING("STORAGE FULL - CAPTURE UNAVAILABLE")
+        : gPartiesCount[B_TRAINER_PLAYER] < PARTY_SIZE ? COMPOUND_STRING("CAPTURE GOES TO YOUR PARTY") : COMPOUND_STRING("CAPTURE GOES TO YOUR PC"));
+    end = StringCopy(text, COMPOUND_STRING("SIGNAL: "));
+    u8 remaining = HfcWatch_GetFrequencyRemaining();
+    if (remaining)
+    {
+        end = ConvertIntToDecimalStringN(end, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
+        StringAppend(end, COMPOUND_STRING(" ENCOUNTERS LEFT"));
+    }
+    else
+        StringAppend(end, COMPOUND_STRING("OFF"));
+    Print(7, 92, 194, text);
+    u8 status = Pokelocator_GetSearchStatus(Header(), row->species, row->method);
+    Print(7, 106, 194, status != POKELOCATOR_SEARCH_READY ? Pokelocator_GetSearchMessage(status)
+        : CountBalls() == 0 ? COMPOUND_STRING("NO BALLS - YOU CAN ONLY BATTLE") : COMPOUND_STRING("READY FOR A WILD ENCOUNTER"));
+    Footer(COMPOUND_STRING("A:BEGIN SEARCH  B:CANCEL"), COMPOUND_STRING("USE A BALL IN BATTLE TO CAPTURE"));
+}
+
+static const u8 *SignalRequirement(void)
+{
+    struct HfcWatchProgress progress = {.badges = HfcWatch_CountBadges()};
+    if (Header() != GetCurrentMapWildMonHeaderId())
+        return COMPOUND_STRING("GO TO THIS AREA FIRST");
+    if (HfcWatch_GetAccess(HfcWatch_GetTier(), HFC_WATCH_FEATURE_FREQUENCY, progress) != HFC_WATCH_READY)
+        return HfcWatch_GetRequirement(HfcWatch_GetTier(), HFC_WATCH_FEATURE_FREQUENCY, progress);
+    if (!FlagGet(FLAG_SYS_CLOCK_SET))
+        return COMPOUND_STRING("SET YOUR CLOCK FIRST");
+    if (HfcWatch_GetFrequencyRemaining())
+        return COMPOUND_STRING("SIGNAL IS ACTIVE IN THIS AREA");
+    if (FlagGet(FLAG_DAILY_HFC_FREQUENCY))
+        return COMPOUND_STRING("DAILY SIGNAL ALREADY USED");
+    if (!HfcWatch_CanActivateFrequency())
+        return COMPOUND_STRING("NO SIGNAL AVAILABLE HERE");
+    return COMPOUND_STRING("A:ACTIVATE SIGNAL");
+}
+
+static void DrawTools(void)
+{
+    u8 text[64];
+    static const u8 *const titles[] =
+    {
+        COMPOUND_STRING("BROWSE AREA"), COMPOUND_STRING("MUTANT SIGNAL"), COMPOUND_STRING("RETURN TO CATALOG"),
+    };
+    for (u8 i = 0; i < ARRAY_COUNT(titles); i++)
+    {
+        u8 y = 32 + i * 19;
+        UnholyUi_Card(sUi.windowId, 5, y, 198, 17, i == sUi.toolCursor);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 11, y + 4, 151,
+                            UnholyUi_CardFill(i == sUi.toolCursor), titles[i]);
+        if (i == 0)
+        {
+            u8 *end = ConvertIntToDecimalStringN(text, sUi.zone.count ? sUi.zone.current + 1 : 0, STR_CONV_MODE_LEFT_ALIGN, 2);
             end = StringAppend(end, COMPOUND_STRING("/"));
             ConvertIntToDecimalStringN(end, sUi.zone.count, STR_CONV_MODE_LEFT_ALIGN, 2);
+            UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 166, y + 4, 32,
+                                UnholyUi_CardFill(i == sUi.toolCursor), text);
         }
     }
-    else
+    if (sUi.toolCursor == 0)
     {
-        GetMapName(buffer, GetCurrentRegionMapSectionId(), 0);
+        Print(7, 94, 194, COMPOUND_STRING("L/R: BROWSE FLOORS IN THIS ZONE"));
+        Print(7, 106, 194, COMPOUND_STRING("SEARCH ONLY IN YOUR CURRENT AREA"));
     }
-    PrintFit(6, 3, 120, FONT_NARROW, sTextColors, buffer);
-
-    if (sUi.mode == MODE_LIST && sUi.list.methodMask != 0)
+    else if (sUi.toolCursor == 1)
     {
-        StringCopy(buffer, COMPOUND_STRING("L "));
-        StringAppend(buffer, GetFilterLabel(sUi.filter));
-        StringAppend(buffer, COMPOUND_STRING(" R"));
-        PrintRightAligned(WIN_WIDTH - 6, 3, FONT_NARROW, sTextColors, buffer);
+        Print(7, 94, 194, COMPOUND_STRING("VIEW MUTATIONS AND SIGNAL STATUS"));
+        Print(7, 106, 194, SignalRequirement());
     }
+    Footer(COMPOUND_STRING("UP/DN:CHOOSE  A:OPEN / NEXT AREA"), COMPOUND_STRING("B:CATALOG"));
 }
 
-static void DrawFooter(void)
+static void DrawSignal(void)
 {
-    const bool8 hasAreas = sUi.zone.count > 1;
-    const u8 *controls;
-    u8 counter[12];
-    u8 *end;
-    u8 counterWidth = 0;
-
-    if (sUi.mode == MODE_DETAIL && sUi.filteredCount != 0)
+    u8 text[80];
+    u8 remaining = Header() == GetCurrentMapWildMonHeaderId() ? HfcWatch_GetFrequencyRemaining() : 0;
+    u8 boost = remaining ? HfcWatch_GetActiveFrequencyBoost() : 0;
+    u8 *end = StringCopy(text, remaining ? COMPOUND_STRING("ACTIVE ") : COMPOUND_STRING("OFF "));
+    end = ConvertIntToDecimalStringN(end, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringAppend(end, COMPOUND_STRING(" LEFT; C/B ROLLS +"));
+    end = ConvertIntToDecimalStringN(end, boost, STR_CONV_MODE_LEFT_ALIGN, 2);
+    StringAppend(end, COMPOUND_STRING("% REL"));
+    Print(5, 20, 198, text);
+    for (u8 i = 0; i < MUTATION_COUNT; i++)
     {
-        const struct PokelocatorRow *row = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
-        u16 header = sUi.zone.count ? sUi.zone.headerIds[sUi.zone.current] : HEADER_NONE;
-        controls = Pokelocator_GetSearchMessage(Pokelocator_GetSearchStatus(header, row->species, row->method));
+        u8 x = 4 + i % 3 * 68, y = 33 + i / 3 * 27;
+        UnholyUi_Card(sUi.windowId, x, y, 65, 26, FALSE);
+        u8 fill = UnholyUi_CardFill(FALSE);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 20, y + 1, 44, fill,
+                            HorizonMarketMutationName(sMutationBadges[i]));
+        end = StringCopy(text, COMPOUND_STRING("1/"));
+        ConvertIntToDecimalStringN(end, sMutationRates[i], STR_CONV_MODE_LEFT_ALIGN, 4);
+        UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, x + 20, y + 13, 44, fill, text);
+        u8 sprite = MutationIcon_Create(sMutationBadges[i], WIN_LEFT + x + 10, WIN_TOP + y + 12, 0);
+        sUi.mutationIds[i] = sprite;
     }
-    else if (sUi.filteredCount == 0)
-        controls = hasAreas ? sText_ControlsEmptyAreas : sText_ControlsEmpty;
-    else
-        controls = hasAreas ? sText_ControlsListAreas : sText_ControlsList;
-
-    if (sUi.filteredCount != 0)
-    {
-        end = ConvertIntToDecimalStringN(counter, sUi.cursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
-        end = StringAppend(end, COMPOUND_STRING("/"));
-        ConvertIntToDecimalStringN(end, sUi.filteredCount, STR_CONV_MODE_LEFT_ALIGN, 2);
-        counterWidth = GetStringWidth(FONT_SMALL_NARROW, counter, 0) + 6;
-        PrintRightAligned(WIN_WIDTH - 6, WIN_HEIGHT - 15, FONT_SMALL_NARROW, sTextColors, counter);
-    }
-    PrintFit(6, WIN_HEIGHT - 15, WIN_WIDTH - 12 - counterWidth, FONT_SMALL_NARROW, sTextColors, controls);
+    Footer(SignalRequirement(), COMPOUND_STRING("BASE ROLLS; COMBOS GATED  B:TOOLS"));
 }
 
-static void DrawListRow(u8 visibleRow, const struct PokelocatorRow *row, bool8 selected)
+static void DrawSignalConfirm(void)
 {
-    const u8 y = CARD_TOP + visibleRow * CARD_PITCH;
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    u8 colors[3];
-    u8 buffer[32];
-    u8 *end;
-
-    GetCardColors(selected, colors);
-    DrawCard(CARD_X, y, CARD_WIDTH, CARD_HEIGHT, selected);
-
-    PrintFit(CARD_X + 38, y + 1, 100, FONT_NARROW, colors, GetSpeciesName(row->species));
-
-    AppendChance(buffer, row);
-    PrintRightAligned(CARD_X + CARD_WIDTH - 5, y + 1, FONT_NARROW, colors, buffer);
-
-    end = StringCopy(buffer, GetMethodLabel(row->method));
-    end = StringAppend(end, COMPOUND_STRING("  "));
-    AppendLevels(end, row);
-    PrintFit(CARD_X + 38, y + 18, 100, FONT_SMALL_NARROW, colors, buffer);
-
-    PrintRightAligned(CARD_X + CARD_WIDTH - 5, y + 18, FONT_SMALL_NARROW, colors, GetDexLabel(row->species));
-    (void)daylight;
-}
-
-static void DrawListMode(void)
-{
-    u8 i;
-
-    if (sUi.filteredCount == 0)
-    {
-        PrintFit(CARD_X + 6, CARD_TOP + 36, CARD_WIDTH - 12, FONT_NARROW, sTextColors, sText_NoWildMons);
-        return;
-    }
-
-    for (i = 0; i < POKELOCATOR_VISIBLE_ROWS; i++)
-    {
-        u8 position = sUi.scroll + i;
-        const struct PokelocatorRow *row;
-
-        if (position >= sUi.filteredCount)
-            break;
-        row = &sUi.list.rows[sUi.filteredIndex[position]];
-        DrawListRow(i, row, position == sUi.cursor);
-    }
-}
-
-// Detail page: every way the selected species can be found in this area.
-static void DrawDetailMode(void)
-{
-    const struct PokelocatorRow *selected = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
-    u8 buffer[40];
-    u8 *end;
-    u8 line = 0;
-    u8 i;
-
-    PrintFit(46, CARD_TOP + 2, 150, FONT_NARROW, sTextColors, GetSpeciesName(selected->species));
-    PrintFit(4, CARD_TOP + 38, 40, FONT_SMALL_NARROW, sTextColors, GetDexLabel(selected->species));
-
-    for (i = 0; i < sUi.list.count && line < POKELOCATOR_METHOD_COUNT; i++)
-    {
-        const struct PokelocatorRow *row = &sUi.list.rows[i];
-
-        if (row->species != selected->species)
-            continue;
-
-        end = StringCopy(buffer, row->method == selected->method ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
-        end = StringAppend(end, GetMethodLabel(row->method));
-        end = StringAppend(end, COMPOUND_STRING("  "));
-        end = AppendLevels(end, row);
-        end = StringAppend(end, COMPOUND_STRING("  "));
-        AppendChance(end, row);
-        PrintFit(46, CARD_TOP + 20 + line * 10, 150, FONT_SMALL_NARROW, sTextColors, buffer);
-        line++;
-    }
-
-    // Shown only when another system provides modifier rules; hidden while they are undefined.
-    if (Pokelocator_GetModifierStatus(POKELOCATOR_MODIFIER_MUTATION, sUi.zone.mapSec) != POKELOCATOR_MODIFIER_UNDEFINED)
-    {
-        StringCopy(buffer, COMPOUND_STRING("MUTATION MODIFIER: "));
-        StringAppend(buffer,
-                     Pokelocator_GetModifierStatus(POKELOCATOR_MODIFIER_MUTATION, sUi.zone.mapSec) == POKELOCATOR_MODIFIER_ACTIVE
-                     ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF"));
-        PrintFit(46, CARD_TOP + 20 + line * 10, 150, FONT_SMALL_NARROW, sTextColors, buffer);
-    }
-}
-
-static void RefreshIcons(void)
-{
-    u8 i;
-
-    DestroyIcons();
-    if (sUi.filteredCount == 0)
-        return;
-
-    if (sUi.mode == MODE_DETAIL)
-    {
-        const struct PokelocatorRow *row = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
-
-        CreateIcon(0, row->species, WIN_PIXEL_LEFT + CARD_X + 16, WIN_PIXEL_TOP + CARD_TOP + 16);
-        return;
-    }
-
-    for (i = 0; i < POKELOCATOR_VISIBLE_ROWS; i++)
-    {
-        u8 position = sUi.scroll + i;
-
-        if (position >= sUi.filteredCount)
-            break;
-        CreateIcon(i, sUi.list.rows[sUi.filteredIndex[position]].species,
-                   WIN_PIXEL_LEFT + CARD_X + 18, WIN_PIXEL_TOP + CARD_TOP + CARD_PITCH * i + CARD_HEIGHT / 2);
-    }
+    u8 text[80];
+    Print(7, 31, 194, COMPOUND_STRING("ACTIVATE SIGNAL IN THIS AREA?"));
+    Print(7, 49, 194, COMPOUND_STRING("10 WILD ENCOUNTERS, ONCE PER DAY"));
+    u8 *end = StringCopy(text, COMPOUND_STRING("C/B MUTATION ROLLS +"));
+    end = ConvertIntToDecimalStringN(end, HfcWatch_GetFrequencyBoost(HfcWatch_CountBadges()), STR_CONV_MODE_LEFT_ALIGN, 2);
+    StringAppend(end, COMPOUND_STRING("% RELATIVE"));
+    Print(7, 64, 194, text);
+    Print(7, 81, 194, COMPOUND_STRING("A, S AND OMEGA KEEP THEIR BASE ODDS"));
+    Print(7, 97, 194, COMPOUND_STRING("CANCEL KEEPS YOUR DAILY USE"));
+    Footer(COMPOUND_STRING("A:CONFIRM ACTIVATION  B:CANCEL"), SignalRequirement());
 }
 
 static void Render(void)
 {
-    FillWindowPixelBuffer(sUi.windowId, PIXEL_FILL(1));
-    DrawUnholyUiPanelAccents(sUi.windowId, WIN_WIDTH, WIN_HEIGHT, HEADER_DIVIDER_Y);
+    DestroyIcons();
     DrawHeader();
-    if (sUi.mode == MODE_DETAIL && sUi.filteredCount != 0)
-        DrawDetailMode();
-    else
-        DrawListMode();
-    DrawFooter();
+    switch (sUi.mode)
+    {
+    case MODE_LIST: DrawCatalog(); break;
+    case MODE_DETAIL: DrawDetail(); break;
+    case MODE_SEARCH: DrawSearch(); break;
+    case MODE_TOOLS: DrawTools(); break;
+    case MODE_SIGNAL: DrawSignal(); break;
+    case MODE_SIGNAL_CONFIRM: DrawSignalConfirm(); break;
+    }
     CopyWindowToVram(sUi.windowId, COPYWIN_FULL);
-    RefreshIcons();
 }
 
-// ---------------------------------------------------------------------------------
-// State changes
-// ---------------------------------------------------------------------------------
-
-static void RefilterList(void)
+static void RememberSelection(void)
 {
-    sUi.filteredCount = Pokelocator_BuildFilteredIndex(&sUi.list, sUi.filter, sUi.filteredIndex);
-    sUi.cursor = 0;
-    sUi.scroll = 0;
+    const struct PokelocatorRow *row = SearchRow();
+    sRemember = (struct LocatorSelection){
+        .valid = TRUE, .originHeader = GetCurrentMapWildMonHeaderId(), .viewHeader = Header(),
+        .species = row ? row->species : SPECIES_NONE, .method = row ? row->method : POKELOCATOR_METHOD_COUNT,
+        .group = sUi.group, .collection = sUi.collection,
+    };
 }
 
-static void LoadZoneMap(u8 zoneIndex)
-{
-    sUi.zone.current = zoneIndex;
-    if (sUi.zone.count != 0)
-        Pokelocator_BuildListForHeader(&sUi.list, sUi.zone.headerIds[zoneIndex], Pokelocator_IsSpeciesRevealed);
-    else
-        Pokelocator_ClearList(&sUi.list);
-    sUi.filter = POKELOCATOR_FILTER_ALL;
-    sUi.mode = MODE_LIST;
-    RefilterList();
-}
-
-static void ReturnFromLocator(void)
+static void ReturnToCaller(void)
 {
     void (*onClose)(void) = sUi.onClose;
     sUi.onClose = NULL;
-    if (onClose != NULL)
+    if (onClose)
         onClose();
     else
     {
@@ -504,22 +576,19 @@ static void ReturnFromLocator(void)
     }
 }
 
-static void CloseScreen(u8 taskId, bool8 returnToCaller)
+static void Close(u8 taskId, bool8 returnToCaller)
 {
+    RememberSelection();
     DestroyIcons();
     ClearStdWindowAndFrameToTransparent(sUi.windowId, TRUE);
     RemoveWindow(sUi.windowId);
     sUi.windowId = WINDOW_NONE;
-    if (sUi.paletteSaved)
-    {
-        LoadPalette(sUi.savedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
-        sUi.paletteSaved = FALSE;
-    }
+    UnholyUi_ReleasePalette(&sUi.palette);
     DestroyTask(taskId);
     if (returnToCaller)
-        ReturnFromLocator();
+        ReturnToCaller();
     else
-        sUi.onClose = NULL; // Search continues on the field, not in WATCH/START.
+        sUi.onClose = NULL;
 }
 
 static void Task_StartSearch(u8 taskId)
@@ -532,132 +601,187 @@ static void Task_StartSearch(u8 taskId)
     DestroyTask(taskId);
 }
 
-static void Task_Pokelocator(u8 taskId)
+static void BeginSearch(u8 taskId)
+{
+    const struct PokelocatorRow *row = SearchRow();
+    if (!row || Pokelocator_GetSearchStatus(Header(), row->species, row->method) != POKELOCATOR_SEARCH_READY)
+    {
+        PlaySE(SE_FAILURE);
+        Render();
+        return;
+    }
+    u8 next = CreateTask(Task_StartSearch, 8);
+    if (next == TASK_NONE)
+    {
+        PlaySE(SE_FAILURE);
+        return;
+    }
+    gTasks[next].data[0] = Header();
+    gTasks[next].data[1] = row->species;
+    gTasks[next].data[2] = row->method;
+    PlaySE(SE_SELECT);
+    Close(taskId, FALSE);
+}
+
+static void ChangeArea(s8 delta)
+{
+    if (sUi.zone.count > 1)
+        LoadArea((sUi.zone.current + sUi.zone.count + delta) % sUi.zone.count);
+}
+
+static void Task_Locator(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
-
     if (JOY_NEW(B_BUTTON))
     {
-        if (sUi.mode == MODE_DETAIL)
+        PlaySE(SE_SELECT);
+        switch (sUi.mode)
         {
-            sUi.mode = MODE_LIST;
-            PlaySE(SE_SELECT);
-            Render();
+        case MODE_LIST: Close(taskId, TRUE); return;
+        case MODE_SEARCH: sUi.mode = MODE_DETAIL; break;
+        case MODE_SIGNAL_CONFIRM: sUi.mode = MODE_SIGNAL; break;
+        case MODE_SIGNAL: sUi.mode = MODE_TOOLS; break;
+        case MODE_DETAIL: sUi.mode = MODE_LIST; break;
+        default: sUi.mode = MODE_LIST; break;
         }
-        else
+        Render();
+        return;
+    }
+    if (sUi.mode == MODE_SEARCH)
+    {
+        if (JOY_NEW(A_BUTTON)) BeginSearch(taskId);
+        return;
+    }
+    if (sUi.mode == MODE_SIGNAL_CONFIRM)
+    {
+        if (JOY_NEW(A_BUTTON))
         {
-            PlaySE(SE_SELECT);
-            CloseScreen(taskId, TRUE);
+            bool32 activated = Header() == GetCurrentMapWildMonHeaderId() && HfcWatch_ActivateFrequency();
+            PlaySE(activated ? SE_SELECT : SE_FAILURE);
+            sUi.mode = MODE_SIGNAL;
+            Render();
         }
         return;
     }
-
-    if (JOY_NEW(A_BUTTON) && sUi.mode == MODE_LIST && sUi.filteredCount != 0)
+    if (sUi.mode == MODE_SIGNAL)
     {
-        sUi.mode = MODE_DETAIL;
+        if (JOY_NEW(A_BUTTON))
+        {
+            bool32 ready = Header() == GetCurrentMapWildMonHeaderId() && HfcWatch_CanActivateFrequency();
+            PlaySE(ready ? SE_SELECT : SE_FAILURE);
+            if (ready) sUi.mode = MODE_SIGNAL_CONFIRM;
+            Render();
+        }
+        return;
+    }
+    if (sUi.mode == MODE_TOOLS)
+    {
+        if (JOY_REPEAT(DPAD_UP) || JOY_REPEAT(DPAD_DOWN))
+            sUi.toolCursor = (sUi.toolCursor + (JOY_REPEAT(DPAD_UP) ? 2 : 1)) % 3;
+        else if (sUi.toolCursor == 0 && (JOY_NEW(L_BUTTON | DPAD_LEFT) || JOY_NEW(R_BUTTON | DPAD_RIGHT)))
+            ChangeArea(JOY_NEW(L_BUTTON | DPAD_LEFT) ? -1 : 1);
+        else if (JOY_NEW(A_BUTTON))
+        {
+            if (sUi.toolCursor == 0) ChangeArea(1);
+            else if (sUi.toolCursor == 1) sUi.mode = MODE_SIGNAL;
+            else sUi.mode = MODE_LIST;
+        }
+        else return;
         PlaySE(SE_SELECT);
         Render();
         return;
     }
-
-    if (JOY_NEW(A_BUTTON) && sUi.mode == MODE_DETAIL && sUi.filteredCount != 0)
+    if (sUi.mode == MODE_LIST)
     {
-        const struct PokelocatorRow *row = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
-        u16 header = sUi.zone.count ? sUi.zone.headerIds[sUi.zone.current] : HEADER_NONE;
-        if (Pokelocator_GetSearchStatus(header, row->species, row->method) != POKELOCATOR_SEARCH_READY)
+        if (JOY_NEW(START_BUTTON)) sUi.mode = MODE_TOOLS;
+        else if (JOY_NEW(SELECT_BUTTON))
         {
-            PlaySE(SE_FAILURE);
-            Render();
-            return;
+            u16 species = CatalogRow() ? CatalogRow()->species : SPECIES_NONE;
+            sUi.collection = (sUi.collection + 1) % POKELOCATOR_COLLECTION_COUNT;
+            Refilter(species, POKELOCATOR_METHOD_COUNT);
         }
-        u8 searchTask = CreateTask(Task_StartSearch, 8);
-        if (searchTask == TASK_NONE)
+        else if (JOY_NEW(L_BUTTON | R_BUTTON))
         {
-            PlaySE(SE_FAILURE);
-            return;
+            u16 species = CatalogRow() ? CatalogRow()->species : SPECIES_NONE;
+            sUi.group = (sUi.group + (JOY_NEW(L_BUTTON) ? POKELOCATOR_GROUP_COUNT - 1 : 1)) % POKELOCATOR_GROUP_COUNT;
+            Refilter(species, POKELOCATOR_METHOD_COUNT);
         }
-        gTasks[searchTask].data[0] = header;
-        gTasks[searchTask].data[1] = row->species;
-        gTasks[searchTask].data[2] = row->method;
+        else if (JOY_NEW(A_BUTTON) && sUi.count)
+        {
+            sUi.mode = MODE_DETAIL;
+            sUi.page = PAGE_HABITAT;
+        }
+        else if (sUi.count && JOY_REPEAT(DPAD_ANY))
+        {
+            u8 direction = JOY_REPEAT(DPAD_LEFT) ? POKELOCATOR_GRID_LEFT : JOY_REPEAT(DPAD_RIGHT) ? POKELOCATOR_GRID_RIGHT
+                         : JOY_REPEAT(DPAD_UP) ? POKELOCATOR_GRID_UP : POKELOCATOR_GRID_DOWN;
+            Pokelocator_MoveGrid(&sUi.cursor, &sUi.scroll, sUi.count, direction);
+            SetMethods(CatalogRow()->method);
+        }
+        else return;
         PlaySE(SE_SELECT);
-        CloseScreen(taskId, FALSE);
+        Render();
         return;
     }
-
-    if (JOY_REPEAT(DPAD_UP) || JOY_REPEAT(DPAD_DOWN))
+    if (sUi.mode == MODE_DETAIL)
     {
-        if (sUi.filteredCount > 1)
+        if (JOY_NEW(A_BUTTON)) sUi.mode = MODE_SEARCH;
+        else if (JOY_NEW(L_BUTTON | R_BUTTON)) sUi.page = (sUi.page + (JOY_NEW(L_BUTTON) ? PAGE_COUNT - 1 : 1)) % PAGE_COUNT;
+        else if (JOY_REPEAT(DPAD_LEFT | DPAD_RIGHT))
         {
-            Pokelocator_MoveCursor(&sUi.cursor, &sUi.scroll, sUi.filteredCount, POKELOCATOR_VISIBLE_ROWS,
-                                   JOY_REPEAT(DPAD_UP) ? -1 : 1);
-            PlaySE(SE_SELECT);
-            Render();
+            sUi.cursor = (sUi.cursor + sUi.count + (JOY_REPEAT(DPAD_LEFT) ? -1 : 1)) % sUi.count;
+            sUi.scroll = sUi.cursor / VISIBLE_CARDS * VISIBLE_CARDS;
+            SetMethods(CatalogRow()->method);
         }
-        return;
-    }
-
-    if (sUi.mode != MODE_LIST)
-        return;
-
-    if (JOY_NEW(L_BUTTON) || JOY_NEW(R_BUTTON))
-    {
-        u8 next = Pokelocator_NextFilter(sUi.list.methodMask, sUi.filter, JOY_NEW(R_BUTTON) ? 1 : -1);
-
-        if (next != sUi.filter)
-        {
-            sUi.filter = next;
-            RefilterList();
-            PlaySE(SE_SELECT);
-            Render();
-        }
-        return;
-    }
-
-    if ((JOY_NEW(DPAD_LEFT) || JOY_NEW(DPAD_RIGHT)) && sUi.zone.count > 1)
-    {
-        u8 next = JOY_NEW(DPAD_RIGHT) ? (sUi.zone.current + 1) % sUi.zone.count
-                                      : (sUi.zone.current + sUi.zone.count - 1) % sUi.zone.count;
-
-        LoadZoneMap(next);
+        else if (sUi.page == PAGE_HABITAT && JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+            sUi.methodCursor = (sUi.methodCursor + sUi.methodCount + (JOY_REPEAT(DPAD_UP) ? -1 : 1)) % sUi.methodCount;
+        else return;
         PlaySE(SE_SELECT);
         Render();
     }
 }
 
-// Opens the screen over the field. Controls stay locked until the screen closes.
 void Pokelocator_OpenFromField(void (*onClose)(void))
 {
-    u8 i;
-
+    if (FuncIsActiveTask(Task_Locator) || FuncIsActiveTask(Task_StartSearch))
+        return;
     HideMapNamePopUpWindow();
     LockPlayerFieldControls();
-
     memset(&sUi, 0, sizeof(sUi));
     sUi.onClose = onClose;
-    for (i = 0; i < POKELOCATOR_VISIBLE_ROWS; i++)
-        sUi.iconSpriteIds[i] = MAX_SPRITES;
-
-    // Zone browsing and the table lookup happen once here, never per frame.
+    sUi.windowId = WINDOW_NONE;
+    for (u8 i = 0; i < VISIBLE_CARDS; i++) sUi.iconIds[i] = MAX_SPRITES;
+    for (u8 i = 0; i < MUTATION_COUNT; i++) sUi.mutationIds[i] = MAX_SPRITES;
     Pokelocator_BuildZone(&sUi.zone, gSaveBlock1Ptr->location.mapGroup, gSaveBlock1Ptr->location.mapNum);
-    LoadZoneMap(sUi.zone.current);
-
-    // The field owns palette slot 14; take it for the theme and give it back on exit.
-    CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sUi.savedPalette, sizeof(sUi.savedPalette));
-    LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
-    sUi.paletteSaved = TRUE;
-
-    sUi.windowId = AddWindow(&sWindowTemplate);
+    bool8 resume = sRemember.valid && sRemember.originHeader == GetCurrentMapWildMonHeaderId();
+    if (resume)
+    {
+        sUi.group = sRemember.group;
+        sUi.collection = sRemember.collection;
+        for (u8 i = 0; i < sUi.zone.count; i++)
+            if (sUi.zone.headerIds[i] == sRemember.viewHeader) sUi.zone.current = i;
+    }
+    LoadArea(sUi.zone.current);
+    if (resume) Refilter(sRemember.species, sRemember.method);
+    UnholyUi_AcquirePalette(&sUi.palette, 14);
+    sUi.windowId = AddWindow(&sWindow);
     if (sUi.windowId == WINDOW_NONE)
     {
-        LoadPalette(sUi.savedPalette, BG_PLTT_ID(14), PLTT_SIZE_4BPP);
-        sUi.paletteSaved = FALSE;
-        ReturnFromLocator();
+        UnholyUi_ReleasePalette(&sUi.palette);
+        ReturnToCaller();
         return;
     }
-
+    u8 task = CreateTask(Task_Locator, 8);
+    if (task == TASK_NONE)
+    {
+        RemoveWindow(sUi.windowId);
+        sUi.windowId = WINDOW_NONE;
+        UnholyUi_ReleasePalette(&sUi.palette);
+        ReturnToCaller();
+        return;
+    }
     SetStandardWindowBorderStyle(sUi.windowId, FALSE);
     PutWindowTilemap(sUi.windowId);
     Render();
-    CreateTask(Task_Pokelocator, 8);
 }

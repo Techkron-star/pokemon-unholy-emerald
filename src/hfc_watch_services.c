@@ -457,6 +457,11 @@ u8 HfcWatch_ConsumeFrequencyEncounter(void)
     return charge >> 8;
 }
 
+u8 HfcWatch_GetActiveFrequencyBoost(void)
+{
+    return HfcWatch_GetFrequencyRemaining() != 0 ? VarGet(VAR_HFC_FREQUENCY_CHARGE) >> 8 : 0;
+}
+
 static u16 ReadMonMutations(struct BoxPokemon *mon)
 {
     if (!GetBoxMonData(mon, MON_DATA_SANITY_HAS_SPECIES)
