@@ -16,7 +16,7 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 | 1, 6 · Pokéwatch | Diez servicios, cinco filas visibles, desplazamiento y contador. La fila bloqueada conserva el foco y muestra el requisito real. A nunca lanza un servicio sin acceso. Se conserva el servicio elegido al regresar. |
 | 2 · Horizon | Cinco categorías existentes: Pokémon, Discos, Objetos, Huevos y Movimientos. Las seis ofertas Pokémon y cinco huevos reutilizan su compra, confirmación, stock y RNG persistentes. |
 | 3 · PokéNav | Se conserva el mapa real y sus funciones. El panel de ubicación adopta la paleta común y limita los nombres a su espacio. |
-| 4 · Pokélocator | Se conserva la pantalla nativa existente y sus datos de encuentros, tres filas de iconos, métodos y navegación por área. Sigue usando Eclipse/Daylight. |
+| 4 · Pokélocator | Catálogo 2×2 por especie, categorías de encuentro, filtros de colección y progreso. Ficha Habitat/Stats/Traits, elección de método, revisión previa al combate e integración de la Señal existente. Eclipse/Daylight comparten datos y navegación. Véase [Pokélocator](POKELOCATOR_SEARCH.md). |
 | 5 · Mutator | Lista del equipo, planes, confirmación y resultado comparten marco, paleta y ayudas. Coste, riesgo y requisitos siguen calculándose en el servicio existente. |
 | 7 · Huevos | Rango y calidad se identifican por separado. La compra sigue ocultando la especie. No hay una acción de reinicio del premio. |
 | 8–11 · Resumen | Cuatro pestañas: INFO, STATS, MOVES, GEAR. Incluye sprite real, PS, stamina máxima, IV/EV, ranuras de objeto/Gear independientes, las nueve mutaciones combinables y bonos positivos/negativos calculados por estadística. |

@@ -319,7 +319,7 @@ static void ItemUseOnFieldCB_Bike(u8 taskId)
     DestroyTask(taskId);
 }
 
-static bool32 CanFish(void)
+bool32 CanFishFromCurrentPosition(void)
 {
     s16 x, y;
     u16 tileBehavior;
@@ -351,7 +351,7 @@ static bool32 CanFish(void)
 
 void ItemUseOutOfBattle_Rod(u8 taskId)
 {
-    if (CanFish() == TRUE)
+    if (CanFishFromCurrentPosition() == TRUE)
     {
         sItemUseOnFieldCB = ItemUseOnFieldCB_Rod;
         SetUpItemUseOnFieldCallback(taskId);

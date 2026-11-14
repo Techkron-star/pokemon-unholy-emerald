@@ -105,6 +105,7 @@ u8 HfcWatch_GetFrequencyBoost(u8 badges);
 bool32 HfcWatch_CanActivateFrequency(void);
 bool32 HfcWatch_ActivateFrequency(void);
 u8 HfcWatch_GetFrequencyRemaining(void);
+u8 HfcWatch_GetActiveFrequencyBoost(void);
 u8 HfcWatch_ConsumeFrequencyEncounter(void);
 
 void HfcWatch_RegisterMutation(struct BoxPokemon *mon);

@@ -4,8 +4,8 @@
 #include "wild_encounter.h"
 
 // Pokélocator: in-game tool that lists the wild Pokémon of the current zone.
-// Everything here is read-only: encounter tables are read in place (never copied
-// into a hand-written catalogue) and the global RNG is never touched.
+// Table helpers are read-only. The explicit Search action creates a normal wild
+// encounter from the current map's live table; it is separate from browsing.
 
 // Worst case rows for one map: 12 land + 5 water + 5 rock smash + 10 fishing + 3 hidden = 35.
 #define POKELOCATOR_MAX_ROWS      40
@@ -26,6 +26,34 @@ enum PokelocatorMethod
 
 // Filter value 0 shows every method; value n + 1 shows only method n.
 #define POKELOCATOR_FILTER_ALL 0
+
+enum PokelocatorGroup
+{
+    POKELOCATOR_GROUP_ALL,
+    POKELOCATOR_GROUP_LAND,
+    POKELOCATOR_GROUP_WATER,
+    POKELOCATOR_GROUP_RODS,
+    POKELOCATOR_GROUP_OTHER,
+    POKELOCATOR_GROUP_COUNT,
+};
+
+enum PokelocatorCollectionFilter
+{
+    POKELOCATOR_COLLECTION_ALL,
+    POKELOCATOR_COLLECTION_MISSING,
+    POKELOCATOR_COLLECTION_CAUGHT,
+    POKELOCATOR_COLLECTION_COUNT,
+};
+
+enum PokelocatorGridDirection
+{
+    POKELOCATOR_GRID_LEFT,
+    POKELOCATOR_GRID_RIGHT,
+    POKELOCATOR_GRID_UP,
+    POKELOCATOR_GRID_DOWN,
+};
+
+typedef u8 (*PokelocatorDexStateFn)(enum Species species);
 
 enum PokelocatorDexState
 {
@@ -90,12 +118,39 @@ bool8 Pokelocator_RowHasChance(const struct PokelocatorRow *row);
 u8 Pokelocator_BuildFilteredIndex(const struct PokelocatorList *list, u8 filter, u8 *indexOut);
 u8 Pokelocator_NextFilter(u8 methodMask, u8 filter, s8 direction);
 void Pokelocator_MoveCursor(u8 *cursor, u8 *scroll, u8 count, u8 visibleRows, s8 delta);
+bool8 Pokelocator_MethodInGroup(u8 method, u8 group);
+u8 Pokelocator_BuildCatalogIndex(const struct PokelocatorList *list, u8 group, u8 collection,
+                               PokelocatorDexStateFn dexState, u8 *indexOut);
+u8 Pokelocator_GetSpeciesMethods(const struct PokelocatorList *list, u16 species, u8 *indexOut);
+void Pokelocator_MoveGrid(u8 *cursor, u8 *scroll, u8 count, u8 direction);
 
 // Game-state helpers.
 u8 Pokelocator_GetDexState(enum Species species);
 bool8 Pokelocator_IsSpeciesRevealed(enum Species species);
 u8 Pokelocator_BuildZone(struct PokelocatorZone *zone, u16 mapGroup, u16 mapNum);
 u8 Pokelocator_GetModifierStatus(enum PokelocatorModifierId id, u8 mapSec);
+
+enum PokelocatorSearchStatus
+{
+    POKELOCATOR_SEARCH_READY,
+    POKELOCATOR_SEARCH_WRONG_AREA,
+    POKELOCATOR_SEARCH_UNAVAILABLE,
+    POKELOCATOR_SEARCH_NO_PARTY,
+    POKELOCATOR_SEARCH_NEED_LAND,
+    POKELOCATOR_SEARCH_NEED_SURF,
+    POKELOCATOR_SEARCH_NEED_ROD,
+    POKELOCATOR_SEARCH_NEED_WATER,
+    POKELOCATOR_SEARCH_NEED_ROCK_SMASH,
+    POKELOCATOR_SEARCH_BLOCKED,
+};
+
+enum WildPokemonArea Pokelocator_GetMethodArea(u8 method);
+const struct WildPokemonInfo *Pokelocator_GetSearchInfo(u16 headerId, u8 method);
+u16 Pokelocator_GetSearchWeight(const struct WildPokemonInfo *info, u16 species, u8 method);
+u8 Pokelocator_SelectSearchSlot(const struct WildPokemonInfo *info, u16 species, u8 method, u16 roll);
+u8 Pokelocator_GetSearchStatus(u16 headerId, u16 species, u8 method);
+bool32 Pokelocator_CreateSearchMon(u16 headerId, u16 species, u8 method);
+const u8 *Pokelocator_GetSearchMessage(u8 status);
 
 // UI entry point, called from the Pokélocator key item while the field is active.
 void Pokelocator_OpenFromField(void (*onClose)(void));

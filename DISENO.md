@@ -290,6 +290,10 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 - **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
 - Pendiente: qué recurso consume, si el efecto dura una sesión de encuentros o un tiempo fijo, y si las mutaciones forzadas respetan la regla de Omega (sin Omega en el Mutator).
 
+#### Búsqueda y captura
+
+El catálogo agrupa especies, combina categorías de encuentro con filtros de colección y cuenta progreso sin duplicar métodos. La ficha ofrece Habitat, Stats y Traits. **A en la ficha → revisar búsqueda → confirmar** inicia un combate salvaje con la especie y método elegidos en el mapa actual; permite capturar desde la Mochila. Tools integra la Señal mutante existente con requisitos, tiradas base, contador y confirmación. Revalida horario y requisitos de Surf/caña/Golpe Roca. Los detalles y la QA están en [Pokélocator: búsqueda y captura](docs/POKELOCATOR_SEARCH.md). Consultar y cancelar siguen siendo de solo lectura; solo confirmar Buscar consume las tiradas normales del encuentro.
+
 #### Implementación v1 (rama `feat/unholy-pokelocator-v1`)
 
 **Qué hace.** `ITEM_POKELOCATOR` (ID 883, ítem clave, `ITEM_USE_FIELD`) se usa desde la Mochila o registrado en SELECT, igual que la Buscaobjetos. Abre una ventana BG0 nativa (26×17 tiles) con las especies de la zona actual: icono, nombre, método, nivel, probabilidad y estado Pokédex (CAPTURADO / VISTO / SIN VER). Controles: ↑↓ cursor (con repetición y vuelta), **A** detalle de la especie (todos sus métodos), **B** atrás/salir, **L/R** filtro por método (solo métodos que existen en la zona), **←→** cambiar de mapa dentro de la misma sección del mapa regional (pisos de una cueva, etc.).
@@ -304,7 +308,7 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 
 **Por qué un ítem clave y no una opción del menú de inicio.** El menú de inicio ya llega a 10-11 entradas y su ventana mide `2·n+2` tiles (con 9 o más ya supera los 20 tiles de pantalla), así que una entrada más lo empeoraría. El ítem clave sigue el diseño ("Ítem clave del menú") y no elimina ni reemplaza nada.
 
-**Mutaciones: preparado y apagado.** `POKELOCATOR_MUTATION_MODIFIER_ENABLED` es `FALSE` (con `#error` si se activa sin proveedor). `Pokelocator_GetModifierStatus()` devuelve `UNDEFINED` y la pantalla no muestra nada. No hay costes, duración, probabilidades ni desbloqueos inventados, y la pantalla no toca el RNG de encuentros ni el estado de guardado.
+**Mutaciones: preparado y apagado.** `POKELOCATOR_MUTATION_MODIFIER_ENABLED` es `FALSE` (con `#error` si se activa sin proveedor). `Pokelocator_GetModifierStatus()` devuelve `UNDEFINED` y la pantalla no muestra nada. No hay costes, duración, probabilidades ni desbloqueos inventados, y consultar la pantalla no toca el RNG de encuentros ni el estado de guardado. La acción Buscar crea un encuentro normal y puede consumir una carga de Frecuencia ya activa, como los demás encuentros salvajes.
 
 **Pendiente real (decisiones de diseño, no de código).**
 - **Entrega por historia:** la escena "el padre entrega el Pokélocator tras la captura guiada de Ralts" no existe en los scripts. Queda `EventScript_GivePokelocator` (idempotente, en `data/scripts/pokelocator.inc`) listo para llamarlo desde esa escena. Hasta entonces **no se consigue en una partida normal**; los scripts de debug sí lo entregan. Partidas existentes: mismo caso.
