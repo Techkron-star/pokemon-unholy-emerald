@@ -6,6 +6,7 @@
 #include "main.h"
 #include "malloc.h"
 #include "pokemon.h"
+#include "pokedex.h"
 #include "pokemon_storage_system.h"
 #include "random.h"
 #include "test/test.h"
@@ -33,7 +34,9 @@ TEST("Pokelocator badge caps advance at all nine milestones and stop EXP at the 
 TEST("Pokelocator level candies respect the cap without lowering an existing overlevel Pokemon")
 {
     struct Pokemon mon;
-    u8 level = min(MAX_LEVEL - 1, GetCurrentLevelCap());
+    bool8 oldBadge = FlagGet(FLAG_BADGE01_GET);
+    FlagClear(FLAG_BADGE01_GET);
+    u8 level = GetCurrentLevelCap();
     CreateMonWithIVs(&mon, SPECIES_TREECKO, level, 123, OTID_STRUCT_PRESET(456), 0);
     u32 exp = GetMonData(&mon, MON_DATA_EXP);
     EXPECT(PokemonUseItemEffects(&mon, ITEM_RARE_CANDY, 0, 0, FALSE));
@@ -44,6 +47,7 @@ TEST("Pokelocator level candies respect the cap without lowering an existing ove
     EXPECT(PokemonUseItemEffects(&mon, ITEM_EXP_CANDY_XL, 0, 0, FALSE));
     EXPECT_EQ(GetMonData(&mon, MON_DATA_EXP), exp);
     EXPECT_EQ(GetMonData(&mon, MON_DATA_LEVEL), level);
+    if (oldBadge) FlagSet(FLAG_BADGE01_GET);
 }
 
 TEST("Pokelocator R target survives event vars and rejects legacy or invalid packed data")
@@ -90,6 +94,7 @@ TEST("Pokelocator gifts confirm the category and cap, deliver to party then PC a
     gSaveBlock1Ptr->location.mapGroup = MAP_GROUP(MAP_ROUTE102);
     gSaveBlock1Ptr->location.mapNum = MAP_NUM(MAP_ROUTE102);
     FlagClear(FLAG_IS_CHAMPION);
+    ResetPokedex();
     ResetPokemonStorageSystem();
     memset(gParties[B_TRAINER_PLAYER], 0, sizeof(party));
     gPartiesCount[B_TRAINER_PLAYER] = 0;
