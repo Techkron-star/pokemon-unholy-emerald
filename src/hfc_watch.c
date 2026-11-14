@@ -158,7 +158,7 @@ static void RenderRaidSelection(void)
     static const u8 *const sMessages[] =
     {
         [HFC_RAID_NOT_ON_ROUTE] = COMPOUND_STRING("Travel to an outdoor route."),
-        [HFC_RAID_USED_TODAY] = COMPOUND_STRING("Today's raid has been used."),
+        [HFC_RAID_USED_TODAY] = COMPOUND_STRING("Come back tomorrow for another raid."),
         [HFC_RAID_NEEDS_PARTY] = COMPOUND_STRING("You need two Pokémon ready to fight."),
         [HFC_RAID_UNAVAILABLE] = COMPOUND_STRING("The raid is unavailable here."),
     };
@@ -200,7 +200,7 @@ static void RenderRaidSelection(void)
     cursor = StringCopy(cursor, COMPOUND_STRING("  Lv. "));
     ConvertUIntToDecimalStringN(cursor, boss.level, STR_CONV_MODE_LEFT_ALIGN, 2);
     PrintWatchText(text, 8, 39);
-    PrintWatchText(COMPOUND_STRING("Two doubles, then the mutated boss."), 8, 54);
+    PrintWatchText(COMPOUND_STRING("Two double battles, then the boss."), 8, 54);
     PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 69);
     if (boss.gear != GEAR_NONE)
         PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone + Gear")
@@ -220,7 +220,7 @@ static void RenderRaidReward(void)
     if (sRaidCaptureSelected)
     {
         PrintRaidCaptureChance(HfcWatch_GetActiveRaidCaptureChance(), 55);
-        PrintWatchText(COMPOUND_STRING("A failed roll ends the raid."), 8, 70);
+        PrintWatchText(COMPOUND_STRING("If it escapes, you get no loot."), 8, 70);
     }
     else
     {
@@ -265,7 +265,7 @@ static void RenderRaid(void)
         message = COMPOUND_STRING("Loot added to your Bag.");
         break;
     case HFC_RAID_CAPTURED:
-        message = COMPOUND_STRING("The mutant joined your collection!");
+        message = COMPOUND_STRING("Pokémon caught!");
         break;
     case HFC_RAID_CAPTURE_FAILED:
         message = COMPOUND_STRING("The mutant escaped.");
@@ -288,7 +288,7 @@ static void RenderFrequency(void)
     if (remaining != 0)
     {
         cursor = ConvertUIntToDecimalStringN(text, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
-        StringCopy(cursor, COMPOUND_STRING(" wild Pokémon left here."));
+        StringCopy(cursor, COMPOUND_STRING(" wild encounters left."));
         PrintWatchText(text, 8, 21);
         PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
     }
@@ -304,7 +304,7 @@ static void RenderFrequency(void)
     else
     {
         const u8 *message = FlagGet(FLAG_DAILY_HFC_FREQUENCY)
-                          ? COMPOUND_STRING("Today's signal has been used.")
+                          ? COMPOUND_STRING("Come back tomorrow for another signal.")
                           : COMPOUND_STRING("Find an area with wild encounters.");
         PrintWatchText(message, 8, 23);
         PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
@@ -528,14 +528,16 @@ static void RenderHub(void)
         UnholyUi_Card(sWatchWindowId, 5, y, 198, 15, selected);
         UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL, 11, y + 1, 149, fill, sFeatureNames[feature]);
         UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, 163, y + 3, 36, fill,
-            ready ? COMPOUND_STRING("OPEN") : COMPOUND_STRING("LOCK"));
+            ready ? COMPOUND_STRING("OPEN") : COMPOUND_STRING("LOCKED"));
         if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
             FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), 154, y + 6, 3, 3);
     }
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 106, 194,
-        HfcWatch_GetRequirement(tier, sHubCursor, progress));
+    bool8 ready = HfcWatch_GetAccess(tier, sHubCursor, progress) == HFC_WATCH_READY;
+    if (!ready)
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 106, 194,
+            HfcWatch_GetRequirement(tier, sHubCursor, progress));
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 123, 194,
-        COMPOUND_STRING("UP/DOWN:SELECT A:OPEN B:BACK"));
+        ready ? COMPOUND_STRING("A:OPEN  B:BACK") : COMPOUND_STRING("B:BACK"));
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
 

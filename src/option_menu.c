@@ -82,10 +82,10 @@ static void DrawBgWindowFrames(void);
 
 EWRAM_DATA static bool8 sArrowPressed = FALSE;
 
-static const u8 gText_Option[]             = _("OPTION");
-static const u8 gText_TextSpeedNormal[]    = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}NORMAL");
-static const u8 gText_TextSpeedFast[]      = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}FAST");
-static const u8 gText_TextSpeedInstant[]   = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}INSTANT");
+static const u8 sText_Options[]            = _("OPTIONS");
+static const u8 sText_TextSpeedNormal[]    = _("NORMAL");
+static const u8 sText_TextSpeedFast[]      = _("FAST");
+static const u8 sText_TextSpeedInstant[]   = _("INSTANT");
 static const u8 gText_BattleSceneOn[]      = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}ON");
 static const u8 gText_BattleSceneOff[]     = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}OFF");
 static const u8 gText_BattleStyleShift[]   = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SHIFT");
@@ -112,7 +112,7 @@ static const u8 *const sOptionMenuItemsNames[MENUITEM_COUNT] =
     [MENUITEM_SOUND]       = COMPOUND_STRING("SOUND"),
     [MENUITEM_BUTTONMODE]  = COMPOUND_STRING("BUTTON MODE"),
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
-    [MENUITEM_UITHEME]     = COMPOUND_STRING("UI THEME"),
+    [MENUITEM_UITHEME]     = COMPOUND_STRING("THEME"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
 };
 
@@ -258,7 +258,8 @@ void CB2_InitOptionMenu(void)
 
         gTasks[taskId].tMenuSelection = 0;
         gTasks[taskId].tTextSpeed = gSaveBlock2Ptr->optionsTextSpeed;
-        if (gTasks[taskId].tTextSpeed == OPTIONS_TEXT_SPEED_SLOW)
+        if (gTasks[taskId].tTextSpeed < OPTIONS_TEXT_SPEED_MID
+         || gTasks[taskId].tTextSpeed > OPTIONS_TEXT_SPEED_INSTANT)
             gTasks[taskId].tTextSpeed = OPTIONS_TEXT_SPEED_MID;
         gTasks[taskId].tBattleSceneOff = gSaveBlock2Ptr->optionsBattleSceneOff;
         gTasks[taskId].tBattleStyle = gSaveBlock2Ptr->optionsBattleStyle;
@@ -461,23 +462,15 @@ static u8 TextSpeed_ProcessInput(u8 selection)
 
 static void TextSpeed_DrawChoices(u8 selection)
 {
-    u8 styles[3];
-    s32 widthFast, widthInstant, xFast;
+    const s32 xNormal = 104;
+    const s32 xInstant = GetStringRightAlignXOffset(FONT_SMALL, sText_TextSpeedInstant, 198);
+    const s32 endNormal = xNormal + GetStringWidth(FONT_SMALL, sText_TextSpeedNormal, 0);
+    const s32 widthFast = GetStringWidth(FONT_SMALL, sText_TextSpeedFast, 0);
+    const s32 xFast = endNormal + (xInstant - endNormal - widthFast) / 2;
 
-    styles[0] = 0;
-    styles[1] = 0;
-    styles[2] = 0;
-    styles[selection - OPTIONS_TEXT_SPEED_MID] = 1;
-
-    DrawOptionMenuChoice(gText_TextSpeedNormal, 84, YPOS_TEXTSPEED, styles[0]);
-
-    widthFast = GetStringWidth(FONT_NORMAL, gText_TextSpeedFast, 0);
-    widthInstant = GetStringWidth(FONT_NORMAL, gText_TextSpeedInstant, 0);
-
-    xFast = (198 - widthFast - widthInstant) / 2;
-    DrawOptionMenuChoice(gText_TextSpeedFast, xFast, YPOS_TEXTSPEED, styles[1]);
-
-    DrawOptionMenuChoice(gText_TextSpeedInstant, GetStringRightAlignXOffset(FONT_NORMAL, gText_TextSpeedInstant, 198), YPOS_TEXTSPEED, styles[2]);
+    DrawOptionMenuChoice(sText_TextSpeedNormal, xNormal, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_MID);
+    DrawOptionMenuChoice(sText_TextSpeedFast, xFast, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_FAST);
+    DrawOptionMenuChoice(sText_TextSpeedInstant, xInstant, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_INSTANT);
 }
 
 static u8 BattleScene_ProcessInput(u8 selection)
@@ -678,7 +671,7 @@ static void ButtonMode_DrawChoices(u8 selection)
 static void DrawHeaderText(void)
 {
     FillWindowPixelBuffer(WIN_HEADER, PIXEL_FILL(1));
-    UnholyUi_Print(WIN_HEADER, FONT_SMALL, 8, 1, 192, gText_Option);
+    UnholyUi_Print(WIN_HEADER, FONT_SMALL, 8, 1, 192, sText_Options);
     CopyWindowToVram(WIN_HEADER, COPYWIN_FULL);
 }
 

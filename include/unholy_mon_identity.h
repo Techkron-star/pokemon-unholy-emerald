@@ -30,10 +30,10 @@ enum UnholyMonIdentityStatus
     UNHOLY_MON_ID_AMBIGUOUS,
 };
 
-// Read without altering the encrypted Pokémon or its internal fields.
-bool32 UnholyMonIdentity_ReadBox(struct BoxPokemon *mon,
+// Read occupied slots (including valid eggs) without modifying the source.
+bool32 UnholyMonIdentity_ReadBox(const struct BoxPokemon *mon,
                                  struct UnholyMonLegacyKey *out);
-bool32 UnholyMonIdentity_ReadMon(struct Pokemon *mon,
+bool32 UnholyMonIdentity_ReadMon(const struct Pokemon *mon,
                                  struct UnholyMonLegacyKey *out);
 bool32 UnholyMonIdentity_KeyEquals(const struct UnholyMonLegacyKey *a,
                                    const struct UnholyMonLegacyKey *b);

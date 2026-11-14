@@ -83,9 +83,9 @@ static const u8 *const sMessages[] =
     [HFC_MUTATOR_OMEGA] = COMPOUND_STRING("Omega is protected."),
     [HFC_MUTATOR_NEEDS_SUPER_LEAGUE] = COMPOUND_STRING("Rerolls require the Super League."),
     [HFC_MUTATOR_NO_ALTERNATIVE] = COMPOUND_STRING("No new mutations are available."),
-    [HFC_MUTATOR_INVALID_PLAN] = COMPOUND_STRING("Choose a valid plan."),
+    [HFC_MUTATOR_INVALID_PLAN] = COMPOUND_STRING("Choose another treatment."),
     [HFC_MUTATOR_INSUFFICIENT_FUNDS] = COMPOUND_STRING("Not enough money."),
-    [HFC_MUTATOR_ROLL_FAILED] = COMPOUND_STRING("Roll failed. Pokémon unchanged."),
+    [HFC_MUTATOR_ROLL_FAILED] = COMPOUND_STRING("The treatment failed."),
 };
 
 static enum HfcMutatorResult GetEligibility(struct Pokemon *mon, bool32 canReroll)
@@ -277,8 +277,8 @@ static void RenderPlans(void)
     }
     PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 91, MAX_MONEY_DIGITS);
     Print(sMutator.result == HFC_MUTATOR_INSUFFICIENT_FUNDS ? sMessages[sMutator.result]
-          : COMPOUND_STRING("The fee applies even if the roll fails."), 8, 108);
-    Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A  Pay and roll      B  Cancel")
+          : COMPOUND_STRING("The fee applies even if it fails."), 8, 108);
+    Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A  Pay      B  Cancel")
                                              : COMPOUND_STRING("A  Review plan      B  Back"), 8, 124);
 }
 
