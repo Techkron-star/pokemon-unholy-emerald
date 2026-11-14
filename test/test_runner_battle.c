@@ -2348,12 +2348,27 @@ const struct TestRunner gBattleTestRunner =
     .randomElementArray = BattleTest_RandomElementArray,
 };
 
-void SetFlagForTest(u32 sourceLine, u16 flagId)
+// Story fixtures may need several badges. Restore each original flag after the
+// trial, including on failure, rather than leaking progress into another test.
+static EWRAM_DATA struct { u16 id; bool8 value; } sStoryFlags[16] = {0};
+static EWRAM_DATA u8 sStoryFlagCount = 0;
+static void SetStoryFlagForTest(u32 sourceLine, u16 flagId, bool8 value)
 {
-    INVALID_IF(DATA.flagId != 0, "FLAG can only be set once per test");
-    DATA.flagId = flagId;
-    FlagSet(flagId);
+    u8 i;
+    for (i = 0; i < sStoryFlagCount; i++) if (sStoryFlags[i].id == flagId) break;
+    if (i == sStoryFlagCount)
+    {
+        INVALID_IF(sStoryFlagCount == ARRAY_COUNT(sStoryFlags), "Too many story flags in one trial");
+        sStoryFlags[i].id = flagId;
+        sStoryFlags[i].value = FlagGet(flagId);
+        sStoryFlagCount++;
+    }
+    if (value) FlagSet(flagId);
+    else FlagClear(flagId);
 }
+
+void SetFlagForTest(u32 sourceLine, u16 flagId) { SetStoryFlagForTest(sourceLine, flagId, TRUE); }
+void ClearFlagForTest(u32 sourceLine, u16 flagId) { SetStoryFlagForTest(sourceLine, flagId, FALSE); }
 
 void SetVarForTest(u32 sourceLine, u16 varId, u16 value)
 {
@@ -2386,11 +2401,13 @@ void TieBreakTarget(u32 sourceLine, enum TargetTieResolution targetTieRes, u32 v
 
 void ClearFlagAfterTest(void)
 {
-    if (DATA.flagId != 0)
+    for (u8 i = 0; i < sStoryFlagCount; i++)
     {
-        FlagClear(DATA.flagId);
-        DATA.flagId = 0;
+        if (sStoryFlags[i].value) FlagSet(sStoryFlags[i].id);
+        else FlagClear(sStoryFlags[i].id);
     }
+    sStoryFlagCount = 0;
+    DATA.flagId = 0;
 }
 
 void ClearVarAfterTest(void)

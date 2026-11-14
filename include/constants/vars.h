@@ -116,7 +116,7 @@
 #define VAR_SOOTOPOLIS_CITY_STATE                        0x405E
 #define VAR_EVER_GRANDE_CITY_STATE                       0x405F // Unused Var
 #define VAR_ROUTE101_STATE                               0x4060
-#define VAR_ROUTE102_STATE                               0x4061 // Unused Var
+#define VAR_ROUTE102_STATE                               0x4061 // Reserved: VAR_POKELOCATOR_TARGET in Emerald
 #define VAR_ROUTE103_STATE                               0x4062 // Unused Var
 #define VAR_ROUTE104_STATE                               0x4063
 #define VAR_ROUTE105_STATE                               0x4064 // Unused Var
@@ -299,6 +299,14 @@
 #define VAR_HORIZON_EGG_QUALITIES                      VAR_UNUSED_0x40A8 // five 2-bit grades + five sold flags
 #define VAR_HORIZON_GOODS_SEED_A                       VAR_UNUSED_0x40B8 // rotated item/TM stock, low seed
 #define VAR_HORIZON_GOODS_SEED_B                       VAR_UNUSED_0x40BB // rotated item/TM stock, high seed
+
+// Registered locator target: species (11 bits), method (3), format marker (2).
+// These slots have no native story consumers in their respective games.
+#if GAME_VERSION == VERSION_EMERALD
+#define VAR_POKELOCATOR_TARGET VAR_ROUTE102_STATE
+#else
+#define VAR_POKELOCATOR_TARGET VAR_0x40F2
+#endif
 
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)

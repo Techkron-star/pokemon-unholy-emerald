@@ -218,12 +218,18 @@ static void Gear(void)
     struct UnholyMonSummary *values = &sSummary->values;
     if (sSummary->detail == 0)
     {
-        Print(9, 42, 204, COMPOUND_STRING("HELD ITEM (SEPARATE SLOT)"));
-        Print(9, 56, 204, GetItemName(GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM)));
-        Print(9, 75, 204, COMPOUND_STRING("GEAR"));
-        Print(9, 89, 204, values->gearId < GEAR_COUNT ? gGearsInfo[values->gearId].name : COMPOUND_STRING("NONE"));
+        UnholyUi_Card(sSummary->window, 7, 41, 210, 29, FALSE);
+        UnholyUi_Card(sSummary->window, 7, 73, 210, 29, FALSE);
+        u8 fill = UnholyUi_CardFill(FALSE);
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 42, 198, fill, COMPOUND_STRING("HELD ITEM"));
+        u16 item = GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 55, 198, fill, item == ITEM_NONE ? COMPOUND_STRING("EMPTY ITEM SLOT") : GetItemName(item));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("GEAR - INDEPENDENT SLOT"));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT ? gGearsInfo[values->gearId].name : COMPOUND_STRING("EMPTY GEAR SLOT"));
         if (values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT)
             Paragraph(gGearsInfo[values->gearId].description, 103, 2);
+        else
+            UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 9, 108, 204, COMPOUND_STRING("BAG > GEAR: SELECT A GEAR TO EQUIP"));
     }
     else if (sSummary->detail == 1)
     {
@@ -232,15 +238,21 @@ static void Gear(void)
             if (values->mutationBadges & sBadges[i])
             {
                 u8 x = 9 + (i % 3) * 70;
-                u8 y = 39 + (i / 3) * 28;
+                u8 y = 40 + (i / 3) * 28;
                 const u8 *name = HorizonMarketMutationName(sBadges[i]);
                 u16 width = GetStringWidth(FONT_SMALL_NARROW, name, 0);
-                sSummary->mutationIcons[i] = MutationIcon_Create(sBadges[i], x + 42, y + 16, 0);
+                sSummary->mutationIcons[i] = MutationIcon_Create(sBadges[i], x + 42, y + 15, 0);
                 UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, x + (68 - min(width, 68)) / 2, y + 16, 68, name);
             }
         }
         if (values->mutationBadges == 0)
-            Print(9, 65, 204, COMPOUND_STRING("NONE"));
+        {
+            UnholyUi_Card(sSummary->window, 7, 46, 210, 62, FALSE);
+            u8 fill = UnholyUi_CardFill(FALSE);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 52, 190, fill, COMPOUND_STRING("NO MUTATIONS"));
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 69, 190, fill, COMPOUND_STRING("THIS POKéMON HAS NO MUTATION BADGES."));
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 86, 190, fill, COMPOUND_STRING("L/R: EQUIPMENT / ACTUAL BONUSES"));
+        }
     }
     else
     {

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pokelocator.h"
 #include "battle_setup.h"
 #include "bike.h"
 #include "coord_event_weather.h"
@@ -235,6 +236,9 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
         return TRUE;
 
     if (input->pressedSelectButton && UseRegisteredKeyItemOnField() == TRUE)
+        return TRUE;
+
+    if (input->pressedRButton && !input->tookStep && !input->heldDirection && Pokelocator_TryQuickSearch())
         return TRUE;
 
     if (input->pressedRButton && TryStartDexNavSearch())

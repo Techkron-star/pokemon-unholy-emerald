@@ -16,7 +16,7 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 | 1, 6 · Pokéwatch | Diez servicios, cinco filas visibles, desplazamiento y contador. La fila bloqueada conserva el foco y muestra el requisito real. A nunca lanza un servicio sin acceso. Se conserva el servicio elegido al regresar. |
 | 2 · Horizon | Cinco categorías existentes: Pokémon, Discos, Objetos, Huevos y Movimientos. Las seis ofertas Pokémon y cinco huevos reutilizan su compra, confirmación, stock y RNG persistentes. |
 | 3 · PokéNav | Se conserva el mapa real y sus funciones. El panel de ubicación adopta la paleta común y limita los nombres a su espacio. |
-| 4 · Pokélocator | Catálogo 2×2 por especie, categorías de encuentro, filtros de colección y progreso. Ficha Habitat/Stats/Traits, elección de método, revisión previa al combate e integración de la Señal existente. Eclipse/Daylight comparten datos y navegación. Véase [Pokélocator](POKELOCATOR_SEARCH.md). |
+| 4 · Pokélocator | Catálogo 3×2 por especie, categorías presentes/desbloqueadas, ficha previa y progreso. Obtención gratuita individual/ALL/NEW con confirmación y capacidad, Search nativo, objetivo R persistente y Señal existente. Topes globales por medallas. Eclipse/Daylight comparten datos y navegación. Véase [Pokélocator](POKELOCATOR_SEARCH.md). |
 | 5 · Mutator | Lista del equipo, planes, confirmación y resultado comparten marco, paleta y ayudas. Coste, riesgo y requisitos siguen calculándose en el servicio existente. |
 | 7 · Huevos | Rango y calidad se identifican por separado. La compra sigue ocultando la especie. No hay una acción de reinicio del premio. |
 | 8–11 · Resumen | Cuatro pestañas: INFO, STATS, MOVES, GEAR. Incluye sprite real, PS, stamina máxima, IV/EV, ranuras de objeto/Gear independientes, las nueve mutaciones combinables y bonos positivos/negativos calculados por estadística. |
@@ -24,7 +24,7 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 | 13, 19 · Combate | Se conservan las tarjetas de PS, estado, anillos e iconos de Gear existentes. En selección de movimientos, una franja muestra dos posiciones de cadena, nombres, coste previsto y stamina disponible. SELECT se indica para marcar/cancelar; A conserva las validaciones existentes. La franja se oculta con descripciones y al salir. |
 | 14 · START | WATCH sigue siendo el acceso al reloj; se conservan las rutas y el retorno del menú existente. |
 | 15 · Opciones | Se muestran las opciones reales de la rama con tipografía de 12 px y vista previa Eclipse/Daylight. |
-| 16 · Mochila | Selector L+R con los siete nombres reales y recuentos de pilas, foco independiente del contenido y paleta restaurada al salir. Se mantienen cursores, ordenación, intercambio y restricciones de contexto. |
+| 16 · Mochila | Selector L+R desplazable con los diez nombres reales y recuentos de pilas, foco independiente del contenido y paleta restaurada al salir. Se mantienen cursores, ordenación, intercambio y restricciones de contexto. |
 | 17 · Equipo | Las tarjetas originales conservan PS, estados y marca de Gear. El mensaje de selección en el campo distingue PS actuales/máximos de STA MAX. No se inventa una stamina persistente fuera del combate. |
 | 18 · Diálogo | Las cajas usan la paleta común; el nombre del hablante se ajusta a su fila reservada. Se conservan marcos, paginación y opciones del motor. |
 
@@ -50,3 +50,9 @@ Comprobar ambos temas en 240 × 160, nombres largos, huevos, ranuras vacías, va
 En combate: movimiento marcado y sin marcar, segundo movimiento distinto/protección/sin PP, coste superior a stamina, cancelación, descripción, Megaevolución y dobles. La franja de cadenas solo aparece cuando el motor permite encadenar.
 
 Comprobar diez ciclos de apertura/cierre del reloj y selector, regreso desde cada servicio, compra/cancelación sin regenerar stock y guardar/cargar. Las pruebas de datos verifican los requisitos del reloj y que el snapshot del Resumen conserva Pokémon, objetos y bonos reales.
+
+## Correcciones de offsets del localizador ampliado
+
+El menú de movimientos reserva el panel inferior para dos posiciones de cadena y SELECT, los cuatro movimientos y tres líneas independientes de PP, tipo y stamina prevista/disponible. La vista ya no cubre la tarjeta de PS. Al cambiar a descripción o salir se limpian ambas ventanas auxiliares.
+
+Resumen distingue ranuras de objeto/Gear y muestra una tarjeta explicativa cuando no hay mutaciones. La cuadrícula de mutaciones separa iconos y nombres. La mochila usa franjas suaves según Eclipse/Daylight, diez etiquetas visibles (incluidas Gears, Correo y Miscelánea) y un selector con 14 píxeles por fila; su paleta se conserva entre aperturas del selector. El icono original de Exp. Share ya tiene aspecto de casco/máquina: no era un sprite de Pokémon cargado por error.

@@ -107,6 +107,7 @@ enum {
     WIN_TMHM_INFO_ICONS,
     WIN_TMHM_INFO,
     WIN_MESSAGE, // Identical to ITEMWIN_MESSAGE. Unused?
+    WIN_POCKET_TABS,
 };
 
 // Item list ID for toSwapPos to indicate an item is not currently being swapped
@@ -496,6 +497,10 @@ static const struct WindowTemplate sDefaultBagWindows[] =
         .paletteNum = 15,
         .baseBlock = 0x1B1,
     },
+    [WIN_POCKET_TABS] = {
+        .bg = 0, .tilemapLeft = 14, .tilemapTop = 0, .width = 15, .height = 2,
+        .paletteNum = 14, .baseBlock = 0x260,
+    },
     DUMMY_WIN_TEMPLATE,
 };
 
@@ -730,8 +735,8 @@ void GoToBagMenu(u8 location, u8 pocket, MainCallback exitCallback)
          || gBagPosition.location == ITEMMENULOCATION_RAIDEND)
             gBagMenu->pocketSwitchDisabled = TRUE;
         sQuickPocketWindowId = WINDOW_NONE;
-        UnholyUi_AcquirePalette(&sPocketPalette, 14);
-    sQuickPocketSelection = gBagPosition.pocket;
+        sPocketPalette.saved = FALSE;
+        sQuickPocketSelection = gBagPosition.pocket;
         gBagMenu->newScreenCallback = NULL;
         gBagMenu->toSwapPos = NOT_SWAPPING;
         gBagMenu->pocketScrollArrowsTask = TASK_NONE;
@@ -922,6 +927,14 @@ static bool8 LoadBagMenu_Graphics(void)
             LoadPalette(gBagScreenFemale_Pal, BG_PLTT_ID(0), 2 * PLTT_SIZE_4BPP);
         else
             LoadPalette(gBagScreenMale_Pal, BG_PLTT_ID(0), 2 * PLTT_SIZE_4BPP);
+        // The native tilemap uses these two colors for its broad stripes.
+        // Keep item palettes and text colors intact; use close theme tones.
+        {
+            const u16 *theme = GetUnholyUiPalette();
+            u16 stripes[] = {theme[1], theme[4]};
+            LoadPalette(stripes, BG_PLTT_ID(0) + 12, sizeof(stripes));
+            LoadPalette(stripes, BG_PLTT_ID(1) + 12, sizeof(stripes));
+        }
         gBagMenu->graphicsLoadState++;
         break;
     case 3:
@@ -1159,6 +1172,7 @@ static void DestroyPocketSwitchArrowPair(void)
 
 static void FreeBagMenu(void)
 {
+    UnholyUi_ReleasePalette(&sPocketPalette);
     Free(sListBuffer2);
     Free(sListBuffer1);
     FreeAllWindowBuffers();
@@ -1441,24 +1455,25 @@ static void ReturnToItemList(u8 taskId)
 }
 
 // This picker does not modify item routing, capacities or save data. It only
-// changes which of the seven *existing* Bag pockets is currently displayed.
+// changes which of the existing Bag pockets is currently displayed.
 static void DrawQuickPocketPicker(void)
 {
     u8 window = sQuickPocketWindowId;
     if (window == WINDOW_NONE)
         return;
     UnholyUi_Frame(window, sQuickPocketTitle);
-    for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
+    u8 first = sQuickPocketSelection < 7 ? 0 : sQuickPocketSelection - 6;
+    for (u8 pocket = first; pocket < POCKETS_COUNT && pocket < first + 7; pocket++)
     {
-        u8 y = 23 + pocket * 13;
+        u8 y = 23 + (pocket - first) * 14;
         u16 count = gBagMenu->numItemStacks[pocket];
         bool8 selected = pocket == sQuickPocketSelection;
         if (!gBagMenu->hideCloseBagText && count != 0)
             count--;
-        UnholyUi_Card(window, 4, y, 128, 13, selected);
-        UnholyUi_PrintOnFill(window, FONT_SMALL, 9, y, 98, UnholyUi_CardFill(selected), gPocketNamesStringsTable[pocket]);
+        UnholyUi_Card(window, 4, y, 128, 14, selected);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 9, y + 1, 98, UnholyUi_CardFill(selected), gPocketNamesStringsTable[pocket]);
         ConvertIntToDecimalStringN(gStringVar3, count, STR_CONV_MODE_RIGHT_ALIGN, 3);
-        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 111, y + 2, 19, UnholyUi_CardFill(selected), gStringVar3);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 111, y + 1, 19, UnholyUi_CardFill(selected), gStringVar3);
     }
     UnholyUi_Print(window, FONT_SMALL_NARROW, 7, 123, 122, sQuickPocketInstructions);
     CopyWindowToVram(window, COPYWIN_GFX);
@@ -1493,7 +1508,6 @@ static void CloseQuickPocketPicker(void)
     ClearStdWindowAndFrameToTransparent(sQuickPocketWindowId, FALSE);
     ClearWindowTilemap(sQuickPocketWindowId);
     RemoveWindow(sQuickPocketWindowId);
-    UnholyUi_ReleasePalette(&sPocketPalette);
     sQuickPocketWindowId = WINDOW_NONE;
     ScheduleBgCopyTilemapToVram(1);
 }
@@ -1698,15 +1712,27 @@ static void DrawItemListBgRow(u8 y)
     ScheduleBgCopyTilemapToVram(2);
 }
 
-// Only the native BG2 indicator is needed; no upper-right text ribbon.
+// Keep all ten categories visible above the item list, outside its scroll area.
 static void DrawPocketIndicatorBar(u8 currentPocket)
 {
+    static const u8 *const labels[] = {
+        COMPOUND_STRING("IT"), COMPOUND_STRING("PB"), COMPOUND_STRING("TM"), COMPOUND_STRING("BR"),
+        COMPOUND_STRING("KY"), COMPOUND_STRING("BT"), COMPOUND_STRING("MD"),
+        COMPOUND_STRING("GR"), COMPOUND_STRING("ML"), COMPOUND_STRING("MX"),
+    };
+    FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1));
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)
     {
-        u16 tile = (pocket == currentPocket) ? 0x102B : 0x1017;
-        FillBgTilemapBufferRect_Palette0(2, tile, pocket + 5, 3, 1, 1);
+        u8 x = pocket * 12;
+        bool8 active = pocket == currentPocket;
+        UnholyUi_Card(WIN_POCKET_TABS, x, 0, 12, 16, active);
+        UnholyUi_PrintOnFill(WIN_POCKET_TABS, FONT_SMALL_NARROW, x + 1, 1, 11,
+            UnholyUi_CardFill(active), labels[pocket]);
+        if (active || gBagMenu->numItemStacks[pocket] > (gBagMenu->hideCloseBagText ? 0 : 1))
+            FillWindowPixelRect(WIN_POCKET_TABS, PIXEL_FILL(5), x + 2, 14, active ? 8 : 3, 1);
     }
-    ScheduleBgCopyTilemapToVram(2);
+    PutWindowTilemap(WIN_POCKET_TABS);
+    CopyWindowToVram(WIN_POCKET_TABS, COPYWIN_FULL);
 }
 
 static bool8 CanSwapItems(void)
@@ -2853,6 +2879,7 @@ static void LoadBagMenuTextWindows(void)
         FillWindowPixelBuffer(i, PIXEL_FILL(0));
         PutWindowTilemap(i);
     }
+    UnholyUi_AcquirePalette(&sPocketPalette, 14);
     ScheduleBgCopyTilemapToVram(0);
     ScheduleBgCopyTilemapToVram(1);
 }
