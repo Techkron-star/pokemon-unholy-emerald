@@ -6,6 +6,7 @@
 - [Unholy Emerald · Interfaz nativa 240 × 160](./UI_NATIVE_240.md)
 - [Unholy Emerald · PC: favoritos y búsqueda](./PC_QOL.md)
 - [Unholy Emerald · Iconos de mutación](./MUTATION_ICONS.md)
+- [Unholy Emerald · Pokélocator: búsqueda y captura](./POKELOCATOR_SEARCH.md)
 - [Unholy Emerald · Horizon Market y alertas mutantes](./HORIZON_MARKET.md)
 - [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)

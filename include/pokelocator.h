@@ -4,8 +4,8 @@
 #include "wild_encounter.h"
 
 // Pokélocator: in-game tool that lists the wild Pokémon of the current zone.
-// Everything here is read-only: encounter tables are read in place (never copied
-// into a hand-written catalogue) and the global RNG is never touched.
+// Table helpers are read-only. The explicit Search action creates a normal wild
+// encounter from the current map's live table; it is separate from browsing.
 
 // Worst case rows for one map: 12 land + 5 water + 5 rock smash + 10 fishing + 3 hidden = 35.
 #define POKELOCATOR_MAX_ROWS      40
@@ -96,6 +96,28 @@ u8 Pokelocator_GetDexState(enum Species species);
 bool8 Pokelocator_IsSpeciesRevealed(enum Species species);
 u8 Pokelocator_BuildZone(struct PokelocatorZone *zone, u16 mapGroup, u16 mapNum);
 u8 Pokelocator_GetModifierStatus(enum PokelocatorModifierId id, u8 mapSec);
+
+enum PokelocatorSearchStatus
+{
+    POKELOCATOR_SEARCH_READY,
+    POKELOCATOR_SEARCH_WRONG_AREA,
+    POKELOCATOR_SEARCH_UNAVAILABLE,
+    POKELOCATOR_SEARCH_NO_PARTY,
+    POKELOCATOR_SEARCH_NEED_LAND,
+    POKELOCATOR_SEARCH_NEED_SURF,
+    POKELOCATOR_SEARCH_NEED_ROD,
+    POKELOCATOR_SEARCH_NEED_WATER,
+    POKELOCATOR_SEARCH_NEED_ROCK_SMASH,
+    POKELOCATOR_SEARCH_BLOCKED,
+};
+
+enum WildPokemonArea Pokelocator_GetMethodArea(u8 method);
+const struct WildPokemonInfo *Pokelocator_GetSearchInfo(u16 headerId, u8 method);
+u16 Pokelocator_GetSearchWeight(const struct WildPokemonInfo *info, u16 species, u8 method);
+u8 Pokelocator_SelectSearchSlot(const struct WildPokemonInfo *info, u16 species, u8 method, u16 roll);
+u8 Pokelocator_GetSearchStatus(u16 headerId, u16 species, u8 method);
+bool32 Pokelocator_CreateSearchMon(u16 headerId, u16 species, u8 method);
+const u8 *Pokelocator_GetSearchMessage(u8 status);
 
 // UI entry point, called from the Pokélocator key item while the field is active.
 void Pokelocator_OpenFromField(void (*onClose)(void));

@@ -4,6 +4,7 @@
 void ItemUseOutOfBattle_Mail(u8 taskId);
 void ItemUseOutOfBattle_Bike(u8 taskId);
 void ItemUseOutOfBattle_Rod(u8 taskId);
+bool32 CanFishFromCurrentPosition(void);
 void ItemUseOutOfBattle_Itemfinder(u8 taskId);
 void ItemUseOutOfBattle_Pokelocator(u8 taskId);
 void ItemUseOutOfBattle_HfcWatch(u8 taskId);

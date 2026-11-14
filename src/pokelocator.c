@@ -1,9 +1,11 @@
 #include "global.h"
 #include "pokelocator.h"
 #include "config/pokelocator.h"
+#include "dma3.h"
 #include "event_data.h"
 #include "event_object_lock.h"
 #include "main.h"
+#include "map_name_popup.h"
 #include "menu.h"
 #include "overworld.h"
 #include "palette.h"
@@ -73,8 +75,10 @@ static EWRAM_DATA struct PokelocatorUi sUi = {0};
 static const struct WindowTemplate sWindowTemplate =
 {
     .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
-    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x100,
+    // 64 + 442 tiles ends before the field's standard frame at tile 0x214.
+    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x40,
 };
+STATIC_ASSERT(0x40 + 26 * 17 <= STD_WINDOW_BASE_TILE_NUM, PokelocatorDoesNotOverwriteItsBorder);
 
 static const u8 sTextColors[] = {1, 2, 3};
 
@@ -87,7 +91,6 @@ static const u8 sText_ControlsList[] = _("A:INFO L/R:FILTER B:EXIT");
 static const u8 sText_ControlsListAreas[] = _("A:INFO L/R:FILTER <>:AREA B:EXIT");
 static const u8 sText_ControlsEmpty[] = _("B:EXIT");
 static const u8 sText_ControlsEmptyAreas[] = _("<>:AREA B:EXIT");
-static const u8 sText_ControlsDetail[] = _("UP/DOWN:SPECIES B:BACK");
 
 static const u8 *const sMethodLabels[POKELOCATOR_METHOD_COUNT] =
 {
@@ -102,6 +105,9 @@ static const u8 *const sMethodLabels[POKELOCATOR_METHOD_COUNT] =
 static const u8 sText_MethodCave[] = _("CAVE");
 
 static void Task_Pokelocator(u8 taskId);
+static void Task_StartSearch(u8 taskId);
+extern const u8 EventScript_PokelocatorSearchBattle[];
+extern const u8 EventScript_PokelocatorSearchUnavailable[];
 
 // ---------------------------------------------------------------------------------
 // Text helpers
@@ -312,8 +318,12 @@ static void DrawFooter(void)
     u8 *end;
     u8 counterWidth = 0;
 
-    if (sUi.mode == MODE_DETAIL)
-        controls = sText_ControlsDetail;
+    if (sUi.mode == MODE_DETAIL && sUi.filteredCount != 0)
+    {
+        const struct PokelocatorRow *row = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
+        u16 header = sUi.zone.count ? sUi.zone.headerIds[sUi.zone.current] : HEADER_NONE;
+        controls = Pokelocator_GetSearchMessage(Pokelocator_GetSearchStatus(header, row->species, row->method));
+    }
     else if (sUi.filteredCount == 0)
         controls = hasAreas ? sText_ControlsEmptyAreas : sText_ControlsEmpty;
     else
@@ -396,7 +406,8 @@ static void DrawDetailMode(void)
         if (row->species != selected->species)
             continue;
 
-        end = StringCopy(buffer, GetMethodLabel(row->method));
+        end = StringCopy(buffer, row->method == selected->method ? COMPOUND_STRING("> ") : COMPOUND_STRING("  "));
+        end = StringAppend(end, GetMethodLabel(row->method));
         end = StringAppend(end, COMPOUND_STRING("  "));
         end = AppendLevels(end, row);
         end = StringAppend(end, COMPOUND_STRING("  "));
@@ -493,7 +504,7 @@ static void ReturnFromLocator(void)
     }
 }
 
-static void CloseScreen(u8 taskId)
+static void CloseScreen(u8 taskId, bool8 returnToCaller)
 {
     DestroyIcons();
     ClearStdWindowAndFrameToTransparent(sUi.windowId, TRUE);
@@ -505,7 +516,20 @@ static void CloseScreen(u8 taskId)
         sUi.paletteSaved = FALSE;
     }
     DestroyTask(taskId);
-    ReturnFromLocator();
+    if (returnToCaller)
+        ReturnFromLocator();
+    else
+        sUi.onClose = NULL; // Search continues on the field, not in WATCH/START.
+}
+
+static void Task_StartSearch(u8 taskId)
+{
+    if (gPaletteFade.active || IsDma3ManagerBusyWithBgCopy())
+        return;
+    const s16 *data = gTasks[taskId].data;
+    bool32 ready = Pokelocator_CreateSearchMon((u16)data[0], (u16)data[1], data[2]);
+    ScriptContext_SetupScript(ready ? EventScript_PokelocatorSearchBattle : EventScript_PokelocatorSearchUnavailable);
+    DestroyTask(taskId);
 }
 
 static void Task_Pokelocator(u8 taskId)
@@ -524,7 +548,7 @@ static void Task_Pokelocator(u8 taskId)
         else
         {
             PlaySE(SE_SELECT);
-            CloseScreen(taskId);
+            CloseScreen(taskId, TRUE);
         }
         return;
     }
@@ -534,6 +558,30 @@ static void Task_Pokelocator(u8 taskId)
         sUi.mode = MODE_DETAIL;
         PlaySE(SE_SELECT);
         Render();
+        return;
+    }
+
+    if (JOY_NEW(A_BUTTON) && sUi.mode == MODE_DETAIL && sUi.filteredCount != 0)
+    {
+        const struct PokelocatorRow *row = &sUi.list.rows[sUi.filteredIndex[sUi.cursor]];
+        u16 header = sUi.zone.count ? sUi.zone.headerIds[sUi.zone.current] : HEADER_NONE;
+        if (Pokelocator_GetSearchStatus(header, row->species, row->method) != POKELOCATOR_SEARCH_READY)
+        {
+            PlaySE(SE_FAILURE);
+            Render();
+            return;
+        }
+        u8 searchTask = CreateTask(Task_StartSearch, 8);
+        if (searchTask == TASK_NONE)
+        {
+            PlaySE(SE_FAILURE);
+            return;
+        }
+        gTasks[searchTask].data[0] = header;
+        gTasks[searchTask].data[1] = row->species;
+        gTasks[searchTask].data[2] = row->method;
+        PlaySE(SE_SELECT);
+        CloseScreen(taskId, FALSE);
         return;
     }
 
@@ -582,6 +630,7 @@ void Pokelocator_OpenFromField(void (*onClose)(void))
 {
     u8 i;
 
+    HideMapNamePopUpWindow();
     LockPlayerFieldControls();
 
     memset(&sUi, 0, sizeof(sUi));

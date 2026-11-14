@@ -1,8 +1,71 @@
 #include "global.h"
 #include "pokelocator.h"
 #include "wild_encounter.h"
+#include "random.h"
+#include "pokemon.h"
 #include "test/test.h"
 #include "constants/species.h"
+
+TEST("Pokelocator search preserves weighted slots instead of inventing levels between them")
+{
+    struct WildPokemon mons[NUM_LAND_MONS_ENCOUNTER_SLOTS] = {0};
+    const struct WildPokemonInfo info = {.encounterRate = 20, .wildPokemon = mons};
+    mons[1] = (struct WildPokemon){.species = SPECIES_WURMPLE, .minLevel = 3, .maxLevel = 3};
+    mons[4] = (struct WildPokemon){.species = SPECIES_WURMPLE, .minLevel = 17, .maxLevel = 17};
+    u16 first = GetWildEncounterSlotWeight(WILD_AREA_LAND, 1);
+    u16 total = first + GetWildEncounterSlotWeight(WILD_AREA_LAND, 4);
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND), total);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND, 0), 1);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND, first - 1), 1);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND, first), 4);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND, total - 1), 4);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_WURMPLE, POKELOCATOR_METHOD_LAND, total), 1);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_RALTS, POKELOCATOR_METHOD_LAND, 0), 0xFF);
+}
+
+TEST("Pokelocator search never borrows a matching species from another rod")
+{
+    struct WildPokemon mons[NUM_FISHING_MONS_ENCOUNTER_SLOTS] = {0};
+    const struct WildPokemonInfo info = {.encounterRate = 20, .wildPokemon = mons};
+    u8 good = NUM_FISHING_MONS_OLD_ROD_ENCOUNTER_SLOTS;
+    u8 super = good + NUM_FISHING_MONS_GOOD_ROD_ENCOUNTER_SLOTS;
+    mons[0] = mons[good] = mons[super] = (struct WildPokemon){.species = SPECIES_MAGIKARP, .minLevel = 5, .maxLevel = 5};
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_OLD_ROD), GetWildEncounterSlotWeight(WILD_AREA_FISHING, 0));
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_GOOD_ROD), GetWildEncounterSlotWeight(WILD_AREA_FISHING, good));
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_SUPER_ROD), GetWildEncounterSlotWeight(WILD_AREA_FISHING, super));
+    for (u16 roll = 0; roll < 100; roll++)
+    {
+        EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_OLD_ROD, roll), 0);
+        EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_GOOD_ROD, roll), good);
+        EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_MAGIKARP, POKELOCATOR_METHOD_SUPER_ROD, roll), super);
+    }
+}
+
+TEST("Pokelocator search rejects unsafe entries and supports hidden encounter slots")
+{
+    struct WildPokemon mons[NUM_HIDDEN_MONS_ENCOUNTER_SLOTS] = {0};
+    const struct WildPokemonInfo info = {.wildPokemon = mons};
+    mons[0] = mons[2] = (struct WildPokemon){.species = SPECIES_RALTS, .minLevel = 5, .maxLevel = 5};
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_RALTS, POKELOCATOR_METHOD_HIDDEN), 2);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_RALTS, POKELOCATOR_METHOD_HIDDEN, 0), 0);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_RALTS, POKELOCATOR_METHOD_HIDDEN, 1), 2);
+    mons[0].minLevel = 0;
+    mons[2].maxLevel = MAX_LEVEL + 1;
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_RALTS, POKELOCATOR_METHOD_HIDDEN), 0);
+    EXPECT_EQ(Pokelocator_GetSearchWeight(NULL, SPECIES_RALTS, POKELOCATOR_METHOD_HIDDEN), 0);
+    EXPECT_EQ(Pokelocator_GetSearchWeight(&info, SPECIES_NONE, POKELOCATOR_METHOD_HIDDEN), 0);
+    EXPECT_EQ(Pokelocator_SelectSearchSlot(&info, SPECIES_RALTS, POKELOCATOR_METHOD_COUNT, 0), 0xFF);
+}
+
+TEST("Pokelocator rejected search changes neither RNG nor the enemy party")
+{
+    struct Pokemon before = gParties[B_TRAINER_OPPONENT_A][0];
+    rng_value_t rng = gRngValue;
+    EXPECT_NE(Pokelocator_GetSearchStatus(HEADER_NONE, SPECIES_RALTS, POKELOCATOR_METHOD_LAND), POKELOCATOR_SEARCH_READY);
+    EXPECT_EQ(Pokelocator_CreateSearchMon(HEADER_NONE, SPECIES_RALTS, POKELOCATOR_METHOD_LAND), FALSE);
+    EXPECT_EQ(memcmp(&gRngValue, &rng, sizeof(rng)), 0);
+    EXPECT_EQ(memcmp(&before, &gParties[B_TRAINER_OPPONENT_A][0], sizeof(before)), 0);
+}
 
 // Tests for the Pokélocator data core: reading encounter tables, merging slots,
 // chances, filters and cursor navigation. The screen itself needs mGBA (see DISENO.md).

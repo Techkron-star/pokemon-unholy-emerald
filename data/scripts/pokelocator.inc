@@ -8,3 +8,19 @@ EventScript_GivePokelocator::
 	giveitem ITEM_POKELOCATOR
 EventScript_GivePokelocator_Done::
 	return
+
+@ Search enters the standard scripted wild-battle path, with normal catching.
+EventScript_PokelocatorSearchBattle::
+	lockall
+	dowildbattle
+	releaseall
+	end
+
+EventScript_PokelocatorSearchUnavailable::
+	msgbox PokelocatorText_SearchUnavailable, MSGBOX_SIGN
+	releaseall
+	end
+
+PokelocatorText_SearchUnavailable:
+	.string "This Pokémon can't be found here\n"
+	.string "right now. Try searching again.$"

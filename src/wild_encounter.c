@@ -511,7 +511,7 @@ static u8 PickWildMonNature(enum Species species)
     return GetSynchronizedNature(WILDMON_ORIGIN, species);
 }
 
-static void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost)
+void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost)
 {
     ZeroEnemyPartyMons();
     u32 personality = GetMonPersonality(species, GetSynchronizedGender(WILDMON_ORIGIN, species), PickWildMonNature(species), RANDOM_UNOWN_LETTER);

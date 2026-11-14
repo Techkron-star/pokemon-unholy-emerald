@@ -53,6 +53,77 @@ static u8 GetSlotMethod(enum WildPokemonArea area, u8 slot)
     return POKELOCATOR_METHOD_HIDDEN;
 }
 
+enum WildPokemonArea Pokelocator_GetMethodArea(u8 method)
+{
+    switch (method)
+    {
+    case POKELOCATOR_METHOD_LAND: return WILD_AREA_LAND;
+    case POKELOCATOR_METHOD_WATER: return WILD_AREA_WATER;
+    case POKELOCATOR_METHOD_ROCKS: return WILD_AREA_ROCKS;
+    case POKELOCATOR_METHOD_OLD_ROD:
+    case POKELOCATOR_METHOD_GOOD_ROD:
+    case POKELOCATOR_METHOD_SUPER_ROD: return WILD_AREA_FISHING;
+    default: return WILD_AREA_HIDDEN;
+    }
+}
+
+const struct WildPokemonInfo *Pokelocator_GetSearchInfo(u16 headerId, u8 method)
+{
+    if (headerId == HEADER_NONE || method >= POKELOCATOR_METHOD_COUNT)
+        return NULL;
+    // Validate the header before indexing it (including stale/invalid requests).
+    for (u16 i = 0; i <= headerId; i++)
+        if (gWildMonHeaders[i].mapGroup == MAP_GROUP(MAP_UNDEFINED))
+            return NULL;
+    enum WildPokemonArea area = Pokelocator_GetMethodArea(method);
+    const struct WildEncounterTypes *types = &gWildMonHeaders[headerId].encounterTypes[GetTimeOfDayForEncounters(headerId, area)];
+    switch (area)
+    {
+    case WILD_AREA_LAND: return types->landMonsInfo;
+    case WILD_AREA_WATER: return types->waterMonsInfo;
+    case WILD_AREA_ROCKS: return types->rockSmashMonsInfo;
+    case WILD_AREA_FISHING: return types->fishingMonsInfo;
+    default: return types->hiddenMonsInfo;
+    }
+}
+
+static u8 SearchSlotWeight(const struct WildPokemonInfo *info, u16 species, u8 method, u8 slot)
+{
+    enum WildPokemonArea area = Pokelocator_GetMethodArea(method);
+    const struct WildPokemon *mon = &info->wildPokemon[slot];
+    if (mon->species != species || GetSlotMethod(area, slot) != method
+     || mon->minLevel == 0 || mon->maxLevel == 0 || mon->minLevel > MAX_LEVEL || mon->maxLevel > MAX_LEVEL)
+        return 0;
+    return area == WILD_AREA_HIDDEN ? 1 : GetWildEncounterSlotWeight(area, slot);
+}
+
+u16 Pokelocator_GetSearchWeight(const struct WildPokemonInfo *info, u16 species, u8 method)
+{
+    u16 total = 0;
+    if (info == NULL || info->wildPokemon == NULL || species == SPECIES_NONE
+     || species >= NUM_SPECIES || method >= POKELOCATOR_METHOD_COUNT)
+        return 0;
+    for (u8 slot = 0; slot < GetWildEncounterSlotCount(Pokelocator_GetMethodArea(method)); slot++)
+        total += SearchSlotWeight(info, species, method, slot);
+    return total;
+}
+
+u8 Pokelocator_SelectSearchSlot(const struct WildPokemonInfo *info, u16 species, u8 method, u16 roll)
+{
+    u16 total = Pokelocator_GetSearchWeight(info, species, method);
+    if (total == 0)
+        return 0xFF;
+    roll %= total;
+    for (u8 slot = 0; slot < GetWildEncounterSlotCount(Pokelocator_GetMethodArea(method)); slot++)
+    {
+        u8 weight = SearchSlotWeight(info, species, method, slot);
+        if (roll < weight)
+            return slot;
+        roll -= weight;
+    }
+    return 0xFF;
+}
+
 static struct PokelocatorRow *FindRow(struct PokelocatorList *list, enum Species species, u8 method)
 {
     u8 i;
