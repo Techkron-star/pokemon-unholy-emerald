@@ -68,7 +68,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | Encadenamiento rival | El segundo movimiento no puede repetir el mismo movimiento del primero; la selección muestra `▶2` y el coste de stamina se reorganiza sin solaparse |
 | Badges de Pokémon especiales | Badges persistentes y combinables; aparición salvaje/enemiga y penalización de captura implementadas |
 | Cambio de habilidades | Ability Capsule y Ability Patch se venden en todos los PokéMart estándar desde el primer acceso; conservan sus reglas normales |
-| Pokédex+ | Activada la interfaz HGSS existente: búsqueda, información, movimientos, evoluciones, huevos y pantalla de área; variantes especiales y validación visual pendientes |
+| Pokédex+ | HGSS con búsqueda, información, movimientos, evoluciones, huevos y área. A/SELECT en Info abre las nueve variantes de la colección y los bonos reales de sus individuos, incluidas combinaciones. [Detalles y QA](docs/POKEDEX_VARIANTS.md); partida natural, formas y hardware pendientes |
 | Horizon Shop | PR #30: pestañas horizontales, cuadrícula Pokémon 3×2, cinco huevos horizontales, MOVES en tarjetas y objetos/MT en panel nativo; cursor conservado por sección y stock persistente. Pendiente de compilar y comprobar en Pizza Boy |
 | Gestión de movimientos | Horizon MOVES presenta dos acciones, RELEARN y FORGET. La última reutiliza selección de Pokémon y resumen, descarta cancelar y protege el último movimiento. QA en emulador pendiente |
 | Balls, Pokémon especiales, gears, Super Liga | Omega Ball e Infinity Ball añadidas; balance y contenido de recompensa siguen pendientes |
@@ -482,7 +482,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
 - PC avanzado: favoritos con protección frente a liberación y búsqueda combinada por especie seleccionada, tipo, mutación, favorito, shiny y Gear implementados; ver [controles y QA pendiente](docs/PC_QOL.md). El traslado múltiple y el cambio rápido de caja ya existen en la base. Falta validar navegación, guardado/carga y aspecto en emulador/hardware.
 - Aprender/olvidar movimientos desde **Horizon MOVES**: código de ambas acciones integrado; todavía deben validarse cancelación, restricciones y guardado.
-- Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes. La interfaz HGSS existente ya está activada; quedan por integrar explícitamente las variantes Alpha/Super/Enraged/Omega y validar textos/pantallas en hardware.
+- Pokédex+ con hábitats, horarios, evoluciones, movimientos y variantes. La interfaz HGSS añade la consulta de las nueve variantes en equipo/PC y sus bonos reales desde Info; detalles en [Pokédex+: variantes](docs/POKEDEX_VARIANTS.md). Queda validar el recorrido completo, formas y hardware.
 - Guardado fiable, versionado/migraciones y pruebas de persistencia.
 - Validación visual de la barra de stamina, encadenamiento y textos en emulador/hardware.
 
