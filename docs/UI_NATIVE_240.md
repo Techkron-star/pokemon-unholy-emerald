@@ -56,3 +56,5 @@ Comprobar diez ciclos de apertura/cierre del reloj y selector, regreso desde cad
 El menú de movimientos reserva el panel inferior para dos posiciones de cadena y SELECT, los cuatro movimientos y tres líneas independientes de PP, tipo y stamina prevista/disponible. La vista ya no cubre la tarjeta de PS. Al cambiar a descripción o salir se limpian ambas ventanas auxiliares.
 
 Resumen distingue ranuras de objeto/Gear y muestra una tarjeta explicativa cuando no hay mutaciones. La cuadrícula de mutaciones separa iconos y nombres. La mochila usa franjas suaves según Eclipse/Daylight, diez etiquetas visibles (incluidas Gears, Correo y Miscelánea) y un selector con 14 píxeles por fila; su paleta se conserva entre aperturas del selector. El icono original de Exp. Share ya tiene aspecto de casco/máquina: no era un sprite de Pokémon cargado por error.
+
+El HUD reserva ahora el espacio entre nombre y nivel para la mutación compacta. El Gear se presenta en vertical frente a la tarjeta, con icono arriba y fase/recarga debajo; la columna cabe en los 25 píxeles de separación de los dobles. Véase [Iconos de mutación](MUTATION_ICONS.md).
