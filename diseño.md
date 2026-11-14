@@ -22,9 +22,9 @@ Es una **base de desarrollo** para crear ROM hacks de Pokémon Emerald, no un ju
 
 | Principio | Descripción |
 |-----------|-------------|
-| **No ampliar SaveBlock** | Los sistemas nuevos deben reutilizar variables de guardado existentes o usar espacio sin usar (ej. `0x40B8`, `0x40BB`, `0x40F7–0x40FE`). No cambiar el tamaño de `SaveBlock1` ni `SaveBlock2`. |
+| **SaveBlocks ampliables y versionados** | Se permite usar los SaveBlocks ampliados o añadir espacio persistente para sistemas nuevos cuando sea necesario. Cada modificación debe documentar estructura, tamaño, cifrado, versión y compatibilidad de guardados; no reutilizar offsets ocupados. Las variables históricas de Horizon conservan su asignación salvo migración explícita. |
 | **Compatibilidad Emerald + FRLG** | El código debe compilar en Pokémon Emerald, FireRed y LeafGreen. Las banderas específicas de FRLG deben declararse para evitar errores de compilación (ej. EXP Share). |
-| **No romper mecánicas heredadas** | Precios base, IDs de objetos existentes, clasificaciones, SaveBlock, bonos porcentuales y denominadores de RNG no se alteran sin justificación. |
+| **No romper mecánicas heredadas** | Precios base, IDs de objetos existentes, clasificaciones, bonos porcentuales y denominadores de RNG no se alteran sin justificación. Los cambios al esquema de guardado requieren versionado y pruebas específicas. |
 | **Determinismo y persistencia** | Los sistemas con RNG (mercado, huevos, mutaciones) deben usar semillas persistentes para reproducir exactamente el mismo estado al abrir/cerrar, guardar/cargar y cambiar de pestaña. |
 | **UI segura** | Las pantallas nuevas no deben dejar callbacks pendientes, ventanas residuales ni congelar al jugador. El cierre debe liberar recursos y reconstruir el campo correctamente (`CB2_ReturnToFieldWithOpenMenu`). |
 | **Sin dualidad de callbacks verticales** | Mientras se navega en menús horizontales (Horizon), no usar `Menu_ProcessInputNoWrap` ni `Menu_MoveCursor` (pensados para menú vertical). |
@@ -190,8 +190,52 @@ Recetas detalladas en `docs/GEARS.md`. Fuentes editables en `docs/art_sources/ge
 
 ### 5.3. Restricciones
 
-- Contextos de batalla, tutorial y link no afectados.
+- Contextos de batalla, tutorial y link no afectados por los cambios de navegación entre bolsillos.
 - QA documentada en `docs/BAG_UX.md`. (PR #15)
+
+### 5.4. Evolución de mochilas (diseño aprobado; implementación pendiente)
+
+La mochila evoluciona de manera **permanente**. Cada mejora aumenta **dos capacidades distintas**: (1) los slots disponibles para tipos de objetos y (2) la cantidad máxima que se puede almacenar de **cada objeto**.
+
+| Tier de mochila | Máximo por objeto | Slots por bolsillo |
+|-----------------|------------------:|--------------------|
+| **Mochila normal** | **999** | Capacidad base; cifras por definir |
+| **Gran Mochila** | **9,999** | Más slots que la normal; cifras por definir |
+| **Mochila Dimensional** | **99,999** | Más slots que la Gran Mochila; cifras por definir |
+
+**Reglas funcionales:**
+
+1. Los límites `999 → 9,999 → 99,999` son **cantidades por ID de objeto**, no una suma global de la mochila ni un límite por transacción.
+2. Los slots y las cantidades máximas aumentan de forma acumulativa. El número exacto de slots por bolsillo se decidirá después; no asumir valores ni porcentajes inventados.
+3. Un mismo tipo de objeto se presenta como **una sola entrada** en la UI (por ejemplo, `Poción ×99,999`), sin exigir al jugador gestionar pilas duplicadas para alcanzar el máximo. La implementación debe preservar la clasificación automática por bolsillo.
+4. Al mejorar la mochila, **ningún objeto se borra ni se reinicia**; se conservan IDs, cantidades, orden y bolsillos. No se contempla una degradación voluntaria de tier.
+5. El límite dinámico depende del tier desbloqueado, **no** de una constante única que permita 99,999 unidades desde el comienzo.
+6. Objetos únicos, claves, equipamiento y otras categorías con reglas especiales conservan sus restricciones propias; aumentar el límite general no habilita duplicaciones indebidas.
+7. Los requisitos, ubicaciones y momentos de desbloqueo de Gran Mochila y Mochila Dimensional **no están definidos todavía**. Las mejoras deben seguir el progreso legítimo de la aventura, no saltarlo.
+
+### 5.5. Arquitectura de almacenamiento
+
+**Estado del código base observado:** `struct ItemSlot` en `include/global.h` contiene `u16 quantity`, que solo representa valores de 0 a 65,535 y **no permite 99,999**. La ampliación del SaveBlock por sí sola no cambia ese tipo de dato.
+
+**Implementación requerida para la Mochila Dimensional:**
+
+- Usar `u32` para las cantidades persistentes de inventario (al menos en `ItemSlot` y en las representaciones equivalentes afectadas). `u32` permite guardar 99,999 sin formatos de bits especiales.
+- Auditar y actualizar operaciones, parámetros, variables temporales y retornos que limiten cantidades a `u16` o `s16`: añadir, quitar, comprobar, transferir, contar, vender, ordenar, craftear, consumir y rutas de debug. En particular, revisar `include/item.h`, `src/item.c`, `src/item_menu.c` e integraciones de Horizon/Gears.
+- Reemplazar las comprobaciones estáticas de `MAX_BAG_ITEM_CAPACITY` en las rutas relevantes por una **capacidad efectiva basada en el tier** de mochila. Las operaciones deben validar desbordamiento y respetar el máximo por tipo de objeto.
+- Adaptar el **cifrado de cantidades**: la lectura/escritura actual aplica XOR con `gSaveBlock2Ptr->encryptionKey` sobre cantidades de 16 bits; al ampliar a 32 bits se debe mantener una transformación reversible y compatible con los datos versionados.
+- Reservar espacio suficiente en los SaveBlocks nuevos o ampliados; recalcular offsets, estructuras, sectores de guardado y consumo de RAM. Ampliar `u16 → u32` añade **2 bytes por entrada** afectada, antes de cualquier padding o estructura auxiliar.
+- Guardar el **tier de mochila** como dato persistente y coherente con el inventario. Versionar el formato del guardado y definir migración o invalidación explícita de saves previos durante el desarrollo; nunca interpretar silenciosamente el layout antiguo como nuevo.
+- Actualizar la UI y sus buffers para **cinco dígitos**, incluido el ancho de ventanas y menús de cantidad. Corregir selectores cuya lógica interna emplee `s16`, y asegurar que operaciones parciales con cantidades grandes no trunquen valores.
+- Comprobar capacidad y límites del formato de guardado en GBA y en el emulador objetivo. **SaveBlocks adicionales no equivalen a memoria ilimitada.**
+
+### 5.6. Criterios de aceptación y QA
+
+- Probar cada tier con cantidades `0`, `1`, `998`, `999`, `1,000`, `9,998`, `9,999`, `10,000`, `65,535` y `99,999` según corresponda.
+- Verificar que compras, recompensas, debug y crafting **no superen el máximo activo**, no dupliquen ni destruyan objetos por errores de truncamiento.
+- Comprobar que al mejorar de mochila se conservan objetos, cantidades, orden y distribución de bolsillos; probar inventarios llenos en los tres tiers.
+- Validar guardar/cargar, reinicio, cifrado, venta de grandes cantidades, consumo en batalla y equipamiento de Gears.
+- Revisar en emulador GBA que la UI muestra cinco dígitos sin texto cortado, desplazado ni superpuesto.
+- Mantener estas especificaciones como **diseño pendiente** hasta que exista implementación y QA verificadas.
 
 ---
 
@@ -214,7 +258,7 @@ Recetas detalladas en `docs/GEARS.md`. Fuentes editables en `docs/art_sources/ge
 ## 7. Reglas de compatibilidad y restricciones
 
 1. **Emerald, FireRed y LeafGreen** deben compilar y pasar los tests sin regresiones heredadas.
-2. **SaveBlock** no cambia de tamaño.
+2. **SaveBlocks versionados:** sus tamaños y estructuras pueden ampliarse justificadamente (incluida la mochila evolutiva), con auditoría de memoria, serialización, cifrado y guardado/carga. No reinterpretar saves antiguos sin una migración definida.
 3. **Denominadores de RNG** no cambian; se bumps la versión de stock para evitar reinterpretación de catálogos antiguos.
 4. **IDs de objetos antiguos** no se renumeran.
 5. **Gráficos de juego:** PNG 4bpp indexado, paletas JASC, índice 0 transparente.
@@ -250,4 +294,4 @@ Recetas detalladas en `docs/GEARS.md`. Fuentes editables en `docs/art_sources/ge
 
 ---
 
-*Última actualización: consenso de PRs #9–#18 (rama `feat/unholy-*`, noviembre 2026).*
+*Última actualización: 14 de noviembre de 2026. Diseño base de PRs #9–#18 y especificación futura de mochilas evolutivas (sin implementación confirmada).*
