@@ -207,7 +207,7 @@ static void Info(void)
     Print(85, 57, 132, text);
     Print(85, 72, 132, gNaturesInfo[GetNature(mon)].name);
     Print(85, 87, 132, gAbilitiesInfo[GetMonAbility(mon)].name);
-    StringCopy(text, COMPOUND_STRING("STA MAX "));
+    StringCopy(text, COMPOUND_STRING("MAX STAMINA "));
     ConvertUIntToDecimalStringN(text + StringLength(text), sSummary->values.staminaMax, STR_CONV_MODE_LEFT_ALIGN, 3);
     Print(85, 103, 132, text);
     u8 *cursor = StringCopy(text, COMPOUND_STRING("HP "));
@@ -216,7 +216,7 @@ static void Info(void)
     ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_MAX_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
     Print(9, 117, 104, text);
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 118, 119, 96,
-        sSummary->values.mutationBadges ? COMPOUND_STRING("MUTATIONS: GEAR TAB") : COMPOUND_STRING("NO MUTATIONS"));
+        sSummary->values.mutationBadges ? COMPOUND_STRING("MUTATIONS IN GEAR") : COMPOUND_STRING("NO MUTATIONS"));
 }
 
 static void Stats(void)
@@ -236,7 +236,7 @@ static void Stats(void)
         UnholyUi_Bar(sSummary->window, 146, y + 8, 66, value,
             sSummary->detail == 1 ? MAX_PER_STAT_IVS : sSummary->detail == 2 ? MAX_PER_STAT_EVS : max(255, value), 5);
     }
-    Print(9, 115, 105, COMPOUND_STRING("STAMINA MAX"));
+    Print(9, 115, 105, COMPOUND_STRING("MAX STAMINA"));
     Number(112, 115, values->staminaMax);
 }
 
@@ -256,7 +256,8 @@ static void Moves(void)
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 162, y + 1, 51, fill, text);
     }
     enum Move selected = GetMonData(mon, MON_DATA_MOVE1 + sSummary->move);
-    Print(9, 113, 204, selected == MOVE_NONE ? COMPOUND_STRING("EMPTY MOVE SLOT") : GetMoveDescription(selected));
+    if (selected != MOVE_NONE)
+        Print(9, 113, 204, GetMoveDescription(selected));
 }
 
 static void Gear(void)
@@ -269,13 +270,12 @@ static void Gear(void)
         u8 fill = UnholyUi_CardFill(FALSE);
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 42, 198, fill, COMPOUND_STRING("HELD ITEM"));
         u16 item = GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 55, 198, fill, item == ITEM_NONE ? COMPOUND_STRING("EMPTY ITEM SLOT") : GetItemName(item));
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("GEAR - INDEPENDENT SLOT"));
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT ? gGearsInfo[values->gearId].name : COMPOUND_STRING("EMPTY GEAR SLOT"));
-        if (values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT)
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 55, 198, fill, item == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(item));
+        bool32 hasGear = values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT;
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("GEAR"));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, hasGear ? gGearsInfo[values->gearId].name : COMPOUND_STRING("NONE"));
+        if (hasGear)
             Paragraph(gGearsInfo[values->gearId].description, 103, 2);
-        else
-            UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 9, 108, 204, COMPOUND_STRING("BAG > GEAR: SELECT A GEAR TO EQUIP"));
     }
     else if (sSummary->detail == 1)
     {
@@ -292,13 +292,7 @@ static void Gear(void)
             }
         }
         if (values->mutationBadges == 0)
-        {
-            UnholyUi_Card(sSummary->window, 7, 46, 210, 62, FALSE);
-            u8 fill = UnholyUi_CardFill(FALSE);
-            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 52, 190, fill, COMPOUND_STRING("NO MUTATIONS"));
-            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 69, 190, fill, COMPOUND_STRING("THIS POKéMON HAS NO MUTATION BADGES."));
-            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 17, 86, 190, fill, COMPOUND_STRING("L/R: EQUIPMENT / ACTUAL BONUSES"));
-        }
+            Print(13, 48, 198, COMPOUND_STRING("NO MUTATIONS"));
     }
     else
     {
@@ -313,7 +307,7 @@ static void Gear(void)
             Print(9, 43 + row * 12, 110, sStats[stat]);
             Print(143, 43 + row * 12, 65, text);
         }
-        Print(9, 116, 204, COMPOUND_STRING("ACTUAL MUTATION BONUSES"));
+        Print(9, 116, 204, COMPOUND_STRING("MUTATION BONUSES"));
     }
 }
 
@@ -508,9 +502,9 @@ static const u8 *EquipmentResult(u8 result)
     case UNHOLY_EQUIP_OK: return COMPOUND_STRING("EQUIPMENT UPDATED");
     case UNHOLY_EQUIP_ALREADY: return COMPOUND_STRING("ALREADY EQUIPPED");
     case UNHOLY_EQUIP_MISSING: return COMPOUND_STRING("ITEM NO LONGER IN YOUR BAG");
-    case UNHOLY_EQUIP_BAG_FULL: return COMPOUND_STRING("NO ROOM TO RETURN THE OLD EQUIPMENT");
-    case UNHOLY_EQUIP_MAIL: return COMPOUND_STRING("REMOVE MAIL THROUGH THE BAG / PC");
-    default: return COMPOUND_STRING("REVIEW THE POKéMON AND ITEM AGAIN");
+    case UNHOLY_EQUIP_BAG_FULL: return COMPOUND_STRING("BAG FULL");
+    case UNHOLY_EQUIP_MAIL: return COMPOUND_STRING("REMOVE MAIL FIRST");
+    default: return COMPOUND_STRING("COULD NOT CHANGE EQUIPMENT");
     }
 }
 
@@ -530,7 +524,7 @@ static void DrawEquipment(void)
     bool8 gear = sSummary->equipmentGear;
     u16 current = gear ? Gear_ToItem(Gear_GetEquipped(&sSummary->mon)) : GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
     u16 next = sSummary->equipmentItems[sSummary->equipmentCursor];
-    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("GEAR SLOT") : COMPOUND_STRING("HELD ITEM SLOT"));
+    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("GEAR") : COMPOUND_STRING("HELD ITEM"));
     if (sSummary->qol == QOL_EQUIPMENT)
     {
         u8 *end = StringCopy(text, COMPOUND_STRING("NOW: "));
@@ -544,7 +538,7 @@ static void DrawEquipment(void)
             u8 y = 44 + i * 19, fill = UnholyUi_CardFill(selected);
             UnholyUi_Card(sSummary->window, 6, y, 212, 18, selected);
             UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 11, y + 3, 159, fill,
-                item == ITEM_NONE ? COMPOUND_STRING("UNEQUIP / RETURN TO BAG") : GetItemName(item));
+                item == ITEM_NONE ? COMPOUND_STRING("REMOVE") : GetItemName(item));
             if (item != ITEM_NONE)
             {
                 ConvertUIntToDecimalStringN(text, CountTotalItemQuantityInBag(item), STR_CONV_MODE_LEFT_ALIGN, 5);
@@ -555,15 +549,15 @@ static void DrawEquipment(void)
         cursor = StringAppend(cursor, COMPOUND_STRING("/"));
         ConvertUIntToDecimalStringN(cursor, count, STR_CONV_MODE_LEFT_ALIGN, 3);
         QolText(8, 104, 205, text);
-        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("A:COMPARE UP/DN:CHOOSE B:TOOLS"),
-            gear ? COMPOUND_STRING("GEAR DOES NOT REPLACE THE HELD ITEM") : COMPOUND_STRING("GEAR USES ITS OWN INDEPENDENT SLOT"));
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING(""),
+            COMPOUND_STRING("A:COMPARE  B:BACK"));
     }
     else
     {
         QolText(8, 23, 205, COMPOUND_STRING("CURRENT:"));
         QolText(8, 36, 205, current == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(current));
         QolText(8, 50, 205, COMPOUND_STRING("CHANGE TO:"));
-        QolText(8, 63, 205, next == ITEM_NONE ? COMPOUND_STRING("NONE - RETURN CURRENT TO BAG") : GetItemName(next));
+        QolText(8, 63, 205, next == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(next));
         if (gear)
         {
             const struct GearInfo *old = &gGearsInfo[Gear_FromItem(current)], *selected = &gGearsInfo[Gear_FromItem(next)];
@@ -580,11 +574,12 @@ static void DrawEquipment(void)
                 { StringAppend(text, gTypesInfo[type].name); StringAppend(text, COMPOUND_STRING(" ")); }
             StringAppend(text, selected->categoryMask == GEAR_CATEGORY_PHYSICAL ? COMPOUND_STRING("PHY")
                 : selected->categoryMask == GEAR_CATEGORY_SPECIAL ? COMPOUND_STRING("SPC") : COMPOUND_STRING("PHY/SPC"));
-            QolText(8, 105, 205, next == ITEM_NONE ? COMPOUND_STRING("NO GEAR BONUS") : text);
+            if (next != ITEM_NONE)
+                QolText(8, 105, 205, text);
         }
         else if (next != ITEM_NONE) Paragraph(GetItemDescription(next), 79, 3);
-        else QolText(8, 91, 205, COMPOUND_STRING("THE HELD ITEM RETURNS TO YOUR BAG"));
-        QolFooter(COMPOUND_STRING("A:CONFIRM B:KEEP CURRENT EQUIPMENT"), COMPOUND_STRING("PREVIOUS EQUIPMENT IS RETURNED TO BAG"));
+        QolFooter(current != ITEM_NONE ? COMPOUND_STRING("CURRENT EQUIPMENT RETURNS TO BAG") : COMPOUND_STRING(""),
+            COMPOUND_STRING("A:CONFIRM  B:BACK"));
     }
 }
 
@@ -639,7 +634,7 @@ static void DrawQol(void)
     UnholyUi_Frame(sSummary->window, sSummary->qol == QOL_MENU ? COMPOUND_STRING("TRAINER TOOLS") : COMPOUND_STRING("EVOLUTION PATHS"));
     if (sSummary->qol == QOL_MENU)
     {
-        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS / EVOLVE"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("GEAR"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
+        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("GEAR"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
         u8 *position = ConvertUIntToDecimalStringN(text, sSummary->tool + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
         position = StringAppend(position, COMPOUND_STRING("/"));
         ConvertUIntToDecimalStringN(position, TOOL_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);
@@ -652,7 +647,7 @@ static void DrawQol(void)
             UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, y + 2, 198,
                 UnholyUi_CardFill(first + i == sSummary->tool), names[first + i]);
         }
-        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("NO EXTRA LEVEL NEEDED TO EVOLVE"), COMPOUND_STRING("UP/DN:CHOOSE A:OPEN B:SUMMARY"));
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING(""), COMPOUND_STRING("A:OPEN  B:SUMMARY"));
         return;
     }
     QolText(119, 6, 98, GetSpeciesName(sSummary->viewSpecies));
@@ -660,10 +655,7 @@ static void DrawQol(void)
     {
         u16 count = UnholyEvolution_Count(sSummary->viewSpecies);
         if (!count)
-        {
             QolText(12, 48, 200, COMPOUND_STRING("NO FURTHER EVOLUTION"));
-            QolText(12, 68, 200, COMPOUND_STRING("L / B: PREVIOUS STAGE"));
-        }
         for (u8 i = 0; i < EVO_VISIBLE && sSummary->evoScroll + i < count; i++)
         {
             struct UnholyEvolutionOption option;
@@ -708,7 +700,8 @@ static void DrawQol(void)
         end = StringAppend(end, COMPOUND_STRING("  BADGE CAP: "));
         ConvertIntToDecimalStringN(end, GetCurrentLevelCap(), STR_CONV_MODE_LEFT_ALIGN, 3);
         QolText(8, 104, 208, text);
-        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("A:REVIEW REQUIREMENTS R:NEXT STAGE"), COMPOUND_STRING("UP/DN:BRANCH L:PREVIOUS B:BACK"));
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : count ? COMPOUND_STRING("A:REQUIREMENTS") : COMPOUND_STRING(""),
+            COMPOUND_STRING("L/R:STAGES  B:BACK"));
         return;
     }
     const struct UnholyEvolutionOption *option = &sSummary->evolution;
@@ -720,10 +713,7 @@ static void DrawQol(void)
     if (sSummary->qol == QOL_CONFIRM)
     {
         if (!option->costCount)
-        {
-            QolText(8, 55, 134, COMPOUND_STRING("NO ITEMS REQUIRED"));
-            QolText(8, 72, 134, COMPOUND_STRING("NO EXTRA LEVEL OR EXP"));
-        }
+            QolText(8, 55, 134, COMPOUND_STRING("NO ITEMS NEEDED"));
         for (u8 i = 0; i < option->costCount; i++)
         {
             const struct UnholyEvolutionCost *cost = &option->costs[i];
@@ -733,8 +723,8 @@ static void DrawQol(void)
             StringAppend(end, cost->held ? COMPOUND_STRING(" (HELD)") : COMPOUND_STRING(" (BAG)"));
             QolText(8, 51 + 13 * i, 134, text);
         }
-        QolText(8, 105, 208, option->costCount ? COMPOUND_STRING("CONFIRM USES ALL LISTED ITEMS") : COMPOUND_STRING("B CAN STOP THE EVOLUTION ANIMATION"));
-        QolFooter(COMPOUND_STRING("A:EVOLVE  B:REVIEW"), COMPOUND_STRING("ONLY THIS EVOLUTION STAGE"));
+        QolFooter(option->costCount ? COMPOUND_STRING("USES THE ITEMS ABOVE") : COMPOUND_STRING("B CAN STOP EVOLUTION"),
+            COMPOUND_STRING("A:EVOLVE  B:BACK"));
         return;
     }
     u16 lines = UnholyEvolution_RequirementCount(option);
@@ -752,13 +742,11 @@ static void DrawQol(void)
         end = StringAppend(end, COMPOUND_STRING(" x"));
         ConvertIntToDecimalStringN(end, cost->count, STR_CONV_MODE_LEFT_ALIGN, 3);
         QolText(8, 93, 134, text);
-        QolText(8, 105, 208, COMPOUND_STRING("A REVIEWS ALL COSTS BEFORE EVOLVING"));
     }
-    else QolText(8, 104, 208, COMPOUND_STRING("LEVEL AND MUTATIONS ARE PRESERVED"));
     bool32 canEvolve = EditableParty() && sSummary->viewSpecies == GetMonData(&sSummary->mon, MON_DATA_SPECIES)
                    && option->status == UNHOLY_EVO_READY;
-    QolFooter(!EditableParty() ? COMPOUND_STRING("MOVE TO YOUR PARTY TO EVOLVE") : canEvolve ? COMPOUND_STRING("A:REVIEW EVOLUTION B:CANCEL") : COMPOUND_STRING("REQUIREMENTS NOT MET - B:BACK"),
-        COMPOUND_STRING("L/R:REQUIREMENTS  B:PATHS"));
+    QolFooter(!EditableParty() ? COMPOUND_STRING("MOVE TO YOUR PARTY TO EVOLVE") : canEvolve ? COMPOUND_STRING("A:REVIEW EVOLUTION") : COMPOUND_STRING(""),
+        COMPOUND_STRING("L/R:REQUIREMENTS  B:BACK"));
 }
 
 static bool32 QolInput(u8 taskId)
@@ -793,7 +781,7 @@ static bool32 QolInput(u8 taskId)
         else if (JOY_NEW(A_BUTTON))
         {
             if (sSummary->tool == TOOL_RETURN) sSummary->qol = QOL_NONE;
-            else if (!QolValid()) sSummary->notice = COMPOUND_STRING("EGG / INVALID POKéMON - UNAVAILABLE");
+            else if (!QolValid()) sSummary->notice = COMPOUND_STRING("UNAVAILABLE FOR THIS POKéMON");
             else if (sSummary->tool == 0)
             {
                 sSummary->qol = QOL_EVOLUTIONS;

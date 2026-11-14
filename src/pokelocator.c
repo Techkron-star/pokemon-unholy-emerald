@@ -262,7 +262,7 @@ static void DrawHeader(void)
     const u8 *title = COMPOUND_STRING("POKéLOCATOR");
     if (sUi.mode == MODE_TOOLS) title = COMPOUND_STRING("SCAN TOOLS");
     if (sUi.mode == MODE_SIGNAL || sUi.mode == MODE_SIGNAL_CONFIRM) title = COMPOUND_STRING("MUTANT SIGNAL");
-    if (sUi.mode == MODE_SEARCH) title = COMPOUND_STRING("PREPARE SEARCH");
+    if (sUi.mode == MODE_SEARCH) title = COMPOUND_STRING("SEARCH");
     UnholyUi_Frame(sUi.windowId, title);
     // The native narrow font draws 12 pixels despite its 8-pixel metric.
     // Reserve two full lines and move the shared footer separator above them.
@@ -311,8 +311,7 @@ static void DrawCatalog(void)
     Print(5, 36, 110, text);
     if (!sUi.count)
     {
-        Print(9, 57, 206, !sUi.list.count ? COMPOUND_STRING("NO UNLOCKED ENCOUNTERS HERE") : COMPOUND_STRING("NO SPECIES MATCH THIS FILTER"));
-        Print(9, 75, 206, COMPOUND_STRING("START: TOOLS AND COLLECTION FILTER"));
+        Print(9, 57, 206, !sUi.list.count ? COMPOUND_STRING("NO ENCOUNTERS HERE YET") : COMPOUND_STRING("NO MATCHES"));
     }
     for (u8 i = 0; i < VISIBLE_CARDS && sUi.scroll + i < sUi.count; i++)
     {
@@ -374,14 +373,14 @@ static void DrawDetail(void)
     end = StringAppend(end, COMPOUND_STRING(" "));
     Levels(end, row);
     Print(7, 104, 210, text);
-    Footer(COMPOUND_STRING("UP/DN:METHOD  A:ACTION MENU"), COMPOUND_STRING("FULL STATS: POKéDEX / SUMMARY  B:BACK"));
+    Footer(COMPOUND_STRING("UP/DN:METHOD  A:MENU"), COMPOUND_STRING("B:BACK"));
 }
 
 static void DrawActions(void)
 {
     static const u8 *const actions[] = {
-        COMPOUND_STRING("SEARCH - WILD BATTLE"), COMPOUND_STRING("OBTAIN ONE - FREE"),
-        COMPOUND_STRING("REGISTER TARGET FOR R"), COMPOUND_STRING("SPECIES PROFILE"),
+        COMPOUND_STRING("SEARCH FOR A WILD POKéMON"), COMPOUND_STRING("RECEIVE ONE FOR FREE"),
+        COMPOUND_STRING("SET TARGET FOR R"), COMPOUND_STRING("SPECIES PROFILE"),
     };
     Print(7, 22, 210, GetSpeciesName(CatalogRow()->species));
     for (u8 i = 0; i < ARRAY_COUNT(actions); i++)
@@ -394,32 +393,31 @@ static void DrawActions(void)
 
 static void DrawBatch(void)
 {
-    Print(7, 25, 210, COMPOUND_STRING("ONLY THE SELECTED CATEGORY:"));
     Print(7, 39, 210, sGroups[sUi.group]);
-    const u8 *labels[] = {COMPOUND_STRING("OBTAIN ALL (INCLUDING CAUGHT)"), COMPOUND_STRING("OBTAIN ONLY NEW SPECIES")};
+    const u8 *labels[] = {COMPOUND_STRING("RECEIVE ALL"), COMPOUND_STRING("RECEIVE UNCAUGHT SPECIES")};
     for (u8 i = 0; i < 2; i++)
     {
         UnholyUi_Card(sUi.windowId, 5, 58 + i * 22, 214, 20, sUi.action == i);
         UnholyUi_PrintOnFill(sUi.windowId, FONT_SMALL_NARROW, 10, 62 + i * 22, 204, UnholyUi_CardFill(sUi.action == i), labels[i]);
     }
-    Footer(COMPOUND_STRING("UP/DN:CHOOSE  A:REVIEW"), COMPOUND_STRING("B:CANCEL - NO POKéMON OBTAINED"));
+    Footer(COMPOUND_STRING("A:REVIEW  B:CANCEL"), COMPOUND_STRING(""));
 }
 
 static void DrawObtain(void)
 {
     u8 text[80];
     Print(7, 25, 210, sUi.plan.kind == POKELOCATOR_OBTAIN_ONE ? GetSpeciesName(sUi.plan.selectedSpecies)
-        : sUi.plan.kind == POKELOCATOR_OBTAIN_ALL ? COMPOUND_STRING("OBTAIN ALL IN THIS CATEGORY?") : COMPOUND_STRING("OBTAIN NEW IN THIS CATEGORY?"));
+        : sUi.plan.kind == POKELOCATOR_OBTAIN_ALL ? COMPOUND_STRING("RECEIVE ALL IN THIS GROUP?") : COMPOUND_STRING("RECEIVE UNCAUGHT SPECIES?"));
     u8 *end = ConvertIntToDecimalStringN(text, sUi.plan.count, STR_CONV_MODE_LEFT_ALIGN, 2);
     end = StringAppend(end, COMPOUND_STRING(" POKéMON  AT Lv "));
     ConvertIntToDecimalStringN(end, sUi.plan.level, STR_CONV_MODE_LEFT_ALIGN, 3);
     Print(7, 44, 210, text);
-    Print(7, 62, 210, COMPOUND_STRING("DELIVERY: PARTY, THEN PC"));
+    Print(7, 62, 210, COMPOUND_STRING("SENT TO PARTY, THEN PC"));
     end = StringCopy(text, COMPOUND_STRING("FREE SLOTS: "));
     Number(end, Pokelocator_CountFreeSlots());
     Print(7, 77, 210, text);
     Print(7, 97, 210, Pokelocator_GetObtainMessage(sUi.obtainStatus));
-    Footer(sUi.obtainStatus == POKELOCATOR_OBTAIN_READY ? COMPOUND_STRING("A:CONFIRM DELIVERY  B:CANCEL") : COMPOUND_STRING("B:BACK - NOTHING HAS BEEN GIVEN"), COMPOUND_STRING("NO BATTLE; USES NATIVE GIFT RULES"));
+    Footer(sUi.obtainStatus == POKELOCATOR_OBTAIN_READY ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : COMPOUND_STRING("B:BACK"), COMPOUND_STRING(""));
 }
 
 static void DrawResult(void)
@@ -431,8 +429,7 @@ static void DrawResult(void)
     end = StringAppend(end, COMPOUND_STRING("   PC: "));
     ConvertIntToDecimalStringN(end, sUi.result.pc, STR_CONV_MODE_LEFT_ALIGN, 2);
     Print(7, 55, 210, text);
-    Print(7, 78, 210, sUi.result.party + sUi.result.pc ? COMPOUND_STRING("CAUGHT REGISTRY UPDATED") : COMPOUND_STRING("NO POKéMON DELIVERED"));
-    Footer(COMPOUND_STRING("A / B:RETURN TO CATALOG"), COMPOUND_STRING("ALL / NEW APPLY TO ONE GROUP ONLY"));
+    Footer(COMPOUND_STRING("A/B:CATALOG"), COMPOUND_STRING(""));
 }
 
 static u32 CountBalls(void)
@@ -457,7 +454,8 @@ static void DrawSearch(void)
     Print(151, 43, 52, text);
     MonIcon(0, row->species, 20, 39);
     u8 *end = StringCopy(text, COMPOUND_STRING("POKé BALLS: "));
-    Number(end, CountBalls());
+    u32 balls = CountBalls();
+    Number(end, balls);
     Print(7, 64, 194, text);
     Print(7, 78, 194, IsPlayerPartyAndPokemonStorageFull() ? COMPOUND_STRING("STORAGE FULL - CAPTURE UNAVAILABLE")
         : gPartiesCount[B_TRAINER_PLAYER] < PARTY_SIZE ? COMPOUND_STRING("CAPTURE GOES TO YOUR PARTY") : COMPOUND_STRING("CAPTURE GOES TO YOUR PC"));
@@ -472,9 +470,12 @@ static void DrawSearch(void)
         StringAppend(end, COMPOUND_STRING("OFF"));
     Print(7, 92, 194, text);
     u8 status = Pokelocator_GetSearchStatus(Header(), row->species, row->method);
-    Print(7, 106, 194, status != POKELOCATOR_SEARCH_READY ? Pokelocator_GetSearchMessage(status)
-        : CountBalls() == 0 ? COMPOUND_STRING("NO BALLS - YOU CAN ONLY BATTLE") : COMPOUND_STRING("READY FOR A WILD ENCOUNTER"));
-    Footer(COMPOUND_STRING("A:BEGIN SEARCH  B:CANCEL"), COMPOUND_STRING("USE A BALL IN BATTLE TO CAPTURE"));
+    if (status != POKELOCATOR_SEARCH_READY)
+        Print(7, 106, 194, Pokelocator_GetSearchMessage(status));
+    else if (balls == 0)
+        Print(7, 106, 194, COMPOUND_STRING("NO BALLS FOR CAPTURE"));
+    Footer(status == POKELOCATOR_SEARCH_READY ? COMPOUND_STRING("A:SEARCH  B:CANCEL") : COMPOUND_STRING("B:BACK"),
+        COMPOUND_STRING(""));
 }
 
 static const u8 *SignalRequirement(void)
@@ -519,7 +520,7 @@ static void DrawTools(void)
     }
     if (sUi.toolCursor == 0)
     {
-        Print(7, 103, 210, COMPOUND_STRING("L/R: FLOORS; SEARCH IN CURRENT AREA"));
+        Print(7, 103, 210, COMPOUND_STRING("L/R:AREA  SEARCH ONLY WHERE YOU ARE"));
     }
     else if (sUi.toolCursor == 1)
     {
@@ -536,7 +537,7 @@ static void DrawSignal(void)
     u8 boost = remaining ? HfcWatch_GetActiveFrequencyBoost() : 0;
     u8 *end = StringCopy(text, remaining ? COMPOUND_STRING("ACTIVE ") : COMPOUND_STRING("OFF "));
     end = ConvertIntToDecimalStringN(end, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
-    end = StringAppend(end, COMPOUND_STRING(" LEFT; C/B ROLLS +"));
+    end = StringAppend(end, COMPOUND_STRING(" LEFT  TIER C/B +"));
     end = ConvertIntToDecimalStringN(end, boost, STR_CONV_MODE_LEFT_ALIGN, 2);
     StringAppend(end, COMPOUND_STRING("% REL"));
     Print(5, 20, 198, text);
@@ -553,7 +554,7 @@ static void DrawSignal(void)
         u8 sprite = MutationIcon_Create(sMutationBadges[i], WIN_LEFT + x + 10, WIN_TOP + y + 12, 0);
         sUi.mutationIds[i] = sprite;
     }
-    Footer(SignalRequirement(), COMPOUND_STRING("BASE ROLLS; COMBOS GATED  B:TOOLS"));
+    Footer(SignalRequirement(), COMPOUND_STRING("BASE ODDS SHOWN  B:TOOLS"));
 }
 
 static void DrawSignalConfirm(void)
@@ -561,13 +562,12 @@ static void DrawSignalConfirm(void)
     u8 text[80];
     Print(7, 31, 194, COMPOUND_STRING("ACTIVATE SIGNAL IN THIS AREA?"));
     Print(7, 49, 194, COMPOUND_STRING("10 WILD ENCOUNTERS, ONCE PER DAY"));
-    u8 *end = StringCopy(text, COMPOUND_STRING("C/B MUTATION ROLLS +"));
+    u8 *end = StringCopy(text, COMPOUND_STRING("TIER C/B MUTATION ODDS +"));
     end = ConvertIntToDecimalStringN(end, HfcWatch_GetFrequencyBoost(HfcWatch_CountBadges()), STR_CONV_MODE_LEFT_ALIGN, 2);
     StringAppend(end, COMPOUND_STRING("% RELATIVE"));
     Print(7, 64, 194, text);
     Print(7, 81, 194, COMPOUND_STRING("A, S AND OMEGA KEEP THEIR BASE ODDS"));
-    Print(7, 97, 194, COMPOUND_STRING("CANCEL KEEPS YOUR DAILY USE"));
-    Footer(COMPOUND_STRING("A:CONFIRM ACTIVATION  B:CANCEL"), SignalRequirement());
+    Footer(COMPOUND_STRING("A:ACTIVATE  B:CANCEL"), COMPOUND_STRING(""));
 }
 
 static void Render(void)

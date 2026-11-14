@@ -44,7 +44,7 @@ EventScript_CraftSuperExpShare_End:
 	end
 
 Crafting_Text_MenuPrompt:
-	.string "CRAFTING - Choose a recipe.$"
+	.string "Choose a recipe.$"
 
 Crafting_Text_MenuSuperExpShare:
 	.string "SUPER EXP. SHARE$"
@@ -53,21 +53,18 @@ Crafting_Text_MenuExit:
 	.string "EXIT$"
 
 Crafting_Text_ConfirmSuperExpShare:
-	.string "Craft a SUPER EXP. SHARE?\n"
-	.string "It requires the STONE BADGE and\n"
-	.string "your current EXP. SHARE.$"
+	.string "Use your EXP. SHARE to make a\n"
+	.string "SUPER EXP. SHARE?$"
 
 Crafting_Text_SuperExpShareComplete:
 	.string "The EXP. SHARE became a\n"
 	.string "SUPER EXP. SHARE!$"
 
 Crafting_Text_SuperExpShareNoBadge:
-	.string "The STONE BADGE is required\n"
-	.string "for this recipe.$"
+	.string "You need the STONE BADGE.$"
 
 Crafting_Text_SuperExpShareNoBase:
 	.string "You need an EXP. SHARE first.$"
 
 Crafting_Text_SuperExpShareNoSpace:
-	.string "There is no room for the crafted\n"
-	.string "item in your Bag.$"
+	.string "Your Bag is full.$"
