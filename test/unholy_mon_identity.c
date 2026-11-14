@@ -1,4 +1,5 @@
 #include "global.h"
+#include "daycare.h"
 #include "pokemon.h"
 #include "unholy_mon_identity.h"
 #include "test/test.h"
@@ -47,4 +48,30 @@ TEST("Unholy identity scanner fails closed with no initialized key")
     EXPECT_EQ(UnholyMonIdentity_ScanStatus(&scan), UNHOLY_MON_ID_INVALID);
     EXPECT_EQ(UnholyMonIdentity_KeyEquals(&candidate, NULL), FALSE);
     EXPECT_EQ(UnholyMonIdentity_ReadMon(NULL, &candidate), FALSE);
+}
+
+TEST("Unholy migration fingerprints reject invalid slots without changing the Pokémon")
+{
+    struct Pokemon mon = {0};
+    struct UnholyMonLegacyKey key = {1, 2};
+    bool32 badEgg = FALSE;
+    bool32 corrupt = FALSE;
+    bool32 egg = FALSE;
+    PARAMETRIZE { }
+    PARAMETRIZE { corrupt = TRUE; }
+    PARAMETRIZE { badEgg = TRUE; }
+    PARAMETRIZE { egg = TRUE; }
+    if (egg)
+        CreateEgg(&mon, SPECIES_TREECKO, FALSE);
+    else if (corrupt || badEgg)
+        CreateMonWithIVs(&mon, SPECIES_TREECKO, 10, 7, OTID_STRUCT_PRESET(42), MAX_PER_STAT_IVS);
+    if (corrupt)
+        mon.box.checksum ^= 1;
+    mon.box.isBadEgg = badEgg;
+    const struct Pokemon before = mon;
+
+    EXPECT_EQ(UnholyMonIdentity_ReadMon(&mon, &key), egg);
+    EXPECT_EQ(memcmp(&before, &mon, sizeof(mon)), 0);
+    EXPECT_EQ(key.personality, egg ? mon.box.personality : 1);
+    EXPECT_EQ(key.otId, egg ? mon.box.otId : 2);
 }

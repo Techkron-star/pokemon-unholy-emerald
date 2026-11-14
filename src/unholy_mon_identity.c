@@ -2,25 +2,26 @@
 #include "pokemon.h"
 #include "unholy_mon_identity.h"
 
-bool32 UnholyMonIdentity_ReadBox(struct BoxPokemon *mon,
+bool32 UnholyMonIdentity_ReadBox(const struct BoxPokemon *mon,
                                  struct UnholyMonLegacyKey *out)
 {
-    struct UnholyMonLegacyKey result;
-
-    if (mon == NULL || out == NULL
-     || GetBoxMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
+    if (mon == NULL || out == NULL || !mon->hasSpecies || mon->isBadEgg)
         return FALSE;
 
-    result.personality = GetBoxMonData(mon, MON_DATA_PERSONALITY);
-    result.otId = GetBoxMonData(mon, MON_DATA_OT_ID);
-    *out = result;
+    // The species getter can mark an invalid checksum as a Bad Egg.
+    struct BoxPokemon copy = *mon;
+    u32 species = GetBoxMonData(&copy, MON_DATA_SPECIES);
+    if (species == SPECIES_NONE || species >= NUM_SPECIES)
+        return FALSE;
+
+    *out = (struct UnholyMonLegacyKey){ .personality = mon->personality, .otId = mon->otId };
     return TRUE;
 }
 
-bool32 UnholyMonIdentity_ReadMon(struct Pokemon *mon,
+bool32 UnholyMonIdentity_ReadMon(const struct Pokemon *mon,
                                  struct UnholyMonLegacyKey *out)
 {
-    if (mon == NULL || out == NULL)
+    if (mon == NULL)
         return FALSE;
     return UnholyMonIdentity_ReadBox(&mon->box, out);
 }
