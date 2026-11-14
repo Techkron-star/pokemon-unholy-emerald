@@ -4,7 +4,10 @@
 #include "unholy_mon_summary.h"
 #include "unholy_evolution.h"
 #include "evolution_scene.h"
-#include "move_relearner.h"
+#include "unholy_move_ui.h"
+#include "unholy_equipment.h"
+#include "hfc_simulator.h"
+#include "hfc_watch.h"
 #include "naming_screen.h"
 #include "tv.h"
 #include "caps.h"
@@ -24,6 +27,7 @@
 #include "pokemon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
+#include "pokemon_icon.h"
 #include "shop.h"
 #include "sound.h"
 #include "sprite.h"
@@ -37,7 +41,8 @@
 #include "constants/party_menu.h"
 
 enum { PAGE_INFO, PAGE_STATS, PAGE_MOVES, PAGE_GEAR, PAGE_COUNT };
-enum { QOL_NONE, QOL_MENU, QOL_EVOLUTIONS, QOL_REVIEW, QOL_CONFIRM };
+enum { QOL_NONE, QOL_MENU, QOL_EVOLUTIONS, QOL_REVIEW, QOL_CONFIRM, QOL_EQUIPMENT, QOL_EQUIPMENT_CONFIRM };
+enum { TOOL_EVOLUTION, TOOL_MOVES, TOOL_ITEM, TOOL_GEAR, TOOL_SIMULATOR, TOOL_RENAME, TOOL_RETURN, TOOL_COUNT };
 #define EVO_VISIBLE 5
 #define EVO_DEPTH 8
 
@@ -50,6 +55,7 @@ static EWRAM_DATA struct NativeSummary
     u16 tilemap[32 * 32];
     u16 portrait;
     u8 mutationIcons[10];
+    u8 evolutionIcons[EVO_VISIBLE];
     u8 window;
     u8 mode;
     u8 index;
@@ -62,6 +68,10 @@ static EWRAM_DATA struct NativeSummary
     u16 parents[EVO_DEPTH], parentCursors[EVO_DEPTH];
     struct UnholyEvolutionOption evolution;
     struct UnholyEvolutionPlan plan;
+    struct UnholyEquipmentPlan equipmentPlan;
+    u16 equipmentCursor;
+    u16 equipmentCount, equipmentItems[ITEMS_COUNT];
+    bool8 equipmentGear;
     const u8 *notice;
     u8 rename[POKEMON_NAME_LENGTH + 1];
     void (*previousEvoCallback)(void);
@@ -94,6 +104,7 @@ static void Init(void);
 static void Cleanup(void);
 static bool32 QolInput(u8 taskId);
 static void DrawQol(void);
+static bool32 EquipmentInput(void);
 
 static void Print(u16 x, u16 y, u16 width, const u8 *text)
 {
@@ -153,6 +164,21 @@ static void DestroyMutationIcons(void)
         MutationIcon_Destroy(sSummary->mutationIcons[i]);
         sSummary->mutationIcons[i] = MAX_SPRITES;
     }
+}
+
+static void DestroyEvolutionIcons(void)
+{
+    for (u8 i = 0; i < ARRAY_COUNT(sSummary->evolutionIcons); i++)
+    {
+        u8 id = sSummary->evolutionIcons[i];
+        if (id < MAX_SPRITES)
+        {
+            FreeSpriteOamMatrix(&gSprites[id]);
+            FreeAndDestroyMonIconSprite(&gSprites[id]);
+        }
+        sSummary->evolutionIcons[i] = MAX_SPRITES;
+    }
+    FreeMonIconPalettes();
 }
 
 static void Info(void)
@@ -293,6 +319,7 @@ static void Gear(void)
 
 static void Render(void)
 {
+    DestroyEvolutionIcons();
     if (sSummary->qol != QOL_NONE)
     {
         DestroyMutationIcons();
@@ -360,6 +387,7 @@ static void Cleanup(void)
     SetVBlankCallback(NULL);
     DestroyPortrait();
     DestroyMutationIcons();
+    DestroyEvolutionIcons();
     gReservedSpritePaletteCount = 0;
     FreeAllWindowBuffers();
     UnsetBgTilemapBuffer(0);
@@ -473,6 +501,130 @@ static void QolFooter(const u8 *first, const u8 *second)
     QolText(7, 130, 210, second);
 }
 
+static const u8 *EquipmentResult(u8 result)
+{
+    switch (result)
+    {
+    case UNHOLY_EQUIP_OK: return COMPOUND_STRING("EQUIPMENT UPDATED");
+    case UNHOLY_EQUIP_ALREADY: return COMPOUND_STRING("ALREADY EQUIPPED");
+    case UNHOLY_EQUIP_MISSING: return COMPOUND_STRING("ITEM NO LONGER IN YOUR BAG");
+    case UNHOLY_EQUIP_BAG_FULL: return COMPOUND_STRING("NO ROOM TO RETURN THE OLD EQUIPMENT");
+    case UNHOLY_EQUIP_MAIL: return COMPOUND_STRING("REMOVE MAIL THROUGH THE BAG / PC");
+    default: return COMPOUND_STRING("REVIEW THE POKéMON AND ITEM AGAIN");
+    }
+}
+
+static void EquipmentDelta(const u8 *label, u16 old, u16 next, u16 x, u16 y)
+{
+    u8 text[48];
+    u8 *end = StringCopy(text, label);
+    end = ConvertUIntToDecimalStringN(end, old, STR_CONV_MODE_LEFT_ALIGN, 3);
+    end = StringAppend(end, COMPOUND_STRING(" > "));
+    ConvertUIntToDecimalStringN(end, next, STR_CONV_MODE_LEFT_ALIGN, 3);
+    QolText(x, y, 101, text);
+}
+
+static void DrawEquipment(void)
+{
+    u8 text[128];
+    bool8 gear = sSummary->equipmentGear;
+    u16 current = gear ? Gear_ToItem(Gear_GetEquipped(&sSummary->mon)) : GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
+    u16 next = sSummary->equipmentItems[sSummary->equipmentCursor];
+    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("GEAR SLOT") : COMPOUND_STRING("HELD ITEM SLOT"));
+    if (sSummary->qol == QOL_EQUIPMENT)
+    {
+        u8 *end = StringCopy(text, COMPOUND_STRING("NOW: "));
+        StringAppend(end, current == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(current));
+        QolText(8, 24, 207, text);
+        u16 count = sSummary->equipmentCount, first = sSummary->equipmentCursor / 3 * 3;
+        for (u8 i = 0; i < 3 && first + i < count; i++)
+        {
+            u16 item = sSummary->equipmentItems[first + i];
+            bool8 selected = first + i == sSummary->equipmentCursor;
+            u8 y = 44 + i * 19, fill = UnholyUi_CardFill(selected);
+            UnholyUi_Card(sSummary->window, 6, y, 212, 18, selected);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 11, y + 3, 159, fill,
+                item == ITEM_NONE ? COMPOUND_STRING("UNEQUIP / RETURN TO BAG") : GetItemName(item));
+            if (item != ITEM_NONE)
+            {
+                ConvertUIntToDecimalStringN(text, CountTotalItemQuantityInBag(item), STR_CONV_MODE_LEFT_ALIGN, 5);
+                UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 178, y + 3, 33, fill, text);
+            }
+        }
+        u8 *cursor = ConvertUIntToDecimalStringN(text, sSummary->equipmentCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 3);
+        cursor = StringAppend(cursor, COMPOUND_STRING("/"));
+        ConvertUIntToDecimalStringN(cursor, count, STR_CONV_MODE_LEFT_ALIGN, 3);
+        QolText(8, 104, 205, text);
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("A:COMPARE UP/DN:CHOOSE B:TOOLS"),
+            gear ? COMPOUND_STRING("GEAR DOES NOT REPLACE THE HELD ITEM") : COMPOUND_STRING("GEAR USES ITS OWN INDEPENDENT SLOT"));
+    }
+    else
+    {
+        QolText(8, 23, 205, COMPOUND_STRING("CURRENT:"));
+        QolText(8, 36, 205, current == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(current));
+        QolText(8, 50, 205, COMPOUND_STRING("CHANGE TO:"));
+        QolText(8, 63, 205, next == ITEM_NONE ? COMPOUND_STRING("NONE - RETURN CURRENT TO BAG") : GetItemName(next));
+        if (gear)
+        {
+            const struct GearInfo *old = &gGearsInfo[Gear_FromItem(current)], *selected = &gGearsInfo[Gear_FromItem(next)];
+            EquipmentDelta(COMPOUND_STRING("PWR% "), old->overloadPowerPercent ? old->overloadPowerPercent : 100,
+                selected->overloadPowerPercent ? selected->overloadPowerPercent : 100, 8, 79);
+            EquipmentDelta(COMPOUND_STRING("RES% "), old->residualPowerPercent ? old->residualPowerPercent : 100,
+                selected->residualPowerPercent ? selected->residualPowerPercent : 100, 115, 79);
+            EquipmentDelta(COMPOUND_STRING("CD "), old->cooldownTurns, selected->cooldownTurns, 8, 92);
+            EquipmentDelta(COMPOUND_STRING("TURNS "), old->overloadTurns, selected->overloadTurns, 115, 92);
+            StringCopy(text, selected->trigger == GEAR_TRIGGER_TIMED ? COMPOUND_STRING("TIMED ") : COMPOUND_STRING("FIRST HIT "));
+            if (selected->typeMask == 0) StringAppend(text, COMPOUND_STRING("ANY TYPE "));
+            else for (u8 type = 0; type < NUMBER_OF_MON_TYPES; type++)
+                if ((selected->typeMask & GEAR_TYPE(type)) && StringLength(text) + StringLength(gTypesInfo[type].name) < sizeof(text) - 12)
+                { StringAppend(text, gTypesInfo[type].name); StringAppend(text, COMPOUND_STRING(" ")); }
+            StringAppend(text, selected->categoryMask == GEAR_CATEGORY_PHYSICAL ? COMPOUND_STRING("PHY")
+                : selected->categoryMask == GEAR_CATEGORY_SPECIAL ? COMPOUND_STRING("SPC") : COMPOUND_STRING("PHY/SPC"));
+            QolText(8, 105, 205, next == ITEM_NONE ? COMPOUND_STRING("NO GEAR BONUS") : text);
+        }
+        else if (next != ITEM_NONE) Paragraph(GetItemDescription(next), 79, 3);
+        else QolText(8, 91, 205, COMPOUND_STRING("THE HELD ITEM RETURNS TO YOUR BAG"));
+        QolFooter(COMPOUND_STRING("A:CONFIRM B:KEEP CURRENT EQUIPMENT"), COMPOUND_STRING("PREVIOUS EQUIPMENT IS RETURNED TO BAG"));
+    }
+}
+
+static bool32 EquipmentInput(void)
+{
+    if (sSummary->qol != QOL_EQUIPMENT && sSummary->qol != QOL_EQUIPMENT_CONFIRM) return FALSE;
+    if (JOY_NEW(B_BUTTON))
+    {
+        sSummary->qol = sSummary->qol == QOL_EQUIPMENT_CONFIRM ? QOL_EQUIPMENT : QOL_MENU;
+        sSummary->notice = NULL;
+    }
+    else if (sSummary->qol == QOL_EQUIPMENT && JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+    {
+        u16 count = sSummary->equipmentCount;
+        sSummary->equipmentCursor = (sSummary->equipmentCursor + count + (JOY_REPEAT(DPAD_UP) ? -1 : 1)) % count;
+        sSummary->notice = NULL;
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        u8 result;
+        if (sSummary->qol == QOL_EQUIPMENT_CONFIRM)
+        {
+            result = UnholyEquipment_Apply(&sSummary->equipmentPlan);
+            ReadMon();
+            sSummary->equipmentCount = UnholyEquipment_List(sSummary->equipmentGear, sSummary->equipmentItems, ARRAY_COUNT(sSummary->equipmentItems));
+            sSummary->equipmentCursor = 0;
+            sSummary->qol = QOL_EQUIPMENT;
+        }
+        else
+        {
+            result = UnholyEquipment_Prepare(sSummary->index, sSummary->equipmentGear,
+                sSummary->equipmentItems[sSummary->equipmentCursor], &sSummary->equipmentPlan);
+            if (result == UNHOLY_EQUIP_OK) sSummary->qol = QOL_EQUIPMENT_CONFIRM;
+        }
+        sSummary->notice = EquipmentResult(result);
+    }
+    else return TRUE;
+    PlaySE(SE_SELECT); Render(); return TRUE;
+}
+
 static bool32 SelectedEvolution(void)
 {
     struct Pokemon *mon = EditableParty() ? &gParties[B_TRAINER_PLAYER][sSummary->index] : &sSummary->mon;
@@ -482,17 +634,23 @@ static bool32 SelectedEvolution(void)
 
 static void DrawQol(void)
 {
+    if (sSummary->qol == QOL_EQUIPMENT || sSummary->qol == QOL_EQUIPMENT_CONFIRM) { DrawEquipment(); return; }
     u8 text[128];
     UnholyUi_Frame(sSummary->window, sSummary->qol == QOL_MENU ? COMPOUND_STRING("TRAINER TOOLS") : COMPOUND_STRING("EVOLUTION PATHS"));
     if (sSummary->qol == QOL_MENU)
     {
-        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS / EVOLVE"), COMPOUND_STRING("REMEMBER MOVES"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
-        for (u8 i = 0; i < ARRAY_COUNT(names); i++)
+        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS / EVOLVE"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("GEAR"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
+        u8 *position = ConvertUIntToDecimalStringN(text, sSummary->tool + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+        position = StringAppend(position, COMPOUND_STRING("/"));
+        ConvertUIntToDecimalStringN(position, TOOL_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);
+        QolText(193, 6, 24, text);
+        u8 first = sSummary->tool / 5 * 5;
+        for (u8 i = 0; i < 5 && first + i < ARRAY_COUNT(names); i++)
         {
-            u8 y = 25 + i * 22;
-            UnholyUi_Card(sSummary->window, 6, y, 212, 20, i == sSummary->tool);
-            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, y + 4, 198,
-                UnholyUi_CardFill(i == sSummary->tool), names[i]);
+            u8 y = 24 + i * 17;
+            UnholyUi_Card(sSummary->window, 6, y, 212, 16, first + i == sSummary->tool);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, y + 2, 198,
+                UnholyUi_CardFill(first + i == sSummary->tool), names[first + i]);
         }
         QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("NO EXTRA LEVEL NEEDED TO EVOLVE"), COMPOUND_STRING("UP/DN:CHOOSE A:OPEN B:SUMMARY"));
         return;
@@ -517,7 +675,23 @@ static void DrawQol(void)
             u8 y = 24 + i * 16;
             u8 fill = UnholyUi_CardFill(selected);
             UnholyUi_Card(sSummary->window, 6, y, 212, 15, selected);
-            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 12, y + 1, 130, fill, GetSpeciesName(option.target));
+            LoadMonIconPalettePersonality(option.target, GetMonData(mon, MON_DATA_PERSONALITY));
+            u8 icon = CreateMonIcon(option.target, SpriteCallbackDummy, 29, y + 15, 0, GetMonData(mon, MON_DATA_PERSONALITY));
+            if (icon < MAX_SPRITES)
+            {
+                u8 matrix = AllocOamMatrix();
+                if (matrix != 0xFF)
+                {
+                    gSprites[icon].oam.affineMode = ST_OAM_AFFINE_NORMAL;
+                    gSprites[icon].oam.matrixNum = matrix;
+                    gSprites[icon].oam.priority = 0;
+                    gSprites[icon].affineAnims = gDummySpriteAffineAnimTable;
+                    SetOamMatrix(matrix, 0x200, 0, 0, 0x200);
+                    sSummary->evolutionIcons[i] = icon;
+                }
+                else FreeAndDestroyMonIconSprite(&gSprites[icon]);
+            }
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 34, y + 1, 110, fill, GetSpeciesName(option.target));
             const u8 *state = option.status == UNHOLY_EVO_READY ? COMPOUND_STRING("READY") : option.status == UNHOLY_EVO_ITEM ? COMPOUND_STRING("ITEM")
                 : option.status == UNHOLY_EVO_EVERSTONE ? COMPOUND_STRING("EVERSTONE") : option.status == UNHOLY_EVO_PREVIEW ? COMPOUND_STRING("PREVIEW") : COMPOUND_STRING("LOCKED");
             if (option.status == UNHOLY_EVO_LEVEL)
@@ -566,7 +740,8 @@ static void DrawQol(void)
     u16 lines = UnholyEvolution_RequirementCount(option);
     for (u8 i = 0; i < 3 && sSummary->requirementPage * 3 + i < lines; i++)
     {
-        UnholyEvolution_RequirementText(option, sSummary->requirementPage * 3 + i, text);
+        struct Pokemon *mon = EditableParty() ? &gParties[B_TRAINER_PLAYER][sSummary->index] : &sSummary->mon;
+        UnholyEvolution_ProgressText(mon, EditableParty() ? sSummary->index : PARTY_SIZE, option, sSummary->requirementPage * 3 + i, text);
         QolText(8, 51 + i * 13, 134, text);
     }
     if (option->costCount)
@@ -588,6 +763,7 @@ static void DrawQol(void)
 
 static bool32 QolInput(u8 taskId)
 {
+    if (EquipmentInput()) return TRUE;
     if (sSummary->qol == QOL_NONE)
     {
         if (!JOY_NEW(START_BUTTON)) return FALSE;
@@ -613,10 +789,10 @@ static bool32 QolInput(u8 taskId)
     if (sSummary->qol == QOL_MENU)
     {
         if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
-        { sSummary->tool = (sSummary->tool + (JOY_REPEAT(DPAD_UP) ? 3 : 1)) % 4; sSummary->notice = NULL; }
+        { sSummary->tool = (sSummary->tool + (JOY_REPEAT(DPAD_UP) ? TOOL_COUNT - 1 : 1)) % TOOL_COUNT; sSummary->notice = NULL; }
         else if (JOY_NEW(A_BUTTON))
         {
-            if (sSummary->tool == 3) sSummary->qol = QOL_NONE;
+            if (sSummary->tool == TOOL_RETURN) sSummary->qol = QOL_NONE;
             else if (!QolValid()) sSummary->notice = COMPOUND_STRING("EGG / INVALID POKéMON - UNAVAILABLE");
             else if (sSummary->tool == 0)
             {
@@ -627,10 +803,38 @@ static bool32 QolInput(u8 taskId)
             }
             else if (sSummary->tool == 1)
             {
-                if (!EditableParty()) sSummary->notice = COMPOUND_STRING("MOVE TO YOUR PARTY TO RELEARN");
-                else if (MoveRelearner_OpenForParty(sSummary->index, ReturnFromQol))
-                { Cleanup(); DestroyTask(taskId); return TRUE; }
-                else sSummary->notice = COMPOUND_STRING("NO AVAILABLE MOVES TO RELEARN");
+                struct Pokemon *mon = EditableParty() ? &gParties[B_TRAINER_PLAYER][sSummary->index] : &sSummary->mon;
+                Cleanup(); DestroyTask(taskId);
+                UnholyMoveUi_Open(mon, EditableParty() ? sSummary->index : PARTY_SIZE, ReturnFromQol);
+                return TRUE;
+            }
+            else if (sSummary->tool == TOOL_ITEM || sSummary->tool == TOOL_GEAR)
+            {
+                if (!EditableParty()) sSummary->notice = COMPOUND_STRING("MOVE TO YOUR PARTY TO CHANGE EQUIPMENT");
+                else
+                {
+                    sSummary->equipmentGear = sSummary->tool == TOOL_GEAR;
+                    sSummary->equipmentCursor = 0;
+                    sSummary->equipmentCount = UnholyEquipment_List(sSummary->equipmentGear, sSummary->equipmentItems, ARRAY_COUNT(sSummary->equipmentItems));
+                    sSummary->qol = QOL_EQUIPMENT;
+                }
+            }
+            else if (sSummary->tool == TOOL_SIMULATOR)
+            {
+                struct HfcWatchProgress progress = {.badges = HfcWatch_CountBadges()};
+                u8 tier = HfcWatch_GetTier();
+                if (!EditableParty()) sSummary->notice = COMPOUND_STRING("MOVE TO YOUR PARTY TO USE THE SIMULATOR");
+                else if (HfcWatch_GetAccess(tier, HFC_WATCH_FEATURE_SIMULATOR, progress) != HFC_WATCH_READY)
+                    sSummary->notice = HfcWatch_GetRequirement(tier, HFC_WATCH_FEATURE_SIMULATOR, progress);
+                else
+                {
+                    DestroyPortrait(); DestroyMutationIcons(); DestroyEvolutionIcons();
+                    ClearWindowTilemap(sSummary->window);
+                    CopyBgTilemapBufferToVram(0);
+                    DestroyTask(taskId);
+                    HfcSimulator_OpenForParty(sSummary->index, ReturnFromQol);
+                    return TRUE;
+                }
             }
             else if ((!IsBox() && !EditableParty()) || sSummary->mode == SUMMARY_MODE_BOX_CURSOR)
                 sSummary->notice = COMPOUND_STRING("NICKNAME CANNOT BE CHANGED HERE");
@@ -753,6 +957,8 @@ static void Init(void)
     sSummary->portrait = SPRITE_NONE;
     for (u8 i = 0; i < ARRAY_COUNT(sSummary->mutationIcons); i++)
         sSummary->mutationIcons[i] = MAX_SPRITES;
+    for (u8 i = 0; i < ARRAY_COUNT(sSummary->evolutionIcons); i++)
+        sSummary->evolutionIcons[i] = MAX_SPRITES;
     LoadPalette(GetUnholyUiPalette(), BG_PLTT_ID(14), PLTT_SIZE_4BPP);
     LoadPalette(GetUnholyUiPalette() + 1, BG_PLTT_ID(0), PLTT_SIZEOF(1));
     ReadMon();

@@ -28,7 +28,8 @@ Se usa la escena de evolución del motor: conserva nivel, experiencia, mote, mut
 
 ## Otros accesos QoL
 
-- **REMEMBER MOVES:** abre el recordador nativo para el Pokémon seleccionado, con sus categorías y desbloqueos existentes. Los movimientos de nivel respetan el nivel actual; las MT conservan sus reglas de posesión y consumo. La sustitución utiliza la pantalla original de cuatro movimientos. B sale al menú de herramientas.
+- **MOVE MANAGER:** abre el [gestor de movimientos compatibles](TEAM_QOL.md), con nivel, preevolución, huevo, MT/MO y tutor/otros. Incluye revisión de costes, sustitución, reordenación y borrado seguro. B regresa a Trainer Tools; desde cajas se puede consultar el catálogo.
+- **HELD ITEM / GEAR / IV / EV SIMULATOR:** permiten preparar las ranuras independientes y abrir el Simulador existente con sus requisitos y costes. Véase [Preparación del equipo](TEAM_QOL.md).
 - **CHANGE NICKNAME:** abre el teclado nativo para Pokémon del entrenador original. Puede cambiar el mote de un Pokémon del equipo o una caja. El teclado mantiene su funcionamiento habitual: B borra, START selecciona OK y A confirma; confirmar un texto vacío conserva el mote previo.
 - Los huevos, huevos defectuosos, contextos de combate/enlace y operaciones especiales del PC conservan sus restricciones. El cursor de un Pokémon sujeto en el PC no permite editar desde estas herramientas.
 

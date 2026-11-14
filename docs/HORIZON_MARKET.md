@@ -1,5 +1,9 @@
 # Horizon Shop — seis ofertas Pokémon y huevos con calidad RNG
 
+## Gestor de movimientos compatibles
+
+`MOVES → RELEARN` abre ahora el [gestor unificado](TEAM_QOL.md) tras elegir un Pokémon: nivel, preevolución, huevo, MT/MO y tutor/otros. Huevo y tutor compatibles son gratuitos; las rutas por MT respetan posesión y consumo del disco. Se mantienen la confirmación, las cuatro ranuras, la cancelación y el regreso al campo. `FORGET` conserva el eliminador existente; el nuevo gestor también permite reordenar y borrar desde SELECT.
+
 **Estado:** PR #13 experimental, apilado sobre #11 → #10 → #9 → #8. No fusionar a `master` antes de compilar, comprobar guardados y pasar QA en emulador.
 
 ## UI de tiendas y cierre seguro

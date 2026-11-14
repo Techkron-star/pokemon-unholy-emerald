@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_move_ui.h"
 #include "battle_stamina.h"
 #include "malloc.h"
 #include "battle.h"
@@ -3182,27 +3183,6 @@ static void CursorCb_Summary(u8 taskId)
     PlaySE(SE_SELECT);
     sPartyMenuInternal->exitCallback = CB2_ShowPokemonSummaryScreen;
     Task_ClosePartyMenu(taskId);
-}
-
-// Horizon selects a category with actual available moves instead of
-// opening an empty move list.
-static bool8 TrySelectRelearnableCategory(u8 slot)
-{
-    u8 state;
-
-    if (slot >= gPartiesCount[B_TRAINER_PLAYER] || slot >= PARTY_SIZE
-     || GetMonData(&gParties[B_TRAINER_PLAYER][slot], MON_DATA_IS_EGG))
-        return FALSE;
-
-    for (state = 0; state < MOVE_RELEARNER_COUNT; state++)
-    {
-        if (HasMoveToRelearn(&gParties[B_TRAINER_PLAYER][slot].box, state))
-        {
-            gMoveRelearnerState = state;
-            return TRUE;
-        }
-    }
-    return FALSE;
 }
 
 static void CB2_ShowPokemonSummaryScreen(void)
@@ -8302,13 +8282,9 @@ static void CB2_ChooseMonForMoveRelearner(void)
 
     if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
     {
-        gRelearnMode = RELEARN_MODE_SCRIPT;
         gFieldCallback2 = CB2_FadeFromPartyMenu;
-        if (TrySelectRelearnableCategory(gSpecialVar_0x8004))
-        {
-            SetMainCallback2(CB2_InitLearnMove);
-            return;
-        }
+        UnholyMoveUi_Open(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], gSpecialVar_0x8004, CB2_ReturnToField);
+        return;
     }
 
     gFieldCallback2 = CB2_FadeFromPartyMenu;

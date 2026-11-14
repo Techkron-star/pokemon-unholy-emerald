@@ -21,6 +21,7 @@ enum HfcSimulatorResult
 };
 
 void HfcSimulator_Open(void (*returnToWatch)(void));
+void HfcSimulator_OpenForParty(u8 partySlot, void (*onReturn)(void));
 void HfcSimulator_ReadValues(struct Pokemon *mon, struct HfcSimulatorValues *values);
 enum HfcSimulatorResult HfcSimulator_Apply(struct Pokemon *mon, const struct HfcSimulatorValues *values, u32 *money);
 
