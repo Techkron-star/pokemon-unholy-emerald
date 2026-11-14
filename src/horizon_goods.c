@@ -57,7 +57,7 @@ static const struct HorizonGoodsEntry sHorizonDiscPool[] =
     {ITEM_TM50, 8, 0},
 };
 
-// Three everyday consumables always appear, plus five rotating options.
+// Three everyday consumables and Linking Cord always appear, plus four rotating options.
 // Those items are intentionally NOT limited to one purchase per rotation.
 static EWRAM_DATA u16 sHorizonItems[HORIZON_GOODS_ITEM_COUNT + 1];
 static EWRAM_DATA u16 sHorizonDiscs[HORIZON_GOODS_DISC_COUNT + 1];
@@ -183,9 +183,10 @@ const u16 *HorizonGoodsGetItems(void)
     sHorizonItems[0] = ITEM_POKE_BALL;
     sHorizonItems[1] = ITEM_POTION;
     sHorizonItems[2] = ITEM_ESCAPE_ROPE;
+    sHorizonItems[3] = ITEM_LINKING_CORD;
 
     HorizonGoodsBuildList(sHorizonItemPool, ARRAY_COUNT(sHorizonItemPool),
-                          &sHorizonItems[3], HORIZON_GOODS_ITEM_COUNT - 3, seed);
+                          &sHorizonItems[4], HORIZON_GOODS_ITEM_COUNT - 4, seed);
     return sHorizonItems;
 }
 

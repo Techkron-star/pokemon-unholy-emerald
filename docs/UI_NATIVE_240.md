@@ -38,6 +38,7 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 
 ## Controles de Resumen
 
+- START abre Trainer Tools: ramas evolutivas, evolución manual con requisitos, recordador y cambio de mote. Véase [Evolución y herramientas QoL](EVOLUTION_QOL.md).
 - Izquierda/derecha cambia pestaña. Arriba/abajo cambia Pokémon en Info, Stats y Gear; en Movimientos recorre las cuatro ranuras.
 - L/R alterna Stats → IV → EV y Objeto/Gear → Mutaciones → Bonos.
 - A en Info o Movimientos abre el detalle original, incluidas sus operaciones existentes. B en ese detalle vuelve al nuevo Resumen y conserva el Pokémon elegido.
