@@ -81,6 +81,10 @@ static EWRAM_DATA struct {
 
 EWRAM_DATA enum MoveRelearnerStates gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES;
 EWRAM_DATA enum RelearnMode gRelearnMode = RELEARN_MODE_NONE;
+static EWRAM_DATA void (*sDirectReturn)(void) = NULL;
+static EWRAM_DATA u16 sDirectOldSlot = 0;
+static EWRAM_DATA u16 sDirectOldResult = 0;
+
 
 static const u16 sUI_Pal[] = INCGFX_U16("graphics/interface/ui_learn_move.png", ".gbapal");
 
@@ -396,6 +400,29 @@ static void CB2_InitLearnMove_Basic(void)
     }
 }
 
+bool32 MoveRelearner_OpenForParty(u8 slot, void (*onReturn)(void))
+{
+    if (slot >= PARTY_SIZE || slot >= gPartiesCount[B_TRAINER_PLAYER] || onReturn == NULL || sDirectReturn != NULL)
+        return FALSE;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+    if (GetMonData(mon, MON_DATA_IS_EGG) || GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG)) return FALSE;
+    for (u8 state = 0; state < MOVE_RELEARNER_COUNT; state++)
+        if (CanBoxMonRelearnMoves(&mon->box, state))
+        {
+            sDirectOldSlot = gSpecialVar_0x8004;
+            sDirectOldResult = gSpecialVar_Result;
+            sDirectReturn = onReturn;
+            gSpecialVar_0x8004 = slot;
+            gMoveRelearnerState = state;
+            // Follow the summary rules for category unlocks, owned TMs and PP.
+            // Script mode intentionally bypasses TM inventory checks.
+            gRelearnMode = RELEARN_MODE_PSS_PAGE_BATTLE_MOVES;
+            SetMainCallback2(CB2_InitLearnMove);
+            return TRUE;
+        }
+    return FALSE;
+}
+
 void CB2_InitLearnMove(void)
 {
     ResetTasks();
@@ -564,7 +591,15 @@ static void Task_MoveRelearner_Quit(u8 taskId)
         return;
 
     // Script/Move Manager relearns never came from the summary screen, so a stale callback must not reopen it
-    if (gRelearnMode != RELEARN_MODE_SCRIPT && gInitialSummaryScreenCallback != NULL)
+    if (sDirectReturn != NULL)
+    {
+        void (*callback)(void) = sDirectReturn;
+        sDirectReturn = NULL;
+        gSpecialVar_0x8004 = sDirectOldSlot;
+        gSpecialVar_Result = sDirectOldResult;
+        SetMainCallback2(callback);
+    }
+    else if (gRelearnMode != RELEARN_MODE_SCRIPT && gInitialSummaryScreenCallback != NULL)
     {
         if (gRelearnMode == RELEARN_MODE_PSS_PAGE_CONTEST_MOVES)
             ShowPokemonSummaryScreen(SUMMARY_MODE_RELEARNER_CONTEST, gParties[B_TRAINER_PLAYER], gTasks[taskId].tPartyIndex, gPartiesCount[B_TRAINER_PLAYER] - 1, gInitialSummaryScreenCallback);

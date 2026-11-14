@@ -38,7 +38,7 @@ La quinta pestaña ahora abre una selección **RELEARN / FORGET** dentro del pan
 
 ## Discos y Objetos: rotación persistente de stock (PR apilado)
 
-El catálogo `DISCS` ofrece **seis MT distintas** de una lista elegible por medallas y ciclo día/noche; `ITEMS` incluye **tres suministros permanentes** (Poké Ball, Poción y Cuerda Huida) y **cinco artículos rotativos** (Poké Balls especiales, curación, repelentes, artículos de combate o especiales). Entre los objetos más avanzados se incluyen Caramelo Raro y PP Up, bloqueados hasta más medallas. **Infinity Ball y Gears no se venden** por este sistema: mantienen sus propias reglas.
+El catálogo `DISCS` ofrece **seis MT distintas** de una lista elegible por medallas y ciclo día/noche; `ITEMS` incluye **cuatro suministros permanentes** (Poké Ball, Poción, Cuerda Huida y Linking Cord) y **cuatro artículos rotativos** (Poké Balls especiales, curación, repelentes, artículos de combate o especiales). Linking Cord permite la [evolución manual sin intercambio](EVOLUTION_QOL.md). Entre los objetos más avanzados se incluyen Caramelo Raro y PP Up, bloqueados hasta más medallas. **Infinity Ball y Gears no se venden** por este sistema: mantienen sus propias reglas.
 
 La tienda de objetos y discos **no vuelve a tirar RNG al abrir/cerrar ni al pasar de pestaña**. La selección se genera de manera determinista a partir de dos mitades de una semilla guardadas en `VAR_HORIZON_GOODS_SEED_A` (`0x40B8`) y `VAR_HORIZON_GOODS_SEED_B` (`0x40BB`). Esas dos variables se actualizan al **rotar realmente** el mercado general (día, período o nueva medalla). En partidas anteriores cuyos Pokémon/huevos ya tienen stock válido, se inicializan las semillas sin volver a sortear sus ofertas.
 

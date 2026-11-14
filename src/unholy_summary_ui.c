@@ -2,6 +2,12 @@
 #include "mutation_icons.h"
 #include "unholy_summary_ui.h"
 #include "unholy_mon_summary.h"
+#include "unholy_evolution.h"
+#include "evolution_scene.h"
+#include "move_relearner.h"
+#include "naming_screen.h"
+#include "tv.h"
+#include "caps.h"
 #include "unholy_ui.h"
 #include "battle.h"
 #include "bg.h"
@@ -31,6 +37,9 @@
 #include "constants/party_menu.h"
 
 enum { PAGE_INFO, PAGE_STATS, PAGE_MOVES, PAGE_GEAR, PAGE_COUNT };
+enum { QOL_NONE, QOL_MENU, QOL_EVOLUTIONS, QOL_REVIEW, QOL_CONFIRM };
+#define EVO_VISIBLE 5
+#define EVO_DEPTH 8
 
 static EWRAM_DATA struct NativeSummary
 {
@@ -48,6 +57,14 @@ static EWRAM_DATA struct NativeSummary
     u8 page;
     u8 detail;
     u8 move;
+    u8 qol, tool, depth;
+    u16 viewSpecies, evoCursor, evoScroll, requirementPage;
+    u16 parents[EVO_DEPTH], parentCursors[EVO_DEPTH];
+    struct UnholyEvolutionOption evolution;
+    struct UnholyEvolutionPlan plan;
+    const u8 *notice;
+    u8 rename[POKEMON_NAME_LENGTH + 1];
+    void (*previousEvoCallback)(void);
 } *sSummary;
 
 static const struct BgTemplate sBg = {.bg = 0, .charBaseIndex = 0, .mapBaseIndex = 31, .priority = 0};
@@ -74,6 +91,9 @@ static const enum PokemonBadge sBadges[] =
 };
 
 static void Init(void);
+static void Cleanup(void);
+static bool32 QolInput(u8 taskId);
+static void DrawQol(void);
 
 static void Print(u16 x, u16 y, u16 width, const u8 *text)
 {
@@ -273,6 +293,15 @@ static void Gear(void)
 
 static void Render(void)
 {
+    if (sSummary->qol != QOL_NONE)
+    {
+        DestroyMutationIcons();
+        DestroyPortrait();
+        DrawQol();
+        PutWindowTilemap(sSummary->window);
+        CopyWindowToVram(sSummary->window, COPYWIN_FULL);
+        return;
+    }
     u8 name[POKEMON_NAME_LENGTH + 1];
     u8 text[32];
     GetMonData(&sSummary->mon, MON_DATA_NICKNAME, name);
@@ -310,10 +339,10 @@ static void Render(void)
         case PAGE_GEAR: Gear(); break;
         }
     }
-    const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB L/R:IV/EV B:BACK")
-                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB L/R:DETAIL B:BACK")
-                   : sSummary->page == PAGE_MOVES ? COMPOUND_STRING("<>:TAB UP/DN:MOVE A:DETAIL B:BACK")
-                   : COMPOUND_STRING("<>:TAB UP/DN:PKMN A:DETAIL B:BACK");
+    const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB L/R:IV/EV START:TOOLS B:BACK")
+                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB L/R:VIEW START:TOOLS B:BACK")
+                   : sSummary->page == PAGE_MOVES ? COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK")
+                   : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 7, 131, 210, help);
     PutWindowTilemap(sSummary->window);
     CopyWindowToVram(sSummary->window, COPYWIN_FULL);
@@ -347,6 +376,7 @@ static void Input(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
+    if (QolInput(taskId)) return;
     if (JOY_NEW(B_BUTTON))
     {
         void (*callback)(void) = sSummary->callback;
@@ -393,6 +423,291 @@ static void Input(u8 taskId)
         return;
     PlaySE(SE_SELECT);
     Render();
+}
+
+static bool32 EditableParty(void)
+{
+    return sSummary->mode == SUMMARY_MODE_NORMAL && sSummary->mons == gParties[B_TRAINER_PLAYER]
+        && sSummary->index < gPartiesCount[B_TRAINER_PLAYER] && sSummary->index < PARTY_SIZE;
+}
+
+static bool32 QolValid(void)
+{
+    return GetMonData(&sSummary->mon, MON_DATA_SPECIES) != SPECIES_NONE
+        && !GetMonData(&sSummary->mon, MON_DATA_IS_EGG)
+        && !GetMonData(&sSummary->mon, MON_DATA_SANITY_IS_BAD_EGG);
+}
+
+static void ReturnFromQol(void)
+{
+    if (EditableParty()) sSummary->last = gPartiesCount[B_TRAINER_PLAYER] - 1;
+    sSummary->portrait = SPRITE_NONE;
+    sSummary->qol = QOL_MENU;
+    sSummary->notice = NULL;
+    SetMainCallback2(Init);
+}
+
+static void ReturnFromEvolution(void)
+{
+    gCB2_AfterEvolution = sSummary->previousEvoCallback;
+    ReturnFromQol();
+}
+
+static void ReturnFromRename(void)
+{
+    if (IsBox()) SetBoxMonData(&((struct BoxPokemon *)sSummary->mons)[sSummary->index], MON_DATA_NICKNAME, sSummary->rename);
+    else if (EditableParty()) SetMonData(&((struct Pokemon *)sSummary->mons)[sSummary->index], MON_DATA_NICKNAME, sSummary->rename);
+    ReturnFromQol();
+}
+
+static void QolText(u16 x, u16 y, u16 width, const u8 *text)
+{
+    UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, x, y, width, text);
+}
+
+static void QolFooter(const u8 *first, const u8 *second)
+{
+    FillWindowPixelRect(sSummary->window, PIXEL_FILL(1), 5, 125, 214, 1);
+    FillWindowPixelRect(sSummary->window, PIXEL_FILL(3), 5, 117, 214, 1);
+    QolText(7, 118, 210, first);
+    QolText(7, 130, 210, second);
+}
+
+static bool32 SelectedEvolution(void)
+{
+    struct Pokemon *mon = EditableParty() ? &gParties[B_TRAINER_PLAYER][sSummary->index] : &sSummary->mon;
+    return UnholyEvolution_GetOption(mon, sSummary->viewSpecies, sSummary->evoCursor,
+        EditableParty() ? sSummary->index : PARTY_SIZE, &sSummary->evolution);
+}
+
+static void DrawQol(void)
+{
+    u8 text[128];
+    UnholyUi_Frame(sSummary->window, sSummary->qol == QOL_MENU ? COMPOUND_STRING("TRAINER TOOLS") : COMPOUND_STRING("EVOLUTION PATHS"));
+    if (sSummary->qol == QOL_MENU)
+    {
+        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS / EVOLVE"), COMPOUND_STRING("REMEMBER MOVES"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
+        for (u8 i = 0; i < ARRAY_COUNT(names); i++)
+        {
+            u8 y = 25 + i * 22;
+            UnholyUi_Card(sSummary->window, 6, y, 212, 20, i == sSummary->tool);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, y + 4, 198,
+                UnholyUi_CardFill(i == sSummary->tool), names[i]);
+        }
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("NO EXTRA LEVEL NEEDED TO EVOLVE"), COMPOUND_STRING("UP/DN:CHOOSE A:OPEN B:SUMMARY"));
+        return;
+    }
+    QolText(119, 6, 98, GetSpeciesName(sSummary->viewSpecies));
+    if (sSummary->qol == QOL_EVOLUTIONS)
+    {
+        u16 count = UnholyEvolution_Count(sSummary->viewSpecies);
+        if (!count)
+        {
+            QolText(12, 48, 200, COMPOUND_STRING("NO FURTHER EVOLUTION"));
+            QolText(12, 68, 200, COMPOUND_STRING("L / B: PREVIOUS STAGE"));
+        }
+        for (u8 i = 0; i < EVO_VISIBLE && sSummary->evoScroll + i < count; i++)
+        {
+            struct UnholyEvolutionOption option;
+            u16 row = sSummary->evoScroll + i;
+            struct Pokemon *mon = EditableParty() ? &gParties[B_TRAINER_PLAYER][sSummary->index] : &sSummary->mon;
+            UnholyEvolution_GetOption(mon, sSummary->viewSpecies, row,
+                EditableParty() ? sSummary->index : PARTY_SIZE, &option);
+            bool8 selected = row == sSummary->evoCursor;
+            u8 y = 24 + i * 16;
+            u8 fill = UnholyUi_CardFill(selected);
+            UnholyUi_Card(sSummary->window, 6, y, 212, 15, selected);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 12, y + 1, 130, fill, GetSpeciesName(option.target));
+            const u8 *state = option.status == UNHOLY_EVO_READY ? COMPOUND_STRING("READY") : option.status == UNHOLY_EVO_ITEM ? COMPOUND_STRING("ITEM")
+                : option.status == UNHOLY_EVO_EVERSTONE ? COMPOUND_STRING("EVERSTONE") : option.status == UNHOLY_EVO_PREVIEW ? COMPOUND_STRING("PREVIEW") : COMPOUND_STRING("LOCKED");
+            if (option.status == UNHOLY_EVO_LEVEL)
+            {
+                u8 *end = StringCopy(text, COMPOUND_STRING("Lv "));
+                ConvertIntToDecimalStringN(end, option.minimumLevel, STR_CONV_MODE_LEFT_ALIGN, 3);
+                state = text;
+            }
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 149, y + 1, 64, fill, state);
+        }
+        u8 *end = ConvertIntToDecimalStringN(text, count ? sSummary->evoCursor + 1 : 0, STR_CONV_MODE_LEFT_ALIGN, 2);
+        end = StringAppend(end, COMPOUND_STRING("/"));
+        end = ConvertIntToDecimalStringN(end, count, STR_CONV_MODE_LEFT_ALIGN, 2);
+        end = StringAppend(end, COMPOUND_STRING("  BADGE CAP: "));
+        ConvertIntToDecimalStringN(end, GetCurrentLevelCap(), STR_CONV_MODE_LEFT_ALIGN, 3);
+        QolText(8, 104, 208, text);
+        QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING("A:REVIEW REQUIREMENTS R:NEXT STAGE"), COMPOUND_STRING("UP/DN:BRANCH L:PREVIOUS B:BACK"));
+        return;
+    }
+    const struct UnholyEvolutionOption *option = &sSummary->evolution;
+    QolText(8, 23, 208, GetSpeciesName(option->target));
+    UnholyEvolution_StatusText(option, text);
+    QolText(8, 36, 208, text);
+    sSummary->portrait = CreateMonPicSprite(option->target, GetMonData(&sSummary->mon, MON_DATA_IS_SHINY),
+        GetMonData(&sSummary->mon, MON_DATA_PERSONALITY), TRUE, 182, 80, 0, TAG_NONE);
+    if (sSummary->qol == QOL_CONFIRM)
+    {
+        if (!option->costCount)
+        {
+            QolText(8, 55, 134, COMPOUND_STRING("NO ITEMS REQUIRED"));
+            QolText(8, 72, 134, COMPOUND_STRING("NO EXTRA LEVEL OR EXP"));
+        }
+        for (u8 i = 0; i < option->costCount; i++)
+        {
+            const struct UnholyEvolutionCost *cost = &option->costs[i];
+            u8 *end = StringCopy(text, GetItemName(cost->item));
+            end = StringAppend(end, COMPOUND_STRING(" x"));
+            end = ConvertIntToDecimalStringN(end, cost->count, STR_CONV_MODE_LEFT_ALIGN, 3);
+            StringAppend(end, cost->held ? COMPOUND_STRING(" (HELD)") : COMPOUND_STRING(" (BAG)"));
+            QolText(8, 51 + 13 * i, 134, text);
+        }
+        QolText(8, 105, 208, option->costCount ? COMPOUND_STRING("CONFIRM USES ALL LISTED ITEMS") : COMPOUND_STRING("B CAN STOP THE EVOLUTION ANIMATION"));
+        QolFooter(COMPOUND_STRING("A:EVOLVE  B:REVIEW"), COMPOUND_STRING("ONLY THIS EVOLUTION STAGE"));
+        return;
+    }
+    u16 lines = UnholyEvolution_RequirementCount(option);
+    for (u8 i = 0; i < 3 && sSummary->requirementPage * 3 + i < lines; i++)
+    {
+        UnholyEvolution_RequirementText(option, sSummary->requirementPage * 3 + i, text);
+        QolText(8, 51 + i * 13, 134, text);
+    }
+    if (option->costCount)
+    {
+        const struct UnholyEvolutionCost *cost = &option->costs[0];
+        u8 *end = StringCopy(text, COMPOUND_STRING("USES: "));
+        end = StringAppend(end, GetItemName(cost->item));
+        end = StringAppend(end, COMPOUND_STRING(" x"));
+        ConvertIntToDecimalStringN(end, cost->count, STR_CONV_MODE_LEFT_ALIGN, 3);
+        QolText(8, 93, 134, text);
+        QolText(8, 105, 208, COMPOUND_STRING("A REVIEWS ALL COSTS BEFORE EVOLVING"));
+    }
+    else QolText(8, 104, 208, COMPOUND_STRING("LEVEL AND MUTATIONS ARE PRESERVED"));
+    bool32 canEvolve = EditableParty() && sSummary->viewSpecies == GetMonData(&sSummary->mon, MON_DATA_SPECIES)
+                   && option->status == UNHOLY_EVO_READY;
+    QolFooter(!EditableParty() ? COMPOUND_STRING("MOVE TO YOUR PARTY TO EVOLVE") : canEvolve ? COMPOUND_STRING("A:REVIEW EVOLUTION B:CANCEL") : COMPOUND_STRING("REQUIREMENTS NOT MET - B:BACK"),
+        COMPOUND_STRING("L/R:REQUIREMENTS  B:PATHS"));
+}
+
+static bool32 QolInput(u8 taskId)
+{
+    if (sSummary->qol == QOL_NONE)
+    {
+        if (!JOY_NEW(START_BUTTON)) return FALSE;
+        sSummary->qol = QOL_MENU;
+        sSummary->notice = NULL;
+        PlaySE(SE_SELECT); Render(); return TRUE;
+    }
+    if (JOY_NEW(B_BUTTON))
+    {
+        if (sSummary->qol == QOL_MENU) sSummary->qol = QOL_NONE;
+        else if (sSummary->qol == QOL_CONFIRM) sSummary->qol = QOL_REVIEW;
+        else if (sSummary->qol == QOL_REVIEW) sSummary->qol = QOL_EVOLUTIONS;
+        else if (sSummary->depth)
+        {
+            sSummary->viewSpecies = sSummary->parents[--sSummary->depth];
+            sSummary->evoCursor = sSummary->parentCursors[sSummary->depth];
+            sSummary->evoScroll = sSummary->evoCursor / EVO_VISIBLE * EVO_VISIBLE;
+        }
+        else sSummary->qol = QOL_MENU;
+        sSummary->notice = NULL;
+        PlaySE(SE_SELECT); Render(); return TRUE;
+    }
+    if (sSummary->qol == QOL_MENU)
+    {
+        if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+        { sSummary->tool = (sSummary->tool + (JOY_REPEAT(DPAD_UP) ? 3 : 1)) % 4; sSummary->notice = NULL; }
+        else if (JOY_NEW(A_BUTTON))
+        {
+            if (sSummary->tool == 3) sSummary->qol = QOL_NONE;
+            else if (!QolValid()) sSummary->notice = COMPOUND_STRING("EGG / INVALID POKéMON - UNAVAILABLE");
+            else if (sSummary->tool == 0)
+            {
+                sSummary->qol = QOL_EVOLUTIONS;
+                sSummary->viewSpecies = GetMonData(&sSummary->mon, MON_DATA_SPECIES);
+                sSummary->evoCursor = sSummary->evoScroll = sSummary->depth = 0;
+                sSummary->notice = NULL;
+            }
+            else if (sSummary->tool == 1)
+            {
+                if (!EditableParty()) sSummary->notice = COMPOUND_STRING("MOVE TO YOUR PARTY TO RELEARN");
+                else if (MoveRelearner_OpenForParty(sSummary->index, ReturnFromQol))
+                { Cleanup(); DestroyTask(taskId); return TRUE; }
+                else sSummary->notice = COMPOUND_STRING("NO AVAILABLE MOVES TO RELEARN");
+            }
+            else if ((!IsBox() && !EditableParty()) || sSummary->mode == SUMMARY_MODE_BOX_CURSOR)
+                sSummary->notice = COMPOUND_STRING("NICKNAME CANNOT BE CHANGED HERE");
+            else if (GetMonData(&sSummary->mon, MON_DATA_OT_ID) != GetPlayerIDAsU32())
+                sSummary->notice = COMPOUND_STRING("ONLY THE ORIGINAL TRAINER CAN RENAME");
+            else
+            {
+                GetMonData(&sSummary->mon, MON_DATA_NICKNAME, sSummary->rename);
+                Cleanup(); DestroyTask(taskId);
+                DoNamingScreen(NAMING_SCREEN_NICKNAME, sSummary->rename, GetMonData(&sSummary->mon, MON_DATA_SPECIES),
+                    GetMonGender(&sSummary->mon), GetMonData(&sSummary->mon, MON_DATA_PERSONALITY), ReturnFromRename);
+                return TRUE;
+            }
+        }
+        else return TRUE;
+        PlaySE(SE_SELECT); Render(); return TRUE;
+    }
+    if (sSummary->qol == QOL_EVOLUTIONS)
+    {
+        u16 count = UnholyEvolution_Count(sSummary->viewSpecies);
+        if (count && JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+        {
+            sSummary->evoCursor = (sSummary->evoCursor + count + (JOY_REPEAT(DPAD_UP) ? -1 : 1)) % count;
+            sSummary->evoScroll = sSummary->evoCursor / EVO_VISIBLE * EVO_VISIBLE;
+        }
+        else if (JOY_NEW(L_BUTTON) && sSummary->depth)
+        {
+            sSummary->viewSpecies = sSummary->parents[--sSummary->depth];
+            sSummary->evoCursor = sSummary->parentCursors[sSummary->depth];
+            sSummary->evoScroll = sSummary->evoCursor / EVO_VISIBLE * EVO_VISIBLE;
+        }
+        else if (JOY_NEW(R_BUTTON) && count && sSummary->depth < EVO_DEPTH && SelectedEvolution())
+        {
+            sSummary->parents[sSummary->depth] = sSummary->viewSpecies;
+            sSummary->parentCursors[sSummary->depth++] = sSummary->evoCursor;
+            sSummary->viewSpecies = sSummary->evolution.target;
+            sSummary->evoCursor = sSummary->evoScroll = 0;
+        }
+        else if (JOY_NEW(A_BUTTON) && count && SelectedEvolution())
+        {
+            if (EditableParty() && sSummary->viewSpecies == GetMonData(&sSummary->mon, MON_DATA_SPECIES))
+            {
+                UnholyEvolution_Prepare(sSummary->index, sSummary->evolution.entry, &sSummary->plan);
+                sSummary->evolution = sSummary->plan.option;
+            }
+            sSummary->requirementPage = 0;
+            sSummary->qol = QOL_REVIEW;
+        }
+        else return TRUE;
+        sSummary->notice = NULL;
+        PlaySE(SE_SELECT); Render(); return TRUE;
+    }
+    if (sSummary->qol == QOL_REVIEW && JOY_NEW(L_BUTTON | R_BUTTON))
+    {
+        u16 pages = (UnholyEvolution_RequirementCount(&sSummary->evolution) + 2) / 3;
+        sSummary->requirementPage = (sSummary->requirementPage + pages + (JOY_NEW(L_BUTTON) ? -1 : 1)) % pages;
+        PlaySE(SE_SELECT); Render();
+    }
+    else if (JOY_NEW(A_BUTTON) && EditableParty() && sSummary->evolution.status == UNHOLY_EVO_READY
+          && sSummary->viewSpecies == GetMonData(&sSummary->mon, MON_DATA_SPECIES))
+    {
+        if (sSummary->qol == QOL_REVIEW)
+        { sSummary->qol = QOL_CONFIRM; PlaySE(SE_SELECT); Render(); return TRUE; }
+        u8 status = UnholyEvolution_Consume(&sSummary->plan);
+        if (status != UNHOLY_EVO_READY)
+        { sSummary->evolution.status = status; sSummary->qol = QOL_REVIEW; PlaySE(SE_FAILURE); Render(); return TRUE; }
+        u16 target = sSummary->plan.option.target;
+        bool32 canStop = sSummary->plan.option.costCount == 0;
+        sSummary->previousEvoCallback = gCB2_AfterEvolution;
+        Cleanup(); DestroyTask(taskId);
+        // BeginEvolutionScene fades the current palette before installing its
+        // own VBlank handler. Keep palette transfers running during that fade.
+        SetVBlankCallback(VBlank);
+        gCB2_AfterEvolution = ReturnFromEvolution;
+        BeginEvolutionScene(&gParties[B_TRAINER_PLAYER][sSummary->index], target, canStop, sSummary->index);
+    }
+    return TRUE;
 }
 
 static void Main(void)
