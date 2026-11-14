@@ -207,7 +207,7 @@ static const struct YesNoFuncTable sShopPurchaseYesNoFuncs =
     BuyMenuReturnToItemList
 };
 
-static const u8 sHorizonTextPokemon[] = _("POKEMON");
+static const u8 sHorizonTextPokemon[] = _("POKéMON");
 static const u8 sHorizonTabPokemon[] = _("PKMN");
 static const u8 sHorizonTabDiscs[] = _("DISCS");
 static const u8 sHorizonTabItems[] = _("ITEMS");
@@ -222,18 +222,17 @@ static const u8 sHorizonTextBrowse[] = _("D-PAD: MOVE  A: BUY  B: BACK");
 static const u8 sHorizonTextConfirm[] = _("A: CONFIRM   B: CANCEL");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
 static const u8 sHorizonTextSold[] = _("SOLD");
-static const u8 sHorizonTextReady[] = _("Choose an offer.");
 static const u8 sHorizonTextNeedMoney[] = _("Not enough money.");
-static const u8 sHorizonTextNeedSpace[] = _("Party/PC is full.");
+static const u8 sHorizonTextNeedSpace[] = _("Party and PC are full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
-static const u8 sHorizonTextConfirmBuy[] = _("Press A again.");
+static const u8 sHorizonTextConfirmBuy[] = _("Confirm purchase?");
 static const u8 sHorizonTextEggBrowse[] = _("L/R: EGGS  A: BUY  B: BACK");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
-static const u8 sHorizonTextPrize[] = _("Egg secured!");
+static const u8 sHorizonTextPrize[] = _("Egg purchased!");
 static const u8 *const sHorizonPokemonStatuses[] =
 {
-    sHorizonTextReady, sHorizonTextConfirmBuy, sHorizonTextBought,
+    gText_EmptyString2, sHorizonTextConfirmBuy, sHorizonTextBought,
     sHorizonTextNeedMoney, sHorizonTextNeedSpace, sHorizonTextSold,
     sHorizonTextFailed,
 };
@@ -241,7 +240,7 @@ static const u8 sHorizonTextDiscs[] = _("DISCS");
 static const u8 sHorizonTextItems[] = _("ITEMS");
 static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
-static const u8 sHorizonMoveLearn[] = _("RELEARN");
+static const u8 sHorizonMoveLearn[] = _("MOVE MANAGER");
 static const u8 sHorizonMoveForget[] = _("FORGET");
 static const u8 sHorizonMoveInstructions[] = _("L/R: CHOOSE   A: OPEN   B: BACK");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
@@ -250,11 +249,11 @@ static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
 static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
 static const u8 sHorizonGoodsBack[] = _("B: BACK");
-static const u8 sHorizonDescPokemon[] = _("Six unique offers.\nBadge-gated tiers.\nFind rare mutants.");
-static const u8 sHorizonDescDiscs[] = _("Six rotating TMs.\nUnlock with badges.\nStable per period.");
-static const u8 sHorizonDescItems[] = _("Three core supplies.\nFive special offers.\nBrowse with L/R.");
-static const u8 sHorizonDescEggs[] = _("Five mystery eggs.\nVisible quality.\nHidden species.");
-static const u8 sHorizonDescMoves[] = _("Relearn or forget.\nSelect a partner.\nManage move slots.");
+static const u8 sHorizonDescPokemon[] = _("Earn badges to find\nrarer Pokémon.");
+static const u8 sHorizonDescDiscs[] = _("TM stock rotates.\nBadges unlock more.");
+static const u8 sHorizonDescItems[] = _("Supplies and\nrotating stock.");
+static const u8 sHorizonDescEggs[] = _("Check the egg's\ntier and quality.");
+static const u8 sHorizonDescMoves[] = _("Teach or forget\na move.");
 static const u8 *const sHorizonDescriptions[] =
 {
     sHorizonDescPokemon, sHorizonDescDiscs, sHorizonDescItems,
@@ -987,7 +986,7 @@ static void HorizonDrawInfo(void)
             HorizonPrintCardText(panel, option == 0 ? sHorizonMoveLearn : sHorizonMoveForget,
                                      x + 13, 42, 74, option == sHorizonMoveSelection, FONT_NARROW);
             HorizonPrintCardText(panel, option == 0
-                                    ? COMPOUND_STRING("Old / TM / Tutor")
+                                    ? COMPOUND_STRING("Learn or reorder")
                                     : COMPOUND_STRING("Remove a move"),
                                      x + 7, 62, 78, option == sHorizonMoveSelection, FONT_SMALL_NARROW);
         }

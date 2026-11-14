@@ -235,7 +235,7 @@ static void RenderSpread(void)
     if (sSimulator.notice != NULL)
         PrintText(sSimulator.notice, 8, 108);
     else if (sSimulator.mode == SIMULATOR_REVIEW)
-        PrintText(COMPOUND_STRING("Apply this spread and pay?"), 8, 108);
+        PrintText(COMPOUND_STRING("Pay to apply these changes?"), 8, 108);
     else
         PrintText(COMPOUND_STRING("Left/Right 1   L/R 10   SELECT IV/EV"), 8, 108);
 
@@ -331,7 +331,7 @@ static bool32 HandleEditInput(void)
         if (CalculateCost(SelectedMon(), &sSimulator.draft) == 0)
             sSimulator.notice = COMPOUND_STRING("Change a value first.");
         else if (!IsLegalSpread(&sSimulator.draft))
-            sSimulator.notice = COMPOUND_STRING("Reduce EVs to the legal limit.");
+            sSimulator.notice = COMPOUND_STRING("Too many EVs. Lower the total.");
         else
             sSimulator.mode = SIMULATOR_REVIEW;
     }
@@ -370,7 +370,7 @@ static bool32 HandleReviewInput(void)
         else
         {
             sSimulator.notice = result == HFC_SIMULATOR_INSUFFICIENT_FUNDS
-                ? COMPOUND_STRING("Not enough money.") : COMPOUND_STRING("This spread cannot be applied.");
+                ? COMPOUND_STRING("Not enough money.") : COMPOUND_STRING("Could not apply changes.");
             PlaySE(SE_FAILURE);
         }
     }

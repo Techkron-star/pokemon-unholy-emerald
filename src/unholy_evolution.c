@@ -377,8 +377,8 @@ void UnholyEvolution_StatusText(const struct UnholyEvolutionOption *option, u8 *
         else StringCopy(text, COMPOUND_STRING("MISSING EVOLUTION ITEM"));
         break;
     case UNHOLY_EVO_CONDITION: UnholyEvolution_RequirementText(option, option->missingCondition + 1, text); break;
-    case UNHOLY_EVO_PREVIEW: StringCopy(text, COMPOUND_STRING("PREVIEW - NOT CURRENT SPECIES")); break;
+    case UNHOLY_EVO_PREVIEW: StringCopy(text, COMPOUND_STRING("FUTURE EVOLUTION")); break;
     case UNHOLY_EVO_SPECIAL: StringCopy(text, COMPOUND_STRING("USE ITS SPECIAL EVOLUTION METHOD")); break;
-    default: StringCopy(text, COMPOUND_STRING("REVIEW THE POKéMON AGAIN")); break;
+    default: StringCopy(text, COMPOUND_STRING("CANNOT EVOLVE NOW")); break;
     }
 }
