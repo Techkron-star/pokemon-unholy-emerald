@@ -1664,6 +1664,10 @@ static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
 
 static void CB2_ExitPokeStorage(void)
 {
+    // Save cursor position for next time the PC is opened
+    gPokemonStoragePtr->cursorPosition = sCursorPosition;
+    gPokemonStoragePtr->cursorArea = sCursorArea;
+
     sPreviousBoxOption = GetCurrentBoxOption();
     gFieldCallback = FieldTask_ReturnToPcMenu;
     SetMainCallback2(CB2_ReturnToField);
@@ -1720,6 +1724,10 @@ void ResetPokemonStorageSystem(void)
         SetBoxWallpaper(boxId, boxId % (MAX_DEFAULT_WALLPAPER + 1));
 
     ResetWaldaWallpaper();
+
+    // Initialize cursor persistence fields
+    gPokemonStoragePtr->cursorPosition = 0;
+    gPokemonStoragePtr->cursorArea = CURSOR_AREA_IN_BOX;
 }
 
 
@@ -5875,11 +5883,11 @@ static struct Sprite *CreateChooseBoxArrows(u16 x, u16 y, u8 animId, u8 priority
 static void InitCursor(void)
 {
     if (sStorage->boxOption != OPTION_DEPOSIT)
-        sCursorArea = CURSOR_AREA_IN_BOX;
+        sCursorArea = gPokemonStoragePtr->cursorArea;
     else
         sCursorArea = CURSOR_AREA_IN_PARTY;
 
-    sCursorPosition = 0;
+    sCursorPosition = gPokemonStoragePtr->cursorPosition;
     sIsMonBeingMoved = FALSE;
     sMovingMonOrigBoxId = 0;
     sMovingMonOrigBoxPos = 0;

@@ -24,6 +24,8 @@ struct PokemonStorage
     /*0x8344*/ u8 boxNames[TOTAL_BOXES_COUNT][BOX_NAME_LENGTH + 1];
     /*0x83C2*/ u8 boxWallpapers[TOTAL_BOXES_COUNT];
     /*0x8432*/ struct Pokemon fusions[MAX_FUSION_STORAGE];
+    /*0x8454*/ u8 cursorPosition;   // Cursor position within current box
+    /*0x8455*/ u8 cursorArea;       // Cursor area (IN_BOX, IN_PARTY, etc.)
 };
 
 extern struct PokemonStorage *gPokemonStoragePtr;
