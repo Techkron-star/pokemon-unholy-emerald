@@ -518,6 +518,17 @@ void CreateWildMon(enum Species species, u8 level)
     GiveMonInitialMoveset(&gParties[B_TRAINER_OPPONENT_A][0]);
 }
 
+void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost)
+{
+    // Crear el Pokémon salvaje normalmente
+    CreateWildMon(species, level);
+
+    // El parámetro boost se reserva para cuando se implemente el sistema
+    // de badges de frecuencia (HfcWatch_ConsumeFrequencyEncounter).
+    // Por ahora, el modificador de mutaciones está desactivado y no se
+    // consume ninguna carga ni se aplica boost adicional.
+}
+
 #ifdef BUGFIX
 #define TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildPokemon, type, ability, ptr, count) TryGetAbilityInfluencedWildMonIndex(wildPokemon, type, ability, ptr, count)
 #else
