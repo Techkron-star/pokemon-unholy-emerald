@@ -1052,6 +1052,37 @@ enum __attribute__((packed)) Item
     ITEM_TATSUGIRINITE = 872,
     ITEM_GLIMMORANITE = 873,
 
+    // Unholy Gears (equipables, slot separado del objeto ordinario)
+    ITEM_VISOR_COSMICO = 874,        // Visor Cósmico
+    ITEM_CORAZON_TITAN = 875,        // Corazón de Titán
+    ITEM_SKI_MASK = 876,             // Ski Mask
+    ITEM_CETRO_SINIESTRO = 877,      // Cetro Siniestro
+    ITEM_IMPULSO_COSMICO = 878,      // Impulso Cósmico
+    ITEM_PERMAFROST_FRAGMENT = 879,  // Fragmento de Permafrost
+    ITEM_TESERACTO = 880,            // Teseracto (consumible único)
+    ITEM_ANCLA_REALIDAD = 881,       // Ancla de Realidad
+    ITEM_COLMILLO_RAYQUAZA = 882,    // Colmillo de Rayquaza
+
+    // Gears Sangre (Inyecciones sanguíneas) — uno por tipo, 18 total
+    ITEM_SANGRE_NORMAL = 883,
+    ITEM_SANGRE_LUCHA = 884,
+    ITEM_SANGRE_VOLADOR = 885,
+    ITEM_SANGRE_VENENO = 886,
+    ITEM_SANGRE_TIERRA = 887,
+    ITEM_SANGRE_ROCA = 888,
+    ITEM_SANGRE_BICHO = 889,
+    ITEM_SANGRE_FANTASMA = 890,
+    ITEM_SANGRE_ACERO = 891,
+    ITEM_SANGRE_FUEGO = 892,
+    ITEM_SANGRE_AGUA = 893,
+    ITEM_SANGRE_PLANTA = 894,
+    ITEM_SANGRE_ELECTRICO = 895,
+    ITEM_SANGRE_PSIQUICO = 896,
+    ITEM_SANGRE_HIELO = 897,
+    ITEM_SANGRE_DRAGON = 898,
+    ITEM_SANGRE_SINIESTRO = 899,
+    ITEM_SANGRE_HADA = 900,
+
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,
 };
