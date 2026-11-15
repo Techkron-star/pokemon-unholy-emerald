@@ -4,6 +4,7 @@
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
+#include "graphics.h"
 #include "item.h"
 #include "data/gears.h"
 
@@ -37,6 +38,9 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_CETRO_SINIESTRO: return GEAR_CETRO_SINIESTRO;
     case ITEM_GEAR_IMPULSO_COSMICO: return GEAR_IMPULSO_COSMICO;
     case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case ITEM_GEAR_BLOOD_##type: return GEAR_BLOOD_##type;
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
     default: return GEAR_NONE;
     }
 }
@@ -51,6 +55,9 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_CETRO_SINIESTRO: return ITEM_GEAR_CETRO_SINIESTRO;
     case GEAR_IMPULSO_COSMICO: return ITEM_GEAR_IMPULSO_COSMICO;
     case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case GEAR_BLOOD_##type: return ITEM_GEAR_BLOOD_##type;
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
     default: return ITEM_NONE;
     }
 }

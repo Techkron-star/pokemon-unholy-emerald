@@ -57,10 +57,16 @@ static const struct HorizonGoodsEntry sHorizonDiscPool[] =
     {ITEM_TM50, 8, 0},
 };
 
-// Three everyday consumables and Linking Cord always appear, plus four rotating options.
-// Those items are intentionally NOT limited to one purchase per rotation.
+// Four everyday offers, four rotating items, and one rotating type gem.
 static EWRAM_DATA u16 sHorizonItems[HORIZON_GOODS_ITEM_COUNT + 1];
 static EWRAM_DATA u16 sHorizonDiscs[HORIZON_GOODS_DISC_COUNT + 1];
+
+static const enum Item sHorizonTypeGems[] =
+{
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) ITEM_##type##_GEM,
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+};
 
 static u32 HorizonGoodsNextRandom(u32 *seed)
 {
@@ -186,7 +192,10 @@ const u16 *HorizonGoodsGetItems(void)
     sHorizonItems[3] = ITEM_LINKING_CORD;
 
     HorizonGoodsBuildList(sHorizonItemPool, ARRAY_COUNT(sHorizonItemPool),
-                          &sHorizonItems[4], HORIZON_GOODS_ITEM_COUNT - 4, seed);
+                          &sHorizonItems[4], HORIZON_GOODS_ITEM_COUNT - 5, seed);
+    seed = HorizonGoodsSavedSeed(0xC33D97B9u);
+    sHorizonItems[HORIZON_GOODS_ITEM_COUNT - 1] = sHorizonTypeGems[HorizonGoodsNextRandom(&seed) % ARRAY_COUNT(sHorizonTypeGems)];
+    sHorizonItems[HORIZON_GOODS_ITEM_COUNT] = ITEM_NONE;
     return sHorizonItems;
 }
 

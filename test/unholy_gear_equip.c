@@ -38,6 +38,97 @@ TEST("Crafted Gears equip independently of held items and return old Gear to bag
     EXPECT_EQ(GetMonData(&mon, MON_DATA_HELD_ITEM), heldItem);
 }
 
+TEST("Unholy Blood Gear catalog covers all 18 types and equips from the Gears pocket")
+{
+    static const struct
+    {
+        enum Gear gear;
+        enum Item item;
+        enum Type type;
+    } variants[] =
+    {
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) { GEAR_BLOOD_##type, ITEM_GEAR_BLOOD_##type, TYPE_##type },
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+    };
+    struct Pokemon mon;
+    u32 mask = 0;
+    u32 heldItem = ITEM_LEFTOVERS;
+
+    SetBagItemsPointers();
+    ClearBag();
+    CreateMonWithIVs(&mon, SPECIES_SCEPTILE, 40, 0, OTID_STRUCT_PRESET(1), MAX_PER_STAT_IVS);
+    SetMonData(&mon, MON_DATA_HELD_ITEM, &heldItem);
+
+    EXPECT_EQ(ARRAY_COUNT(variants), 18);
+    for (u32 i = 0; i < ARRAY_COUNT(variants); i++)
+    {
+        enum Gear gear = variants[i].gear;
+        enum Item item = variants[i].item;
+        u32 type = GEAR_TYPE(variants[i].type);
+
+        EXPECT_EQ(mask & type, 0);
+        mask |= type;
+        EXPECT_EQ(gGearsInfo[gear].typeMask, type);
+        EXPECT_EQ(gGearsInfo[gear].trigger, GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE);
+        EXPECT(gGearsInfo[gear].iconGfx != NULL);
+        EXPECT(gGearsInfo[gear].iconPal != NULL);
+        EXPECT_EQ(Gear_FromItem(item), gear);
+        EXPECT_EQ(Gear_ToItem(gear), item);
+        EXPECT_EQ(GetItemDisplayPocket(item), POCKET_GEARS);
+        EXPECT(AddBagItem(item, 1));
+        EXPECT_EQ(Gear_TryEquipFromBag(&mon, item), GEAR_EQUIP_OK);
+        EXPECT_EQ(Gear_GetEquipped(&mon), gear);
+        EXPECT_EQ(GetMonData(&mon, MON_DATA_HELD_ITEM), heldItem);
+        EXPECT_EQ(CountTotalItemQuantityInBag(item), 0);
+        if (i > 0)
+            EXPECT_EQ(CountTotalItemQuantityInBag(variants[i - 1].item), 1);
+    }
+    EXPECT_EQ(mask, ((GEAR_TYPE(TYPE_FAIRY) << 1) - 1) & ~GEAR_TYPE(TYPE_NONE) & ~GEAR_TYPE(TYPE_MYSTERY));
+}
+
+TEST("Unholy Blood Gear overload is spent once and recharges once per turn")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    u32 previousBattleType = gBattleTypeFlags;
+    u16 previousSlot = gBattlerPartyIndexes[B_BATTLER_0];
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
+    struct Pokemon previousMon = *mon;
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleTypeFlags = 0;
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    CreateMonWithIVs(mon, SPECIES_TORCHIC, 40, 0, OTID_STRUCT_PRESET(1), 10);
+    Gear_SetEquipped(mon, GEAR_BLOOD_FIRE);
+
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_SUNNY_DAY, TYPE_FIRE);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_SCRATCH, TYPE_NORMAL);
+    EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.4));
+    EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
+
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.4));
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.4));
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 3);
+
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_INCINERATE, TYPE_FIRE);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_INCINERATE, TYPE_FIRE), UQ_4_12(1.12));
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 1);
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 2);
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(Gear_GetTurnsRemaining(B_BATTLER_0), 1);
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
+
+    *mon = previousMon;
+    gBattlerPartyIndexes[B_BATTLER_0] = previousSlot;
+    gBattleTypeFlags = previousBattleType;
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
+
 TEST("Unholy Gear cooldown follows its party member across doubles positions")
 {
     struct BattleStruct *previousBattleStruct = gBattleStruct;

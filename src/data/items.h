@@ -10028,6 +10028,22 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_PermafrostFragment,
     },
 
+#define GEAR_BLOOD_VARIANT(moveType, displayName, moveTypeName, bagIcon) \
+    [ITEM_GEAR_BLOOD_##moveType] = \
+    { \
+        .name = ITEM_NAME(displayName), \
+        .description = COMPOUND_STRING(moveTypeName " moves:\n+40% once, +12%\nwhile recharging."), \
+        .importance = 1, \
+        .pocket = POCKET_KEY_ITEMS, \
+        .sortType = ITEM_TYPE_RELIC, \
+        .type = ITEM_USE_BAG_MENU, \
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, \
+        .iconPic = gItemIcon_##bagIcon, \
+        .iconPalette = gItemIconPalette_Blood_##moveType, \
+    },
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

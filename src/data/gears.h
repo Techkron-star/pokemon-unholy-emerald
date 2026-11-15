@@ -29,6 +29,8 @@ static const u16 sGearIconPal_ImpulsoCosmico[] = INCGFX_U16("graphics/gears/impu
 static const u32 sGearIconGfx_PermafrostFragment[] = INCGFX_U32("graphics/gears/permafrost_fragment/icon.png", ".4bpp");
 static const u16 sGearIconPal_PermafrostFragment[] = INCGFX_U16("graphics/gears/permafrost_fragment/icon.pal", ".gbapal");
 
+static const u32 sBloodGearIcon[] = INCGFX_U32("graphics/gears/blood_vial/icon.png", ".4bpp");
+
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
     [GEAR_NONE] = {0},
@@ -110,4 +112,19 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .overloadPowerPercent = 100,
         .residualPowerPercent = 100,
     },
+#define GEAR_BLOOD_VARIANT(type, displayName, moveTypeName, bagIcon) \
+    [GEAR_BLOOD_##type] = \
+    { \
+        .name = COMPOUND_STRING(displayName), \
+        .description = COMPOUND_STRING(moveTypeName " moves: +40% once,\n+12% while recharging."), \
+        .iconGfx = sBloodGearIcon, \
+        .iconPal = gItemIconPalette_Blood_##type, \
+        .trigger = GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE, \
+        .cooldownTurns = 3, \
+        .typeMask = GEAR_TYPE(TYPE_##type), \
+        .overloadPowerPercent = 140, \
+        .residualPowerPercent = 112, \
+    },
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
 };

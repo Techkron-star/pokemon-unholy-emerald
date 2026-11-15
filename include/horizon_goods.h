@@ -1,7 +1,7 @@
 #ifndef GUARD_HORIZON_GOODS_H
 #define GUARD_HORIZON_GOODS_H
 
-#define HORIZON_GOODS_ITEM_COUNT 8
+#define HORIZON_GOODS_ITEM_COUNT 9
 #define HORIZON_GOODS_DISC_COUNT 6
 
 // Called from Horizon's existing saved-market refresh. Generates a new seed

@@ -216,7 +216,6 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 static const u8 sText_MenuDebug[] = _("DEBUG");
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
-#define UNHOLY_CRAFT_RECIPE_COUNT 8
 
 enum UnholyCraftStatus
 {
@@ -297,7 +296,7 @@ static const u8 *const sUnholyCraftStatuses[] =
 // Every ingredient is consumed; badges only unlock specific recipes.
 // The resulting Gear item can be installed via the EQUIP tab without
 // replacing a held item. Repeating a recipe creates another physical copy.
-static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_COUNT] =
+static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
 {
     { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE01_GET, 1,
       {{ ITEM_EXP_SHARE, 1 }} },
@@ -315,20 +314,13 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[UNHOLY_CRAFT_RECIPE_CO
       {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
     { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
       {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) \
+    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING(moveTypeName " moves: +40% once,\n+12% while recharging."), \
+      0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
 };
 
-// IDs 1..6 match the stable Gear enum values. A Gear is a tangible item in
-// the Bag, but lives in a separate Pokemon field after being installed.
-static const enum Item sUnholyGearItems[GEAR_COUNT] =
-{
-    [GEAR_NONE] = ITEM_NONE,
-    [GEAR_VISOR_COSMICO] = ITEM_GEAR_VISOR_COSMICO,
-    [GEAR_CORAZON_TITAN] = ITEM_GEAR_CORAZON_TITAN,
-    [GEAR_SKI_MASK] = ITEM_GEAR_SKI_MASK,
-    [GEAR_CETRO_SINIESTRO] = ITEM_GEAR_CETRO_SINIESTRO,
-    [GEAR_IMPULSO_COSMICO] = ITEM_GEAR_IMPULSO_COSMICO,
-    [GEAR_PERMAFROST_FRAGMENT] = ITEM_GEAR_PERMAFROST_FRAGMENT,
-};
 static const struct WindowTemplate sUnholyCraftWindow =
 {
     .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
@@ -481,12 +473,10 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
     sUnholyCraftIconSpriteId = AddItemIconSprite(TAG_UNHOLY_CRAFT_ICON, TAG_UNHOLY_CRAFT_ICON, itemId);
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
-        // Item sprites start near (0, 0); x2/y2 are relative offsets.
-        // Use absolute screen coordinates so the item remains visible.
-        gSprites[sUnholyCraftIconSpriteId].x = 190;
-        gSprites[sUnholyCraftIconSpriteId].y = 58;
-        gSprites[sUnholyCraftIconSpriteId].x2 = 0;
-        gSprites[sUnholyCraftIconSpriteId].y2 = 0;
+        struct Sprite *icon = &gSprites[sUnholyCraftIconSpriteId];
+        icon->x = 190;
+        icon->y = 58;
+        icon->oam.priority = 0;
     }
 }
 
@@ -547,7 +537,7 @@ static void UnholyCraftRenderMenu(void)
         enum Gear chosen = sUnholyCraftGearCursor;
 
         UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP GEAR"));
-        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(sUnholyGearItems[chosen]));
+        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(Gear_ToItem(chosen)));
         UnholyCraftPrint(6, 39, gStringVar4);
 
         StringCopy(gStringVar4, COMPOUND_STRING("PARTY "));
@@ -568,7 +558,7 @@ static void UnholyCraftRenderMenu(void)
         UnholyCraftPrint(6, 73, gStringVar4);
 
         StringCopy(gStringVar4, COMPOUND_STRING("IN BAG: "));
-        ConvertIntToDecimalStringN(gStringVar3, chosen == GEAR_NONE ? 0 : CountTotalItemQuantityInBag(sUnholyGearItems[chosen]), STR_CONV_MODE_LEFT_ALIGN, 3);
+        ConvertIntToDecimalStringN(gStringVar3, chosen == GEAR_NONE ? 0 : CountTotalItemQuantityInBag(Gear_ToItem(chosen)), STR_CONV_MODE_LEFT_ALIGN, 3);
         StringAppend(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("N/A") : gStringVar3);
         UnholyCraftPrint(6, 89, gStringVar4);
 
@@ -577,7 +567,7 @@ static void UnholyCraftRenderMenu(void)
         else
             UnholyCraftPrint(6, 105, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
         UnholyCraftPrint(4, 122, sUnholyEquipControls);
-        iconItem = chosen == GEAR_NONE ? ITEM_NONE : sUnholyGearItems[chosen];
+        iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }
 
     CopyWindowToVram(sUnholyCraftWindowId, COPYWIN_FULL);
@@ -657,8 +647,8 @@ static u8 UnholyCraftSwapGear(void)
     if (previous == selected)
         return CRAFT_STATUS_ALREADY;
 
-    incoming = sUnholyGearItems[selected];
-    outgoing = sUnholyGearItems[previous];
+    incoming = Gear_ToItem(selected);
+    outgoing = Gear_ToItem(previous);
 
     // Do not duplicate a Gear: remove its tangible inventory copy before equipping.
     if (incoming != ITEM_NONE && !RemoveBagItem(incoming, 1))
@@ -761,7 +751,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
     else if (JOY_NEW(DPAD_LEFT) || JOY_NEW(L_BUTTON))
     {
         if (sUnholyCraftMode == 0)
-            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + UNHOLY_CRAFT_RECIPE_COUNT - 1) % UNHOLY_CRAFT_RECIPE_COUNT;
+            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + ARRAY_COUNT(sUnholyCraftRecipes) - 1) % ARRAY_COUNT(sUnholyCraftRecipes);
         else
             sUnholyCraftGearCursor = (sUnholyCraftGearCursor + GEAR_COUNT - 1) % GEAR_COUNT;
         changed = TRUE;
@@ -769,7 +759,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
     else if (JOY_NEW(DPAD_RIGHT) || JOY_NEW(R_BUTTON))
     {
         if (sUnholyCraftMode == 0)
-            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + 1) % UNHOLY_CRAFT_RECIPE_COUNT;
+            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + 1) % ARRAY_COUNT(sUnholyCraftRecipes);
         else
             sUnholyCraftGearCursor = (sUnholyCraftGearCursor + 1) % GEAR_COUNT;
         changed = TRUE;

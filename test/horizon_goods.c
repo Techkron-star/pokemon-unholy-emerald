@@ -41,6 +41,8 @@ TEST("Horizon goods lists are deterministic for the same saved market")
     EXPECT_EQ(items[1], ITEM_POTION);
     EXPECT_EQ(items[2], ITEM_ESCAPE_ROPE);
     EXPECT_EQ(items[3], ITEM_LINKING_CORD);
+    EXPECT(items[HORIZON_GOODS_ITEM_COUNT - 1] >= ITEM_NORMAL_GEM);
+    EXPECT(items[HORIZON_GOODS_ITEM_COUNT - 1] <= ITEM_FAIRY_GEM);
     EXPECT_EQ(items[HORIZON_GOODS_ITEM_COUNT], ITEM_NONE);
     EXPECT_EQ(discs[HORIZON_GOODS_DISC_COUNT], ITEM_NONE);
 
