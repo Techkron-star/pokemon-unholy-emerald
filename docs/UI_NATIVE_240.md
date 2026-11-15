@@ -36,10 +36,6 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 - **Simulador:** selección de Pokémon, edición de IV/EV, comparación de estadísticas y revisión del pago. Las modificaciones se aplican solo al confirmar.
 - **Incursiones:** dificultad y requisito, jefe y equipo, probabilidad de captura, ronda actual y elección de recompensa. El panel no adelanta el estado de la incursión por dibujarse.
 
-## Resumen: página de movimientos
-
-Cada fila muestra el coste de stamina real del movimiento (`Stamina_CalcMoveCost` con la stamina máxima del Pokémon, la misma fórmula que usa el combate), si encadena (`CHAIN`) o no (`SOLO`: protecciones y similares) y sus PP. El coste es el previsto a partir de la stamina máxima; fuera de combate no hay stamina persistente.
-
 ## Controles de Resumen
 
 - START abre Trainer Tools: ramas evolutivas con progreso, gestor de movimientos de nivel/preevolución/huevo/MT/tutor, objeto, Gear, Simulador y cambio de mote. Véase [Preparación del equipo](TEAM_QOL.md).

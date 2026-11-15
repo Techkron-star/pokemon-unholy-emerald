@@ -56,10 +56,11 @@ bool32 Stamina_IsExhausted(enum BattlerId battler)
     return gBattleStruct->staminaExhausted[battler];
 }
 
-u32 Stamina_CalcMoveCost(u32 maxStamina, enum Move move)
+u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
 {
     // Every battler pays the same share of their own capacity. This keeps
     // cheap moves and status moves relevant even at the level cap.
+    u32 maxStamina = Stamina_GetMax(battler);
     u32 power = GetMovePower(move);
     u32 accuracy = GetMoveAccuracy(move);
     u32 percent;
@@ -73,11 +74,6 @@ u32 Stamina_CalcMoveCost(u32 maxStamina, enum Move move)
             + (power * accuracy / 100) / STAMINA_COST_POWER_DIVISOR;
     // Ceiling prevents tiny fractional costs from disappearing at low levels.
     return (maxStamina * percent + 99) / 100;
-}
-
-u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
-{
-    return Stamina_CalcMoveCost(Stamina_GetMax(battler), move);
 }
 
 void Stamina_SpendForMove(enum BattlerId battler, enum Move move)

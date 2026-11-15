@@ -15,8 +15,6 @@ u32 Stamina_GetMax(enum BattlerId battler);
 bool32 Stamina_IsExhausted(enum BattlerId battler);
 
 // Costo de usar un movimiento.
-// Coste de un movimiento para una capacidad dada; sin estado de combate (Resumen y combate).
-u32 Stamina_CalcMoveCost(u32 maxStamina, enum Move move);
 u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move);
 
 // Se llama cuando un movimiento se ejecuta (junto con la deducción de PP).
