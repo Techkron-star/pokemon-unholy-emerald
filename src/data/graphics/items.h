@@ -1385,6 +1385,8 @@ const u32 gItemIcon_PermafrostFragment[] = INCGFX_U32("graphics/items/icons/perm
 const u16 gItemIconPalette_PermafrostFragment[] = INCGFX_U16("graphics/items/icon_palettes/permafrost_fragment.pal", ".gbapal");
 
 const u32 gItemIcon_BloodVial[] = INCGFX_U32("graphics/items/icons/blood_vial.png", ".4bpp.smol");
+const u32 gItemIcon_StormStaff[] = INCGFX_U32("graphics/items/icons/storm_staff.png", ".4bpp.smol");
+const u16 gItemIconPalette_StormStaff[] = INCGFX_U16("graphics/items/icon_palettes/storm_staff.pal", ".gbapal");
 const u16 gItemIconPalette_Blood_NORMAL[] = INCGFX_U16("graphics/items/icon_palettes/blood_normal.pal", ".gbapal");
 const u32 gItemIcon_BloodFire[] = INCGFX_U32("graphics/unholy_concepts/icons/sangre_flamigera.png", ".4bpp.smol");
 const u16 gItemIconPalette_Blood_FIRE[] = INCGFX_U16("graphics/unholy_concepts/palettes/sangre_flamigera.pal", ".gbapal");

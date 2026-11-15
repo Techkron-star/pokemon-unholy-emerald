@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** los seis Gears originales y las 18 Sangres tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
+**Estado:** los seis Gears originales, los 18 Inyectores y el Báculo Tormentoso tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
 
 ## Cómo funciona
 
@@ -138,11 +138,21 @@ El sistema actual cubre bonificaciones de potencia con filtros. Para un efecto d
 
 ## Efectos y estado de implementación
 
-### Inyecciones sanguíneas
+### Inyectores
 
-Una por cada tipo clásico. En la tanda de balance inicial, la Sangre da **+40 % de potencia** al primer movimiento dañino de su tipo. Después da **+12 %** durante tres finales de turno, contando el de activación. Si dos ataques compatibles se encadenan, el primero recibe el +40 % y el segundo el +12 %. La recarga se conserva al cambiar de Pokémon. Cuando además se activa una gema, tabla u otro objeto equipado que refuerza ese mismo tipo, se promedian los bonos y la gema conserva su consumo normal.
+Uno por cada tipo clásico. En la tanda de balance inicial, el Inyector da **+40 % de potencia** al primer movimiento dañino de su tipo. Después da **+12 %** durante tres finales de turno, contando el de activación. Si dos ataques compatibles se encadenan, el primero recibe el +40 % y el segundo el +12 %. La recarga se conserva al cambiar de Pokémon. Cuando además se activa una gema, tabla u otro objeto equipado que refuerza ese mismo tipo, se promedian los bonos y la gema conserva su consumo normal.
 
-Cada receta usa **1 Polvo Estelar y 1 gema del tipo correspondiente**. Horizon vende una gema por rotación en Objetos. Las cuatro Sangres con arte propio en la mochila conservan sus iconos y las demás usan el vial con una paleta por tipo. El catálogo con nombres y tipos está en [`include/constants/blood_gears.h`](../include/constants/blood_gears.h).
+Cada receta usa **1 Polvo Estelar y 1 gema del tipo correspondiente**. Horizon vende una gema por rotación en Objetos. Los cuatro Inyectores con arte propio en la mochila conservan sus iconos y los demás usan el vial con una paleta por tipo. El catálogo con nombres y tipos está en [`include/constants/blood_gears.h`](../include/constants/blood_gears.h).
+
+### Báculo Tormentoso
+
+El Báculo es pasivo. Un ataque especial que acierta a un solo objetivo puede dar un segundo golpe con **25 % de su potencia**, sin gastar PP ni Stamina adicionales. Si el primer golpe derrota al objetivo, termina ahí. El golpe adicional usa las reglas de multigolpe, incluidas las interacciones con Sustituto y los objetos que se activan entre golpes.
+
+El Báculo suprime los efectos secundarios del ataque especial, incluso los de probabilidad del 100 %. El ataque conserva sus efectos principales, como la bajada de Ataque Especial al usar Sofoco, una vez por movimiento. Un portador puede combinar un ataque especial con uno físico o de estado en una cadena. Jugador e IA quedan sujetos al límite al elegir y al resolver movimientos de categoría variable.
+
+En esta primera versión, los ataques con varios objetivos activos, los multigolpe nativos, los movimientos de dos turnos, los golpes diferidos, de daño fijo o de KO directo y los movimientos Z y Max mantienen su cantidad de impactos original.
+
+**Receta inicial**. 1 Piedra Trueno, 1 Imán y 1 Trozo Estrella. En equipos de entrenador se usa `Gear: Storm Staff`.
 
 | Gear | Efecto confirmado | Qué falta |
 |---|---|---|
@@ -187,7 +197,7 @@ La Super Exp. Share conserva su receta original y su comprobacion por script: 1 
 
 ## Gears en equipos de entrenador
 
-En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. Para las Sangres, usa el tipo en inglés, por ejemplo `Gear: Blood Fire`. El objeto del encabezado `Especie @ Objeto` ocupa su ranura habitual. Si se omite `Gear:`, el Pokémon se genera sin Gear.
+En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. Para los Inyectores, usa el tipo en inglés, por ejemplo `Gear: Blood Fire`. El objeto del encabezado `Especie @ Objeto` ocupa su ranura habitual. Si se omite `Gear:`, el Pokémon se genera sin Gear.
 
 | Combate | Pokémon | Gear | Objeto |
 |---|---|---|---|

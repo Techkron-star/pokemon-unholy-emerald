@@ -1,5 +1,6 @@
 #include "global.h"
 #include "battle.h"
+#include "battle_chain.h"
 #include "battle_util.h"
 #include "malloc.h"
 #include "pokemon.h"
@@ -125,6 +126,57 @@ TEST("Unholy Blood Gear overload is spent once and recharges once per turn")
     *mon = previousMon;
     gBattlerPartyIndexes[B_BATTLER_0] = previousSlot;
     gBattleTypeFlags = previousBattleType;
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
+
+TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special moves")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
+    struct Pokemon previousMon = *mon;
+    u16 previousSlot = gBattlerPartyIndexes[B_BATTLER_0];
+    u8 previousAction = gCurrentTurnActionNumber;
+    u8 previousOrder0 = gBattlerByTurnOrder[0];
+    u8 previousOrder1 = gBattlerByTurnOrder[1];
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    CreateMonWithIVs(mon, SPECIES_ABRA, 40, 0, OTID_STRUCT_PRESET(1), 10);
+    EXPECT_EQ(Gear_FromItem(ITEM_GEAR_STORM_STAFF), GEAR_STORM_STAFF);
+    EXPECT_EQ(GetItemDisplayPocket(ITEM_GEAR_STORM_STAFF), POCKET_GEARS);
+    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_WATER_GUN));
+    Gear_SetEquipped(mon, GEAR_STORM_STAFF);
+    gBattleStruct->gearOwner[B_BATTLER_0] = 0;
+    EXPECT(!Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_WATER_GUN));
+    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_SCRATCH));
+    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_CALM_MIND, MOVE_EMBER));
+    EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE);
+    Gear_EndOfTurn(B_BATTLER_0);
+    EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
+
+    gBattleStruct->numTurnActions = 2;
+    gBattleStruct->turnActionRole[1] = 1;
+    gBattlerByTurnOrder[0] = B_BATTLER_0;
+    gBattlerByTurnOrder[1] = B_BATTLER_0;
+    gCurrentTurnActionNumber = 0;
+    gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_SPECIAL;
+    EXPECT(Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_EMBER));
+    EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_WATER_SHURIKEN));
+    EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_PSYWAVE));
+    EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_FUTURE_SIGHT));
+    EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_EMBER));
+    gCurrentTurnActionNumber = 1;
+    EXPECT(!Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_SCRATCH));
+    gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_PHYSICAL;
+    EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_SCRATCH));
+
+    *mon = previousMon;
+    gBattlerPartyIndexes[B_BATTLER_0] = previousSlot;
+    gCurrentTurnActionNumber = previousAction;
+    gBattlerByTurnOrder[0] = previousOrder0;
+    gBattlerByTurnOrder[1] = previousOrder1;
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
 }

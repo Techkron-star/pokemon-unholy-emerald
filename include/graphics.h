@@ -1293,6 +1293,8 @@ extern const u16 gItemIconPalette_ImpulsoCosmico[];
 extern const u32 gItemIcon_PermafrostFragment[];
 extern const u16 gItemIconPalette_PermafrostFragment[];
 extern const u32 gItemIcon_BloodVial[];
+extern const u32 gItemIcon_StormStaff[];
+extern const u16 gItemIconPalette_StormStaff[];
 extern const u32 gItemIcon_BloodFire[];
 extern const u32 gItemIcon_BloodDragon[];
 extern const u32 gItemIcon_BloodDark[];

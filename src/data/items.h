@@ -10044,6 +10044,19 @@ const struct ItemInfo gItemsInfo[] =
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
 
+    [ITEM_GEAR_STORM_STAFF] =
+    {
+        .name = ITEM_NAME("Báculo Tormentoso"),
+        .description = COMPOUND_STRING("Extra Sp. hit: 25%.\nNo secondaries or\ndouble Sp. chains."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_StormStaff,
+        .iconPalette = gItemIconPalette_StormStaff,
+    },
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

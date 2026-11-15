@@ -1,6 +1,8 @@
 #include "global.h"
 #include "battle.h"
 #include "battle_controllers.h"
+#include "battle_dynamax.h"
+#include "battle_z_move.h"
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -38,6 +40,7 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_CETRO_SINIESTRO: return GEAR_CETRO_SINIESTRO;
     case ITEM_GEAR_IMPULSO_COSMICO: return GEAR_IMPULSO_COSMICO;
     case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
+    case ITEM_GEAR_STORM_STAFF: return GEAR_STORM_STAFF;
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case ITEM_GEAR_BLOOD_##type: return GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -55,6 +58,7 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_CETRO_SINIESTRO: return ITEM_GEAR_CETRO_SINIESTRO;
     case GEAR_IMPULSO_COSMICO: return ITEM_GEAR_IMPULSO_COSMICO;
     case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
+    case GEAR_STORM_STAFF: return ITEM_GEAR_STORM_STAFF;
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case GEAR_BLOOD_##type: return ITEM_GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -216,6 +220,49 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
     return (percent * 4096 + 50) / 100;
 }
 
+bool32 Gear_StormStaffRepeatsMove(enum BattlerId battler, enum Move move)
+{
+    if (!IsBattleMoveSpecial(move)
+     || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF
+     || IsMultiHitMove(move)
+     || GetMoveStrikeCount(move) > 1
+     || GetMovePower(move) == 0
+     || IsMoveParentalBondBanned(move)
+     || IsZMove(move)
+     || IsMaxMove(move))
+        return FALSE;
+
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+    if (gBattleMoveEffects[effect].twoTurnEffect)
+        return FALSE;
+
+    switch (effect)
+    {
+    case EFFECT_OHKO:
+    case EFFECT_LEVEL_DAMAGE:
+    case EFFECT_PSYWAVE:
+    case EFFECT_FIXED_HP_DAMAGE:
+    case EFFECT_FIXED_PERCENT_DAMAGE:
+    case EFFECT_FINAL_GAMBIT:
+    case EFFECT_REFLECT_DAMAGE:
+    case EFFECT_ENDEAVOR:
+    case EFFECT_BIDE:
+    case EFFECT_FUTURE_SIGHT:
+        return FALSE;
+    default:
+        return TRUE;
+    }
+}
+
+bool32 Gear_SuppressesAdditionalEffect(enum BattlerId battler, enum Move move, const struct AdditionalEffect *effect)
+{
+    if (gSpecialStatuses[battler].stormStaffStrike && gSpecialStatuses[battler].multiHitOn)
+        return TRUE;
+
+    return effect->chance != 0 && IsBattleMoveSpecial(move)
+        && Gear_GetBattlerGear(battler) == GEAR_STORM_STAFF;
+}
+
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
 {
     struct GearCycle *cycle;
@@ -227,6 +274,9 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         return;
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
+    if (info->trigger == GEAR_TRIGGER_PASSIVE)
+        return;
+
     gBattleStruct->gearSnapshotMove[battler] = move;
     gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(cycle, move, moveType);
 

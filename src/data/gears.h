@@ -31,6 +31,8 @@ static const u16 sGearIconPal_PermafrostFragment[] = INCGFX_U16("graphics/gears/
 
 static const u32 sBloodGearIcon[] = INCGFX_U32("graphics/gears/blood_vial/icon.png", ".4bpp");
 
+static const u32 sStormStaffIcon[] = INCGFX_U32("graphics/gears/storm_staff/icon.png", ".4bpp");
+
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
     [GEAR_NONE] = {0},
@@ -127,4 +129,12 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     },
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
+    [GEAR_STORM_STAFF] =
+    {
+        .name = COMPOUND_STRING("Báculo Tormentoso"),
+        .description = COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondaries or two Sp. moves in a chain."),
+        .iconGfx = sStormStaffIcon,
+        .iconPal = gItemIconPalette_StormStaff,
+        .trigger = GEAR_TRIGGER_PASSIVE,
+    },
 };

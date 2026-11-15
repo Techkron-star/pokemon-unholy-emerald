@@ -6,6 +6,7 @@
 #include "move.h"
 #include "battle_stamina.h"
 #include "battle_chain.h"
+#include "gear.h"
 #include "task.h"
 
 bool32 Chain_IsAvailable(enum BattlerId battler)
@@ -24,6 +25,13 @@ bool32 Chain_IsMoveChainable(enum Move move)
     enum BattleMoveEffects effect = GetMoveEffect(move);
 
     return move != MOVE_NONE && effect != EFFECT_PROTECT && effect != EFFECT_ENDURE;
+}
+
+bool32 Chain_IsPairAllowed(enum BattlerId battler, enum Move first, enum Move second)
+{
+    return GetMoveCategory(first) != DAMAGE_CATEGORY_SPECIAL
+        || GetMoveCategory(second) != DAMAGE_CATEGORY_SPECIAL
+        || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF;
 }
 
 u32 Chain_GetNumTurnActions(void)
@@ -73,6 +81,7 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
          || moveInfo->moves[movePos] == MOVE_NONE
          || moveInfo->currentPP[movePos] == 0
          || !Chain_IsMoveChainable(moveInfo->moves[movePos])
+         || !Chain_IsPairAllowed(battler, moveInfo->moves[firstMovePos], moveInfo->moves[movePos])
          || firstMoveCost + Stamina_GetMoveCost(battler, moveInfo->moves[movePos]) >= remainingStamina)
             continue;
 
@@ -169,6 +178,7 @@ void Chain_ExpandTurnOrder(void)
 
     gBattleStruct->numTurnActions = 0;
     gBattleStruct->chainTurnInterrupted = FALSE;
+    gBattleStruct->chainSpecialMask = 0;
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));
 
     if (!playerChains && !rivalChains)
@@ -226,7 +236,8 @@ static bool32 PickDifferentRivalMove(enum BattlerId battler)
 
         if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0)
             continue;
-        if (Stamina_GetMoveCost(battler, move) >= Stamina_GetCurrent(battler))
+        if (!Chain_IsPairAllowed(battler, usedMove, move)
+         || Stamina_GetMoveCost(battler, move) >= Stamina_GetCurrent(battler))
             continue;
         if (bestPos == MAX_MON_MOVES || GetMovePower(move) >= bestPower)
         {
@@ -238,6 +249,24 @@ static bool32 PickDifferentRivalMove(enum BattlerId battler)
     if (bestPos == MAX_MON_MOVES)
         return FALSE;
     gBattleStruct->chosenMovePositions[battler] = bestPos;
+    return TRUE;
+}
+
+bool32 Chain_AllowsResolvedCategory(enum BattlerId battler, enum Move move)
+{
+    u32 action = gCurrentTurnActionNumber;
+    if (gBattleStruct->numTurnActions == 0
+     || action >= gBattleStruct->numTurnActions
+     || gBattlerByTurnOrder[action] != battler
+     || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF)
+        return TRUE;
+
+    bool32 special = IsBattleMoveSpecial(move);
+    if (gBattleStruct->turnActionRole[action] != CHAIN_ROLE_NORMAL)
+        return !special || !(gBattleStruct->chainSpecialMask & (1u << battler));
+
+    if (special)
+        gBattleStruct->chainSpecialMask |= 1u << battler;
     return TRUE;
 }
 
@@ -258,7 +287,13 @@ bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex)
     if (Stamina_IsExhausted(battler))
         return TRUE;
 
-    gBattleStruct->chosenMovePositions[battler] = gBattleStruct->chainSecondPos[battler] - 1;
+    u8 first = gBattleStruct->chosenMovePositions[battler];
+    u8 second = gBattleStruct->chainSecondPos[battler] - 1;
+    if (first >= MAX_MON_MOVES || second >= MAX_MON_MOVES
+     || !Chain_IsPairAllowed(battler, gBattleMons[battler].moves[first], gBattleMons[battler].moves[second]))
+        return TRUE;
+
+    gBattleStruct->chosenMovePositions[battler] = second;
     if (!IsOnPlayerSide(battler))
         Chain_ShowOpponentSignal(battler);
     return FALSE;
@@ -286,6 +321,7 @@ bool32 Chain_WasInterrupted(void)
 
 void Chain_Reset(void)
 {
+    gBattleStruct->chainSpecialMask = 0;
     memset(gBattleStruct->chainFirstPos, 0, sizeof(gBattleStruct->chainFirstPos));
     memset(gBattleStruct->chainSecondPos, 0, sizeof(gBattleStruct->chainSecondPos));
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));

@@ -6,6 +6,7 @@
 #include "battle_ai_record.h"
 #include "battle_util.h"
 #include "battle_stamina.h"
+#include "battle_chain.h"
 #include "gear.h"
 #include "battle_move_resolution.h"
 #include "battle_script_commands.h"
@@ -993,6 +994,11 @@ static enum CancelerResult CancelerSetTargets(struct BattleCalcValues *cv)
     }
 
     SetDynamicMoveCategory(cv->battlerAtk, cv->battlerDef, cv->move);
+    if (!Chain_AllowsResolvedCategory(cv->battlerAtk, cv->move))
+    {
+        gBattlescriptCurrInstr = BattleScript_ButItFailed;
+        return CANCELER_RESULT_FAILURE;
+    }
     return CANCELER_RESULT_SUCCESS;
 }
 
@@ -2394,6 +2400,12 @@ static enum CancelerResult CancelerMultihitMoves(struct BattleCalcValues *cv)
 
         PREPARE_BYTE_NUMBER_BUFFER(gBattleScripting.multihitString, 1, 0)
     }
+    else if (gBattleStruct->numSpreadTargets <= 1 && Gear_StormStaffRepeatsMove(cv->battlerAtk, cv->move))
+    {
+        gSpecialStatuses[cv->battlerAtk].stormStaffStrike = TRUE;
+        gMultiHitCounter = 2;
+        PREPARE_BYTE_NUMBER_BUFFER(gBattleScripting.multihitString, 1, 0)
+    }
     else if (IsMoveParentalBondAffected(cv))
     {
         gSpecialStatuses[gBattlerAttacker].parentalBondState = PARENTAL_BOND_1ST_HIT;
@@ -2613,7 +2625,7 @@ static enum CancelerResult CancelerPreAttackMoveEffect(struct BattleCalcValues *
             const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(cv->move, gBattleStruct->additionalEffectsCounter);
             gBattleStruct->additionalEffectsCounter++;
 
-            if (!additionalEffect->preAttackEffect)
+            if (!additionalEffect->preAttackEffect || Gear_SuppressesAdditionalEffect(cv->battlerAtk, cv->move, additionalEffect))
                 continue;
 
             bool32 isSelf = gEffectBattler == cv->battlerAtk;
@@ -2773,7 +2785,8 @@ static enum CancelerResult CancelerPreAnimActivations(struct BattleCalcValues *c
 
 static enum CancelerResult CancelerMoveAnimation(struct BattleCalcValues *cv)
 {
-    if (gSpecialStatuses[cv->battlerAtk].parentalBondState == PARENTAL_BOND_2ND_HIT)
+    if (gSpecialStatuses[cv->battlerAtk].parentalBondState == PARENTAL_BOND_2ND_HIT
+     || (gSpecialStatuses[cv->battlerAtk].stormStaffStrike && gSpecialStatuses[cv->battlerAtk].multiHitOn))
         return CANCELER_RESULT_SUCCESS;
 
     bool32 isAnimDisabled = (gHitMarker & (HITMARKER_NO_ANIMATIONS | HITMARKER_DISABLE_ANIMATION)
@@ -4054,6 +4067,8 @@ static enum MoveEndResult MoveEndMultihitMove(struct BattleCalcValues *cv)
                 gBattleScripting.animTargetsHit = 0;
                 gBattleScripting.moveendState = 0;
                 gSpecialStatuses[cv->battlerAtk].multiHitOn = TRUE;
+                if (gSpecialStatuses[cv->battlerAtk].stormStaffStrike)
+                    gBattleStruct->gearActivations[cv->battlerAtk]++;
                 BattleScriptPush(GetMoveBattleScript(cv->move));
                 gBattlescriptCurrInstr = BattleScript_FlushMessageBox;
                 return MOVEEND_RESULT_BREAK;
@@ -4068,6 +4083,7 @@ static enum MoveEndResult MoveEndMultihitMove(struct BattleCalcValues *cv)
 
     gMultiHitCounter = 0;
     gSpecialStatuses[cv->battlerAtk].parentalBondState = PARENTAL_BOND_OFF;
+    gSpecialStatuses[cv->battlerAtk].stormStaffStrike = FALSE;
     gSpecialStatuses[cv->battlerAtk].multiHitOn = 0;
     gBattleScripting.moveendState++;
     return result;
