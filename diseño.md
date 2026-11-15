@@ -360,7 +360,7 @@ Caso memorable **posible**, no obligatorio ni fijo en cada racha:
 
 1. La Cofradía subvenciona un **Ultra Necrozma Omega**, incluso con otras mutaciones como **Hyper y Ascendido**, según las reglas de apilamiento habilitadas.
 2. Puede llevar un **objeto que potencie Ataque Especial** (por ejemplo, Gafas Elegidas, con sus restricciones habituales, o una variante propia de Unholy si se define), además de **un Gear independiente**.
-3. Gears candidatos para variantes de este combate: **Psicosangre**, **Tesseracto** o **Báculo Tormentoso**. **No son tres Gears simultáneos**: cada configuración elige uno, salvo cambio futuro explícito del sistema general de equipamiento.
+3. Gears candidatos para variantes de este combate: **Inyector Psíquico**, **Tesseracto** o **Báculo Tormentoso**. **No son tres Gears simultáneos**: cada configuración elige uno, salvo cambio futuro explícito del sistema general de equipamiento.
 4. Si el jugador consigue derribar a Ultra Necrozma, el siguiente Pokémon del rival **puede ser Floette Flor Eterna**. Su mutación, objeto y Gear específicos quedan a decisión del balance y de las variantes del encuentro.
 5. Otros miembros del equipo pueden ser Pokémon inusuales con sets deliberadamente diseñados para frenar la racha.
 
@@ -416,14 +416,14 @@ Para evitar comportamientos contradictorios, la implementación debe fijar y pro
 - **Stamina y PP:** la segunda descarga es parte de la misma ejecución, no un segundo movimiento elegido; propuesta: no cobrar otra vez PP/stamina por el impacto adicional.
 - **Gears y habilidades activadas al impactar:** evitar recursión o un tercer golpe no previsto. Precisar interacciones con otras mecánicas antes de programar.
 - **Interfaz:** mostrar el Gear activo en Resumen y HUD de batalla y dar una indicación visual/sonora de la segunda descarga. La restricción de encadenamiento debe verse antes de confirmar una cadena inválida.
-- **Objeto + Gear:** puede coexistir con un objeto que suba Ataque Especial porque son slots distintos. Esto exige balancear el daño total, sin fingir que Psicosangre, Tesseracto y Báculo funcionan simultáneamente.
+- **Objeto + Gear:** puede coexistir con un objeto que suba Ataque Especial porque son slots distintos. Esto exige balancear el daño total, sin fingir que Inyector Psíquico, Tesseracto y Báculo funcionan simultáneamente.
 
 ### 11.3. Disponibilidad y balance
 
 - El **Báculo Tormentoso** es un nuevo Gear propuesto para Unholy Emerald, no una función ya programada.
 - Puede ser una recompensa rara de la **Torre Celestial** o formar parte de su equipamiento de élite; receta, tasa de obtención, ID, descripción final, sprite y sonido **pendientes**.
 - La Cofradía puede usarlo en sus intervenciones con equipos ofensivos de alto nivel, incluido Ultra Necrozma.
-- Debe ser poderoso sin invalidar por completo las demás opciones de Gear. Comparar su rendimiento frente a **Psicosangre** y **Tesseracto** en combates comunes, jefes y cadenas.
+- Debe ser poderoso sin invalidar por completo las demás opciones de Gear. Comparar su rendimiento frente a **Inyector Psíquico** y **Tesseracto** en combates comunes, jefes y cadenas.
 
 ### 11.4. Pruebas de aceptación futuras
 
@@ -490,7 +490,7 @@ Esto es un objetivo de comportamiento, no una orden de sustituir a ciegas la col
 - Verificar la regeneración del 18 % con máximos de stamina grandes/pequeños, redondeo, stamina casi llena y stamina insuficiente para el segundo ataque.
 - Confirmar que una cadena no regenera stamina entre ataques y que el segundo gasto del 150 % se aplica al movimiento correcto, sin desbordamiento.
 - Validar que la IA cumple las mismas limitaciones y que nunca vuelve a actuar tras cancelar la cadena por KO.
-- Probar interacciones con **Báculo Tormentoso, Psicosangre, Tesseracto**, mutaciones acumuladas y las intervenciones de **La Cofradía**, sin ventajas ocultas del motor para NPC.
+- Probar interacciones con **Báculo Tormentoso, Inyector Psíquico, Tesseracto**, mutaciones acumuladas y las intervenciones de **La Cofradía**, sin ventajas ocultas del motor para NPC.
 - Hacer QA de la UI de selección y ejecución en emulador: mensajes naturales, datos alineados, animaciones correctas y ausencia de acciones repetidas involuntariamente.
 
 **No cambiar todavía otros sistemas de stamina ni tasas propias de habilidades/Gears** sin medir primero el efecto de estas tres modificaciones principales: 70 % de daño en el segundo ataque, +50 % a su coste de stamina y 18 % de regeneración pasiva.
@@ -639,7 +639,7 @@ Los estados alterados influyen en la **economía de stamina** además de sus efe
 - Duración sugerida para el Gear: **1 turno completo de restricción** tras la aplicación efectiva, con la segunda acción actual cancelada si todavía no se ejecutó. Definir exactamente en qué cierre de turno vence antes de programar.
 - **No acumular cargas** ni prolongar indefinidamente al reaplicar cuando el estado ya está activo; limitar frecuencia y probar si hace falta un intervalo de resistencia a reaplicaciones.
 - No confiere un bloqueo pasivo a todo el equipo rival ni anula automáticamente cadenas al entrar al campo.
-- Respeta la regla de **un Gear equipado** por Pokémon; no se combina con Báculo Tormentoso o Psicosangre simultáneamente salvo que una mecánica futura habilite explícitamente múltiples slots.
+- Respeta la regla de **un Gear equipado** por Pokémon; no se combina con Báculo Tormentoso o Inyector Psíquico simultáneamente salvo que una mecánica futura habilite explícitamente múltiples slots.
 
 ### 15.3. Movimiento de estado candidato
 
@@ -677,4 +677,40 @@ Crear un **movimiento de estado** que aplique el mismo estado **Encadenado** com
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Incorporado diseño del estado Encadenado y candidatos Gear Grillete/movimiento de estado (sección 15), además de estados y stamina, encadenamiento 2.0, Cofradía, Torre Celestial y Báculo Tormentoso; apartados futuros pendientes de implementación y balance.*
+## 16. Familia de Gears: Inyectores elementales (renombramiento)
+
+> **Decisión de nomenclatura:** la familia de 18 Gears de afinidad elemental se llama **Inyectores**. Los nombres anteriores basados en «sangre» o «inyecciones sanguíneas» quedan **obsoletos para nuevos textos y diseños**. Es un cambio de denominación, **no de efectos, estadísticas, cantidades ni probabilidades**. Pendiente de revisar la integración real en las ramas donde estén implementados.
+
+### 16.1. Identidad y funcionamiento
+
+- **Nombre de la familia:** Inyectores elementales (o simplemente **Inyectores** en la interfaz).
+- **Cantidad:** exactamente **18 variantes**, una por cada tipo Pokémon.
+- **Nombre canónico:** **Inyector + tipo**. Ejemplo: **Inyector Psíquico**.
+- **Mecánica:** Gears de afinidad elemental con **sobrecarga y efecto residual cíclico**, según las reglas ya establecidas para esta familia. El cambio de nombre **no altera** sus activaciones, ciclo, duración ni balance.
+- **Equipamiento:** respetar el slot de Gear separado del objeto equipado y las reglas generales de activación, avisos en HUD y resumen.
+
+### 16.2. Catálogo nominal (18 tipos)
+
+| | | |
+|---|---|---|
+| Inyector Normal | Inyector Fuego | Inyector Agua |
+| Inyector Planta | Inyector Eléctrico | Inyector Hielo |
+| Inyector Lucha | Inyector Veneno | Inyector Tierra |
+| Inyector Volador | **Inyector Psíquico** | Inyector Bicho |
+| Inyector Roca | Inyector Fantasma | Inyector Dragón |
+| Inyector Siniestro | Inyector Acero | Inyector Hada |
+
+Estos son los **nombres de diseño**, no una asignación de IDs ni prueba de que los 18 ya estén codificados. Si el límite de caracteres de los nombres de objetos de la ROM exige abreviar, definir nombres cortos consistentes **sin recortar de forma confusa los tipos** y mantener los nombres completos en la documentación.
+
+### 16.3. Actualización de referencias, compatibilidad y QA
+
+1. Usar **«Inyectores»** como nombre de la categoría/familia en documentación, crafting, menús y fichas cuando se implementen.
+2. Sustituir la referencia anterior al Gear de tipo Psíquico por **«Inyector Psíquico»** en las configuraciones de combate de **La Cofradía**, en las comparaciones con **Báculo Tormentoso** y en los ejemplos de balance.
+3. **Conservar los IDs de objetos, estados de guardado y lógica de los Gears**; no crear 18 entradas duplicadas solo para renombrarlas.
+4. La migración de literales, descripciones, identificadores internos o recursos en ramas de código existentes **requiere auditoría**; renombrar claves internas solo si es seguro y sin romper referencias ni compatibilidad de guardados.
+5. Comprobar que **cada uno de los 18 tipos** aparezca una sola vez y que el texto sea legible en las ventanas de GBA, sin desbordamientos.
+6. Mantener los efectos de sobrecarga/residuales intactos hasta que se apruebe un balance específico. Este cambio es exclusivamente de **nomenclatura**.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Añadido el renombramiento de la familia de 18 Gears a Inyectores (sección 16), conservando sus efectos y dejando la migración de código pendiente de auditoría; siguen vigentes Cofradía, Torre Celestial, Báculo Tormentoso y Encadenamiento 2.0.*
