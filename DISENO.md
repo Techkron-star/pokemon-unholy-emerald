@@ -20,14 +20,14 @@ Punto de partida: [PR #31, `678927a`](https://github.com/Techkron-star/pokemon-u
 | --- | --- | --- |
 | **0 · ROM de referencia** | Recuperar la compilación de Horizon. Clasificar los fallos de la suite, incluidos agotamiento de sprites y casos de captura. Revisar Horizon, mochila, Stamina, cadenas y guardado. | Compilan Emerald, FireRed, LeafGreen y release. La suite se compara con #30 y se investigan las diferencias. Pruebas de compra, cancelación, guardado/carga y batallas individuales y dobles. Capturas de Horizon a 240×160 en Eclipse y Daylight. |
 | **1 · QoL de aventura** | Eliminar la animación residual del profesor en la introducción rápida si se reproduce, agilizar diálogos repetidos de jefes y construir Pokélocator de consulta por ruta reutilizando los datos de encuentros. A continuación, filtros y protección del PC y datos de variantes en Pokédex+. | Verificar partida nueva, guardado existente, primer intento/reintento, rutas con distintos métodos y horarios de encuentro y navegación del PC. El modificador de mutaciones del Pokélocator se programa cuando estén definidos su coste, duración y límites. |
-| **2 · Objetos, Gears y sprites** | Completar de punta a punta los seis Gears existentes: obtención, mochila, EQUIP, efecto y HUD. Después ampliar el catálogo por familias y balancear progresión y recetas. Conservar los iconos ya aprobados y producir los faltantes. | Probar adquisición, cancelación, inventario lleno, reemplazo del Gear, guardado y daño real. Iconos de objeto de 24×24 y HUD de dos cuadros de 16×16, en 4 bpp con índice 0 transparente, convertidos por `gbagfx` y comprobados en ambos temas. La familia Sangre tiene exactamente una entrada por cada uno de los 18 tipos. |
+| **2 · Objetos, Gears y sprites** | Completar de punta a punta los seis Gears existentes: obtención, mochila, EQUIP, efecto y HUD. Después ampliar el catálogo por familias y balancear progresión y recetas. Conservar los iconos ya aprobados y producir los faltantes. | Probar adquisición, cancelación, inventario lleno, reemplazo del Gear, guardado y daño real. Iconos de objeto de 24×24 y HUD de dos cuadros de 16×16, en 4 bpp con índice 0 transparente, convertidos por `gbagfx` y comprobados en ambos temas. La familia de Inyectores tiene exactamente una entrada por cada uno de los 18 tipos. |
 | **3 · IA y jefes** | Auditar [la primera entrega de IA](docs/IA_JEFES_REVANCHAS_Y_MUTACIONES.md) contra la rama de integración y rescatar solo los cambios faltantes. Ajustar valoración de KO, efectividad, coste de Stamina, encadenamiento, cambios y fase de Gear. Introducir equipos con objeto ordinario y Gear simultáneos. | Escenarios reproducibles de entrenadores comunes y jefes en individuales y dobles: elegir ataques asequibles, evitar cambios cíclicos y cadenas inválidas, respetar la información revelada y compartir las reglas de Stamina y Gear. Probar primero un jefe completo antes de extender perfiles a toda Hoenn. |
 | **4 · Progresión y persistencia** | Implementar Repartir EXP Sobrecargado, Poké Simulator, crianza ampliada y Mutator según sus reglas. Desarrollar identidad persistente y migraciones donde la función lo requiera. | Verificar límites, costes y desbloqueos por medalla, reinicio tras guardar, recuperación ante datos dañados, traslado entre equipo/PC/guardería y exclusión de Omega del Mutator. Validar el backend extendido en una ROM de diagnóstico antes de guardar progreso allí. |
 | **5 · Combate avanzado y post-game** | Completar habilidades, estados y Gears con interacciones complejas. Añadir revanchas, Super Liga y legendarios Omega. | Probar desde una partida de campeón de Hoenn, verificar recompensas y reapariciones, y medir balance de cadenas, Gears y mutaciones en equipos completos. |
 
 **Orden de trabajo.** Partir de la última ROM verificada. Usar una rama y una revisión pequeña por entrega jugable. Para cada objeto, recorrer datos → obtención → uso → efecto → sprite → pruebas. Los sprites pueden prepararse en paralelo reutilizando las paletas e iconos existentes. La IA comparte los cálculos de coste y daño del combate; sus simulaciones deben ser de solo lectura. Antes de ampliar una familia, validar una muestra representativa en la ROM.
 
-**Decisiones ya registradas.** El [catálogo de Gears del PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) incluye las 18 Sangres y el equipamiento doble de NPC. La primera Roxanne del diseño usa **Larvitar Alfa con Teseracto y Tormenta de Arena**; su nivel, movimientos restantes y objeto ordinario siguen abiertos. Programar ese equipo cuando el Teseracto tenga activación y consumo definidos. Reaper corresponde a una segunda habilidad oculta, con su propia persistencia y elección aleatoria entre ocultas mediante el objeto apropiado. Mantener las cifras de balance propuestas como tales hasta cerrar sus reglas.
+**Decisiones ya registradas.** El [catálogo de Gears del PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) incluye los 18 Inyectores y el equipamiento doble de NPC. La primera Roxanne del diseño usa **Larvitar Alfa con Teseracto y Tormenta de Arena**; su nivel, movimientos restantes y objeto ordinario siguen abiertos. Programar ese equipo cuando el Teseracto tenga activación y consumo definidos. Reaper corresponde a una segunda habilidad oculta, con su propia persistencia y elección aleatoria entre ocultas mediante el objeto apropiado. Mantener las cifras de balance propuestas como tales hasta cerrar sus reglas.
 
 ### Primera entrega tras la ROM de referencia
 
@@ -193,16 +193,19 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - **Colmillo de Rayquaza:** +10 % a estadísticas para Pokémon Volador/Dragón al derrotar a Rayquaza; todavía necesita reglas de ciclo y compatibilidad de mutaciones.
 - **Alcance real en código:** seis Gears registrados con lógica de combate, recetas, acción EQUIP desde la mochila e iconos de HUD de 16×32 en la rama de integración. Las incursiones Experta y Maestra y cinco combates de jefes usan Gear y objeto ordinario simultáneamente. Teseracto y Ancla siguen en diseño.
 
-### Familia de Gears: Inyecciones sanguíneas
+### Familia de Gears: Inyectores
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
-- **Catálogo de 18 Gears:** una Sangre por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígera a Fuego, Demoníaca a Siniestro, Divina a Hada y Escamada a Dragón.
+- **Catálogo de 18 Gears:** un Inyector por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígero a Fuego, Demoníaco a Siniestro, Divino a Hada y Escamado a Dragón.
 - Primera implementación para balance: +40 % al primer movimiento compatible y +12 % en recarga durante tres finales de turno. Un segundo movimiento compatible en la misma cadena recibe el +12 %.
+
+### Báculo Tormentoso
+- Añade un impacto de 25 % de potencia a ataques especiales de un golpe contra un objetivo, suprime sus efectos secundarios e impide encadenar dos ataques especiales. Consulta [reglas y receta](docs/GEARS.md#báculo-tormentoso).
 
 ### Estado de implementación
 - Los seis Gears del sistema base y sus recursos de HUD están registrados en la rama de integración. Consultar [`docs/GEARS.md`](docs/GEARS.md) para equipamiento, recetas y pruebas.
-- Los equipos de entrenador admiten el campo `Gear:` por Pokémon. La primera selección incluye a Tate y Liza, Phoebe, Glacia y Wallace. En el quinto combate de Tate y Liza, Metagross combina su megapiedra con Corazón de Titán. Las 18 Sangres se fabrican con Polvo Estelar y la gema de su tipo. Los costes y el acceso a las gemas forman parte del balance de esta tanda.
+- Los equipos de entrenador admiten el campo `Gear:` por Pokémon. La primera selección incluye a Tate y Liza, Phoebe, Glacia y Wallace. En el quinto combate de Tate y Liza, Metagross combina su megapiedra con Corazón de Titán. Los 18 Inyectores se fabrican con Polvo Estelar y la gema de su tipo. Los costes y el acceso a las gemas forman parte del balance de esta tanda.
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
@@ -495,7 +498,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: seis piezas originales y 18 Sangres fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Queda ampliar el equipamiento a más entrenadores.
+- Gears: seis piezas originales, 18 Inyectores y el Báculo Tormentoso fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Queda ampliar el equipamiento a más entrenadores.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

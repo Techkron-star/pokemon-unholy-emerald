@@ -4792,6 +4792,7 @@ static void TurnValuesCleanUp(bool32 endTurn)
             gBattleStruct->battlerState[i].commandingDondozo = FALSE;
 
         gSpecialStatuses[i].parentalBondState = PARENTAL_BOND_OFF;
+        gSpecialStatuses[i].stormStaffStrike = FALSE;
         gBattleStruct->battlerState[i].usedEjectItem = FALSE;
         gProtectStructs[i].lashOutAffected = FALSE;
         gBattleMons[i].volatiles.endured = FALSE;

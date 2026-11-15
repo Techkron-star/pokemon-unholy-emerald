@@ -319,6 +319,8 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
       0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
+    { ITEM_GEAR_STORM_STAFF, COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondary effects."), 0, 3,
+      {{ ITEM_THUNDER_STONE, 1 }, { ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
 };
 
 static const struct WindowTemplate sUnholyCraftWindow =

@@ -10,6 +10,8 @@ bool32 Chain_IsAvailable(enum BattlerId battler);
 
 // ¿Este movimiento se puede encadenar? (los de protección no)
 bool32 Chain_IsMoveChainable(enum Move move);
+bool32 Chain_IsPairAllowed(enum BattlerId battler, enum Move first, enum Move second);
+bool32 Chain_AllowsResolvedCategory(enum BattlerId battler, enum Move move);
 
 // Permite que el controlador rival prepare un segundo movimiento para este turno.
 void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos);

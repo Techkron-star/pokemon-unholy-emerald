@@ -13,6 +13,7 @@ enum GearTrigger
     GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE,
     // Se activa sola y dura overloadTurns turnos, use o no un movimiento.
     GEAR_TRIGGER_TIMED,
+    GEAR_TRIGGER_PASSIVE,
 };
 
 // Fase del ciclo de un Gear durante el combate.
@@ -70,6 +71,10 @@ enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item);
 enum Gear Gear_GetBattlerGear(enum BattlerId battler);
 enum GearPhase Gear_GetPhase(enum BattlerId battler);
 u8 Gear_GetTurnsRemaining(enum BattlerId battler);
+
+struct AdditionalEffect;
+bool32 Gear_StormStaffRepeatsMove(enum BattlerId battler, enum Move move);
+bool32 Gear_SuppressesAdditionalEffect(enum BattlerId battler, enum Move move, const struct AdditionalEffect *effect);
 
 // Multiplicador de potencia del movimiento (1.0 sin Gear o sin efecto). No gasta nada,
 // así que la IA y los cálculos repetidos pueden llamarlo libremente.

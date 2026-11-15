@@ -5,6 +5,7 @@
 #include "battle_anim.h"
 #include "battle_ai_field_statuses.h"
 #include "battle_ai_util.h"
+#include "gear.h"
 #include "battle_ai_main.h"
 #include "battle_stat_change.h"
 #include "battle_controllers.h"
@@ -780,6 +781,13 @@ static inline void CalcDynamicMoveDamage(struct DamageContext *ctx, struct Simul
             maximum *= 5;
             random *= RandomUniform(RNG_AI_DMG_ROLL_RANDOM, 2, 5);
         }
+    }
+    else if (Gear_StormStaffRepeatsMove(ctx->battlerAtk, ctx->move) && !AI_IsDoubleSpreadMove(ctx->battlerAtk, ctx->move))
+    {
+        median += max(1, median / 4);
+        minimum += max(1, minimum / 4);
+        maximum += max(1, maximum / 4);
+        random += max(1, random / 4);
     }
     else if (ctx->abilities[ctx->battlerAtk] == ABILITY_PARENTAL_BOND
           && strikeCount == 0

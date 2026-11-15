@@ -137,7 +137,7 @@ struct SpecialStatus
     u8 multiHitOn:1;
     u8 teraShellAbilityDone:1;
     u8 backUpTarget:3;
-    u8 padding1:1;
+    u8 stormStaffStrike:1;
     // End of byte
     enum QueuedSwitch queuedSwitch;
     struct StatStages statStageQueue[NUM_BATTLE_STATS];
@@ -767,6 +767,7 @@ struct BattleStruct
     // Encadenado de movimientos (ver src/battle_chain.c)
     u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
+    u8 chainSpecialMask;
     u8 turnActionRole[MAX_BATTLERS_COUNT]; // por acción del turno: 1 = usa el 2º movimiento de la cadena
     u8 numTurnActions;                     // 0 = el normal (gBattlersCount)
     u8 chainTurnInterrupted;               // un KO cancela las acciones pendientes de esta cadena

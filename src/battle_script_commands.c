@@ -13,6 +13,7 @@
 #include "battle_z_move.h"
 #include "battle_stat_change.h"
 #include "battle_move_resolution.h"
+#include "gear.h"
 #include "item.h"
 #include "item_menu.h"
 #include "util.h"
@@ -1755,7 +1756,7 @@ void SetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId effectBattle
 
 static bool32 CanApplyAdditionalEffect(const struct AdditionalEffect *additionalEffect)
 {
-    if (additionalEffect->preAttackEffect)
+    if (additionalEffect->preAttackEffect || Gear_SuppressesAdditionalEffect(gBattlerAttacker, gCurrentMove, additionalEffect))
         return FALSE;
 
     if (additionalEffect->pledgeCombo && gBattleStruct->pledgeState != PLEDGE_COMBO_ATTACK)

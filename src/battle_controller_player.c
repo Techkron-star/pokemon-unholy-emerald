@@ -764,7 +764,8 @@ void HandleInputChooseMove(enum BattlerId battler)
              || canSelectTarget != 0
              || moveInfo->currentPP[gMoveSelectionCursor[battler]] == 0
              || gBattleStruct->gimmick.playerSelect
-             || !Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]]))
+             || !Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]])
+             || !Chain_IsPairAllowed(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]]))
             {
                 PlaySE(SE_FAILURE);
                 return;
@@ -1776,8 +1777,10 @@ static void DrawChainPreview(enum BattlerId battler)
     u8 selected = gMoveSelectionCursor[battler];
     u8 marked = gBattleStruct->chainFirstPos[battler];
     u8 first = marked ? marked - 1 : selected;
+    bool32 pairAllowed = Chain_IsPairAllowed(battler, info->moves[first], info->moves[selected]);
     bool8 secondValid = marked && selected != first && info->currentPP[selected] != 0
-                     && Chain_IsMoveChainable(info->moves[selected]);
+                     && Chain_IsMoveChainable(info->moves[selected])
+                     && pairAllowed;
     u32 cost = Stamina_GetMoveCost(battler, info->moves[first]);
     const u8 colors[] = {14, 13, 15};
     u8 text[32];
@@ -1801,6 +1804,7 @@ static void DrawChainPreview(enum BattlerId battler)
     StringAppend(text, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
     if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
+    if (marked && selected != first && !pairAllowed) StringCopy(text, COMPOUND_STRING("NO 2 SP."));
     AddTextPrinterParameterized4(B_WIN_CHAIN_HELP, FONT_SMALL_NARROW, 0, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
     PutWindowTilemap(B_WIN_CHAIN_HELP);
     CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_FULL);

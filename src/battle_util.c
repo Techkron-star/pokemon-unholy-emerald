@@ -7756,6 +7756,9 @@ static inline s32 DoMoveDamageCalcVars(struct DamageContext *ctx)
     if (gBattleMovePower == 0)
         return 0;
 
+    if (gSpecialStatuses[ctx->battlerAtk].stormStaffStrike && gSpecialStatuses[ctx->battlerAtk].multiHitOn)
+        gBattleMovePower = max(1, gBattleMovePower / 4);
+
     userFinalAttack = CalcAttackStat(ctx);
     targetFinalDefense = CalcDefenseStat(ctx);
 
