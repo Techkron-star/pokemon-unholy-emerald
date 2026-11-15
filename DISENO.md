@@ -35,7 +35,7 @@ La [CI de referencia del PR #32](https://github.com/Techkron-star/pokemon-unholy
 
 | Área | Implementado | QA |
 | --- | --- | --- |
-| QoL | Birch explica en el primer combate cómo marcar un movimiento con SELECT y elegir otro con A. El tutorial advierte que un KO o el agotamiento interrumpen el encadenamiento. | Cuatro páginas, cadena Scratch → Ember y regreso al laboratorio comprobados en mGBA. El warp tras ajustar el reloj se probó en mGBA y no reprodujo la animación residual reportada. |
+| QoL | Birch explica en el primer combate cómo marcar un movimiento con START y elegir otro con A. El tutorial advierte que un KO o el agotamiento interrumpen el encadenamiento. | Cuatro páginas, cadena Scratch → Ember y regreso al laboratorio comprobados en mGBA. El warp tras ajustar el reloj se probó en mGBA y no reprodujo la animación residual reportada. |
 | Gears | Los seis Gears de crafteo tienen icono propio de HUD con dos estados. La recarga se guarda durante el combate por entrenador y ranura de equipo, incluso al volver por otro puesto en dobles. | La prueba de regresión del ciclo cubre ambos puestos y dos entrenadores con la misma ranura. Revisar el HUD en cambios, KO y animaciones de dobles. |
 | IA | Cuando dos primeras acciones puntúan igual, el entrenador prioriza las que evitan el agotamiento si tiene alguna. En dobles aplica el desempate entre movimientos para un mismo objetivo. | Probar el primer gimnasio y medir el efecto de las cadenas voluntarias antes de ajustar otras decisiones. |
 
@@ -52,7 +52,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | HUD circular de Stamina | Anillo visible de 9×9 px en un OBJ de 16×16. En la tarjeta alta del aliado queda en el hueco inferior izquierdo. Las tarjetas compactas y rivales reservan espacio delante del nombre para dejar visibles PS, estado y nivel |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
-| Movimientos encadenados | SELECT marca el primer movimiento y A confirma el segundo. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. La IA conserva su réplica extra cuando el jugador encadena; pendiente validar en ROM |
+| Movimientos encadenados | START marca el primer movimiento y A confirma el segundo. SELECT reordena movimientos en combate. R activa la mecánica especial disponible. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. La IA conserva su réplica extra cuando el jugador encadena; pendiente validar en ROM |
 | Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
 | Inicio rápido | Tras fijar el reloj se omiten TV/casa del rival/habitación, apareciendo en Pueblo Raíz justo detrás de la niña antes de subir hacia la Ruta 101 |
@@ -338,7 +338,7 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 | Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
 | HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator e incursiones. El Mutator aparece con la octava medalla. |
 
-- **WATCH** en START reúne las funciones disponibles. Horizon Shop se abre desde WATCH a partir del primer Poké Watch. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
+- **WATCH** en START reúne las funciones en dos páginas de tarjetas. L/R cambia de página y B regresa desde cada herramienta a la tarjeta que la abrió. En Horizon, L/R cambia de tienda desde el catálogo y B vuelve a WATCH. Horizon Shop se abre desde WATCH a partir del primer Poké Watch. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
 - Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
 - El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
 

@@ -120,6 +120,7 @@ struct ShopData
 static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
 static EWRAM_DATA MainCallback sHorizonFieldReturn = NULL;
+static EWRAM_DATA bool8 sHorizonExitToWatch = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
@@ -157,6 +158,7 @@ static void Task_HorizonMoves(u8 taskId);
 static void HorizonOpenInfoWindow(void);
 static void HorizonCloseInfoWindow(void);
 static void HorizonDrawInfo(void);
+static void HorizonOpenTab(u8 taskId, u8 tab);
 static void Task_HandleShopMenuQuit(u8 taskId);
 static void CB2_InitBuyMenu(void);
 static void Task_GoToBuyOrSellMenu(u8 taskId);
@@ -218,7 +220,7 @@ static const u8 *const sHorizonTabLabels[] =
     sHorizonTabPokemon, sHorizonTabDiscs, sHorizonTabItems,
     sHorizonTabEggs, sHorizonTabMoves,
 };
-static const u8 sHorizonTextBrowse[] = _("D-PAD: MOVE  A: BUY  B: BACK");
+static const u8 sHorizonTextBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
 static const u8 sHorizonTextConfirm[] = _("A: CONFIRM   B: CANCEL");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
 static const u8 sHorizonTextSold[] = _("SOLD");
@@ -227,7 +229,7 @@ static const u8 sHorizonTextNeedSpace[] = _("Party and PC are full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Confirm purchase?");
-static const u8 sHorizonTextEggBrowse[] = _("L/R: EGGS  A: BUY  B: BACK");
+static const u8 sHorizonTextEggBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
 static const u8 sHorizonTextPrize[] = _("Egg purchased!");
 static const u8 *const sHorizonPokemonStatuses[] =
@@ -242,13 +244,11 @@ static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonMoveLearn[] = _("MOVE MANAGER");
 static const u8 sHorizonMoveForget[] = _("FORGET");
-static const u8 sHorizonMoveInstructions[] = _("L/R: CHOOSE   A: OPEN   B: BACK");
+static const u8 sHorizonMoveInstructions[] = _("L/R: SHOP  A: OPEN  B: WATCH");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
-static const u8 sHorizonTextEclipse[] = _("ECLIPSE");
-static const u8 sHorizonTextDaylight[] = _("DAYLIGHT");
 static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
-static const u8 sHorizonGoodsControls[] = _("L/R: NEXT  A: BUY");
-static const u8 sHorizonGoodsBack[] = _("B: BACK");
+static const u8 sHorizonGoodsControls[] = _("L/R: SHOP  A: BUY");
+static const u8 sHorizonGoodsBack[] = _("B: WATCH");
 static const u8 sHorizonDescPokemon[] = _("Earn badges to find\nrarer Pokémon.");
 static const u8 sHorizonDescDiscs[] = _("TM stock rotates.\nBadges unlock more.");
 static const u8 sHorizonDescItems[] = _("Supplies and\nrotating stock.");
@@ -849,8 +849,7 @@ static void HorizonDrawRootPreview(u8 panel)
 
 static void HorizonDrawInfo(void)
 {
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    const u8 *skin = daylight ? sHorizonTextDaylight : sHorizonTextEclipse;
+    bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
     const u8 *title = sHorizonTitle;
     u8 panel = sHorizonInfoWindowId;
 
@@ -868,8 +867,10 @@ static void HorizonDrawInfo(void)
     DrawUnholyUiPanelAccents(panel, 27 * 8, 14 * 8, 24);
     AddTextPrinterParameterized4(panel, FONT_NARROW, 7, 4, 0, 0,
                                  sHorizonTextColors, TEXT_SKIP_DRAW, title);
-    AddTextPrinterParameterized4(panel, FONT_NARROW, 164, 4, 0, 0,
-                                 sHorizonTextColors, TEXT_SKIP_DRAW, skin);
+    u8 money[24];
+    u8 *amount = StringCopy(money, COMPOUND_STRING("MONEY "));
+    ConvertUIntToDecimalStringN(amount, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, 7);
+    HorizonPrintSmall(panel, money, 134, 6, 75);
 
     if (sHorizonPokemonBrowsing)
     {
@@ -999,14 +1000,6 @@ static void HorizonDrawInfo(void)
                                      sHorizonDescriptions[sHorizonSelectedTab]);
         HorizonDrawRootPreview(panel);
 
-        // Funds are always relevant regardless of the currently selected
-        // Horizon tab, and do not alter the market seed or purchase history.
-        StringCopy(gStringVar4, COMPOUND_STRING("MONEY "));
-        ConvertIntToDecimalStringN(gStringVar3, GetMoney(&gSaveBlock1Ptr->money),
-                                   STR_CONV_MODE_LEFT_ALIGN, 7);
-        StringAppend(gStringVar4, gStringVar3);
-        HorizonPrintSmall(panel, gStringVar4, 8, 81, 115);
-
         if (sHorizonSelectedTab == 0 && HorizonMarketHasUnseenMutation())
         {
             HorizonPrintSmall(panel, sHorizonTextRare, 128, 81, 79);
@@ -1018,19 +1011,45 @@ static void HorizonDrawInfo(void)
     CopyWindowToVram(panel, COPYWIN_FULL);
 }
 
+static u8 HorizonAdjacentTab(bool32 previous)
+{
+    return (sHorizonSelectedTab + (previous ? ARRAY_COUNT(sHorizonTabs) - 1 : 1)) % ARRAY_COUNT(sHorizonTabs);
+}
+
+static void HorizonOpenTab(u8 taskId, u8 tab)
+{
+    HorizonEggIconHide();
+    sHorizonMoveBrowsing = FALSE;
+    sHorizonPokemonBrowsing = FALSE;
+    sHorizonEggBrowsing = FALSE;
+    sHorizonSelectedTab = tab;
+    HorizonDrawTabs();
+    sHorizonTabs[tab].func.void_u8(taskId);
+}
+
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
+
+    if (sHorizonActive && gPaletteFade.active)
+        return;
+
+    if (sHorizonActive && !sHorizonPokemonConfirm && !sHorizonEggConfirm
+     && JOY_NEW(L_BUTTON | R_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        HorizonOpenTab(taskId, HorizonAdjacentTab(JOY_NEW(L_BUTTON)));
+        return;
+    }
 
     if (sHorizonActive && sHorizonMoveBrowsing)
     {
         if (JOY_NEW(B_BUTTON))
         {
-            sHorizonMoveBrowsing = FALSE;
             PlaySE(SE_SELECT);
-            HorizonDrawInfo();
+            Task_HandleShopMenuQuit(taskId);
         }
-        else if (JOY_NEW(DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT | L_BUTTON | R_BUTTON))
+        else if (JOY_REPEAT(DPAD_ANY))
         {
             sHorizonMoveSelection ^= 1;
             PlaySE(SE_SELECT);
@@ -1045,13 +1064,10 @@ static void Task_ShopMenu(u8 taskId)
             UnlockPlayerFieldControls();
             DestroyTask(taskId);
             sHorizonMoveBrowsing = FALSE;
-            sHorizonActive = FALSE;
-            sHorizonFieldReturn = NULL;
-            sHorizonSelectedTab = 0;
             if (sHorizonMoveSelection == 0)
-                ChooseMonForHorizonMoveRelearner();
+                ChooseMonForHorizonMoveRelearner(MapPostLoadHook_ReturnToShopMenu);
             else
-                ChooseMonForHorizonMoveDeleter();
+                ChooseMonForHorizonMoveDeleter(MapPostLoadHook_ReturnToShopMenu);
         }
         return;
     }
@@ -1064,17 +1080,18 @@ static void Task_ShopMenu(u8 taskId)
                 sHorizonEggConfirm = FALSE;
             else
             {
-                sHorizonEggBrowsing = FALSE;
-                HorizonEggIconHide();
+                PlaySE(SE_SELECT);
+                Task_HandleShopMenuQuit(taskId);
+                return;
             }
             sHorizonEggStatus = 0;
             PlaySE(SE_SELECT);
             HorizonDrawInfo();
             return;
         }
-        if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT | DPAD_UP | DPAD_DOWN | L_BUTTON | R_BUTTON))
+        if (JOY_REPEAT(DPAD_ANY))
         {
-            if (JOY_NEW(DPAD_LEFT | DPAD_UP | L_BUTTON))
+            if (JOY_REPEAT(DPAD_LEFT | DPAD_UP))
                 sHorizonEggSelection = (sHorizonEggSelection + HORIZON_EGG_TIER_COUNT - 1) % HORIZON_EGG_TIER_COUNT;
             else
                 sHorizonEggSelection = (sHorizonEggSelection + 1) % HORIZON_EGG_TIER_COUNT;
@@ -1129,23 +1146,25 @@ static void Task_ShopMenu(u8 taskId)
         {
             if (sHorizonPokemonConfirm)
             {
-                // First B cancels the transaction; the next B returns to tabs.
+                // First B cancels the purchase; another B returns to Watch.
                 sHorizonPokemonConfirm = FALSE;
             }
             else
             {
-                sHorizonPokemonBrowsing = FALSE;
+                PlaySE(SE_SELECT);
+                Task_HandleShopMenuQuit(taskId);
+                return;
             }
             sHorizonPokemonStatus = 0;
             PlaySE(SE_SELECT);
             HorizonDrawInfo();
             return;
         }
-        if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT | DPAD_UP | DPAD_DOWN | L_BUTTON | R_BUTTON))
+        if (JOY_REPEAT(DPAD_ANY))
         {
-            if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+            if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HORIZON_MARKET_OFFER_COUNT;
-            else if (JOY_NEW(DPAD_LEFT | L_BUTTON))
+            else if (JOY_REPEAT(DPAD_LEFT))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + HORIZON_MARKET_OFFER_COUNT - 1) % HORIZON_MARKET_OFFER_COUNT;
             else
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HORIZON_MARKET_OFFER_COUNT;
@@ -1308,7 +1327,6 @@ static void Task_HorizonItems(u8 taskId)
 static void Task_HorizonMoves(u8 taskId)
 {
     sHorizonMoveBrowsing = TRUE;
-    sHorizonMoveSelection = 0;
     HorizonDrawInfo();
 }
 
@@ -1422,8 +1440,10 @@ static void Task_ReturnToShopMenu(u8 taskId)
 
 static void ShowShopMenuAfterExitingBuyOrSellMenu(u8 taskId)
 {
-    CreateShopMenu(sMartInfo.martType);
+    u8 shopTask = CreateShopMenu(sMartInfo.martType);
     DestroyTask(taskId);
+    if (sHorizonActive)
+        HorizonOpenTab(shopTask, sHorizonSelectedTab);
 }
 
 static void CB2_BuyMenu(void)
@@ -1488,7 +1508,7 @@ static void CB2_InitBuyMenu(void)
             gTasks[taskId].tListTaskId = TASK_NONE;
             BuyMenuDrawHorizonGoods();
             if (sMartInfo.itemCount != 0)
-                BuyMenuPrintItemDescriptionAndShowItemIcon(sMartInfo.itemList[0], TRUE, NULL);
+                BuyMenuPrintItemDescriptionAndShowItemIcon(sMartInfo.itemList[sHorizonGoodsSelection], TRUE, NULL);
         }
         else
         {
@@ -1646,108 +1666,50 @@ static void BuyMenuRemoveScrollIndicatorArrows(void)
 // window overlaps the funds, icon, description or quantity/confirmation UI.
 static void BuyMenuDrawHorizonGoods(void)
 {
+    const u8 *colors = sShopBuyMenuTextColors[COLORID_ITEM_LIST];
     u16 count = sMartInfo.itemCount;
-    const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    const u8 selectedAccent = daylight ? 3 : 2;
-
-    if (!sHorizonActive)
-        return;
+    u16 first = sHorizonGoodsSelection / 6 * 6;
 
     FillWindowPixelBuffer(WIN_ITEM_LIST, PIXEL_FILL(1));
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonSelectedTab == 1 ? sHorizonTextDiscs : sHorizonTextItems,
+        6, 3, 60, FONT_SMALL_NARROW, colors);
     if (count == 0)
-    {
-        AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 15, 48,
-                                     0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                     TEXT_SKIP_DRAW, gText_SoldOut);
-    }
+        HorizonPrintFitStyle(WIN_ITEM_LIST, gText_SoldOut, 13, 48, 96, FONT_SMALL_NARROW, colors);
     else
     {
-        // Exactly two cards: the active purchase and a preview of the next.
-        // A single-item shop never displays a fake duplicate offer.
-        for (u8 column = 0; column < 2 && column < count; column++)
+        u8 text[24];
+        u8 *end = ConvertUIntToDecimalStringN(text, sHorizonGoodsSelection + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+        end = StringAppend(end, COMPOUND_STRING("/"));
+        ConvertUIntToDecimalStringN(end, count, STR_CONV_MODE_LEFT_ALIGN, 2);
+        HorizonPrintFitStyle(WIN_ITEM_LIST, text, 88, 3, 27, FONT_SMALL_NARROW, colors);
+
+        for (u8 card = 0; card < 6 && first + card < count; card++)
         {
-            u16 index = (sHorizonGoodsSelection + column) % count;
+            u16 index = first + card;
             enum Item item = sMartInfo.itemList[index];
-            const u8 *fullName = GetItemName(item);
-            u8 label[11];
-            u8 x = 4 + column * 56;
-            u8 len = 0;
-
-            while (len < 8 && fullName[len] != EOS)
-            {
-                label[len] = fullName[len];
-                len++;
-            }
-            label[len] = EOS;
-
-            FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 10, 52, 2);
-            FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 47, 52, 2);
-            FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(column == 0 ? selectedAccent : 3), x, 10, 1, 39);
-            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, x + 3, 18,
-                                         0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                         TEXT_SKIP_DRAW, label);
-
-            if (GetItemImportance(item)
-             && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
-            {
-                AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 5, 32, 0, 0,
-                                             sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                             TEXT_SKIP_DRAW, gText_SoldOut);
-            }
+            bool32 selected = index == sHorizonGoodsSelection;
+            u8 x = 4 + card % 2 * 56;
+            u8 y = 18 + card / 2 * 23;
+            u8 outline = selected ? 2 : 3;
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 52, 1);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y + 20, 52, selected ? 2 : 1);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 1, 20);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x + 51, y, 1, 20);
+            HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(item), x + 3, y + 1, 47, FONT_SMALL_NARROW, colors);
+            if (GetItemImportance(item) && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
+                StringCopy(text, gText_SoldOut);
             else
-            {
-                ConvertIntToDecimalStringN(gStringVar1,
-                                           GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT),
-                                           STR_CONV_MODE_LEFT_ALIGN, 6);
-                AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW,
-                                             x + 3, 32, 0, 0,
-                                             sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                             TEXT_SKIP_DRAW, gStringVar1);
-            }
-        }
-
-        // Complete selected name is clipped by glyph width, not character
-        // count; e.g. X Attack and Ability Capsule remain within 120px.
-        {
-            const u8 *itemName = GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]);
-            u8 full[24];
-            u8 length = 0;
-
-            while (length < sizeof(full) - 1 && itemName[length] != EOS)
-            {
-                full[length] = itemName[length];
-                length++;
-            }
-            full[length] = EOS;
-            while (length && GetStringWidth(FONT_NARROW, full, 0) > 108)
-                full[--length] = EOS;
-            AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 6, 60,
-                                         0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                         TEXT_SKIP_DRAW, full);
-        }
-
-        // Small pagination pips show the actual number of offers. No new
-        // sprites or OBJ palettes are allocated, even with full stock.
-        for (u8 i = 0; i < count && i < 10; i++)
-        {
-            u8 x = 9 + i * 10;
-
-            FillWindowPixelRect(WIN_ITEM_LIST,
-                                PIXEL_FILL(i == sHorizonGoodsSelection ? selectedAccent : 3),
-                                x, 78, 6, i == sHorizonGoodsSelection ? 4 : 2);
+                ConvertUIntToDecimalStringN(text, GetItemPrice(item) >> IsPokeNewsActive(POKENEWS_SLATEPORT),
+                    STR_CONV_MODE_LEFT_ALIGN, 6);
+            HorizonPrintFitStyle(WIN_ITEM_LIST, text, x + 3, y + 10, 47, FONT_SMALL_NARROW, colors);
         }
     }
 
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 90,
-                                 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                 TEXT_SKIP_DRAW, sHorizonGoodsControls);
-    AddTextPrinterParameterized4(WIN_ITEM_LIST, FONT_NARROW, 7, 103,
-                                 0, 0, sShopBuyMenuTextColors[COLORID_ITEM_LIST],
-                                 TEXT_SKIP_DRAW, sHorizonGoodsBack);
+    if (count != 0)
+        HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]),
+            6, 88, 108, FONT_SMALL, colors);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 103, 107, FONT_SMALL_NARROW, colors);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 115, 106, FONT_SMALL_NARROW, colors);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }
@@ -2068,21 +2030,29 @@ static void Task_BuyMenu(u8 taskId)
 
         if (sHorizonActive)
         {
-            if (JOY_NEW(DPAD_LEFT | L_BUTTON) && sMartInfo.itemCount != 0)
+            if (JOY_NEW(L_BUTTON | R_BUTTON))
             {
-                sHorizonGoodsSelection = (sHorizonGoodsSelection + sMartInfo.itemCount - 1)
-                                        % sMartInfo.itemCount;
-                sHorizonGoodsCursor[sHorizonSelectedTab == 1 ? 0 : 1] = sHorizonGoodsSelection;
+                u8 tab = HorizonAdjacentTab(JOY_NEW(L_BUTTON));
+                sHorizonSelectedTab = tab;
                 PlaySE(SE_SELECT);
-                BuyMenuDrawHorizonGoods();
-                BuyMenuPrintItemDescriptionAndShowItemIcon(
-                    sMartInfo.itemList[sHorizonGoodsSelection], TRUE, NULL);
+                if (tab == 1 || tab == 2)
+                {
+                    SetShopItemsForSale(tab == 1 ? HorizonGoodsGetDiscs() : HorizonGoodsGetItems());
+                    sHorizonGoodsSelection = sMartInfo.itemCount ? sHorizonGoodsCursor[tab - 1] % sMartInfo.itemCount : 0;
+                    BuyMenuDrawHorizonGoods();
+                    BuyMenuPrintItemDescriptionAndShowItemIcon(
+                        sMartInfo.itemCount ? sMartInfo.itemList[sHorizonGoodsSelection] : ITEM_NONE, TRUE, NULL);
+                }
+                else
+                    ExitBuyMenu(taskId);
                 return;
             }
-            if (JOY_NEW(DPAD_RIGHT | R_BUTTON) && sMartInfo.itemCount != 0)
+            if (JOY_REPEAT(DPAD_ANY) && sMartInfo.itemCount != 0)
             {
-                sHorizonGoodsSelection = (sHorizonGoodsSelection + 1) % sMartInfo.itemCount;
-                sHorizonGoodsCursor[sHorizonSelectedTab == 1 ? 0 : 1] = sHorizonGoodsSelection;
+                s16 offset = JOY_REPEAT(DPAD_UP) ? -2 : JOY_REPEAT(DPAD_DOWN) ? 2
+                           : JOY_REPEAT(DPAD_LEFT) ? -1 : 1;
+                sHorizonGoodsSelection = (sHorizonGoodsSelection + sMartInfo.itemCount + offset) % sMartInfo.itemCount;
+                sHorizonGoodsCursor[sHorizonSelectedTab - 1] = sHorizonGoodsSelection;
                 PlaySE(SE_SELECT);
                 BuyMenuDrawHorizonGoods();
                 BuyMenuPrintItemDescriptionAndShowItemIcon(
@@ -2090,7 +2060,10 @@ static void Task_BuyMenu(u8 taskId)
                 return;
             }
             if (JOY_NEW(B_BUTTON))
+            {
+                sHorizonExitToWatch = TRUE;
                 itemId = LIST_CANCEL;
+            }
             else if (JOY_NEW(A_BUTTON) && sMartInfo.itemCount != 0)
                 itemId = sMartInfo.itemList[sHorizonGoodsSelection];
             else
@@ -2379,6 +2352,13 @@ static void Task_ExitBuyMenu(u8 taskId)
     {
         RemoveMoneyLabelObject();
         BuyMenuFreeMemory();
+        if (sHorizonActive && sHorizonExitToWatch)
+        {
+            sHorizonExitToWatch = FALSE;
+            sHorizonActive = FALSE;
+            gFieldCallback = sHorizonFieldReturn;
+            sHorizonFieldReturn = NULL;
+        }
         SetMainCallback2(CB2_ReturnToField);
         DestroyTask(taskId);
     }
@@ -2439,6 +2419,7 @@ void CreateHorizonShopMenu(void (*fieldReturn)(void))
     sHorizonGoodsSelection = 0;
     sHorizonGoodsCursor[0] = 0;
     sHorizonGoodsCursor[1] = 0;
+    sHorizonMoveSelection = 0;
     sHorizonMoveBrowsing = FALSE;
     sHorizonPokemonBrowsing = FALSE;
     sHorizonEggBrowsing = FALSE;
@@ -2450,10 +2431,10 @@ void CreateHorizonShopMenu(void (*fieldReturn)(void))
     sHorizonPokemonConfirm = FALSE;
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
-    CreateShopMenu(MART_TYPE_NORMAL);
-    SetShopItemsForSale(HorizonGoodsGetItems());
+    u8 taskId = CreateShopMenu(MART_TYPE_NORMAL);
     ClearItemPurchases();
     SetShopMenuCallback(NULL);
+    HorizonOpenTab(taskId, sHorizonSelectedTab);
 }
 
 void CreateDecorationShop1Menu(const u16 *itemsForSale)

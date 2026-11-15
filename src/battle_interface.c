@@ -838,6 +838,16 @@ static const u8 *GetHealthboxElementGfxPtr(u8 elementId)
     return gHealthboxElementsGfxTable[elementId];
 }
 
+static s16 GetMutationBadgeX(const struct Sprite *box)
+{
+    return box->x + (IsOnPlayerSide(box->hMain_Battler) ? 36 : 28);
+}
+
+static void SyncMutationBadge(const struct Sprite *box)
+{
+    MutationIcon_SyncBattle(box->hMain_Battler, box, GetMutationBadgeX(box), box->y - 6);
+}
+
 // Syncs the position of healthbar accordingly with the healthbox.
 static void SpriteCB_HealthBar(struct Sprite *sprite)
 {
@@ -862,19 +872,22 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
     // Gear logic is tested independently of the sprite HUD.
     if (GEARS_ENABLED && !gTestRunnerEnabled)
         UpdateHealthbarGearIcon(sprite, healthbox);
-    if (!gTestRunnerEnabled && !gAnimScriptActive)
+    if (!gTestRunnerEnabled)
     {
         enum BattlerId battler = healthbox->hMain_Battler;
+        // Hold the current artwork during animations and keep it anchored.
+        if (gAnimScriptActive || healthbox->invisible)
+        {
+            SyncMutationBadge(healthbox);
+            return;
+        }
         struct Pokemon *mon = GetIllusionMonPtr(battler);
         if (mon == NULL)
             mon = GetBattlerMon(battler);
-        u16 badges = healthbox->invisible || !IsBattlerAlive(battler)
+        u16 badges = !IsBattlerAlive(battler)
                    || (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
                    ? 0 : GetMonData(mon, MON_DATA_SPECIAL_BADGES);
-        // Fixed gutter between the rendered nickname and the level/gimmick.
-        s16 x = healthbox->x + (IsOnPlayerSide(battler) ? 36 : 28);
-        s16 y = healthbox->y - 6;
-        if (MutationIcon_UpdateBattle(battler, healthbox, badges, x, y))
+        if (MutationIcon_UpdateBattle(battler, healthbox, badges, GetMutationBadgeX(healthbox), healthbox->y - 6))
             UpdateNickInHealthbox(sprite->hBar_HealthBoxSpriteId, mon);
     }
 }
@@ -1206,6 +1219,7 @@ void SetHealthboxSpriteInvisible(u8 healthboxSpriteId)
     gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible = TRUE;
     gSprites[gSprites[healthboxSpriteId].oam.affineParam].invisible = TRUE;
     UpdateIndicatorVisibilityAndType(healthboxSpriteId, TRUE);
+    SyncMutationBadge(&gSprites[healthboxSpriteId]);
 }
 
 void SetHealthboxSpriteVisible(u8 healthboxSpriteId)
@@ -1214,6 +1228,7 @@ void SetHealthboxSpriteVisible(u8 healthboxSpriteId)
     gSprites[gSprites[healthboxSpriteId].hMain_HealthBarSpriteId].invisible = FALSE;
     gSprites[gSprites[healthboxSpriteId].oam.affineParam].invisible = FALSE;
     UpdateIndicatorVisibilityAndType(healthboxSpriteId, FALSE);
+    SyncMutationBadge(&gSprites[healthboxSpriteId]);
 }
 
 static void UpdateSpritePos(u8 spriteId, s16 x, s16 y)
@@ -1259,6 +1274,8 @@ void UpdateOamPriorityInAllHealthboxes(u8 priority, bool32 hideHPBoxes)
 
         if (B_HIDE_HEALTHBOX_IN_ANIMS == TRUE && hideHPBoxes && IsBattlerAlive(i))
             TryToggleHealboxVisibility(priority, healthboxLeftSpriteId, healthboxRightSpriteId, healthbarSpriteId);
+
+        SyncMutationBadge(&gSprites[healthboxLeftSpriteId]);
     }
 }
 
@@ -2271,13 +2288,15 @@ void UpdateNickInHealthbox(u8 healthboxSpriteId, struct Pokemon *mon)
         }
     }
     FillSpriteRectColor(healthboxSpriteId, nicknameX, 5, HEALTHBOX_NICKNAME_WIDTH + 1, 11, HEALTHBOX_BG_INDEX);
-    FillSpriteRectColor(healthboxSpriteId, nicknameX + 48, 14, 8, 3, HEALTHBOX_BG_INDEX);
+    // The player's gutter begins in the right OBJ. Starting a rectangle
+    // past the edge of the left OBJ would wrap to its first tile.
+    u8 markerSprite = IsOnPlayerSide(battler) ? healthboxSpriteId2 : healthboxSpriteId;
+    u8 markerX = (nicknameX + 48) % 64;
+    FillSpriteRectColor(markerSprite, markerX, 14, 8, 3, HEALTHBOX_BG_INDEX);
     if (mutations & (mutations - 1))
     {
-        // Keep the combination marker under its symbol, leaving the full
-        // nickname budget available to the name and gender.
-        FillSpriteRectColor(healthboxSpriteId, nicknameX + 51, 15, 3, 1, 1);
-        FillSpriteRectColor(healthboxSpriteId, nicknameX + 52, 14, 1, 3, 1);
+        FillSpriteRectColor(markerSprite, markerX + 3, 15, 3, 1, 1);
+        FillSpriteRectColor(markerSprite, markerX + 4, 14, 1, 3, 1);
     }
     AddSpriteTextPrinterParameterized6(healthboxSpriteId, fontId, nicknameX + padding, 3, 0, 0, sHealthBoxTextColor, 0, displayName);
     if (MutationIcon_BadgeAt(mutations, 0) && !MutationIcon_BattleVisible(battler))
