@@ -274,20 +274,22 @@ static const u8 *const sHorizonEggCardNames[HORIZON_EGG_TIER_COUNT] =
 
 static const u8 sHorizonTextColors[] = {1, 2, 3};
 
+// Colors follow the Pokewatch concept. Only the colors change: each index keeps its role
+// (1 panel, 2 text, 3 line, 4 selected fill, 5/7 accents, 13 alert), so no layout moves.
 static const u16 sHorizonPaletteEclipse[] =
 {
-    RGB(0, 0, 0), RGB(2, 5, 12), RGB(29, 30, 31), RGB(7, 19, 26),
-    RGB(4, 13, 22), RGB(0, 20, 25), RGB(11, 11, 23), RGB(19, 25, 29),
-    RGB(1, 3, 7), RGB(6, 16, 20), RGB(24, 30, 31), RGB(14, 21, 26),
-    RGB(12, 8, 21), RGB(31, 4, 4), RGB(25, 28, 31), RGB(0, 0, 0)
+    RGB(0, 0, 0), RGB(3, 2, 6), RGB(30, 29, 31), RGB(7, 5, 14),
+    RGB(6, 5, 13), RGB(8, 22, 24), RGB(11, 8, 22), RGB(12, 30, 28),
+    RGB(1, 1, 3), RGB(5, 4, 10), RGB(24, 29, 31), RGB(21, 19, 26),
+    RGB(31, 12, 25), RGB(31, 4, 4), RGB(22, 20, 30), RGB(0, 0, 0)
 };
 
 static const u16 sHorizonPaletteDaylight[] =
 {
-    RGB(0, 0, 0), RGB(31, 30, 26), RGB(3, 6, 9), RGB(20, 22, 18),
-    RGB(30, 29, 25), RGB(23, 27, 23), RGB(31, 25, 15), RGB(12, 20, 19),
-    RGB(31, 31, 29), RGB(28, 27, 22), RGB(13, 17, 18), RGB(26, 25, 21),
-    RGB(19, 26, 24), RGB(25, 3, 3), RGB(4, 7, 8), RGB(0, 0, 0)
+    RGB(0, 0, 0), RGB(31, 31, 30), RGB(4, 5, 3), RGB(20, 22, 17),
+    RGB(29, 30, 27), RGB(24, 27, 21), RGB(6, 15, 10), RGB(9, 19, 13),
+    RGB(31, 31, 30), RGB(25, 29, 23), RGB(10, 11, 8), RGB(26, 28, 22),
+    RGB(19, 26, 21), RGB(25, 3, 3), RGB(4, 5, 3), RGB(0, 0, 0)
 };
 
 // Shared GBA palette used by crafting and Horizon. Theme preference lives in save flags.

@@ -194,3 +194,7 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 - [ ] Compilación, QA visual e integración aprobada.
 
 **Glint Omega:** conectado a `TryShinyAnimation` reutilizando órbitas y duración shiny, pero con estrella roja/negra distinta y etiqueta de recurso independiente. La finalización espera ambas animaciones si el Pokémon es shiny y Omega; requiere QA en emulador y CI.
+
+## Paleta del concepto Pokewatch (15/11/2026)
+
+Eclipse y Daylight toman los colores del concepto «Pokewatch UI – Unholy Emerald»: Eclipse en violeta profundo (panel `#150d2e`, línea `#3b2a73`, acento cian `#5ef0e0`, mutación rosa `#ff5fc8`) y Daylight en crema con verde salvia (fondo `#e6efdc`, panel `#fffdf2`, línea `#9fb48f`, acento `#2f7d4f`). Solo cambian los 16 colores de `sHorizonPaletteEclipse` y `sHorizonPaletteDaylight` en `src/shop.c`; cada índice conserva su función y ninguna pantalla cambia de composición.
