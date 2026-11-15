@@ -564,4 +564,53 @@ Los nombres anteriores son **conceptuales**, no API ni estructuras existentes ve
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Incluye rework propuesto de supervivencia por turno (Resistencia/Banda Focus/Robustez/Cinta Focus), compatibilidad con cadenas y vulnerabilidad a multigolpes, balance del encadenamiento 2.0, Cofradía, Torre Celestial y Báculo Tormentoso; nuevos apartados pendientes de implementación.*
+## 14. Estados alterados y stamina (propuesta de balance)
+
+> **Estado:** idea de diseño incorporada para pruebas; porcentajes **provisionales**, sujetos a balance y aprobación final. Esta sección no implica código implementado. Conserva el valor base de regeneración de **18 % de stamina máxima al final de cada turno** (sección 12).
+
+### 14.1. Objetivo
+
+Los estados alterados influyen en la **economía de stamina** además de sus efectos normales. Cada estado debe tener identidad mecánica; evitar convertir todos en un simple «-X de stamina» o hacer que un Pokémon sin stamina quede atrapado en un bucle irrecuperable.
+
+### 14.2. Modificadores propuestos
+
+| Estado | Regeneración pasiva de stamina / turno | Modificador adicional propuesto |
+|---|---:|---|
+| **Sin estado principal** | **18 %** | Sin penalización |
+| **Quemado** | **12 %** | Conserva el efecto normal de la quemadura sobre el combate; no duplicar su penalización de daño |
+| **Paralizado** | **15 %** | El coste del **segundo movimiento encadenado** sube de 150 % a **160 % de su coste base**; conserva las restricciones normales de parálisis |
+| **Congelado** | **6 %** | La recuperación vuelve al valor correspondiente al estado vigente al descongelarse; no consumir stamina por acciones que nunca se ejecutaron |
+| **Envenenado** | **14 %** | Conserva el daño residual habitual |
+| **Gravemente envenenado** | **12 %** | Penalización de stamina **constante**; no escalar también con el contador de daño tóxico |
+| **Dormido** | **22 %** | Dormir puede favorecer la recuperación de stamina, pero no permite atacar mientras el estado impida actuar; vigilar sinergia con Descanso |
+| **Confuso (volátil)** | **18 %** de base | Los movimientos **ejecutados** cuestan **10 % más de stamina base**; no cobrar un movimiento no ejecutado por autogolpe de confusión |
+
+**Interpretación de costes:** el 160 % de la parálisis se refiere al **coste base del segundo ataque encadenado** (frente al 150 % habitual), **no** a multiplicar 1.50 × 1.10 ni a cobrar el coste dos veces. La confusión usa un recargo de **+10 puntos porcentuales del coste base** sobre el coste de esa acción, tras decidir si realmente se ejecuta. Si ambas reglas coinciden, limitar y documentar la suma; no multiplicar recargos en cascada.
+
+**Ejemplo con 100 de stamina máxima:** recuperación básica 18; quemadura 12; parálisis 15; congelación 6; veneno 14; veneno grave 12; sueño 22. Son valores de diseño propuestos, no los efectos ya existentes en la ROM.
+
+### 14.3. Reglas globales e integración
+
+1. Los estados principales son excluyentes entre sí conforme al sistema Pokémon. No sumar penalizaciones de quemadura + parálisis + veneno sobre un mismo Pokémon.
+2. Los estados **volátiles** (por ejemplo confusión) pueden coexistir con un estado principal, pero sus recargos deben seguir un orden de cálculo claro y tener límites razonables.
+3. Aplicar el modificador de regeneración **una sola vez al cerrar cada turno**, con la fórmula y redondeo definidos en la sección 12. El estado considerado es el vigente en el momento de la regeneración.
+4. **No regenerar entre los ataques de una cadena**, ni regenerar stamina extra por cada impacto de un movimiento multigolpe o del **Báculo Tormentoso**.
+5. Cuando un Pokémon no llega a ejecutar la acción por parálisis, sueño, congelación o confusión, **no cobrar stamina del movimiento cancelado**. Mantener únicamente costes que correspondan a efectos realmente ejecutados según el motor.
+6. Las mismas reglas rigen para **jugador, rivales y jefes**; La Cofradía puede infligir estados alterados, pero no obtiene inmunidad encubierta a estas penalizaciones.
+7. Los efectos personalizados existentes (como Rooted, Confinado, Aterrado, etc.) quedan **sin nuevos modificadores específicos** hasta estudiarlos por separado; no asignar números arbitrarios sin definir antes su función y posibles solapamientos.
+8. Las habilidades, objetos y Gears que previenen o curan estados deben actualizar inmediatamente el cálculo posterior; los que modifican la stamina requieren un orden de operaciones documentado.
+
+### 14.4. Balance y QA pendiente
+
+- Simular al menos 10 turnos con stamina máxima baja/media/alta y con cada estado; validar redondeo, coste de ataque, recuperación y ausencia de desbordamientos.
+- Evaluar si quemadura y parálisis resultan demasiado fuertes al combinar penalización de stamina con sus efectos normales; ajustar números **antes de considerarlos definitivos**.
+- Comprobar Descanso (sueño inducido), despertar, descongelación, curación entre turnos, cambios de estado durante una cadena y combates dobles.
+- Para confusión, verificar que el recargo se aplica solo a movimientos efectivamente ejecutados y que las animaciones/sonidos no repiten el consumo.
+- Probar con cadenas 2.0 (segundo ataque al 70 % del daño), Gears, mutaciones y jefes de Torre Celestial. Ningún estado debe permitir obtener stamina infinita o impedir toda recuperación sin posibilidad de respuesta.
+- Mostrar el cambio de regeneración o coste en la interfaz de stamina si hay espacio, sin superponer el ring, barras, badges o textos existentes.
+
+**Prioridad:** especificar y balancear primero; no programar este módulo ni modificar los efectos normales de los estados sin QA del encadenamiento 2.0 y la regeneración pasiva del 18 %.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Añadida propuesta de interacción entre estados alterados y stamina (sección 14), junto a encadenamiento 2.0, protección frente a cadenas, Cofradía, Torre Celestial y Báculo Tormentoso; apartados nuevos sujetos a implementación y QA.*
