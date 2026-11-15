@@ -16,7 +16,7 @@ SINGLE_BATTLE_TEST("Unholy Storm Staff strikes again with one quarter of the ori
         ANIMATION(ANIM_TYPE_MOVE, MOVE_POWER_GEM, player);
         HP_BAR(opponent, captureDamage: &firstHit);
         HP_BAR(opponent, captureDamage: &extraHit);
-        MESSAGE("Hit 2 time(s)!");
+        MESSAGE("The Pokémon was hit 2 times!");
         ANIMATION(ANIM_TYPE_MOVE, MOVE_CELEBRATE, opponent);
     } THEN {
         EXPECT_GT(firstHit, extraHit * 3);
@@ -38,10 +38,10 @@ SINGLE_BATTLE_TEST("Unholy Storm Staff suppresses guaranteed secondary effects a
     } SCENE {
         HP_BAR(opponent);
         HP_BAR(opponent);
-        MESSAGE("Hit 2 time(s)!");
+        MESSAGE("The Pokémon was hit 2 times!");
         HP_BAR(opponent);
         HP_BAR(opponent);
-        MESSAGE("Hit 2 time(s)!");
+        MESSAGE("The Pokémon was hit 2 times!");
     } THEN {
         EXPECT_EQ(opponent->statStages[STAT_SPDEF], DEFAULT_STAT_STAGE);
         EXPECT_EQ(player->statStages[STAT_SPATK], DEFAULT_STAT_STAGE - 2);
@@ -62,8 +62,10 @@ SINGLE_BATTLE_TEST("Unholy Storm Staff respects Protect and leaves a physical mo
         NOT HP_BAR(opponent);
         ANIMATION(ANIM_TYPE_MOVE, MOVE_SCRATCH, player);
         HP_BAR(opponent);
-        NOT HP_BAR(opponent);
-        NOT MESSAGE("Hit 2 time(s)!");
+        NONE_OF {
+            HP_BAR(opponent);
+            MESSAGE("The Pokémon was hit 2 times!");
+        }
     }
 }
 
@@ -78,7 +80,9 @@ SINGLE_BATTLE_TEST("Unholy Storm Staff on an opponent stops when the first hit f
     } SCENE {
         ANIMATION(ANIM_TYPE_MOVE, MOVE_POWER_GEM, opponent);
         HP_BAR(player);
-        NOT HP_BAR(player);
-        NOT MESSAGE("Hit 2 time(s)!");
+        NONE_OF {
+            HP_BAR(player);
+            MESSAGE("The Pokémon was hit 2 times!");
+        }
     }
 }
