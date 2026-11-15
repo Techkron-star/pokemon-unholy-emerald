@@ -613,4 +613,68 @@ Los estados alterados influyen en la **economía de stamina** además de sus efe
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Añadida propuesta de interacción entre estados alterados y stamina (sección 14), junto a encadenamiento 2.0, protección frente a cadenas, Cofradía, Torre Celestial y Báculo Tormentoso; apartados nuevos sujetos a implementación y QA.*
+## 15. Encadenado: control del encadenamiento mediante Gear o movimiento (diseño pendiente)
+
+> **Propuesta:** incorporar una forma de impedir que otro Pokémon ejecute dos movimientos encadenados durante un período breve. Dos formas de aplicación a evaluar: Gear **Grillete** o movimiento de estado. Es una restricción al **encadenamiento**, no un estado de inmovilización total ni un aumento automático de daño. **Sin implementación confirmada.**
+
+### 15.1. Estado volátil «Encadenado»
+
+- **Efecto:** el Pokémon afectado **solo puede ejecutar un movimiento elegido por turno**; no puede seleccionar o completar una cadena de dos movimientos mientras dure el efecto.
+- **Sigue pudiendo** atacar normalmente una vez, usar movimientos de estado, cambiarse (salvo otro efecto que lo impida), utilizar movimientos multigolpe y recibir la regeneración de stamina que corresponda.
+- **No altera directamente** el daño, velocidad, coste ni recuperación de stamina: su ventaja es bloquear la opción de dos acciones, no «apagar» al objetivo.
+- **No es un estado principal** como quemadura/parálisis; es un **estado volátil** y puede coexistir con estados principales, siempre según la lógica habitual de estados simultáneos.
+- Si el objetivo había seleccionado dos ataques y queda Encadenado **antes de ejecutar el segundo**, ese segundo movimiento se **cancela sin atacar ni consumir sus PP/stamina**. Conservar únicamente los costes del movimiento que sí se ejecutó; no se recalcula o reinicia el turno.
+- No confundir **Encadenado** con el «encadenamiento» ofensivo del usuario ni con **Confinado/Rooted** u otros efectos que restringen cambios, movilidad o acciones.
+- Si el objetivo se retira del campo, **Encadenado se limpia**, salvo que más adelante se defina expresamente una mecánica de persistencia distinta.
+- Si expira en mitad de un turno, **no se añade retroactivamente** una segunda acción que no se había seleccionado. La duración debe tener reglas visibles y consistentes.
+
+### 15.2. Gear candidato: Grillete
+
+**Función:** un Gear ofensivo de control que pueda aplicar Encadenado al enemigo mediante golpes, sin convertir cada impacto en una garantía de bloqueo.
+
+**Parámetros iniciales a probar (no definitivos):**
+
+- Probabilidad orientativa: **20 %** de aplicar **Encadenado** cuando el portador acierta un **movimiento que cause daño** sobre el objetivo.
+- **Una tirada por movimiento**, no por cada impacto, ni por cada objetivo repetido del mismo movimiento; evitar explotación mediante movimientos multigolpe y el segundo impacto del **Báculo Tormentoso**.
+- Duración sugerida para el Gear: **1 turno completo de restricción** tras la aplicación efectiva, con la segunda acción actual cancelada si todavía no se ejecutó. Definir exactamente en qué cierre de turno vence antes de programar.
+- **No acumular cargas** ni prolongar indefinidamente al reaplicar cuando el estado ya está activo; limitar frecuencia y probar si hace falta un intervalo de resistencia a reaplicaciones.
+- No confiere un bloqueo pasivo a todo el equipo rival ni anula automáticamente cadenas al entrar al campo.
+- Respeta la regla de **un Gear equipado** por Pokémon; no se combina con Báculo Tormentoso o Psicosangre simultáneamente salvo que una mecánica futura habilite explícitamente múltiples slots.
+
+### 15.3. Movimiento de estado candidato
+
+Crear un **movimiento de estado** que aplique el mismo estado **Encadenado** como alternativa o complemento al Gear.
+
+- **Efecto:** al acertar, impide encadenar movimientos durante un breve período.
+- Valores provisionales de ensayo: **90 % de precisión** y **2 turnos de restricción**; PP, tipo, nombre definitivo, disponibilidad y animación pendientes.
+- **Protección, inmunidades, Sustituto** y reglas especiales deben respetar la lógica de ataques de estado del motor; no permitir que atraviese barreras de manera implícita.
+- No produce daño por sí mismo y **no puede ser el segundo movimiento de una cadena**, de acuerdo con la regla de la sección 12 que inicialmente excluye movimientos de estado de las cadenas.
+- El jugador y la IA deben disponer de reglas equivalentes. La Cofradía puede usarlo, pero no obtiene versiones ocultamente superiores.
+
+**Decisión abierta:** usar ambas vías de aplicación, solo una o reservar una para jefes; resolver tras balancear el impacto de impedir la segunda acción.
+
+### 15.4. Compatibilidades y límites
+
+- **Movimientos multigolpe:** continúan golpeando varias veces porque constituyen **una sola ejecución**, no dos movimientos encadenados.
+- **Báculo Tormentoso:** la descarga especial extra del **25 %** sigue ocurriendo dentro del mismo movimiento. Encadenado **no** suprime esa descarga. Esto mantiene la distinción establecida en las secciones 11–13.
+- **Resistencia, Banda Focus, Robustez y Cinta Focus:** sus nuevas reglas por turno no cambian; impedir la cadena no modifica la protección frente a impactos de multigolpe.
+- **Stamina:** Encadenado no provoca pérdidas adicionales ni reduce automáticamente la regeneración del 18 %. Al impedir la segunda acción se evita su coste; no se debe consumir stamina por un ataque cancelado.
+- **Mutaciones/habilidades/objetos:** revisar aquellos que otorgan movimientos extra o inmunidades, para no generar bucles ni evasiones de la prohibición. La prohibición afecta a **segundas acciones de cadena**, no a cualquier impacto extra de un mismo movimiento.
+- **Interfaz:** un icono/indicador reconocible de **Encadenado** en el resumen de estado de combate; el selector de movimientos debe desactivar la elección de segundo ataque y mostrar un mensaje corto («No puede encadenar»).
+
+### 15.5. Pruebas de aceptación
+
+1. Pokémon Encadenado puede usar **un movimiento normal** y sigue regenerando stamina.
+2. No puede confirmar dos movimientos de cadena mientras dure el estado.
+3. Si se aplica el estado durante la primera ronda de acciones y existe una segunda acción ya pendiente, esta se cancela **sin gasto de PP ni stamina**.
+4. Un movimiento de múltiples golpes y un ataque especial con segundo impacto del Báculo Tormentoso siguen resolviéndose como **un solo movimiento**.
+5. Cambiar de Pokémon limpia el estado; finalizar duración lo elimina sin restaurar acciones ya perdidas.
+6. Grillete tira su probabilidad **una sola vez por ejecución** de movimiento y no una vez por impacto.
+7. Aplicación, duración, reintentos, curación y expiración funcionan con igual criterio para jugador, NPC y jefes de Torre Celestial.
+8. La HUD y el selector de cadenas comunican claramente la restricción y no crean duplicados de turnos o ataques.
+
+**Prioridad:** registrar el concepto, diseñar sprite/animación y ensayar el balance tras estabilizar Encadenamiento 2.0. Los porcentajes, duración y la coexistencia de las dos vías quedan abiertos a validación.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Incorporado diseño del estado Encadenado y candidatos Gear Grillete/movimiento de estado (sección 15), además de estados y stamina, encadenamiento 2.0, Cofradía, Torre Celestial y Báculo Tormentoso; apartados futuros pendientes de implementación y balance.*
