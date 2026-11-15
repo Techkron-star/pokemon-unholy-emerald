@@ -18,4 +18,8 @@ void UnholyUi_Card(u8 window, u16 x, u16 y, u16 width, u16 height, bool8 selecte
 void UnholyUi_Bar(u8 window, u16 x, u16 y, u16 width, u32 value, u32 maximum, u8 color);
 u8 UnholyUi_CardFill(bool8 selected);
 
+#define UNHOLY_UI_ICON_SIZE 10
+// Draws a 10x10 icon from row strings: o outline, a accent, b secondary, r alert, . clear.
+void UnholyUi_Icon(u8 window, u16 x, u16 y, const char *const rows[UNHOLY_UI_ICON_SIZE]);
+
 #endif

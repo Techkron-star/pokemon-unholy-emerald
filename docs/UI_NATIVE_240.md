@@ -13,7 +13,7 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 
 | Referencia | Implementación |
 | --- | --- |
-| 1, 6 · Pokéwatch | Diez servicios, cinco filas visibles, desplazamiento y contador. La fila bloqueada conserva el foco y muestra el requisito real. A nunca lanza un servicio sin acceso. Se conserva el servicio elegido al regresar. |
+| 1, 6 · Pokéwatch | Diez servicios, cinco filas visibles, desplazamiento y contador. La fila bloqueada conserva el foco y muestra el requisito real. Cada tarjeta lleva un icono de 10×10 dibujado con los colores del tema (`src/data/hfc_watch_icons.h`, `UnholyUi_Icon`); los bloqueados lo conservan. A nunca lanza un servicio sin acceso. Se conserva el servicio elegido al regresar. |
 | 2 · Horizon | Cinco categorías existentes: Pokémon, Discos, Objetos, Huevos y Movimientos. Las seis ofertas Pokémon y cinco huevos reutilizan su compra, confirmación, stock y RNG persistentes. |
 | 3 · PokéNav | Se conserva el mapa real y sus funciones. El panel de ubicación adopta la paleta común y limita los nombres a su espacio. |
 | 4 · Pokélocator | Catálogo 3×2 por especie, categorías presentes/desbloqueadas, ficha previa y progreso. Obtención gratuita individual/ALL/NEW con confirmación y capacidad, Search nativo, objetivo R persistente y Señal existente. Topes globales por medallas. Eclipse/Daylight comparten datos y navegación. Véase [Pokélocator](POKELOCATOR_SEARCH.md). |
@@ -43,6 +43,10 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 - L/R alterna Stats → IV → EV y Objeto/Gear → Mutaciones → Bonos.
 - A en Info o Movimientos abre el detalle original, incluidas sus operaciones existentes. B en ese detalle vuelve al nuevo Resumen y conserva el Pokémon elegido.
 - El aprendizaje, sustitución y borrado de movimientos, contextos de enlace y Resumen durante combate conservan la pantalla original. Las vistas normales de equipo y PC usan la nueva composición; la selección especial `PC_MON_CHOSEN` conserva su tratamiento original.
+
+## Controles unificados
+
+Hub y Horizon escriben sus ayudas con el mismo formato (`L/R:SHOP  A:BUY  B:BACK`). B siempre vuelve un nivel: de Horizon al reloj y del reloj al campo o a START.
 
 ## Validación
 

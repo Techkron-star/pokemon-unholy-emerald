@@ -37,6 +37,8 @@
 #define HUB_ROWS 3
 #define HUB_PAGE_SIZE (HUB_COLUMNS * HUB_ROWS)
 
+#include "data/hfc_watch_icons.h"
+
 static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
 {
     [HFC_WATCH_FEATURE_HORIZON_SHOP] = COMPOUND_STRING("HORIZON"),
@@ -526,9 +528,11 @@ static void RenderHub(void)
         bool8 ready = HfcWatch_GetAccess(tier, feature, progress) == HFC_WATCH_READY;
         u8 fill = UnholyUi_CardFill(selected);
         UnholyUi_Card(sWatchWindowId, x, y, 97, 23, selected);
-        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + (ready ? 5 : 1), 87, fill, sFeatureNames[feature]);
+        // A locked service keeps its icon; the LOCKED label and requirement explain why.
+        UnholyUi_Icon(sWatchWindowId, x + 5, y + 6, sHubIcons[feature]);
+        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 19, y + (ready ? 5 : 1), 74, fill, sFeatureNames[feature]);
         if (!ready)
-            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + 11, 86, fill, COMPOUND_STRING("LOCKED"));
+            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 19, y + 11, 73, fill, COMPOUND_STRING("LOCKED"));
         if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && ready && hasRareStock)
             FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), x + 87, y + 9, 3, 3);
     }

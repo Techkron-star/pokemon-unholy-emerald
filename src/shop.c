@@ -220,8 +220,8 @@ static const u8 *const sHorizonTabLabels[] =
     sHorizonTabPokemon, sHorizonTabDiscs, sHorizonTabItems,
     sHorizonTabEggs, sHorizonTabMoves,
 };
-static const u8 sHorizonTextBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
-static const u8 sHorizonTextConfirm[] = _("A: CONFIRM   B: CANCEL");
+static const u8 sHorizonTextBrowse[] = _("L/R:SHOP  A:BUY  B:BACK");
+static const u8 sHorizonTextConfirm[] = _("A:CONFIRM  B:CANCEL");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
 static const u8 sHorizonTextSold[] = _("SOLD");
 static const u8 sHorizonTextNeedMoney[] = _("Not enough money.");
@@ -229,7 +229,7 @@ static const u8 sHorizonTextNeedSpace[] = _("Party and PC are full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Confirm purchase?");
-static const u8 sHorizonTextEggBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
+static const u8 sHorizonTextEggBrowse[] = _("L/R:SHOP  A:BUY  B:BACK");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
 static const u8 sHorizonTextPrize[] = _("Egg purchased!");
 static const u8 *const sHorizonPokemonStatuses[] =
@@ -244,11 +244,11 @@ static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonMoveLearn[] = _("MOVE MANAGER");
 static const u8 sHorizonMoveForget[] = _("FORGET");
-static const u8 sHorizonMoveInstructions[] = _("L/R: SHOP  A: OPEN  B: WATCH");
+static const u8 sHorizonMoveInstructions[] = _("L/R:SHOP  A:OPEN  B:BACK");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
-static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
-static const u8 sHorizonGoodsControls[] = _("L/R: SHOP  A: BUY");
-static const u8 sHorizonGoodsBack[] = _("B: WATCH");
+static const u8 sHorizonTextControls[] = _("L/R:TABS  A:OPEN  B:BACK");
+static const u8 sHorizonGoodsControls[] = _("L/R:SHOP  A:BUY");
+static const u8 sHorizonGoodsBack[] = _("B:BACK");
 static const u8 sHorizonDescPokemon[] = _("Earn badges to find\nrarer Pokémon.");
 static const u8 sHorizonDescDiscs[] = _("TM stock rotates.\nBadges unlock more.");
 static const u8 sHorizonDescItems[] = _("Supplies and\nrotating stock.");

@@ -83,6 +83,47 @@ void UnholyUi_Card(u8 window, u16 x, u16 y, u16 width, u16 height, bool8 selecte
     FillWindowPixelRect(window, PIXEL_FILL(line), x + width - 1, y, 1, height);
 }
 
+static u8 IconColor(char code)
+{
+    bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+
+    switch (code)
+    {
+    case 'o': return 2;                  // same index as the text: always readable
+    case 'a': return daylight ? 6 : 7;   // soft gold / cool silver, as the panel accent
+    case 'b': return daylight ? 7 : 4;   // turquoise / deep blue
+    case 'r': return 13;                 // alert red in both themes
+    default:  return 0;
+    }
+}
+
+void UnholyUi_Icon(u8 window, u16 x, u16 y, const char *const rows[UNHOLY_UI_ICON_SIZE])
+{
+    u16 right = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH;
+    u16 bottom = GetWindowAttribute(window, WINDOW_HEIGHT) * TILE_HEIGHT;
+
+    if (x + UNHOLY_UI_ICON_SIZE > right || y + UNHOLY_UI_ICON_SIZE > bottom)
+        return;
+    for (u8 row = 0; row < UNHOLY_UI_ICON_SIZE; row++)
+    {
+        // One fill per horizontal run keeps redraws cheap.
+        for (u8 col = 0; col < UNHOLY_UI_ICON_SIZE;)
+        {
+            u8 length = 1;
+
+            if (rows[row][col] == '.')
+            {
+                col++;
+                continue;
+            }
+            while (col + length < UNHOLY_UI_ICON_SIZE && rows[row][col + length] == rows[row][col])
+                length++;
+            FillWindowPixelRect(window, PIXEL_FILL(IconColor(rows[row][col])), x + col, y + row, length, 1);
+            col += length;
+        }
+    }
+}
+
 void UnholyUi_Frame(u8 window, const u8 *title)
 {
     u16 width = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH;
