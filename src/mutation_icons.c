@@ -275,6 +275,8 @@ void MutationIcon_SyncBattle(u8 battler, const struct Sprite *box, s16 x, s16 y)
     badge->y = y;
     badge->x2 = box->x2;
     badge->y2 = box->y2;
+    badge->coordOffsetEnabled = box->coordOffsetEnabled;
+    badge->oam.objMode = box->oam.objMode;
     badge->oam.priority = box->oam.priority;
     badge->invisible = box->invisible;
 }
