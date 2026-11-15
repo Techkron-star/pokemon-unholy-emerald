@@ -439,4 +439,62 @@ Para evitar comportamientos contradictorios, la implementación debe fijar y pro
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Incluye diseño base de PRs #9–#18, mochilas evolutivas, La Cofradía, Torre Celestial y Báculo Tormentoso (nuevas secciones pendientes de implementación).*
+## 12. Encadenamiento 2.0 y regeneración de stamina (balance propuesto)
+
+> **Estado:** ajustes de diseño aceptados para la próxima fase de balance; no afirmar que están implementados hasta verificar el motor y la ROM en emulador.
+
+### 12.1. Objetivo
+
+Que encadenar dos ataques continúe siendo una herramienta táctica potente, pero no equivalga a usar dos movimientos de daño completo por el coste de un turno. Conservar la posibilidad de mezclar tipos, ataques físicos y especiales. Las mismas reglas se aplican al jugador y a los entrenadores controlados por la IA, incluida La Cofradía.
+
+### 12.2. Reglas propuestas
+
+| Elemento | Regla |
+|---|---|
+| Primer ataque de una cadena | 100 % de su daño normal; coste normal de stamina |
+| Segundo ataque de la cadena | **70 % del daño normal**, calculado para ese ataque |
+| Stamina del segundo ataque | **150 % de su coste normal** (incremento del 50 %), con redondeo coherente y comprobación de recursos antes de confirmar |
+| Regeneración pasiva | **18 % de la stamina máxima por turno**, antes 20 %; solo una vez al final del turno |
+| Movimiento individual | 100 % de daño y coste normal; no recibe la penalización de cadena |
+| KO en el primer ataque | La cadena se cancela; no atacar al sustituto recién enviado |
+| Movimientos de estado | **No encadenables** en la versión inicial de este balance; no quedan prohibidos como acciones normales |
+| Simetría | Las mismas reglas de daños, costes, cancelaciones y regeneración rigen para la IA |
+| Báculo Tormentoso | Sigue prohibido encadenar **especial → especial**; las combinaciones mixtas se permiten si cumplen todas las demás condiciones |
+
+El **70 %** corresponde al modificador de daño del **segundo movimiento**, no a una modificación permanente de su potencia base. Las resistencias, el STAB, los críticos, las habilidades, las mutaciones y los Gears deben calcularse con normalidad, aplicando el modificador una sola vez de forma consistente.
+
+**Regeneración:** al finalizar cada turno completo, recuperar aproximadamente \`floor(staminaMaxima × 0.18)\` puntos, con mínimo de 1 si corresponde recuperar y todavía falta stamina, sin superar el máximo. La cifra del 18 % es inicial y deberá ajustarse con pruebas; **no regenerar entre las dos acciones de una misma cadena**. Si el motor tiene otras fuentes explícitas de recuperación, estas se resuelven aparte y sin duplicar la regeneración pasiva.
+
+### 12.3. Orden de ejecución de las acciones
+
+Evitar que un Pokémon rápido encadene dos movimientos consecutivos antes de que el rival tenga oportunidad de actuar solo por tener mayor Velocidad:
+
+1. Resolver **la primera acción** de cada combatiente según las reglas existentes de prioridad y Velocidad.
+2. Si la cadena sigue siendo válida, resolver **las segundas acciones** según prioridad y Velocidad entre quienes tengan segundo movimiento pendiente.
+3. En caso de KO, cambio de Pokémon, incapacidad para actuar, pérdida de objetivo válido o interrupción prevista en las reglas del motor, cancelar o revalidar la segunda acción; **nunca dirigir automáticamente el segundo ataque contra el Pokémon que acaba de entrar por un KO**.
+4. Resolver el cierre normal del turno y **una sola regeneración pasiva** por Pokémon según el sistema de stamina.
+
+Esto es un objetivo de comportamiento, no una orden de sustituir a ciegas la cola de acciones: las prioridades, ataques dobles, acciones de cambio, interrupciones y casos de multibatalla requieren integración cuidadosa con la lógica existente.
+
+### 12.4. Integración con Gears y efectos adicionales
+
+- **Báculo Tormentoso:** su segundo impacto del 25 % es parte **del mismo movimiento especial**, no cuenta como un segundo movimiento encadenado ni incurre en el recargo del 50 % de stamina de cadena.
+- Si el movimiento con Báculo ocupa la **segunda posición de una cadena mixta válida**, la reducción de daño del **70 %** debe afectar de manera coherente el daño de ambos impactos de ese movimiento, sin aplicarse dos veces ni crear una tercera descarga.
+- Evitar activaciones recursivas de Gears y habilidades que produzcan ataques extra no permitidos.
+- Conservar las reglas acordadas para que un KO interrumpa el encadenamiento, incluidos combates con mutaciones y jefes especiales.
+- La interfaz debe comunicar claramente **coste de stamina**, orden de ataques y restricciones antes de confirmar; no permitir que la selección de movimientos cree una cadena inválida o gaste recursos sin ejecutar una acción válida.
+
+### 12.5. Balance y pruebas antes de activar
+
+- Comparar ataques individuales, cadenas con dos ataques, cadenas mixtas y alternativas con movimientos de estado.
+- Verificar la regeneración del 18 % con máximos de stamina grandes/pequeños, redondeo, stamina casi llena y stamina insuficiente para el segundo ataque.
+- Confirmar que una cadena no regenera stamina entre ataques y que el segundo gasto del 150 % se aplica al movimiento correcto, sin desbordamiento.
+- Validar que la IA cumple las mismas limitaciones y que nunca vuelve a actuar tras cancelar la cadena por KO.
+- Probar interacciones con **Báculo Tormentoso, Psicosangre, Tesseracto**, mutaciones acumuladas y las intervenciones de **La Cofradía**, sin ventajas ocultas del motor para NPC.
+- Hacer QA de la UI de selección y ejecución en emulador: mensajes naturales, datos alineados, animaciones correctas y ausencia de acciones repetidas involuntariamente.
+
+**No cambiar todavía otros sistemas de stamina ni tasas propias de habilidades/Gears** sin medir primero el efecto de estas tres modificaciones principales: 70 % de daño en el segundo ataque, +50 % a su coste de stamina y 18 % de regeneración pasiva.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Incluye diseño del encadenamiento 2.0 (70 % segundo golpe, +50 % stamina y regeneración reducida al 18 %), además de mochilas, Cofradía, Torre Celestial y Báculo Tormentoso; apartados nuevos pendientes de implementación.*
