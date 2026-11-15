@@ -815,7 +815,7 @@ static void HorizonDrawDirectory(u8 panel)
     for (u8 tab = 0; tab < ARRAY_COUNT(sHorizonTabs); tab++)
     {
         u8 x = 7 + (tab % 3) * 68;
-        u8 y = 30 + (tab / 3) * 26;
+        u8 y = 29 + (tab / 3) * 25;
         bool8 selected = tab == sHorizonSelectedTab;
 
         HorizonDrawCard(panel, x, y, 66, 22, selected);
@@ -826,7 +826,7 @@ static void HorizonDrawDirectory(u8 panel)
 
     const u8 *detail = sHorizonSelectedTab == 0 && hasNewStock
                      ? sHorizonTextRare : sHorizonDescriptions[sHorizonSelectedTab];
-    HorizonPrintSmall(panel, detail, 7, 82, 202);
+    HorizonPrintSmall(panel, detail, 7, 79, 202);
     HorizonPrintSmall(panel, sHorizonTextControls, 7, 98, 202);
 }
 
@@ -864,11 +864,11 @@ static void HorizonDrawInfo(void)
         for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
         {
             u8 x = 5 + (slot % 3) * 70;
-            u8 y = 28 + (slot / 3) * 28;
+            u8 y = 27 + (slot / 3) * 26;
             const enum Species species = HorizonMarketGetSpecies(slot);
             bool8 sold = HorizonMarketOfferSold(slot);
 
-            HorizonDrawCard(panel, x, y, 66, 26, slot == sHorizonPokemonSelection);
+            HorizonDrawCard(panel, x, y, 66, 25, slot == sHorizonPokemonSelection);
             if (sold)
                 HorizonPrintCardText(panel, sHorizonTextSold, x + 5, y + 3, 54,
                                      slot == sHorizonPokemonSelection, FONT_SMALL);
@@ -887,7 +887,7 @@ static void HorizonDrawInfo(void)
             {
                 ConvertIntToDecimalStringN(gStringVar3, HorizonMarketGetPrice(slot),
                                            STR_CONV_MODE_LEFT_ALIGN, 6);
-                HorizonPrintCardText(panel, gStringVar3, x + 5, y + 15, 55,
+                HorizonPrintCardText(panel, gStringVar3, x + 5, y + 13, 55,
                                      slot == sHorizonPokemonSelection, FONT_SMALL_NARROW);
             }
         }
@@ -896,7 +896,7 @@ static void HorizonDrawInfo(void)
         // the grid. All purchase prices remain visible in the cards.
         if (sHorizonPokemonStatus != 0)
             HorizonPrintSmall(panel, sHorizonPokemonStatuses[sHorizonPokemonStatus],
-                              7, 83, 202);
+                              7, 80, 202);
         else
         {
             StringCopy(gStringVar4, GetSpeciesName(HorizonMarketGetSpecies(sHorizonPokemonSelection)));
@@ -907,7 +907,7 @@ static void HorizonDrawInfo(void)
                 StringAppend(gStringVar4, COMPOUND_STRING(" "));
             }
             StringAppend(gStringVar4, HorizonMarketMutationName(mutation));
-            HorizonPrintSmall(panel, gStringVar4, 7, 83, 202);
+            HorizonPrintSmall(panel, gStringVar4, 7, 80, 202);
         }
 
         HorizonPrintSmall(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
@@ -923,18 +923,18 @@ static void HorizonDrawInfo(void)
             u8 quality = HorizonEggGetQuality(tier);
             bool8 sold = HorizonEggIsSold(tier);
 
-            HorizonDrawCard(panel, x, 30, 38, 42, tier == sHorizonEggSelection);
-            HorizonDrawSmallEgg(panel, x + 12, 34, quality);
-            HorizonPrintCardText(panel, sHorizonEggCardNames[tier], x + 3, 49, 32,
+            HorizonDrawCard(panel, x, 28, 38, 41, tier == sHorizonEggSelection);
+            HorizonDrawSmallEgg(panel, x + 12, 32, quality);
+            HorizonPrintCardText(panel, sHorizonEggCardNames[tier], x + 3, 46, 32,
                                      tier == sHorizonEggSelection, FONT_SMALL_NARROW);
             if (sold)
-                HorizonPrintCardText(panel, sHorizonTextEggSold, x + 4, 61, 32,
+                HorizonPrintCardText(panel, sHorizonTextEggSold, x + 4, 56, 32,
                                      tier == sHorizonEggSelection, FONT_SMALL_NARROW);
             else
                 FillWindowPixelRect(panel, PIXEL_FILL(quality == HORIZON_EGG_PRISMATIC ? 13
                                                     : quality == HORIZON_EGG_RADIANT ? 7
                                                     : (daylight ? 7 : 5)),
-                                    x + 4, 67, 30, 2);
+                                    x + 4, 64, 30, 2);
         }
 
         // Detail text stops before the large animated egg icon on the right.
@@ -949,12 +949,12 @@ static void HorizonDrawInfo(void)
             StringAppend(gStringVar4, HorizonEggTierName(sHorizonEggSelection));
             StringAppend(gStringVar4, COMPOUND_STRING("  QUALITY "));
             StringAppend(gStringVar4, HorizonEggQualityName(HorizonEggGetQuality(sHorizonEggSelection)));
-            HorizonPrintSmall(panel, gStringVar4, 7, 75, 155);
+            HorizonPrintSmall(panel, gStringVar4, 7, 71, 155);
             StringCopy(gStringVar4, COMPOUND_STRING("COST "));
             ConvertIntToDecimalStringN(gStringVar3, HorizonEggGetPrice(sHorizonEggSelection),
                                        STR_CONV_MODE_LEFT_ALIGN, 6);
             StringAppend(gStringVar4, gStringVar3);
-            HorizonPrintSmall(panel, gStringVar4, 7, 84, 153);
+            HorizonPrintSmall(panel, gStringVar4, 7, 81, 153);
         }
 
         HorizonPrintSmall(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
@@ -1605,7 +1605,7 @@ static void BuyMenuPrintItemDescriptionAndShowItemIcon(s32 item, bool8 onInit, s
         description = gText_QuitShopping;
     }
 
-    FillWindowPixelBuffer(WIN_ITEM_DESCRIPTION, PIXEL_FILL(0));
+    FillWindowPixelBuffer(WIN_ITEM_DESCRIPTION, PIXEL_FILL(sHorizonActive ? 1 : 0));
     BuyMenuPrint(WIN_ITEM_DESCRIPTION, description, 3, 1, 0, COLORID_NORMAL);
 }
 
@@ -1698,9 +1698,9 @@ static void BuyMenuDrawHorizonGoods(void)
             u8 y = 18 + card / 2 * 23;
             u8 outline = selected ? 2 : 3;
             FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 52, 1);
-            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y + 20, 52, selected ? 2 : 1);
-            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 1, 20);
-            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x + 51, y, 1, 20);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y + 21, 52, 1);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 1, 21);
+            FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x + 51, y, 1, 21);
             HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(item), x + 3, y + 1, 47, FONT_SMALL_NARROW, colors);
             if (GetItemImportance(item) && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
                 StringCopy(text, gText_SoldOut);
