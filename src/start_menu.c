@@ -474,7 +474,7 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
     {
         struct Sprite *icon = &gSprites[sUnholyCraftIconSpriteId];
         icon->x = 190;
-        icon->y = 58;
+        icon->y = sUnholyCraftMode ? 46 : 58;
         icon->oam.priority = 0;
     }
 }
@@ -569,9 +569,9 @@ static void UnholyCraftRenderMenu(void)
         UnholyCraftPrint(6, 89, gStringVar4);
 
         if (sUnholyCraftStatus != CRAFT_STATUS_READY)
-            UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
+            UnholyCraftPrint(6, 103, sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
-            UnholyCraftPrint(6, 105, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
+            UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
         UnholyCraftPrint(4, 122, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }
