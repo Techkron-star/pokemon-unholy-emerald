@@ -463,7 +463,7 @@ Que encadenar dos ataques continúe siendo una herramienta táctica potente, per
 
 El **70 %** corresponde al modificador de daño del **segundo movimiento**, no a una modificación permanente de su potencia base. Las resistencias, el STAB, los críticos, las habilidades, las mutaciones y los Gears deben calcularse con normalidad, aplicando el modificador una sola vez de forma consistente.
 
-**Regeneración:** al finalizar cada turno completo, recuperar aproximadamente \`floor(staminaMaxima × 0.18)\` puntos, con mínimo de 1 si corresponde recuperar y todavía falta stamina, sin superar el máximo. La cifra del 18 % es inicial y deberá ajustarse con pruebas; **no regenerar entre las dos acciones de una misma cadena**. Si el motor tiene otras fuentes explícitas de recuperación, estas se resuelven aparte y sin duplicar la regeneración pasiva.
+**Regeneración:** al finalizar cada turno completo, recuperar aproximadamente `floor(staminaMaxima × 0.18)` puntos, con mínimo de 1 si corresponde recuperar y todavía falta stamina, sin superar el máximo. La cifra del 18 % es inicial y deberá ajustarse con pruebas; **no regenerar entre las dos acciones de una misma cadena**. Si el motor tiene otras fuentes explícitas de recuperación, estas se resuelven aparte y sin duplicar la regeneración pasiva.
 
 ### 12.3. Orden de ejecución de las acciones
 
@@ -497,4 +497,71 @@ Esto es un objetivo de comportamiento, no una orden de sustituir a ciegas la col
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Incluye diseño del encadenamiento 2.0 (70 % segundo golpe, +50 % stamina y regeneración reducida al 18 %), además de mochilas, Cofradía, Torre Celestial y Báculo Tormentoso; apartados nuevos pendientes de implementación.*
+## 13. Supervivencia al daño: protección de turno y ataques multigolpe (rework propuesto)
+
+> **Decisión de diseño:** reequilibrar **Resistencia (Endure)**, **Banda Focus (Focus Sash)** y efectos de supervivencia similares para que el **encadenamiento de movimientos separados no anule automáticamente la protección**, mientras que los **movimientos multigolpe sí pueden superar esa protección con impactos sucesivos**. Pendiente de implementación y pruebas.
+
+### 13.1. Distinguir movimientos encadenados e impactos del mismo movimiento
+
+- **Cadena:** dos movimientos **distintos** ejecutados durante el mismo turno (p. ej., Rayo → Psíquico). Cada uno es una acción/movimiento independiente aunque compartan turno.
+- **Multigolpe:** **un solo movimiento** con varios impactos internos (p. ej., Pedrada o Ataque Furia); no es una cadena y no se le aplica el coste extra de encadenamiento.
+- **Impacto adicional del Báculo Tormentoso:** es otro impacto **dentro del mismo movimiento especial**, no una segunda acción de cadena. Por tanto, se trata como multigolpe a efectos de romper esta protección.
+
+### 13.2. Escudo de supervivencia durante el turno
+
+Cuando una protección de tipo «sobrevivir con 1 PS» está vigente o se activa legítimamente:
+
+1. **Contra movimientos separados de una misma cadena**, conserva una protección de **mínimo 1 PS hasta que termine ese turno**. Si la primera acción la activa, la segunda acción encadenada **no puede eliminarla solo por ser el segundo movimiento**.
+2. **Contra un único movimiento multigolpe**, la protección puede salvar del **primer impacto que de otro modo sería letal**, pero **no cubre indefinidamente los impactos posteriores de ese mismo movimiento**. Si aún hay impactos y causan suficiente daño, el Pokémon puede caer **en ese mismo turno**.
+3. **La protección expira al terminar el turno**; no se traslada al siguiente. El estado «ya activado en este turno» no permite volver a activar una Banda Focus consumida.
+4. El umbral se aplica sobre **daño de movimientos**. Daño residual (veneno, quemadura, clima, etc.), autodaño y otros costes de final de turno mantienen sus reglas propias; no quedan cubiertos automáticamente.
+5. Los ataques y habilidades deben seguir resolviendo inmunidades, habilidades, efectos de objeto y excepciones existentes; esta regla no convierte al objetivo en invulnerable.
+
+**Ejemplo A — cadena que NO remata:** un Pokémon a PS completos recibe un primer ataque letal; Banda Focus se activa y lo mantiene a 1 PS. La siguiente acción **de esa misma cadena**, aunque haga daño, no lo remata durante ese turno. Al terminar, el escudo desaparece y la Banda Focus ya está consumida.
+
+**Ejemplo B — multigolpe que SÍ puede rematar:** un movimiento golpea cuatro veces. Un impacto activa la protección y deja al objetivo a 1 PS; **otro impacto del mismo movimiento** lo alcanza y puede debilitarlo. Si no quedan impactos tras activarse el escudo, sobrevive.
+
+**Ejemplo C — Báculo Tormentoso:** el primer impacto de un movimiento especial activa Banda Focus o Resistencia; la descarga del **25 %** es un impacto posterior **del mismo movimiento** y puede rematar si supera la protección ya gastada para ese movimiento.
+
+### 13.3. Aplicación por mecánica
+
+| Efecto | Regla especial de Unholy Emerald |
+|---|---|
+| **Resistencia / Endure** | Mientras esté activa, mantiene el mínimo de 1 PS ante **movimientos separados** del turno, incluidas cadenas; los impactos posteriores **dentro del mismo movimiento multigolpe** pueden romper ese mínimo. |
+| **Banda Focus / Focus Sash** | Mantiene su condición inicial de estar a **PS completos** para activarse frente a un golpe letal; se consume una sola vez y el **escudo resultante dura hasta fin de turno** frente a movimientos separados. Un multigolpe puede rematar tras la activación. |
+| **Robustez / Sturdy** (si aplica) | Conservar el requisito de PS completos para la activación; aplicar la misma protección temporal contra acciones separadas y la misma vulnerabilidad a impactos posteriores de un único multigolpe. |
+| **Cinta Focus / Focus Band** (si aplica) | Mantener la probabilidad existente de activación ante daño letal; **no repetir tiradas por cada golpe de una cadena** una vez activado el escudo. Si se activa, dura el resto del turno ante movimientos separados y puede romperse por impactos del mismo multigolpe. |
+
+- Estas reglas son intencionalmente distintas de la mecánica estándar y requieren un tratamiento explícito en el motor.
+- **Protección/Detección y movimientos que bloquean por completo ataques no son equivalentes a «sobrevivir con 1 PS»**. Mantienen sus propias reglas y no se declaran vulnerables a multigolpes por esta decisión.
+- Si coinciden varios efectos de supervivencia, definir **prioridad y consumo** para evitar que se creen escudos ilimitados o que un objeto se gaste si otro efecto ya resolvió el golpe.
+- **Simetría completa entre jugador e IA**, incluso para los equipos de La Cofradía.
+
+### 13.4. Requisito técnico y persistencia
+
+La rutina de daño debe conocer **turno**, **identificador de ejecución de movimiento**, **índice de impacto**, **origen y condición de activación del escudo** y si la protección **ya salvó un impacto letal dentro de esa ejecución**. No basar todo en un flag genérico «protegido durante el turno» que haga invulnerable también a todos los impactos de multigolpe.
+
+Modelo conceptual:
+
+- \`survivalGuardActiveThisTurn\`: protección temporal activa tras un disparador válido.
+- \`survivalGuardConsumedForMoveExecution\`: protección ya usada contra un impacto letal dentro de la **ejecución actual**; si llegan más impactos del mismo movimiento, **no se vuelve a poner el objetivo a 1 PS automáticamente**.
+- Al iniciar **un nuevo movimiento distinto dentro del mismo turno**, la protección temporal **sí** puede conservar el mínimo de 1 PS.
+- Al cerrar el turno, limpiar los estados transitorios. No persistir flags temporales en SaveBlock; los consumos reales de objeto y la partida guardada siguen sus reglas normales.
+
+Los nombres anteriores son **conceptuales**, no API ni estructuras existentes verificadas.
+
+### 13.5. Casos de QA obligatorios
+
+- Banda Focus: primero letal y segundo ataque encadenado letal → termina el turno con **1 PS**, Banda Focus consumida.
+- Resistencia: dos movimientos separados en un turno, ambos letales → termina con **1 PS** si no hay daño residual.
+- Banda Focus/Resistencia: movimiento multigolpe cuyo golpe letal ocurre antes del último impacto → otro impacto interno **puede causar KO**.
+- Multigolpe que solo se vuelve letal **en el último impacto** → la protección puede salvar; **no** afirmar que todo multigolpe mata automáticamente.
+- Báculo Tormentoso: impacto inicial letal con protección y segundo impacto de 25 % → puede rematar, respetando mitigaciones y daño final real.
+- Banda Focus bajo PS completos perdidos antes de activarse → **no activación gratuita**; Robustez mantiene su condición equivalente.
+- Cinta Focus: sin tiradas repetidas abusivas, sin escudos permanentes, interacciones documentadas con otros efectos.
+- Cadenas interrumpidas por KO, dobles, habilidades, Gears y ataques con varios objetivos → sin estados residuales ni consumo doble.
+- Verificar que las mismas condiciones afectan a los entrenadores enemigos y que los mensajes/HUD representen las activaciones correctamente.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Incluye rework propuesto de supervivencia por turno (Resistencia/Banda Focus/Robustez/Cinta Focus), compatibilidad con cadenas y vulnerabilidad a multigolpes, balance del encadenamiento 2.0, Cofradía, Torre Celestial y Báculo Tormentoso; nuevos apartados pendientes de implementación.*
