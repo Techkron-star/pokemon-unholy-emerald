@@ -294,4 +294,149 @@ La mochila evoluciona de manera **permanente**. Cada mejora aumenta **dos capaci
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Diseño base de PRs #9–#18 y especificación futura de mochilas evolutivas (sin implementación confirmada).*
+## 10. La Cofradía y la Torre Celestial (postgame; diseño pendiente)
+
+> **Estado:** concepto narrativo y mecánico aprobado para documentación. **No implica que esté implementado.** La reforma de la Torre de Batalla, la isla y sus combates queda para una fase posterior.
+
+### 10.1. Identidad, territorio y función narrativa
+
+- **La Cofradía** es una organización **neutral-negativa**: no actúa por odio al protagonista ni tiene por qué aspirar a destruir Hoenn, pero protege sus intereses mediante corrupción, ventajas ilegítimas y manipulación institucional.
+- Controla **toda la isla del postgame donde está la actual Torre de Batalla**, además de administrar la propia instalación. La Torre de Batalla será rebautizada como **Torre Celestial**.
+- Ejerce un **gobierno de facto** sobre la isla: decide reglas, acceso competitivo, clasificación, recompensas e intervenciones. Su control es previo a la llegada del protagonista y no desaparece porque este gane combates.
+- La Cofradía **no puede ser derrocada por el jugador**. No se plantea una misión de liberación de la isla ni un final que destituya al gobierno. Se puede vencer a sus representantes, no quitarles el poder.
+- La isla y la torre deben sentirse como una institución elegante, autosuficiente y abiertamente oportunista. Los empleados pueden hablar con corrección burocrática incluso cuando cometen abusos evidentes.
+- El daño al jugador es **indirecto y sistémico**: el protagonista quiere competir y obtener recursos; la Cofradía quiere conservar el control de la clasificación y evitar que un competidor acapare las recompensas.
+
+### 10.2. Economía: el mejor lugar para farmear
+
+La **Torre Celestial** debe ser una de las mejores actividades repetibles del postgame para conseguir:
+
+- **Dinero** mediante victorias, rachas, puestos y desafíos.
+- **Gears** raros y materiales relacionados con ellos.
+- **Recompensas de alto valor** del postgame, cuya tabla exacta queda por definir.
+
+**Regla de diseño:** pese a la corrupción, participar debe seguir siendo rentable. La Cofradía crea obstáculos deliberados, pero no debe hacer inútil el farmeo ni bloquear permanentemente el acceso a las recompensas. No se fijan todavía precios, porcentajes de impuestos, cantidades, monedas adicionales ni límites por sesión.
+
+### 10.3. Intervenciones institucionales y dificultad dinámica
+
+La Cofradía puede alterar un combate futuro para **romper una racha, bajar al jugador en el ranking o frenar sus ganancias**. Estas alteraciones son actos de sabotaje dentro del universo del juego, no un modo de dificultad global elegido por el jugador.
+
+Posibles factores para decidir una intervención (sin umbrales numéricos definitivos):
+
+- Racha actual y frecuencia de victorias.
+- Posición y ascenso del jugador en la clasificación.
+- Ganancias/recompensas acumuladas de la Torre Celestial.
+- Resultado de intervenciones anteriores y nivel de amenaza percibido.
+
+Intervenciones permitidas como diseño:
+
+| Tipo | Ejemplo | Intención |
+|------|---------|-----------|
+| Refuerzo | Mejorar sets, IA, objetos equipados y Gears del rival | Dificultar victorias previsibles |
+| Sabotaje | Introducir debuffs o restricciones temporales de combate contra el jugador | Alterar las condiciones a favor de la casa |
+| Patrocinio | Proporcionar al rival Pokémon con mutaciones raras o combinadas | Romper rachas excepcionales |
+| Intervención ejecutiva | Preparar un equipo extraordinario con legendarios, mutaciones acumuladas y equipamiento de élite | Impedir que el jugador domine el ranking |
+
+- Una intervención puede ser **repentina**; no tiene que estar limitada a jefes de pisos predefinidos. Su aparición debe tener reglas y RNG verificables, no ser un resultado imposible de anticipar o reproducir técnicamente.
+- Una intervención puede entregar al rival **tres Pokémon Omega con mutaciones adicionales**, si las reglas del encuentro lo autorizan.
+- El apilamiento de bonificaciones de mutación debe respetar la regla general del proyecto: **se suman las bonificaciones porcentuales aplicables**, no se multiplican entre sí.
+- La Cofradía puede infringir **sus propias normas competitivas**, pero no debe romper los invariantes del motor, corromper partidas ni crear estados irrecuperables.
+- La intervención debe **anunciarse** mediante un comunicado breve; no necesariamente revelar toda la composición del equipo. El jugador debe reconocer que la dificultad extraordinaria es intencional.
+- Los rivales pueden ser competidores normales que reciben apoyo institucional: no es obligatorio que todos pertenezcan a La Cofradía.
+- Las recompensas por superar encuentros intervenidos deben compensar el riesgo; los multiplicadores y premios concretos **siguen pendientes de balanceo**.
+- No expulsar permanentemente al jugador ni cerrar la torre por superar demasiadas intervenciones: la Cofradía sigue beneficiándose de su participación.
+
+**Ejemplo de comunicado:**
+
+> «Su rendimiento excede los parámetros previstos. El Consejo ha autorizado medidas extraordinarias para garantizar el equilibrio competitivo».
+
+**Ejemplo de respuesta posterior:**
+
+> «La Cofradía garantiza la igualdad de oportunidades, no la igualdad de resultados».
+
+### 10.4. Encuentro extremo ilustrativo: Ultra Necrozma y Floette Flor Eterna
+
+Caso memorable **posible**, no obligatorio ni fijo en cada racha:
+
+1. La Cofradía subvenciona un **Ultra Necrozma Omega**, incluso con otras mutaciones como **Hyper y Ascendido**, según las reglas de apilamiento habilitadas.
+2. Puede llevar un **objeto que potencie Ataque Especial** (por ejemplo, Gafas Elegidas, con sus restricciones habituales, o una variante propia de Unholy si se define), además de **un Gear independiente**.
+3. Gears candidatos para variantes de este combate: **Psicosangre**, **Tesseracto** o **Báculo Tormentoso**. **No son tres Gears simultáneos**: cada configuración elige uno, salvo cambio futuro explícito del sistema general de equipamiento.
+4. Si el jugador consigue derribar a Ultra Necrozma, el siguiente Pokémon del rival **puede ser Floette Flor Eterna**. Su mutación, objeto y Gear específicos quedan a decisión del balance y de las variantes del encuentro.
+5. Otros miembros del equipo pueden ser Pokémon inusuales con sets deliberadamente diseñados para frenar la racha.
+
+Este ejemplo busca transmitir la magnitud de una intervención de la Cofradía, **no establece una pelea imposible como requisito para farmear**. La composición, la frecuencia, los niveles y los multiplicadores finales requieren pruebas.
+
+### 10.5. Buzón de quejas en la pared
+
+**Ubicación:** una pared accesible del vestíbulo de la Torre Celestial, con el rótulo **«Buzón de quejas»**.
+
+**Interacción:**
+
+1. El jugador pulsa **A** frente al buzón.
+2. Se muestra una interfaz breve para **escribir una reclamación** usando el sistema de entrada de texto que admita el motor.
+3. Tras elegir **«Enviar»**, suena **inmediatamente un efecto de trituradora de papel**, procedente de detrás de la pared.
+4. Después aparece el mensaje: **«Su reclamación ha sido procesada exitosamente»**.
+5. El empleado cercano puede declarar: «Todas las quejas son atendidas personalmente por nuestro departamento». La trituradora vuelve a escucharse si se presenta otra.
+
+**Tono:** humor ambiental y burocrático. Nadie explica el ruido ni admite abiertamente que la máquina destruye las quejas. **No desbloquea una misión para derrocar a La Cofradía.**
+
+**UX y alcance:** permitir cancelar la escritura antes de enviar; no bloquear el movimiento al cerrar; evitar guardar cadenas arbitrarias en el SaveBlock si no son necesarias. El sonido requiere un recurso compatible con el motor y una comprobación en emulador. Los textos deben caber en las ventanas de GBA sin recortes.
+
+### 10.6. Contadores, mensajes y persistencia
+
+- Puede mostrarse un contador de **intervenciones institucionales superadas** como estadística de prestigio de la Torre Celestial. Es propuesta de interfaz, no obligación de la primera versión.
+- Guardar, cuando se implemente, los datos mínimos para preservar rachas, ranking, premios e intervenciones pendientes. Evitar exploits de reiniciar o recargar para convertir cada intervención en una tirada gratuita diferente.
+- No introducir números definitivos (porcentajes, umbrales de racha, impuestos o recompensas) antes de las pruebas de dificultad y economía.
+- Textos institucionales breves, naturales, irónicos y consistentes; evitar explicaciones técnicas o etiquetas de desarrollo en diálogos visibles para el jugador.
+
+---
+
+## 11. Gear: Báculo Tormentoso (diseño pendiente)
+
+**Categoría:** Gear equipable para Pokémon, independiente del objeto equipado ordinario.  
+**Función:** potenciar ataques especiales de daño con una segunda descarga, a cambio de suprimir efectos secundarios y restringir el encadenamiento especial.
+
+### 11.1. Efecto principal
+
+1. Cuando el portador usa un **movimiento especial que inflige daño** y este conecta, el movimiento impacta **una segunda vez con el 25 % de su potencia original**.
+2. La segunda descarga es **un impacto separado**, no un aumento plano del 25 % a la estadística de Ataque Especial ni una promesa de infligir exactamente 1,25 veces el daño final. La fórmula debe resolver cada impacto bajo las reglas del motor y definir su redondeo.
+3. El movimiento **pierde sus efectos secundarios** cuando se usa bajo el Báculo. Esto incluye efectos accesorios como posibles estados alterados, retrocesos o cambios de estadísticas causados como efectos adicionales. La supresión debe afectar a ambas descargas.
+4. El portador **no puede encadenar dos movimientos especiales juntos en una misma cadena**. Se pueden estudiar cadenas con un físico y un especial, en cualquier orden, siempre que cumplan las restricciones generales de encadenamiento.
+5. La prohibición anterior **no impide** usar movimientos especiales en turnos distintos ni convierte todos los movimientos del usuario en físicos.
+6. El Gear no autoriza más ataques de los permitidos por el sistema de encadenamiento ni anula la regla existente por la cual un KO cancela la cadena.
+
+### 11.2. Interpretación pendiente de casos límite
+
+Para evitar comportamientos contradictorios, la implementación debe fijar y probar explícitamente:
+
+- **Costes o efectos obligatorios del movimiento** (retroceso de daño, recarga, reducción propia garantizada, etc.): no asumir que son «efectos secundarios» eliminables. Propuesta conservadora: conservar esos costes y eliminar únicamente efectos accesorios.
+- **Luz Aniquiladora de Floette Flor Eterna:** su retroceso obligatorio debe tratarse como coste del movimiento, no eliminarse inadvertidamente.
+- **Movimientos de estado, daño fijo, golpes múltiples y movimientos que fallan:** definir excepciones; no crear una segunda descarga si no existe impacto especial válido.
+- **Sustituto, Banda Focus, Robustez, resistencias, inmunidades, escudos, KO y movimientos de protección:** evaluar los dos impactos conforme a las reglas del combate; no forzar una segunda descarga tras una interrupción de combate que la invalide.
+- **Stamina y PP:** la segunda descarga es parte de la misma ejecución, no un segundo movimiento elegido; propuesta: no cobrar otra vez PP/stamina por el impacto adicional.
+- **Gears y habilidades activadas al impactar:** evitar recursión o un tercer golpe no previsto. Precisar interacciones con otras mecánicas antes de programar.
+- **Interfaz:** mostrar el Gear activo en Resumen y HUD de batalla y dar una indicación visual/sonora de la segunda descarga. La restricción de encadenamiento debe verse antes de confirmar una cadena inválida.
+- **Objeto + Gear:** puede coexistir con un objeto que suba Ataque Especial porque son slots distintos. Esto exige balancear el daño total, sin fingir que Psicosangre, Tesseracto y Báculo funcionan simultáneamente.
+
+### 11.3. Disponibilidad y balance
+
+- El **Báculo Tormentoso** es un nuevo Gear propuesto para Unholy Emerald, no una función ya programada.
+- Puede ser una recompensa rara de la **Torre Celestial** o formar parte de su equipamiento de élite; receta, tasa de obtención, ID, descripción final, sprite y sonido **pendientes**.
+- La Cofradía puede usarlo en sus intervenciones con equipos ofensivos de alto nivel, incluido Ultra Necrozma.
+- Debe ser poderoso sin invalidar por completo las demás opciones de Gear. Comparar su rendimiento frente a **Psicosangre** y **Tesseracto** en combates comunes, jefes y cadenas.
+
+### 11.4. Pruebas de aceptación futuras
+
+- El segundo golpe aparece solo en movimientos especiales de daño válidos, y su potencia equivale al 25 % de la original según el cálculo acordado.
+- Ninguno de los dos impactos activa los efectos secundarios eliminados; los costes obligatorios siguen la regla documentada.
+- La interfaz rechaza **especial → especial** en la misma cadena, sin bloquear por error **físico → especial** y **especial → físico** cuando esas cadenas sean legales.
+- No se descuentan indebidamente PP/stamina adicionales, ni se duplica una activación de Gear hasta producir bucles.
+- El HUD representa el Gear y el segundo impacto sin solapamientos; validar en GBA real/emulador.
+- Las intervenciones de La Cofradía no destruyen la persistencia de la racha ni las recompensas de la Torre Celestial.
+- El buzón deja cancelar, reproduce la trituradora al enviar y devuelve el control sin bloquear menús.
+
+**Prioridad de implementación:** documentar ahora; implementar Torre Celestial, Cofradía y Báculo Tormentoso en una fase futura del postgame, sin desviar el trabajo actual de UI, estabilidad y mecánicas base.
+
+---
+
+*Última actualización: 14 de noviembre de 2026. Incluye diseño base de PRs #9–#18, mochilas evolutivas, La Cofradía, Torre Celestial y Báculo Tormentoso (nuevas secciones pendientes de implementación).*
