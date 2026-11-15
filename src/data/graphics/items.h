@@ -1384,6 +1384,30 @@ const u16 gItemIconPalette_ImpulsoCosmico[] = INCGFX_U16("graphics/items/icon_pa
 const u32 gItemIcon_PermafrostFragment[] = INCGFX_U32("graphics/items/icons/permafrost_fragment.png", ".4bpp.smol");
 const u16 gItemIconPalette_PermafrostFragment[] = INCGFX_U16("graphics/items/icon_palettes/permafrost_fragment.pal", ".gbapal");
 
+const u32 gItemIcon_BloodVial[] = INCGFX_U32("graphics/items/icons/blood_vial.png", ".4bpp.smol");
+const u16 gItemIconPalette_Blood_NORMAL[] = INCGFX_U16("graphics/items/icon_palettes/blood_normal.pal", ".gbapal");
+const u32 gItemIcon_BloodFire[] = INCGFX_U32("graphics/unholy_concepts/icons/sangre_flamigera.png", ".4bpp.smol");
+const u16 gItemIconPalette_Blood_FIRE[] = INCGFX_U16("graphics/unholy_concepts/palettes/sangre_flamigera.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_WATER[] = INCGFX_U16("graphics/items/icon_palettes/blood_water.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_ELECTRIC[] = INCGFX_U16("graphics/items/icon_palettes/blood_electric.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_GRASS[] = INCGFX_U16("graphics/items/icon_palettes/blood_grass.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_ICE[] = INCGFX_U16("graphics/items/icon_palettes/blood_ice.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_FIGHTING[] = INCGFX_U16("graphics/items/icon_palettes/blood_fighting.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_POISON[] = INCGFX_U16("graphics/items/icon_palettes/blood_poison.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_GROUND[] = INCGFX_U16("graphics/items/icon_palettes/blood_ground.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_FLYING[] = INCGFX_U16("graphics/items/icon_palettes/blood_flying.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_PSYCHIC[] = INCGFX_U16("graphics/items/icon_palettes/blood_psychic.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_BUG[] = INCGFX_U16("graphics/items/icon_palettes/blood_bug.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_ROCK[] = INCGFX_U16("graphics/items/icon_palettes/blood_rock.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_GHOST[] = INCGFX_U16("graphics/items/icon_palettes/blood_ghost.pal", ".gbapal");
+const u32 gItemIcon_BloodDragon[] = INCGFX_U32("graphics/unholy_concepts/icons/sangre_escamada.png", ".4bpp.smol");
+const u16 gItemIconPalette_Blood_DRAGON[] = INCGFX_U16("graphics/unholy_concepts/palettes/sangre_escamada.pal", ".gbapal");
+const u32 gItemIcon_BloodDark[] = INCGFX_U32("graphics/unholy_concepts/icons/sangre_demoniaca.png", ".4bpp.smol");
+const u16 gItemIconPalette_Blood_DARK[] = INCGFX_U16("graphics/unholy_concepts/palettes/sangre_demoniaca.pal", ".gbapal");
+const u16 gItemIconPalette_Blood_STEEL[] = INCGFX_U16("graphics/items/icon_palettes/blood_steel.pal", ".gbapal");
+const u32 gItemIcon_BloodFairy[] = INCGFX_U32("graphics/unholy_concepts/icons/sangre_divina.png", ".4bpp.smol");
+const u16 gItemIconPalette_Blood_FAIRY[] = INCGFX_U16("graphics/unholy_concepts/palettes/sangre_divina.pal", ".gbapal");
+
 const u32 gItemIcon_QuickClaw[] = INCGFX_U32("graphics/items/icons/quick_claw.png", ".4bpp.smol");
 const u16 gItemIconPalette_QuickClaw[] = INCGFX_U16("graphics/items/icon_palettes/quick_claw.pal", ".gbapal");
 

@@ -1041,7 +1041,6 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
 
     gLastMoves[cv->battlerAtk] = gChosenMove;
     Stamina_SpendForMove(cv->battlerAtk, cv->move);
-    Gear_OnMoveUsed(cv->battlerAtk, cv->move, GetBattleMoveType(cv->move));
 
     if (MOVE_IS_PERMANENT(cv->battlerAtk, movePosition))
     {
@@ -1076,11 +1075,13 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
 
             // Possibly better to just move type setting and redirection to attackcanceler as a new case at this point
             SetTypeBeforeUsingMove(cv->move, cv->battlerAtk, cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk]);
+            Gear_OnMoveUsed(cv->battlerAtk, cv->move, GetBattleMoveType(cv->move));
             gBattlescriptCurrInstr = GetMoveBattleScript(cv->move);
             return CANCELER_RESULT_RUN_SCRIPT_AND_INCREMENT;
         }
     }
 
+    Gear_OnMoveUsed(cv->battlerAtk, cv->move, GetBattleMoveType(cv->move));
     return CANCELER_RESULT_RUN_SCRIPT_AND_INCREMENT; // Apply power point change
 }
 

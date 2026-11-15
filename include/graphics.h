@@ -1292,6 +1292,15 @@ extern const u32 gItemIcon_ImpulsoCosmico[];
 extern const u16 gItemIconPalette_ImpulsoCosmico[];
 extern const u32 gItemIcon_PermafrostFragment[];
 extern const u16 gItemIconPalette_PermafrostFragment[];
+extern const u32 gItemIcon_BloodVial[];
+extern const u32 gItemIcon_BloodFire[];
+extern const u32 gItemIcon_BloodDragon[];
+extern const u32 gItemIcon_BloodDark[];
+extern const u32 gItemIcon_BloodFairy[];
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) extern const u16 gItemIconPalette_Blood_##type[];
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+
 extern const u32 gItemIcon_QuickClaw[];
 extern const u16 gItemIconPalette_QuickClaw[];
 extern const u32 gItemIcon_SootheBell[];

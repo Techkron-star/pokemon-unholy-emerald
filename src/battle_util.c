@@ -6504,6 +6504,11 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
 
     uq4_12_t holdEffectModifier;
     uq4_12_t modifier = UQ_4_12(1.0);
+    uq4_12_t typeItemModifier = UQ_4_12(1.0);
+    uq4_12_t gearModifier = Gear_GetPowerModifier(battlerAtk, move, moveType);
+    enum Gear activeGear = Gear_GetBattlerGear(battlerAtk);
+    bool32 bloodBoost = activeGear >= GEAR_BLOOD_NORMAL && activeGear <= GEAR_BLOOD_FAIRY
+                     && gearModifier != UQ_4_12(1.0);
     u32 atkSide = GetBattlerSide(battlerAtk);
 
     // move effect
@@ -6556,7 +6561,13 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
         modifier = uq4_12_multiply(modifier, UQ_4_12(1.5));
 
     if (gSpecialStatuses[battlerAtk].gemBoost)
-        modifier = uq4_12_multiply(modifier, PercentToUQ4_12AddOne(gSpecialStatuses[battlerAtk].gemParam));
+    {
+        uq4_12_t gemModifier = PercentToUQ4_12AddOne(gSpecialStatuses[battlerAtk].gemParam);
+        if (bloodBoost)
+            typeItemModifier = gemModifier;
+        else
+            modifier = uq4_12_multiply(modifier, gemModifier);
+    }
     if (moveType == TYPE_ELECTRIC && gBattleMons[battlerAtk].volatiles.chargeTimer > 0)
         modifier = uq4_12_multiply(modifier, UQ_4_12(2.0));
     if (GetMoveEffect(ctx->chosenMove) == EFFECT_ME_FIRST)
@@ -6758,35 +6769,38 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     switch (ctx->holdEffects[ctx->battlerAtk])
     {
     case HOLD_EFFECT_MUSCLE_BAND:
-        if (IsBattleMovePhysical(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_CORAZON_TITAN)
+        if (IsBattleMovePhysical(move) && activeGear != GEAR_CORAZON_TITAN)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_WISE_GLASSES:
-        if (IsBattleMoveSpecial(move) && Gear_GetBattlerGear(battlerAtk) != GEAR_IMPULSO_COSMICO)
+        if (IsBattleMoveSpecial(move) && activeGear != GEAR_IMPULSO_COSMICO)
             modifier = uq4_12_multiply(modifier, uq4_12_add(UQ_4_12(1.0), PercentToUQ4_12_Floored(holdEffectParamAtk)));
         break;
     case HOLD_EFFECT_LUSTROUS_ORB:
         if (GET_BASE_SPECIES_ID(gBattleMons[battlerAtk].species) == SPECIES_PALKIA && (moveType == TYPE_WATER || moveType == TYPE_DRAGON))
-            modifier = uq4_12_multiply(modifier, holdEffectModifier);
+            typeItemModifier = holdEffectModifier;
         break;
     case HOLD_EFFECT_ADAMANT_ORB:
         if (GET_BASE_SPECIES_ID(gBattleMons[battlerAtk].species) == SPECIES_DIALGA && (moveType == TYPE_STEEL || moveType == TYPE_DRAGON))
-            modifier = uq4_12_multiply(modifier, holdEffectModifier);
+            typeItemModifier = holdEffectModifier;
         break;
     case HOLD_EFFECT_GRISEOUS_ORB:
         if (GET_BASE_SPECIES_ID(gBattleMons[battlerAtk].species) == SPECIES_GIRATINA && (moveType == TYPE_GHOST || moveType == TYPE_DRAGON))
-            modifier = uq4_12_multiply(modifier, holdEffectModifier);
+            typeItemModifier = holdEffectModifier;
         break;
     case HOLD_EFFECT_SOUL_DEW:
-        if ((gBattleMons[battlerAtk].species == SPECIES_LATIAS || gBattleMons[battlerAtk].species == SPECIES_LATIOS)
-            && ((B_SOUL_DEW_BOOST >= GEN_7 && (moveType == TYPE_PSYCHIC || moveType == TYPE_DRAGON))
-             || (B_SOUL_DEW_BOOST < GEN_7 && !(gBattleTypeFlags & BATTLE_TYPE_FRONTIER) && IsBattleMoveSpecial(move))))
-            modifier = uq4_12_multiply(modifier, holdEffectModifier);
+        if (gBattleMons[battlerAtk].species == SPECIES_LATIAS || gBattleMons[battlerAtk].species == SPECIES_LATIOS)
+        {
+            if (B_SOUL_DEW_BOOST >= GEN_7 && (moveType == TYPE_PSYCHIC || moveType == TYPE_DRAGON))
+                typeItemModifier = holdEffectModifier;
+            else if (B_SOUL_DEW_BOOST < GEN_7 && !(gBattleTypeFlags & BATTLE_TYPE_FRONTIER) && IsBattleMoveSpecial(move))
+                modifier = uq4_12_multiply(modifier, holdEffectModifier);
+        }
         break;
     case HOLD_EFFECT_TYPE_POWER:
     case HOLD_EFFECT_PLATE:
         if (moveType == GetItemSecondaryId(gBattleMons[battlerAtk].item))
-            modifier = uq4_12_multiply(modifier, holdEffectModifier);
+            typeItemModifier = holdEffectModifier;
         break;
     case HOLD_EFFECT_PUNCHING_GLOVE:
         if (IsPunchingMove(move))
@@ -6800,10 +6814,15 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
         break;
     }
 
-    // El item ordinario y el Gear NO se multiplican entre si cuando refuerzan
-    // exactamente lo mismo. Se promedian sus BONIFICACIONES, por fase.
-    uq4_12_t gearModifier = Gear_GetPowerModifier(battlerAtk, move, moveType);
-    enum Gear activeGear = Gear_GetBattlerGear(battlerAtk);
+    if (typeItemModifier != UQ_4_12(1.0))
+    {
+        if (bloodBoost)
+            gearModifier = (gearModifier + typeItemModifier) / 2;
+        else
+            modifier = uq4_12_multiply(modifier, typeItemModifier);
+    }
+
+    // Category-based Gears average their bonus with the matching held item.
     if ((activeGear == GEAR_IMPULSO_COSMICO
          && ctx->holdEffects[battlerAtk] == HOLD_EFFECT_WISE_GLASSES
          && IsBattleMoveSpecial(move))

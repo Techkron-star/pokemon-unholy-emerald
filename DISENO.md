@@ -198,11 +198,11 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
 - **Catálogo de 18 Gears:** una Sangre por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígera a Fuego, Demoníaca a Siniestro, Divina a Hada y Escamada a Dragón.
-- Queda por decidir cómo aplicar la sobrecarga al primer ataque compatible si se encadenan dos en un solo turno; no duplicar la recarga ni asumir multiplicadores.
+- Primera implementación para balance: +40 % al primer movimiento compatible y +12 % en recarga durante tres finales de turno. Un segundo movimiento compatible en la misma cadena recibe el +12 %.
 
 ### Estado de implementación
 - Los seis Gears del sistema base y sus recursos de HUD están registrados en la rama de integración. Consultar [`docs/GEARS.md`](docs/GEARS.md) para equipamiento, recetas y pruebas.
-- Los equipos de entrenador admiten el campo `Gear:` por Pokémon. La primera selección incluye a Tate y Liza, Phoebe, Glacia y Wallace. En el quinto combate de Tate y Liza, Metagross combina su megapiedra con Corazón de Titán. Las Sangres siguen pendientes de obtención, balance y pruebas.
+- Los equipos de entrenador admiten el campo `Gear:` por Pokémon. La primera selección incluye a Tate y Liza, Phoebe, Glacia y Wallace. En el quinto combate de Tate y Liza, Metagross combina su megapiedra con Corazón de Titán. Las 18 Sangres se fabrican con Polvo Estelar y la gema de su tipo. Los costes y el acceso a las gemas forman parte del balance de esta tanda.
 - Provisional hasta que se decida: con dos movimientos encadenados compatibles, la sobrecarga la lleva el primero y el segundo recibe el residual; el ciclo avanza una sola vez por turno.
 
 ---
@@ -495,7 +495,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: seis piezas fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Pendientes las Inyecciones sanguíneas y ampliar el equipamiento a más entrenadores.
+- Gears: seis piezas originales y 18 Sangres fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Queda ampliar el equipamiento a más entrenadores.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

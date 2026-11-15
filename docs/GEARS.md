@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** la rama de integración registra **seis Gears** con recetas, equipamiento desde la mochila y Crafting, lógica de combate e iconos de HUD de 16×32. Queda completar la validación visual en individuales y dobles.
+**Estado:** los seis Gears originales y las 18 Sangres tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
 
 ## Cómo funciona
 
@@ -138,6 +138,12 @@ El sistema actual cubre bonificaciones de potencia con filtros. Para un efecto d
 
 ## Efectos y estado de implementación
 
+### Inyecciones sanguíneas
+
+Una por cada tipo clásico. En la tanda de balance inicial, la Sangre da **+40 % de potencia** al primer movimiento dañino de su tipo. Después da **+12 %** durante tres finales de turno, contando el de activación. Si dos ataques compatibles se encadenan, el primero recibe el +40 % y el segundo el +12 %. La recarga se conserva al cambiar de Pokémon. Cuando además se activa una gema, tabla u otro objeto equipado que refuerza ese mismo tipo, se promedian los bonos y la gema conserva su consumo normal.
+
+Cada receta usa **1 Polvo Estelar y 1 gema del tipo correspondiente**. Horizon vende una gema por rotación en Objetos. Las cuatro Sangres con arte propio en la mochila conservan sus iconos y las demás usan el vial con una paleta por tipo. El catálogo con nombres y tipos está en [`include/constants/blood_gears.h`](../include/constants/blood_gears.h).
+
 | Gear | Efecto confirmado | Qué falta |
 |---|---|---|
 | **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |
@@ -181,7 +187,7 @@ La Super Exp. Share conserva su receta original y su comprobacion por script: 1 
 
 ## Gears en equipos de entrenador
 
-En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. El objeto del encabezado `Especie @ Objeto` ocupa su ranura habitual. Si se omite `Gear:`, el Pokémon se genera sin Gear.
+En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. Para las Sangres, usa el tipo en inglés, por ejemplo `Gear: Blood Fire`. El objeto del encabezado `Especie @ Objeto` ocupa su ranura habitual. Si se omite `Gear:`, el Pokémon se genera sin Gear.
 
 | Combate | Pokémon | Gear | Objeto |
 |---|---|---|---|
