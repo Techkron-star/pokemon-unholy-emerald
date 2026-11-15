@@ -15,6 +15,7 @@
 #include "mutation_tiers.h"
 #include "overworld.h"
 #include "palette.h"
+#include "rtc.h"
 #include "pokelocator.h"
 #include "pokenav.h"
 #include "pokemon_storage_system.h"
@@ -33,9 +34,12 @@
 #include "new_game.h"
 
 #define HUB_TASK_PRIORITY 8
-#define HUB_COLUMNS 2
-#define HUB_ROWS 3
-#define HUB_PAGE_SIZE (HUB_COLUMNS * HUB_ROWS)
+#define HUB_VISIBLE_ROWS 5
+#define HUB_ROW_HEIGHT 14
+#define HUB_ROW_STEP 16
+#define HUB_LIST_X 66
+#define HUB_LIST_Y 22
+#define HUB_LIST_WIDTH 137
 
 #include "data/hfc_watch_icons.h"
 
@@ -507,65 +511,103 @@ static struct HfcWatchProgress HubProgress(void)
     return (struct HfcWatchProgress){HfcWatch_CountBadges(), FlagGet(FLAG_CRAFTING_UNLOCKED)};
 }
 
+static u8 HubScrollTop(void)
+{
+    // Keep the cursor near the middle; clamp at both ends of the ten services.
+    u8 top = sHubCursor > 2 ? sHubCursor - 2 : 0;
+
+    return min(top, HFC_WATCH_FEATURE_COUNT - HUB_VISIBLE_ROWS);
+}
+
+// The watch drawn from window rectangles (strap, face, hands) in theme colors.
+static void DrawWatchFace(u16 x, u16 y)
+{
+    u8 accent = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 6 : 7;
+
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(3), x + 20, y, 14, 46);    // strap
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(accent), x + 6, y + 8, 42, 30);
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(1), x + 8, y + 10, 38, 26);
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(2), x + 26, y + 17, 2, 9);  // hour hand
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(2), x + 26, y + 24, 7, 2);  // minute hand
+    FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(accent), x + 25, y + 23, 4, 4);
+}
+
+static void PrintWatchClock(void)
+{
+    u8 text[8];
+    u8 *end;
+
+    RtcCalcLocalTime();
+    end = ConvertIntToDecimalStringN(text, gLocalTime.hours, STR_CONV_MODE_LEADING_ZEROS, 2);
+    *end++ = CHAR_COLON;
+    end = ConvertIntToDecimalStringN(end, gLocalTime.minutes, STR_CONV_MODE_LEADING_ZEROS, 2);
+    *end = EOS;
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL, 160, 4, 40, text);
+}
+
 static void RenderHub(void)
 {
     u8 tier = HfcWatch_GetTier();
-    u8 pageStart = (sHubCursor / HUB_PAGE_SIZE) * HUB_PAGE_SIZE;
+    u8 top = HubScrollTop();
     struct HfcWatchProgress progress = HubProgress();
+    u8 text[8];
+    u8 *end;
+    bool32 hasRareStock = HorizonMarketHasUnseenMutation();
+
     UnholyUi_Frame(sWatchWindowId, COMPOUND_STRING("POKé WATCH"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 130, 6, 48,
+    PrintWatchClock();
+
+    // Left panel: the watch, its tier and the position in the list.
+    UnholyUi_Card(sWatchWindowId, 5, HUB_LIST_Y, 57, 78, FALSE);
+    DrawWatchFace(10, HUB_LIST_Y + 5);
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 10, HUB_LIST_Y + 52, 48,
         tier == HFC_WATCH_TIER_HF ? COMPOUND_STRING("HF")
       : tier == HFC_WATCH_TIER_SUPER ? COMPOUND_STRING("SUPER") : COMPOUND_STRING("BASIC"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 178, 6, 28,
-        pageStart == 0 ? COMPOUND_STRING("1/2") : COMPOUND_STRING("2/2"));
-    bool32 hasRareStock = HorizonMarketHasUnseenMutation();
-    for (u8 card = 0; card < HUB_PAGE_SIZE && pageStart + card < HFC_WATCH_FEATURE_COUNT; card++)
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 10, HUB_LIST_Y + 62, 48, COMPOUND_STRING("POKé WATCH"));
+    end = ConvertIntToDecimalStringN(text, sHubCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+    *end++ = CHAR_SLASH;
+    end = ConvertIntToDecimalStringN(end, HFC_WATCH_FEATURE_COUNT, STR_CONV_MODE_LEFT_ALIGN, 2);
+    *end = EOS;
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 10, HUB_LIST_Y + 70, 48, text);
+
+    // Right panel: five visible rows; the list scrolls over the real ten services.
+    for (u8 row = 0; row < HUB_VISIBLE_ROWS; row++)
     {
-        u8 feature = pageStart + card;
-        u8 x = 5 + (card % HUB_COLUMNS) * 101;
-        u8 y = 23 + (card / HUB_COLUMNS) * 26;
+        u8 feature = top + row;
+        u8 y = HUB_LIST_Y + row * HUB_ROW_STEP;
         bool8 selected = feature == sHubCursor;
         bool8 ready = HfcWatch_GetAccess(tier, feature, progress) == HFC_WATCH_READY;
         u8 fill = UnholyUi_CardFill(selected);
-        UnholyUi_Card(sWatchWindowId, x, y, 97, 23, selected);
-        // A locked service keeps its icon; the LOCKED label and requirement explain why.
-        UnholyUi_Icon(sWatchWindowId, x + 5, y + 6, sHubIcons[feature]);
-        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 19, y + (ready ? 5 : 1), 74, fill, sFeatureNames[feature]);
+
+        UnholyUi_Card(sWatchWindowId, HUB_LIST_X, y, HUB_LIST_WIDTH, HUB_ROW_HEIGHT, selected);
+        UnholyUi_Icon(sWatchWindowId, HUB_LIST_X + 5, y + 2, sHubIcons[feature]);
+        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, HUB_LIST_X + 19, y + 3, ready ? 112 : 64, fill, sFeatureNames[feature]);
         if (!ready)
-            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 19, y + 11, 73, fill, COMPOUND_STRING("LOCKED"));
-        if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && ready && hasRareStock)
-            FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), x + 87, y + 9, 3, 3);
+            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, HUB_LIST_X + 90, y + 3, 44, fill, COMPOUND_STRING("LOCKED"));
+        else if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && hasRareStock)
+            FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), HUB_LIST_X + HUB_LIST_WIDTH - 9, y + 5, 4, 4);
     }
-    bool8 ready = HfcWatch_GetAccess(tier, sHubCursor, progress) == HFC_WATCH_READY;
-    if (!ready)
+
+    // A locked selection explains itself with the real requirement.
+    if (HfcWatch_GetAccess(tier, sHubCursor, progress) != HFC_WATCH_READY)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 104, 194,
             HfcWatch_GetRequirement(tier, sHubCursor, progress));
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 122, 194,
-        ready ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:BACK") : COMPOUND_STRING("L/R:PAGE  B:BACK"));
+        HfcWatch_GetAccess(tier, sHubCursor, progress) == HFC_WATCH_READY
+            ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:CLOSE") : COMPOUND_STRING("L/R:PAGE  B:CLOSE"));
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
 
 static void MoveHubCursor(u16 keys)
 {
-    u8 first = sHubCursor / HUB_PAGE_SIZE * HUB_PAGE_SIZE;
-    u8 index = sHubCursor - first;
-    u8 count = min(HUB_PAGE_SIZE, HFC_WATCH_FEATURE_COUNT - first);
-
-    if (keys & (L_BUTTON | R_BUTTON))
-    {
-        first = first == 0 ? HUB_PAGE_SIZE : 0;
-        count = min(HUB_PAGE_SIZE, HFC_WATCH_FEATURE_COUNT - first);
-        index = min(index, count - 1);
-    }
-    else if (keys & DPAD_LEFT)
-        index = index % HUB_COLUMNS == 0 ? index : index - 1;
-    else if (keys & DPAD_RIGHT)
-        index = index % HUB_COLUMNS == 0 && index + 1 < count ? index + 1 : index;
-    else if (keys & DPAD_UP)
-        index = index >= HUB_COLUMNS ? index - HUB_COLUMNS : index;
+    if (keys & DPAD_UP)
+        sHubCursor = sHubCursor == 0 ? HFC_WATCH_FEATURE_COUNT - 1 : sHubCursor - 1;
     else if (keys & DPAD_DOWN)
-        index = index + HUB_COLUMNS < count ? index + HUB_COLUMNS : index;
-    sHubCursor = first + index;
+        sHubCursor = sHubCursor == HFC_WATCH_FEATURE_COUNT - 1 ? 0 : sHubCursor + 1;
+    else if (keys & L_BUTTON)
+        sHubCursor = sHubCursor < HUB_VISIBLE_ROWS ? 0 : sHubCursor - HUB_VISIBLE_ROWS;
+    else if (keys & R_BUTTON)
+        sHubCursor = min(sHubCursor + HUB_VISIBLE_ROWS, HFC_WATCH_FEATURE_COUNT - 1);
 }
 
 static void Task_HfcWatchHub(u8 taskId)
