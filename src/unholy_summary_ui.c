@@ -13,6 +13,8 @@
 #include "caps.h"
 #include "unholy_ui.h"
 #include "battle.h"
+#include "battle_chain.h"
+#include "battle_stamina.h"
 #include "bg.h"
 #include "data.h"
 #include "gear.h"
@@ -285,10 +287,19 @@ static void Moves(void)
         u8 fill = UnholyUi_CardFill(i == sSummary->move);
         u8 y = 40 + i * 17;
         UnholyUi_Card(sSummary->window, 6, y, 212, 16, i == sSummary->move);
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 12, y + 1, 142, fill, GetMoveName(move));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 12, y + 1, 92, fill, GetMoveName(move));
+        if (move != MOVE_NONE)
+        {
+            // Real stamina cost from the mon's max stamina, and whether the move can be chained.
+            u8 *end = StringCopy(text, COMPOUND_STRING("STA "));
+            ConvertUIntToDecimalStringN(end, Stamina_CalcMoveCost(sSummary->values.staminaMax, move), STR_CONV_MODE_LEFT_ALIGN, 3);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 106, y + 3, 36, fill, text);
+            UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 144, y + 3, 28, fill,
+                Chain_IsMoveChainable(move) ? COMPOUND_STRING("CHAIN") : COMPOUND_STRING("SOLO"));
+        }
         ConvertUIntToDecimalStringN(text, GetMonData(mon, MON_DATA_PP1 + i), STR_CONV_MODE_LEFT_ALIGN, 2);
         StringAppend(text, COMPOUND_STRING(" PP"));
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 162, y + 1, 51, fill, text);
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 174, y + 1, 40, fill, text);
     }
 }
 
