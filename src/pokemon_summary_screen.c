@@ -1270,12 +1270,6 @@ void ShowPokemonSummaryScreenLegacy(u8 mode, void *mons, u8 monIndex, u8 maxMonI
     SetMainCallback2(CB2_InitSummaryScreen);
 }
 
-void ShowPokemonSummaryScreenLegacyPage(u8 mode, void *mons, u8 index, u8 last, void (*callback)(void), u8 page)
-{
-    ShowPokemonSummaryScreenLegacy(mode, mons, index, last, callback);
-    sMonSummaryScreen->currPageIndex = page;
-}
-
 void ShowSelectMovePokemonSummaryScreen(struct Pokemon *mons, u8 monIndex, void (*callback)(void), u16 newMove)
 {
     ShowPokemonSummaryScreen(SUMMARY_MODE_SELECT_MOVE, mons, monIndex, gPartiesCount[B_TRAINER_PLAYER] - 1, callback);

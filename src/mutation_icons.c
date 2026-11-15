@@ -53,6 +53,18 @@ static const struct SpriteTemplate sTemplates[] =
     BADGE_TEMPLATE(6), BADGE_TEMPLATE(7), BADGE_TEMPLATE(8),
 };
 
+static const struct OamData sCompactOam =
+{
+    .shape = SPRITE_SHAPE(8x8), .size = SPRITE_SIZE(8x8), .priority = 1,
+};
+#define COMPACT_TEMPLATE(i) { .tileTag = MUTATION_TAG_BASE + i, .paletteTag = MUTATION_TAG_BASE + i, .oam = &sCompactOam, .callback = SpriteCallbackDummy }
+static const struct SpriteTemplate sCompactTemplates[] =
+{
+    COMPACT_TEMPLATE(0), COMPACT_TEMPLATE(1), COMPACT_TEMPLATE(2),
+    COMPACT_TEMPLATE(3), COMPACT_TEMPLATE(4), COMPACT_TEMPLATE(5),
+    COMPACT_TEMPLATE(6), COMPACT_TEMPLATE(7), COMPACT_TEMPLATE(8),
+};
+
 static EWRAM_DATA u8 sBattleIcons[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA u16 sBattleMasks[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA u32 sBattleFrames[MAX_BATTLERS_COUNT] = {0};
@@ -97,12 +109,48 @@ u16 MutationIcon_BadgeAt(u16 badges, u32 ordinal)
 static s32 ArtIndex(const struct Sprite *sprite)
 {
     for (u8 i = 0; i < ARRAY_COUNT(sTemplates); i++)
-        if (sprite->template == &sTemplates[i])
+        if (sprite->template == &sTemplates[i] || sprite->template == &sCompactTemplates[i])
             return i;
     return -1;
 }
 
-u8 MutationIcon_Create(u16 badge, s16 x, s16 y, u8 priority)
+static u8 BadgePixel(const u8 *tiles, u8 x, u8 y)
+{
+    u8 tile = (y / 8) * 2 + x / 8;
+    u8 pixels = tiles[tile * TILE_SIZE_4BPP + (y % 8) * 4 + (x % 8) / 2];
+    return (x & 1) ? pixels >> 4 : pixels & 15;
+}
+
+static bool32 LoadBadgeTiles(u8 art, u16 tag)
+{
+    u32 tiles[5 * TILE_SIZE_4BPP / sizeof(u32)];
+    const u8 *original = (const u8 *)sArt[art].gfx;
+    u8 *compact = (u8 *)tiles + 4 * TILE_SIZE_4BPP;
+    const struct SpriteSheet sheet = {tiles, sizeof(tiles), tag};
+
+    if (!CanAllocSpriteTiles(5))
+        return FALSE;
+    memcpy(tiles, original, 4 * TILE_SIZE_4BPP);
+    // A native tile needs no affine matrix or extra palette. Preserve edges
+    // where the preferred sample lands on a transparent source pixel.
+    for (u8 y = 0; y < 8; y++)
+    {
+        for (u8 x = 0; x < 8; x++)
+        {
+            u8 color = BadgePixel(original, x * 2 + 1, y * 2 + 1);
+            if (color == 0) color = BadgePixel(original, x * 2, y * 2);
+            if (color == 0) color = BadgePixel(original, x * 2 + 1, y * 2);
+            if (color == 0) color = BadgePixel(original, x * 2, y * 2 + 1);
+            if (x & 1)
+                compact[y * 4 + x / 2] |= color << 4;
+            else
+                compact[y * 4 + x / 2] = color;
+        }
+    }
+    return LoadSpriteSheet(&sheet) != TAG_NONE;
+}
+
+static u8 CreateBadge(u16 badge, s16 x, s16 y, u8 priority, bool32 compact)
 {
     u8 i;
     for (i = 0; i < ARRAY_COUNT(sBadges); i++)
@@ -113,9 +161,8 @@ u8 MutationIcon_Create(u16 badge, s16 x, s16 y, u8 priority)
     u16 tag = MUTATION_TAG_BASE + i;
     bool32 newTiles = GetSpriteTileStartByTag(tag) == TAG_NONE;
     bool32 newPalette = IndexOfSpritePaletteTag(tag) == 0xFF;
-    const struct SpriteSheet sheet = {sArt[i].gfx, 4 * TILE_SIZE_4BPP, tag};
     const struct SpritePalette palette = {sArt[i].palette, tag};
-    if (newTiles && (!CanAllocSpriteTiles(4) || LoadSpriteSheet(&sheet) == TAG_NONE))
+    if (newTiles && !LoadBadgeTiles(i, tag))
         return MAX_SPRITES;
     if (newPalette && LoadSpritePalette(&palette) == 0xFF)
     {
@@ -123,9 +170,13 @@ u8 MutationIcon_Create(u16 badge, s16 x, s16 y, u8 priority)
             FreeSpriteTilesByTag(tag);
         return MAX_SPRITES;
     }
-    u8 id = CreateSprite(&sTemplates[i], x, y, 0);
+    u8 id = CreateSprite(compact ? &sCompactTemplates[i] : &sTemplates[i], x, y, 0);
     if (id != MAX_SPRITES)
+    {
         gSprites[id].oam.priority = priority;
+        if (compact)
+            gSprites[id].oam.tileNum += 4;
+    }
     else
     {
         if (newTiles)
@@ -136,6 +187,11 @@ u8 MutationIcon_Create(u16 badge, s16 x, s16 y, u8 priority)
     return id;
 }
 
+u8 MutationIcon_Create(u16 badge, s16 x, s16 y, u8 priority)
+{
+    return CreateBadge(badge, x, y, priority, FALSE);
+}
+
 void MutationIcon_Destroy(u8 id)
 {
     if (id >= MAX_SPRITES || !gSprites[id].inUse)
@@ -143,10 +199,9 @@ void MutationIcon_Destroy(u8 id)
     s32 index = ArtIndex(&gSprites[id]);
     if (index < 0)
         return;
-    FreeSpriteOamMatrix(&gSprites[id]);
     DestroySprite(&gSprites[id]);
     for (u8 i = 0; i < MAX_SPRITES; i++)
-        if (gSprites[i].inUse && gSprites[i].template == &sTemplates[index])
+        if (gSprites[i].inUse && ArtIndex(&gSprites[i]) == index)
             return;
     FreeSpriteTilesByTag(MUTATION_TAG_BASE + index);
     FreeSpritePaletteByTag(MUTATION_TAG_BASE + index);
@@ -211,6 +266,19 @@ static bool32 BattleVisualChanged(u8 battler)
     return changed;
 }
 
+void MutationIcon_SyncBattle(u8 battler, const struct Sprite *box, s16 x, s16 y)
+{
+    if (!MutationIcon_BattleVisible(battler))
+        return;
+    struct Sprite *badge = &gSprites[sBattleIcons[battler]];
+    badge->x = x;
+    badge->y = y;
+    badge->x2 = box->x2;
+    badge->y2 = box->y2;
+    badge->oam.priority = box->oam.priority;
+    badge->invisible = box->invisible;
+}
+
 bool32 MutationIcon_UpdateBattle(u8 battler, const struct Sprite *box, u16 badges, s16 x, s16 y)
 {
     if (battler >= MAX_BATTLERS_COUNT)
@@ -233,34 +301,8 @@ bool32 MutationIcon_UpdateBattle(u8 battler, const struct Sprite *box, u16 badge
     if (badge == 0)
         return BattleVisualChanged(battler);
     if (id == MAX_SPRITES)
-    {
-        id = sBattleIcons[battler] = MutationIcon_Create(badge, x, y, box->oam.priority);
-        if (id != MAX_SPRITES)
-        {
-            // The name/level gutter is eight pixels wide. Scale only the battle
-            // instance; Summary keeps the original sixteen-pixel artwork.
-            u8 matrix = AllocOamMatrix();
-            if (matrix == 0xFF)
-            {
-                MutationIcon_Destroy(id);
-                id = sBattleIcons[battler] = MAX_SPRITES;
-            }
-            else
-            {
-                gSprites[id].oam.affineMode = ST_OAM_AFFINE_NORMAL;
-                gSprites[id].oam.matrixNum = matrix;
-                // The dummy affine animation never rewrites this fixed matrix.
-                SetOamMatrix(matrix, 0x200, 0, 0, 0x200);
-            }
-        }
-    }
-    if (id == MAX_SPRITES)
-        return BattleVisualChanged(battler);
-    gSprites[id].x = x;
-    gSprites[id].y = y;
-    gSprites[id].x2 = box->x2;
-    gSprites[id].y2 = box->y2;
-    gSprites[id].oam.priority = box->oam.priority;
-    gSprites[id].invisible = box->invisible;
+        sBattleIcons[battler] = CreateBadge(badge, x, y, box->oam.priority, TRUE);
+
+    MutationIcon_SyncBattle(battler, box, x, y);
     return BattleVisualChanged(battler);
 }

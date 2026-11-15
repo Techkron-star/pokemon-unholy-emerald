@@ -27,11 +27,13 @@
 #include "pokemon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
+#include "region_map.h"
 #include "pokemon_icon.h"
 #include "shop.h"
 #include "sound.h"
 #include "sprite.h"
 #include "string_util.h"
+#include "strings.h"
 #include "task.h"
 #include "text.h"
 #include "trainer_pokemon_sprites.h"
@@ -62,6 +64,7 @@ static EWRAM_DATA struct NativeSummary
     u8 last;
     u8 page;
     u8 detail;
+    bool8 showDetails;
     u8 move;
     u8 qol, tool, depth;
     u16 viewSpecies, evoCursor, evoScroll, requirementPage;
@@ -194,7 +197,6 @@ static void Info(void)
     if (GetMonData(mon, MON_DATA_IS_EGG))
     {
         Print(86, 47, 130, COMPOUND_STRING("EGG"));
-        Print(86, 65, 130, COMPOUND_STRING("A: HATCH DETAILS"));
         return;
     }
     Print(85, 43, 132, GetSpeciesName(species));
@@ -217,6 +219,41 @@ static void Info(void)
     Print(9, 117, 104, text);
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 118, 119, 96,
         sSummary->values.mutationBadges ? COMPOUND_STRING("MUTATIONS IN GEAR") : COMPOUND_STRING("NO MUTATIONS"));
+}
+
+static void InfoDetails(void)
+{
+    struct Pokemon *mon = &sSummary->mon;
+    u8 text[48];
+    if (GetMonData(mon, MON_DATA_IS_EGG))
+    {
+        u8 cycles = GetMonData(mon, MON_DATA_FRIENDSHIP);
+        Paragraph(GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG) || cycles > 40
+            ? gText_EggWillTakeALongTime : cycles > 10 ? gText_EggWillTakeSomeTime
+            : cycles > 5 ? gText_EggWillHatchSoon : gText_EggAboutToHatch, 46, 3);
+        return;
+    }
+
+    u8 *end = StringCopy(text, COMPOUND_STRING("OT  "));
+    GetMonData(mon, MON_DATA_OT_NAME, end);
+    Print(9, 43, 204, text);
+
+    u32 metLevel = GetMonData(mon, MON_DATA_MET_LEVEL);
+    u8 location[32];
+    GetMapNameGeneric(location, GetMonData(mon, MON_DATA_MET_LOCATION));
+    end = StringCopy(text, metLevel ? COMPOUND_STRING("MET  ") : COMPOUND_STRING("HATCHED  "));
+    if (metLevel)
+    {
+        end = StringAppend(end, COMPOUND_STRING("Lv "));
+        end = ConvertUIntToDecimalStringN(end, metLevel, STR_CONV_MODE_LEFT_ALIGN, 3);
+        end = StringAppend(end, COMPOUND_STRING("  "));
+    }
+    StringCopy(end, location);
+    Print(9, 57, 204, text);
+
+    u32 ability = GetMonAbility(mon);
+    Print(9, 78, 204, gAbilitiesInfo[ability].name);
+    Paragraph(gAbilitiesInfo[ability].description, 92, 2);
 }
 
 static void Stats(void)
@@ -255,9 +292,41 @@ static void Moves(void)
         StringAppend(text, COMPOUND_STRING(" PP"));
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL, 162, y + 1, 51, fill, text);
     }
-    enum Move selected = GetMonData(mon, MON_DATA_MOVE1 + sSummary->move);
-    if (selected != MOVE_NONE)
-        Print(9, 113, 204, GetMoveDescription(selected));
+}
+
+static void MoveDetails(void)
+{
+    struct Pokemon *mon = &sSummary->mon;
+    enum Move move = GetMonData(mon, MON_DATA_MOVE1 + sSummary->move);
+    static const u8 *const category[] = {
+        [DAMAGE_CATEGORY_PHYSICAL] = COMPOUND_STRING("PHYSICAL"),
+        [DAMAGE_CATEGORY_SPECIAL] = COMPOUND_STRING("SPECIAL"),
+        [DAMAGE_CATEGORY_STATUS] = COMPOUND_STRING("STATUS"),
+    };
+    Print(9, 42, 204, GetMoveName(move));
+    if (move == MOVE_NONE)
+        return;
+
+    Print(9, 57, 120, gTypesInfo[GetMoveType(move)].name);
+    Print(126, 57, 88, category[GetMoveCategory(move)]);
+    Print(9, 73, 54, COMPOUND_STRING("POWER"));
+    Print(78, 73, 66, COMPOUND_STRING("ACCURACY"));
+    Print(166, 73, 45, COMPOUND_STRING("PP"));
+    if (GetMovePower(move) > 1)
+        Number(9, 85, GetMovePower(move));
+    else
+        Print(9, 85, 46, COMPOUND_STRING("--"));
+    if (GetMoveAccuracy(move) != 0)
+        Number(78, 85, GetMoveAccuracy(move));
+    else
+        Print(78, 85, 46, COMPOUND_STRING("--"));
+    u8 text[12];
+    u8 *end = ConvertUIntToDecimalStringN(text, GetMonData(mon, MON_DATA_PP1 + sSummary->move), STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringAppend(end, COMPOUND_STRING("/"));
+    ConvertUIntToDecimalStringN(end, CalculatePPWithBonus(move, GetMonData(mon, MON_DATA_PP_BONUSES), sSummary->move),
+        STR_CONV_MODE_LEFT_ALIGN, 2);
+    Print(166, 85, 48, text);
+    Paragraph(GetMoveDescription(move), 101, 2);
 }
 
 static void Gear(void)
@@ -346,7 +415,7 @@ static void Render(void)
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, x + 6, 25, 43,
             UnholyUi_CardFill(tab == sSummary->page), sTabs[tab]);
     }
-    if (sSummary->page != PAGE_INFO)
+    if (sSummary->page != PAGE_INFO || sSummary->showDetails)
         DestroyPortrait();
     if (GetMonData(&sSummary->mon, MON_DATA_IS_EGG) && sSummary->page != PAGE_INFO)
         Print(9, 58, 204, COMPOUND_STRING("EGG DATA IS NOT AVAILABLE YET."));
@@ -354,15 +423,15 @@ static void Render(void)
     {
         switch (sSummary->page)
         {
-        case PAGE_INFO: Info(); break;
+        case PAGE_INFO: if (sSummary->showDetails) InfoDetails(); else Info(); break;
         case PAGE_STATS: Stats(); break;
-        case PAGE_MOVES: Moves(); break;
+        case PAGE_MOVES: if (sSummary->showDetails) MoveDetails(); else Moves(); break;
         case PAGE_GEAR: Gear(); break;
         }
     }
     const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB L/R:IV/EV START:TOOLS B:BACK")
                    : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB L/R:VIEW START:TOOLS B:BACK")
-                   : sSummary->page == PAGE_MOVES ? COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK")
+                   : sSummary->showDetails ? COMPOUND_STRING("A/B:BACK  START:TOOLS")
                    : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 7, 131, 210, help);
     PutWindowTilemap(sSummary->window);
@@ -387,18 +456,18 @@ static void Cleanup(void)
     UnsetBgTilemapBuffer(0);
 }
 
-static void ReturnFromDetail(void)
-{
-    sSummary->index = gLastViewedMonIndex;
-    sSummary->portrait = SPRITE_NONE;
-    SetMainCallback2(Init);
-}
-
 static void Input(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
     if (QolInput(taskId)) return;
+    if (sSummary->showDetails && JOY_NEW(B_BUTTON))
+    {
+        sSummary->showDetails = FALSE;
+        PlaySE(SE_SELECT);
+        Render();
+        return;
+    }
     if (JOY_NEW(B_BUTTON))
     {
         void (*callback)(void) = sSummary->callback;
@@ -410,18 +479,19 @@ static void Input(u8 taskId)
         SetMainCallback2(callback);
         return;
     }
-    if (JOY_NEW(A_BUTTON) && (sSummary->page == PAGE_INFO || sSummary->page == PAGE_MOVES))
+    if (JOY_NEW(A_BUTTON) && (sSummary->page == PAGE_INFO
+     || (sSummary->page == PAGE_MOVES && !GetMonData(&sSummary->mon, MON_DATA_IS_EGG))))
     {
-        Cleanup();
-        DestroyTask(taskId);
-        ShowPokemonSummaryScreenLegacyPage(sSummary->mode, sSummary->mons, sSummary->index, sSummary->last,
-            ReturnFromDetail, sSummary->page == PAGE_MOVES ? PSS_PAGE_BATTLE_MOVES : PSS_PAGE_INFO);
+        sSummary->showDetails = !sSummary->showDetails;
+        PlaySE(SE_SELECT);
+        Render();
         return;
     }
     if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
     {
         sSummary->page = (sSummary->page + (JOY_NEW(DPAD_LEFT) ? PAGE_COUNT - 1 : 1)) % PAGE_COUNT;
         sSummary->detail = 0;
+        sSummary->showDetails = FALSE;
     }
     else if (JOY_NEW(L_BUTTON | R_BUTTON) && (sSummary->page == PAGE_STATS || sSummary->page == PAGE_GEAR))
         sSummary->detail = (sSummary->detail + (JOY_NEW(L_BUTTON) ? 2 : 1)) % 3;

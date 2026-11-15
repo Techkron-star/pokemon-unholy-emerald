@@ -33,9 +33,9 @@
 #include "new_game.h"
 
 #define HUB_TASK_PRIORITY 8
-#define HUB_ROW_HEIGHT 12
-#define HUB_ROW_TOP 4
-#define HUB_VISIBLE_ROWS 5
+#define HUB_COLUMNS 2
+#define HUB_ROWS 3
+#define HUB_PAGE_SIZE (HUB_COLUMNS * HUB_ROWS)
 
 static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
 {
@@ -53,7 +53,6 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
 
 static EWRAM_DATA u8 sWatchWindowId;
 static EWRAM_DATA u8 sHubCursor;
-static EWRAM_DATA u8 sHubScroll;
 static EWRAM_DATA struct UnholyUiPalette sWatchPalette;
 static EWRAM_DATA u8 sLastFeature;
 static EWRAM_DATA bool8 sReturnToStart;
@@ -508,37 +507,61 @@ static struct HfcWatchProgress HubProgress(void)
 
 static void RenderHub(void)
 {
-    u8 text[16];
     u8 tier = HfcWatch_GetTier();
+    u8 pageStart = (sHubCursor / HUB_PAGE_SIZE) * HUB_PAGE_SIZE;
     struct HfcWatchProgress progress = HubProgress();
     UnholyUi_Frame(sWatchWindowId, COMPOUND_STRING("POKé WATCH"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 124, 6, 48,
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 130, 6, 48,
         tier == HFC_WATCH_TIER_HF ? COMPOUND_STRING("HF")
       : tier == HFC_WATCH_TIER_SUPER ? COMPOUND_STRING("SUPER") : COMPOUND_STRING("BASIC"));
-    ConvertUIntToDecimalStringN(text, sHubCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
-    StringAppend(text, COMPOUND_STRING("/10"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 175, 6, 27, text);
-    for (u8 row = 0; row < HUB_VISIBLE_ROWS; row++)
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 178, 6, 28,
+        pageStart == 0 ? COMPOUND_STRING("1/2") : COMPOUND_STRING("2/2"));
+    bool32 hasRareStock = HorizonMarketHasUnseenMutation();
+    for (u8 card = 0; card < HUB_PAGE_SIZE && pageStart + card < HFC_WATCH_FEATURE_COUNT; card++)
     {
-        u8 feature = sHubScroll + row;
-        u8 y = 23 + row * 16;
+        u8 feature = pageStart + card;
+        u8 x = 5 + (card % HUB_COLUMNS) * 101;
+        u8 y = 23 + (card / HUB_COLUMNS) * 26;
         bool8 selected = feature == sHubCursor;
         bool8 ready = HfcWatch_GetAccess(tier, feature, progress) == HFC_WATCH_READY;
         u8 fill = UnholyUi_CardFill(selected);
-        UnholyUi_Card(sWatchWindowId, 5, y, 198, 15, selected);
-        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL, 11, y + 1, 149, fill, sFeatureNames[feature]);
-        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, 163, y + 3, 36, fill,
-            ready ? COMPOUND_STRING("OPEN") : COMPOUND_STRING("LOCKED"));
-        if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && HorizonMarketHasUnseenMutation())
-            FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), 154, y + 6, 3, 3);
+        UnholyUi_Card(sWatchWindowId, x, y, 97, 23, selected);
+        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + (ready ? 5 : 1), 87, fill, sFeatureNames[feature]);
+        if (!ready)
+            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + 11, 86, fill, COMPOUND_STRING("LOCKED"));
+        if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && ready && hasRareStock)
+            FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), x + 87, y + 9, 3, 3);
     }
     bool8 ready = HfcWatch_GetAccess(tier, sHubCursor, progress) == HFC_WATCH_READY;
     if (!ready)
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 106, 194,
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 104, 194,
             HfcWatch_GetRequirement(tier, sHubCursor, progress));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 123, 194,
-        ready ? COMPOUND_STRING("A:OPEN  B:BACK") : COMPOUND_STRING("B:BACK"));
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 122, 194,
+        ready ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:BACK") : COMPOUND_STRING("L/R:PAGE  B:BACK"));
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
+}
+
+static void MoveHubCursor(u16 keys)
+{
+    u8 first = sHubCursor / HUB_PAGE_SIZE * HUB_PAGE_SIZE;
+    u8 index = sHubCursor - first;
+    u8 count = min(HUB_PAGE_SIZE, HFC_WATCH_FEATURE_COUNT - first);
+
+    if (keys & (L_BUTTON | R_BUTTON))
+    {
+        first = first == 0 ? HUB_PAGE_SIZE : 0;
+        count = min(HUB_PAGE_SIZE, HFC_WATCH_FEATURE_COUNT - first);
+        index = min(index, count - 1);
+    }
+    else if (keys & DPAD_LEFT)
+        index = index % HUB_COLUMNS == 0 ? index : index - 1;
+    else if (keys & DPAD_RIGHT)
+        index = index % HUB_COLUMNS == 0 && index + 1 < count ? index + 1 : index;
+    else if (keys & DPAD_UP)
+        index = index >= HUB_COLUMNS ? index - HUB_COLUMNS : index;
+    else if (keys & DPAD_DOWN)
+        index = index + HUB_COLUMNS < count ? index + HUB_COLUMNS : index;
+    sHubCursor = first + index;
 }
 
 static void Task_HfcWatchHub(u8 taskId)
@@ -553,15 +576,16 @@ static void Task_HfcWatchHub(u8 taskId)
         ReturnFromWatch();
         return;
     }
-    if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+    u16 navigation = JOY_NEW(L_BUTTON | R_BUTTON) | JOY_REPEAT(DPAD_ANY);
+    if (navigation)
     {
-        sHubCursor = (sHubCursor + (JOY_REPEAT(DPAD_UP) ? HFC_WATCH_FEATURE_COUNT - 1 : 1)) % HFC_WATCH_FEATURE_COUNT;
-        if (sHubCursor < sHubScroll)
-            sHubScroll = sHubCursor;
-        else if (sHubCursor >= sHubScroll + HUB_VISIBLE_ROWS)
-            sHubScroll = sHubCursor - HUB_VISIBLE_ROWS + 1;
-        PlaySE(SE_SELECT);
-        RenderHub();
+        u8 previous = sHubCursor;
+        MoveHubCursor(navigation);
+        if (previous != sHubCursor)
+        {
+            PlaySE(SE_SELECT);
+            RenderHub();
+        }
         return;
     }
     if (!JOY_NEW(A_BUTTON))
@@ -628,7 +652,6 @@ static void OpenHub(void)
     FreezeObjectEvents();
     LockPlayerFieldControls();
     sHubCursor = sLastFeature;
-    sHubScroll = min(sHubCursor, HFC_WATCH_FEATURE_COUNT - HUB_VISIBLE_ROWS);
     RenderHub();
 }
 
@@ -639,7 +662,7 @@ void HfcWatch_OpenHub(bool8 fromStartMenu)
         return;
 
     sReturnToStart = fromStartMenu;
-    sLastFeature = HFC_WATCH_FEATURE_HORIZON_SHOP;
+    sLastFeature = sHubCursor;
     sRaidDifficulty = HFC_RAID_STANDARD;
     OpenHub();
 }

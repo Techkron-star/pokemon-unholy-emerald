@@ -8217,11 +8217,14 @@ static void Task_ChoosePartyMon(u8 taskId)
 
 static EWRAM_DATA bool8 sHorizonRelearnerActive = FALSE;
 static EWRAM_DATA bool8 sHorizonDeleterActive = FALSE;
+static EWRAM_DATA MainCallback sHorizonMoveFieldReturn = NULL;
 static void CB2_HorizonForgetSelectedMove(void);
 
 void ChooseMonForMoveRelearner(void)
 {
     sHorizonRelearnerActive = FALSE;
+    sHorizonDeleterActive = FALSE;
+    sHorizonMoveFieldReturn = NULL;
     gRelearnMode = RELEARN_MODE_SCRIPT;
     gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES; // Don't inherit a stale category from a previous relearner script
     LockPlayerFieldControls();
@@ -8230,18 +8233,20 @@ void ChooseMonForMoveRelearner(void)
 }
 
 // Horizon has no event script waiting for a move-learning result.
-void ChooseMonForHorizonMoveRelearner(void)
+void ChooseMonForHorizonMoveRelearner(MainCallback fieldReturn)
 {
     ChooseMonForMoveRelearner();
     sHorizonRelearnerActive = TRUE;
+    sHorizonMoveFieldReturn = fieldReturn;
 }
 
 // Horizon's FORGET option reuses the existing party selection and summary
 // move picker. No script context or an NPC Move Deleter is required.
-void ChooseMonForHorizonMoveDeleter(void)
+void ChooseMonForHorizonMoveDeleter(MainCallback fieldReturn)
 {
     ChooseMonForMoveRelearner();
     sHorizonDeleterActive = TRUE;
+    sHorizonMoveFieldReturn = fieldReturn;
 }
 
 static void Task_ChooseMonForMoveRelearner(u8 taskId)
@@ -8252,6 +8257,14 @@ static void Task_ChooseMonForMoveRelearner(u8 taskId)
         InitPartyMenu(PARTY_MENU_TYPE_MOVE_RELEARNER, PARTY_LAYOUT_SINGLE, PARTY_ACTION_CHOOSE_AND_CLOSE, FALSE, PARTY_MSG_CHOOSE_MON, Task_HandleChooseMonInput, CB2_ChooseMonForMoveRelearner);
         DestroyTask(taskId);
     }
+}
+
+static void CB2_ReturnToHorizonMoves(void)
+{
+    gFieldCallback2 = NULL;
+    gFieldCallback = sHorizonMoveFieldReturn;
+    sHorizonMoveFieldReturn = NULL;
+    SetMainCallback2(CB2_ReturnToField);
 }
 
 static void CB2_ChooseMonForMoveRelearner(void)
@@ -8282,11 +8295,15 @@ static void CB2_ChooseMonForMoveRelearner(void)
 
     if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
     {
-        gFieldCallback2 = CB2_FadeFromPartyMenu;
-        UnholyMoveUi_Open(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], gSpecialVar_0x8004, CB2_ReturnToField);
+        UnholyMoveUi_Open(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], gSpecialVar_0x8004, CB2_ReturnToHorizonMoves);
         return;
     }
 
+    if (fromHorizon || fromHorizonDeleter)
+    {
+        CB2_ReturnToHorizonMoves();
+        return;
+    }
     gFieldCallback2 = CB2_FadeFromPartyMenu;
     SetMainCallback2(CB2_ReturnToField);
 }
@@ -8321,8 +8338,7 @@ static void CB2_HorizonForgetSelectedMove(void)
         }
     }
 
-    gFieldCallback2 = CB2_FadeFromPartyMenu;
-    SetMainCallback2(CB2_ReturnToField);
+    CB2_ReturnToHorizonMoves();
 }
 
 void DoBattlePyramidMonsHaveHeldItem(void)

@@ -862,18 +862,24 @@ static void SpriteCB_HealthBar(struct Sprite *sprite)
     // Gear logic is tested independently of the sprite HUD.
     if (GEARS_ENABLED && !gTestRunnerEnabled)
         UpdateHealthbarGearIcon(sprite, healthbox);
-    if (!gTestRunnerEnabled && !gAnimScriptActive)
+    if (!gTestRunnerEnabled)
     {
         enum BattlerId battler = healthbox->hMain_Battler;
+        // Use the same healthbox transform as Stamina, including during
+        // battle animations. Hold the current artwork until the animation ends.
+        s16 x = healthbox->x + (IsOnPlayerSide(battler) ? 36 : 28);
+        s16 y = healthbox->y - 6;
+        if (gAnimScriptActive || healthbox->invisible)
+        {
+            MutationIcon_SyncBattle(battler, healthbox, x, y);
+            return;
+        }
         struct Pokemon *mon = GetIllusionMonPtr(battler);
         if (mon == NULL)
             mon = GetBattlerMon(battler);
-        u16 badges = healthbox->invisible || !IsBattlerAlive(battler)
+        u16 badges = !IsBattlerAlive(battler)
                    || (!IsOnPlayerSide(battler) && IsGhostBattleWithoutScope())
                    ? 0 : GetMonData(mon, MON_DATA_SPECIAL_BADGES);
-        // Fixed gutter between the rendered nickname and the level/gimmick.
-        s16 x = healthbox->x + (IsOnPlayerSide(battler) ? 36 : 28);
-        s16 y = healthbox->y - 6;
         if (MutationIcon_UpdateBattle(battler, healthbox, badges, x, y))
             UpdateNickInHealthbox(sprite->hBar_HealthBoxSpriteId, mon);
     }

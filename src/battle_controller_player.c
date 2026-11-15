@@ -756,11 +756,12 @@ void HandleInputChooseMove(enum BattlerId battler)
 
         if (gBattleStruct->chainFirstPos[battler] != 0)
         {
-            // Encadenado: el 1er movimiento se marcó con SELECT; el actual es el 2º.
+            // START marks the first move; A confirms the second.
             u8 first = gBattleStruct->chainFirstPos[battler] - 1;
 
             if (first == gMoveSelectionCursor[battler]
              || canSelectTarget != 0
+             || moveInfo->currentPP[gMoveSelectionCursor[battler]] == 0
              || gBattleStruct->gimmick.playerSelect
              || !Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]]))
             {
@@ -809,11 +810,9 @@ void HandleInputChooseMove(enum BattlerId battler)
             break;
         }
     }
-    else if (JOY_NEW(SELECT_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
+    else if (JOY_NEW(START_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
           && !gBattleStruct->descriptionSubmenu && !gBattleStruct->gimmick.playerSelect)
     {
-        struct ChooseMoveStruct *chainMoveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
-
         if (gBattleStruct->chainFirstPos[battler] != 0)
         {
             gBattleStruct->chainFirstPos[battler] = 0;
@@ -821,8 +820,8 @@ void HandleInputChooseMove(enum BattlerId battler)
             MoveSelectionDisplayPPString(battler);
         }
         else if (gNumberOfMovesToChoose >= 2
-              && chainMoveInfo->currentPP[gMoveSelectionCursor[battler]] != 0
-              && Chain_IsMoveChainable(chainMoveInfo->moves[gMoveSelectionCursor[battler]]))
+              && moveInfo->currentPP[gMoveSelectionCursor[battler]] != 0
+              && Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]]))
         {
             gBattleStruct->chainFirstPos[battler] = gMoveSelectionCursor[battler] + 1;
             PlaySE(SE_SELECT);
@@ -836,7 +835,12 @@ void HandleInputChooseMove(enum BattlerId battler)
     else if ((JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)  && !gBattleStruct->descriptionSubmenu)
     {
         PlaySE(SE_SELECT);
-        gBattleStruct->chainFirstPos[battler] = 0;
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            gBattleStruct->chainFirstPos[battler] = 0;
+            MoveSelectionDisplayPPString(battler);
+            return;
+        }
         ClearChainPreview();
         gBattleStruct->gimmick.playerSelect = FALSE;
         if (gBattleStruct->zmove.viewing)
@@ -918,10 +922,14 @@ void HandleInputChooseMove(enum BattlerId battler)
             TryChangeZTrigger(battler, gMoveSelectionCursor[battler]);
         }
     }
-    else if (B_MOVE_REARRANGEMENT_IN_BATTLE < GEN_4 && JOY_NEW(SELECT_BUTTON) && !gBattleStruct->zmove.viewing && !gBattleStruct->descriptionSubmenu)
+    else if (B_MOVE_REARRANGEMENT_IN_BATTLE < GEN_4 && JOY_NEW(SELECT_BUTTON)
+          && !gBattleStruct->zmove.viewing && !gBattleStruct->descriptionSubmenu
+          && !gBattleStruct->gimmick.playerSelect)
     {
         if (gNumberOfMovesToChoose > 1 && !(gBattleTypeFlags & BATTLE_TYPE_LINK))
         {
+            gBattleStruct->chainFirstPos[battler] = 0;
+            ClearChainPreview();
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 29);
 
             if (gMoveSelectionCursor[battler] != 0)
@@ -961,13 +969,14 @@ void HandleInputChooseMove(enum BattlerId battler)
         gBattleStruct->descriptionSubmenu = TRUE;
         TryMoveSelectionDisplayMoveDescription(battler);
     }
-    else if (JOY_NEW(START_BUTTON))
+    else if (JOY_NEW(R_BUTTON))
     {
         if (gBattleStruct->gimmick.usableGimmick[battler] != GIMMICK_NONE
             && !HasTrainerUsedGimmick(battler, gBattleStruct->gimmick.usableGimmick[battler])
             && !(gBattleStruct->gimmick.usableGimmick[battler] == GIMMICK_Z_MOVE
                  && GetUsableZMove(battler, moveInfo->moves[gMoveSelectionCursor[battler]]) == MOVE_NONE))
         {
+            gBattleStruct->chainFirstPos[battler] = 0;
             gBattleStruct->gimmick.playerSelect ^= 1;
             ReloadMoveNames(battler);
             ChangeGimmickTriggerSprite(gBattleStruct->gimmick.triggerSpriteId, gBattleStruct->gimmick.playerSelect);
@@ -1059,7 +1068,6 @@ void HandleMoveSwitching(enum BattlerId battler)
 
         if (gMoveSelectionCursor[battler] != gMultiUsePlayerCursor)
         {
-            struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
             s32 i;
 
             // swap moves and pp
@@ -1075,11 +1083,11 @@ void HandleMoveSwitching(enum BattlerId battler)
             moveInfo->maxPP[gMoveSelectionCursor[battler]] = moveInfo->maxPP[gMultiUsePlayerCursor];
             moveInfo->maxPP[gMultiUsePlayerCursor] = i;
 
-            if (gBattleMons[battler].volatiles.mimickedMoves & (1u << gMoveSelectionCursor[battler]))
-            {
-                gBattleMons[battler].volatiles.mimickedMoves &= ~(1u << gMoveSelectionCursor[battler]);
-                gBattleMons[battler].volatiles.mimickedMoves |= 1u << gMultiUsePlayerCursor;
-            }
+            u32 sourceBit = 1u << gMoveSelectionCursor[battler];
+            u32 targetBit = 1u << gMultiUsePlayerCursor;
+            u32 mimickedMoves = gBattleMons[battler].volatiles.mimickedMoves;
+            if (!!(mimickedMoves & sourceBit) != !!(mimickedMoves & targetBit))
+                gBattleMons[battler].volatiles.mimickedMoves ^= sourceBit | targetBit;
 
             MoveSelectionDisplayMoveNames(battler);
 
@@ -1154,13 +1162,13 @@ void HandleMoveSwitching(enum BattlerId battler)
         MoveSelectionDisplayMoveType(battler);
         AssignUsableZMoves(battler, moveInfo->moves);
     }
-    else if (JOY_NEW(B_BUTTON | SELECT_BUTTON))
+    else if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);
         MoveSelectionDestroyCursorAt(gMultiUsePlayerCursor);
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
 
-        if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+        if (IS_FRLG && gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
             gBattlerControllerFuncs[battler] = OakOldManHandleInputChooseMove;
         else
             gBattlerControllerFuncs[battler] = HandleInputChooseMove;
@@ -1766,11 +1774,12 @@ static void DrawChainPreview(enum BattlerId battler)
     { ClearChainPreview(); return; }
     if (secondValid) cost += Stamina_GetMoveCost(battler, info->moves[selected]);
     FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
-    if (Chain_IsAvailable(battler))
+    if (Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect)
     {
+        FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
         PrintChainSlot(1, 1, GetMoveName(info->moves[first]));
         PrintChainSlot(55, 2, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
-        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("SELECT"));
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("START"));
         PutWindowTilemap(B_WIN_DUMMY);
     }
     else ClearWindowTilemap(B_WIN_DUMMY);
@@ -1801,7 +1810,6 @@ static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
         return;
 
     MoveSelectionDisplayPPString(battler);
-    DrawChainPreview(battler);
     SetPPNumbersPaletteInMoveSelection(battler);
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     txtPtr = ConvertIntToDecimalStringN(gDisplayedStringBattle, moveInfo->currentPP[gMoveSelectionCursor[battler]], STR_CONV_MODE_RIGHT_ALIGN, 2);

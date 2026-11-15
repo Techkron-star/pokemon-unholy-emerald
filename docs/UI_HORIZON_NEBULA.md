@@ -80,6 +80,12 @@ Los tres tamaños usados son `FONT_NARROW` (hasta 15 px, títulos), `FONT_SMALL`
 
 **QA aún obligatorio:** capturas nuevas de Pokémon, Huevos, MOVES, Items/Discos y raíz en Eclipse **y** Daylight a 240×160; probar nombres largos, mutaciones múltiples, vendidos, confirmación, dinero insuficiente, guardar/cargar y volver a START. Una compilación correcta no verifica los offsets reales.
 
+## Controles de Horizon y Poké Watch
+
+- **Poké Watch.** La cruceta selecciona una tarjeta y L/R cambia de página. Al volver de un servicio se recupera el foco en su tarjeta. B desde el Watch vuelve al menú que lo abrió.
+- **Horizon.** Abre en el catálogo de Pokémon. L/R cambia directamente entre Pokémon, Discos, Objetos, Huevos y Movimientos. La cruceta mueve el foco dentro de cada catálogo, y Discos y Objetos muestran hasta seis tarjetas con el precio y la descripción de la oferta seleccionada.
+- **Compras y herramientas.** B cancela la confirmación activa. B desde un catálogo regresa al Watch. Al salir del selector de equipo, del gestor o del selector de movimientos para olvidar, Horizon recupera la pestaña Movimientos.
+
 ## Renaissance Horizon UI — entrega PR #30 (12/11/2026)
 
 Diseño implementado mediante ventanas GBA 4bpp y fuentes reales, **sin imágenes generadas** ni efectos que comprometan recursos del motor. La estructura evita los solapamientos visibles en las capturas de Pizza Boy.
