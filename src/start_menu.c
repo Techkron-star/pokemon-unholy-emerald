@@ -216,6 +216,7 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 static const u8 sText_MenuDebug[] = _("DEBUG");
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
+#define UNHOLY_CRAFT_RECIPE_JUMP 5
 
 enum UnholyCraftStatus
 {
@@ -251,9 +252,7 @@ struct UnholyCraftRecipe
 
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
 static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
-static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
-static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
-static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
+static const u8 sUnholyCraftControls[] = _("L/R:RECIPE  A:CRAFT  SEL:EQUIP  B:BACK");
 static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
@@ -501,26 +500,32 @@ static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *i
 
 static void UnholyCraftRenderMenu(void)
 {
-    const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sUnholyCraftSkinDaylight : sUnholyCraftSkinEclipse;
     enum Item iconItem;
 
-    UnholyUi_Frame(sUnholyCraftWindowId, sUnholyCraftTitle);
-    UnholyCraftPrint(137, 3, skin);
+    UnholyUi_Frame(sUnholyCraftWindowId, sUnholyCraftMode ? COMPOUND_STRING("EQUIP GEAR") : sUnholyCraftTitle);
 
     if (sUnholyCraftMode == 0)
     {
         const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
 
-        StringCopy(gStringVar4, COMPOUND_STRING("> "));
-        StringAppend(gStringVar4, GetItemName(recipe->result));
-        UnholyCraftPrint(4, 23, gStringVar4);
+        u8 recipeNumber[12];
+        u8 *end = ConvertUIntToDecimalStringN(recipeNumber, sUnholyCraftRecipeCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+        end = StringCopy(end, COMPOUND_STRING("/"));
+        ConvertUIntToDecimalStringN(end, ARRAY_COUNT(sUnholyCraftRecipes), STR_CONV_MODE_LEFT_ALIGN, 2);
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 108, 5, 65, COMPOUND_STRING("UP/DOWN:5"));
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 177, 5, 24, recipeNumber);
+
+        u8 fill = UnholyUi_CardFill(TRUE);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, 22, 198, 42, TRUE);
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 24, 147, fill, GetItemName(recipe->result));
         const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
-        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 40, 168, description);
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 37, 148, fill, description);
         while (*description != EOS && *description != CHAR_NEWLINE)
             description++;
         if (*description == CHAR_NEWLINE)
-            UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 52, 168, description + 1);
-        UnholyCraftPrint(4, 69, sUnholyCraftRequirements);
+            UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 49, 148, fill, description + 1);
+        UnholyCraftPrint(7, 67, sUnholyCraftRequirements);
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 135, 69, 66, COMPOUND_STRING("HAVE/NEED"));
 
         for (u8 i = 0; i < recipe->materialCount; i++)
             UnholyCraftPrintMaterial(i, &recipe->materials[i]);
@@ -536,9 +541,10 @@ static void UnholyCraftRenderMenu(void)
         enum Gear existing = Gear_GetEquipped(mon);
         enum Gear chosen = sUnholyCraftGearCursor;
 
-        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP GEAR"));
-        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(Gear_ToItem(chosen)));
-        UnholyCraftPrint(6, 39, gStringVar4);
+        u8 fill = UnholyUi_CardFill(TRUE);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, 22, 198, 29, TRUE);
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 31, 148, fill,
+            chosen == GEAR_NONE ? COMPOUND_STRING("REMOVE GEAR") : GetItemName(Gear_ToItem(chosen)));
 
         StringCopy(gStringVar4, COMPOUND_STRING("PARTY "));
         ConvertIntToDecimalStringN(gStringVar3, sUnholyCraftPartyCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
@@ -764,14 +770,19 @@ static void Task_UnholyCraftingMenu(u8 taskId)
             sUnholyCraftGearCursor = (sUnholyCraftGearCursor + 1) % GEAR_COUNT;
         changed = TRUE;
     }
-    else if (sUnholyCraftMode && JOY_NEW(DPAD_UP))
+    else if (JOY_NEW(DPAD_UP | DPAD_DOWN))
     {
-        sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + PARTY_SIZE - 1) % PARTY_SIZE;
-        changed = TRUE;
-    }
-    else if (sUnholyCraftMode && JOY_NEW(DPAD_DOWN))
-    {
-        sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + 1) % PARTY_SIZE;
+        bool32 previous = JOY_NEW(DPAD_UP);
+        if (sUnholyCraftMode)
+            sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + (previous ? PARTY_SIZE - 1 : 1)) % PARTY_SIZE;
+        else
+        {
+            u8 next = previous ? max(0, (s16)sUnholyCraftRecipeCursor - UNHOLY_CRAFT_RECIPE_JUMP)
+                              : min(sUnholyCraftRecipeCursor + UNHOLY_CRAFT_RECIPE_JUMP, ARRAY_COUNT(sUnholyCraftRecipes) - 1);
+            if (next == sUnholyCraftRecipeCursor)
+                return;
+            sUnholyCraftRecipeCursor = next;
+        }
         changed = TRUE;
     }
     else if (JOY_NEW(A_BUTTON))
