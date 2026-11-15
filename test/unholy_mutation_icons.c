@@ -50,7 +50,11 @@ TEST("Mutation icon instances share resources until their last owner releases th
     EXPECT(!MutationIcon_BattleVisible(1));
     EXPECT_EQ(IndexOfSpritePaletteTag(tag), 0xFF);
     EXPECT(!MutationIcon_ReleaseBattlePalette());
-    MutationIcon_ClearBattle();
+    EXPECT(MutationIcon_UpdateBattle(0, &box, POKEMON_BADGE_ALPHA, 16, 16));
+    MutationIcon_ResetBattle();
+    EXPECT(!MutationIcon_BattleVisible(0));
+    EXPECT_EQ(IndexOfSpritePaletteTag(tag), 0xFF);
+    EXPECT_EQ(GetSpriteTileStartByTag(tag), TAG_NONE);
 }
 
 TEST("Mutation battle icons follow the healthbox without an affine matrix")

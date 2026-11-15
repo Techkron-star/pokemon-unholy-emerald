@@ -216,9 +216,7 @@ static void Info(void)
     cursor = ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
     cursor = StringCopy(cursor, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_MAX_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
-    Print(9, 117, 104, text);
-    UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 118, 119, 96,
-        sSummary->values.mutationBadges ? COMPOUND_STRING("MUTATIONS IN GEAR") : COMPOUND_STRING("NO MUTATIONS"));
+    Print(9, 111, 104, text);
 }
 
 static void InfoDetails(void)
@@ -273,8 +271,8 @@ static void Stats(void)
         UnholyUi_Bar(sSummary->window, 146, y + 8, 66, value,
             sSummary->detail == 1 ? MAX_PER_STAT_IVS : sSummary->detail == 2 ? MAX_PER_STAT_EVS : max(255, value), 5);
     }
-    Print(9, 115, 105, COMPOUND_STRING("MAX STAMINA"));
-    Number(112, 115, values->staminaMax);
+    Print(9, 112, 105, COMPOUND_STRING("MAX STAMINA"));
+    Number(112, 112, values->staminaMax);
 }
 
 static void Moves(void)
@@ -407,7 +405,7 @@ static void Render(void)
     }
     StringCopy(text, COMPOUND_STRING("Lv "));
     ConvertUIntToDecimalStringN(text + StringLength(text), GetMonData(&sSummary->mon, MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
-    Print(174, 4, 42, text);
+    Print(178, 4, 38, text);
     for (u8 tab = 0; tab < PAGE_COUNT; tab++)
     {
         u8 x = 6 + tab * 54;

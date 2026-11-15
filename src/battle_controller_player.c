@@ -89,6 +89,7 @@ static void MoveSelectionDisplayPPNumber(enum BattlerId battler);
 static void MoveSelectionDisplayPPString(enum BattlerId battler);
 static void MoveSelectionDisplayMoveType(enum BattlerId battler);
 static void MoveSelectionDisplayMoveNames(enum BattlerId battler);
+static void MoveSelectionDisplaySwapHelp(void);
 static void TryMoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void MoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void WaitForMonSelection(enum BattlerId battler);
@@ -929,7 +930,6 @@ void HandleInputChooseMove(enum BattlerId battler)
         if (gNumberOfMovesToChoose > 1 && !(gBattleTypeFlags & BATTLE_TYPE_LINK))
         {
             gBattleStruct->chainFirstPos[battler] = 0;
-            ClearChainPreview();
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 29);
 
             if (gMoveSelectionCursor[battler] != 0)
@@ -938,7 +938,7 @@ void HandleInputChooseMove(enum BattlerId battler)
                 gMultiUsePlayerCursor = gMoveSelectionCursor[battler] + 1;
 
             MoveSelectionCreateCursorAt(gMultiUsePlayerCursor, 27);
-            BattlePutTextOnWindow(gText_BattleSwitchWhich, B_WIN_SWITCH_PROMPT);
+            MoveSelectionDisplaySwapHelp();
             gBattlerControllerFuncs[battler] = HandleMoveSwitching;
         }
     }
@@ -1757,6 +1757,17 @@ static void PrintChainSlot(u8 x, u8 number, const u8 *name)
     while (GetStringWidth(FONT_SMALL_NARROW, text, 0) > 51 && StringLength(text) > 2)
         text[StringLength(text) - 1] = EOS;
     AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, x, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+}
+
+static void MoveSelectionDisplaySwapHelp(void)
+{
+    const u8 colors[] = {14, 13, 15};
+    FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
+    FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 1, 1, 0, 0, colors, TEXT_SKIP_DRAW,
+        COMPOUND_STRING("A:SWAP   B:CANCEL"));
+    PutWindowTilemap(B_WIN_DUMMY);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
 }
 
 static void DrawChainPreview(enum BattlerId battler)

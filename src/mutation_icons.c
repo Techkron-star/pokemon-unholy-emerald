@@ -209,21 +209,28 @@ void MutationIcon_Destroy(u8 id)
 
 void MutationIcon_ResetBattle(void)
 {
-    // Called after the engine resets sprites and their resource tables.
+    // Battle initialization can reload the indicator graphics after the
+    // healthbars have already drawn. Release their badges before losing IDs.
+    MutationIcon_ClearBattle();
     for (u8 i = 0; i < MAX_BATTLERS_COUNT; i++)
     {
-        sBattleIcons[i] = MAX_SPRITES;
         sBattleMasks[i] = 0;
         sBattleFrames[i] = 0;
-        sBattleShown[i] = FALSE;
     }
 }
 
 void MutationIcon_ClearBattle(void)
 {
+    for (u8 i = 0; i < MAX_SPRITES; i++)
+    {
+        if (!gSprites[i].inUse)
+            continue;
+        s32 art = ArtIndex(&gSprites[i]);
+        if (art >= 0 && gSprites[i].template == &sCompactTemplates[art])
+            MutationIcon_Destroy(i);
+    }
     for (u8 i = 0; i < MAX_BATTLERS_COUNT; i++)
     {
-        MutationIcon_Destroy(sBattleIcons[i]);
         sBattleIcons[i] = MAX_SPRITES;
         sBattleShown[i] = FALSE;
     }
