@@ -1,6 +1,8 @@
 # Unholy Emerald · Sistema de Gears
 
-Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
+Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. El motor implementado aquí documenta Gears **cíclicos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. Los diseños futuros también pueden tener efectos **pasivos**, **reactivos** o **de una sola activación por combate**, sin forzarlos a funcionar como una sobrecarga. Los Gears equipados no se consumen.
+
+**Nuevas familias en diseño:** [MASKARA (11 máscaras/cascos) y otros 19 Gears](GEARS_MASKARA_ARSENAL.md). Se trata de especificaciones conceptuales, no de funcionalidades implementadas.
 
 **Estado:** los seis Gears originales, los 18 Inyectores, el Báculo Tormentoso y Grillete tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
 
