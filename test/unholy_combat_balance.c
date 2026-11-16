@@ -2,6 +2,7 @@
 #include "battle.h"
 #include "battle_chain.h"
 #include "battle_stamina.h"
+#include "battle_util.h"
 #include "malloc.h"
 #include "test/test.h"
 
@@ -95,6 +96,19 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
     EXPECT_EQ(Chain_GetNumTurnActions(), 3);
     EXPECT_EQ(gBattlerByTurnOrder[1], B_BATTLER_1);
     EXPECT_EQ(gBattlerByTurnOrder[2], B_BATTLER_0);
+
+    struct DamageContext damage = {
+        .battlerAtk = B_BATTLER_0, .battlerDef = B_BATTLER_1,
+        .move = MOVE_SONIC_BOOM, .moveType = TYPE_NORMAL,
+        .updateFlags = TRUE, .useStoredTypeEffectiveness = TRUE,
+    };
+    struct SpecialStatus previousStatus = gSpecialStatuses[B_BATTLER_1];
+    gSpecialStatuses[B_BATTLER_1].storedTypeEffectiveness = UQ_4_12(1.0);
+    gCurrentTurnActionNumber = 0;
+    EXPECT_EQ(CalculateMoveDamage(&damage), 20);
+    gCurrentTurnActionNumber = 2;
+    EXPECT_EQ(CalculateMoveDamage(&damage), 14);
+    gSpecialStatuses[B_BATTLER_1] = previousStatus;
 
     gBattleStruct->chainSecondPos[B_BATTLER_1] = 2;
     Chain_ExpandTurnOrder();

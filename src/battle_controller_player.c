@@ -763,6 +763,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             if (first == gMoveSelectionCursor[battler]
              || canSelectTarget != 0
              || moveInfo->currentPP[gMoveSelectionCursor[battler]] == 0
+             || (CheckMoveLimitations(battler, 0, MOVE_LIMITATIONS_ALL) & (1u << gMoveSelectionCursor[battler]))
              || gBattleStruct->gimmick.playerSelect
              || !Chain_IsPairAllowed(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]])
              || !Chain_CanAfford(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]]))

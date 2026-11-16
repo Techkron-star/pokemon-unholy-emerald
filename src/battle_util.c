@@ -1020,11 +1020,6 @@ void HandleAction_ActionFinished(void)
                           && gSpecialStatuses[gBattlerByTurnOrder[gCurrentTurnActionNumber + 1]].afterYou;
     gBattleStruct->monToSwitchIntoId[gBattlerByTurnOrder[gCurrentTurnActionNumber]] = gSelectedMonPartyId = PARTY_SIZE;
     gCurrentTurnActionNumber++;
-    Chain_OrderFollowUps();
-    if (gCurrentTurnActionNumber < Chain_GetNumTurnActions())
-        gCurrentActionFuncId = gActionsByTurnOrder[gCurrentTurnActionNumber];
-    else
-        gCurrentActionFuncId = B_ACTION_FINISHED;
     memset(&gSpecialStatuses, 0, sizeof(gSpecialStatuses));
 
     gCurrentMove = MOVE_NONE;
@@ -1032,12 +1027,19 @@ void HandleAction_ActionFinished(void)
     gBattleScripting.animTurn = 0;
     gBattleScripting.animTargetsHit = 0;
     gBattleStruct->dynamicMoveType = 0;
+    gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_NONE;
     gBattleStruct->bouncedMoveIsUsed = FALSE;
     gBattleStruct->snatchedMoveIsUsed = FALSE;
     gBattleScripting.moveendState = 0;
     gBattleCommunication[3] = 0;
     gBattleCommunication[4] = 0;
     gBattleResources->battleScriptsStack->size = 0;
+
+    Chain_OrderFollowUps();
+    if (gCurrentTurnActionNumber < Chain_GetNumTurnActions())
+        gCurrentActionFuncId = gActionsByTurnOrder[gCurrentTurnActionNumber];
+    else
+        gCurrentActionFuncId = B_ACTION_FINISHED;
 
     if (GetConfig(B_RECALC_TURN_AFTER_ACTIONS) >= GEN_8
      && gBattleStruct->numTurnActions == 0 // el orden expandido y sus roles no deben reordenarse por separado
@@ -8201,7 +8203,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
         }
     }
 
-    if (activatesGuard)
+    if (activatesGuard && ctx->updateFlags)
     {
         gBattleStruct->survivalGuardMask |= targetBit;
         gBattleStruct->survivalUsedThisMoveMask |= targetBit;
@@ -8225,7 +8227,7 @@ s32 CalculateMoveDamage(struct DamageContext *ctx)
     else
         damage = DoMoveDamageCalc(ctx);
 
-    if (damage > 0 && !ctx->isSelfInflicted && Chain_IsFollowingUp(ctx->battlerAtk)
+    if (damage > 0 && ctx->updateFlags && !ctx->isSelfInflicted && Chain_IsFollowingUp(ctx->battlerAtk)
      && !gSpecialStatuses[ctx->battlerAtk].dancerUsedMove && !gBattleStruct->bouncedMoveIsUsed)
         damage = max(1, damage * CHAIN_FOLLOW_UP_DAMAGE_PERCENT / 100);
 

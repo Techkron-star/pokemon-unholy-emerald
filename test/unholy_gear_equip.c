@@ -136,11 +136,13 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
     struct Pokemon previousMon = *mon;
     u16 previousSlot = gBattlerPartyIndexes[B_BATTLER_0];
+    u8 previousCount = gBattlersCount;
     u8 previousAction = gCurrentTurnActionNumber;
     u8 previousOrder0 = gBattlerByTurnOrder[0];
-    u8 previousOrder1 = gBattlerByTurnOrder[1];
+    u8 previousOrder2 = gBattlerByTurnOrder[2];
 
     gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattlersCount = 2;
     gBattlerPartyIndexes[B_BATTLER_0] = 0;
     CreateMonWithIVs(mon, SPECIES_ABRA, 40, 0, OTID_STRUCT_PRESET(1), 10);
     EXPECT_EQ(Gear_FromItem(ITEM_GEAR_STORM_STAFF), GEAR_STORM_STAFF);
@@ -156,10 +158,10 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     Gear_EndOfTurn(B_BATTLER_0);
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
 
-    gBattleStruct->numTurnActions = 2;
-    gBattleStruct->turnActionRole[1] = 1;
+    gBattleStruct->numTurnActions = 3;
+    gBattleStruct->turnActionRole[2] = 1;
     gBattlerByTurnOrder[0] = B_BATTLER_0;
-    gBattlerByTurnOrder[1] = B_BATTLER_0;
+    gBattlerByTurnOrder[2] = B_BATTLER_0;
     gCurrentTurnActionNumber = 0;
     gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_SPECIAL;
     EXPECT(Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_EMBER));
@@ -168,16 +170,17 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_FUTURE_SIGHT));
     EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_EMBER));
     Chain_RecordOpeningMove(B_BATTLER_0, MOVE_EMBER);
-    gCurrentTurnActionNumber = 1;
+    gCurrentTurnActionNumber = 2;
     EXPECT(!Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_SCRATCH));
     gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_PHYSICAL;
     EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_SCRATCH));
 
     *mon = previousMon;
     gBattlerPartyIndexes[B_BATTLER_0] = previousSlot;
+    gBattlersCount = previousCount;
     gCurrentTurnActionNumber = previousAction;
     gBattlerByTurnOrder[0] = previousOrder0;
-    gBattlerByTurnOrder[1] = previousOrder1;
+    gBattlerByTurnOrder[2] = previousOrder2;
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
 }
