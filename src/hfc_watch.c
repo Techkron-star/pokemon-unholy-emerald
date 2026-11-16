@@ -169,19 +169,26 @@ static void RenderRaidSelection(void)
     if (status != HFC_RAID_READY)
     {
         PrintWatchText(sMessages[status], 8, 23);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("B:BACK"));
         return;
     }
 
-    PrintWatchText(info->name, 8, 24);
-    PrintWatchText(COMPOUND_STRING("L/R  Difficulty"), 101, 24);
+    for (u8 tier = 0; tier < HFC_RAID_DIFFICULTY_COUNT; tier++)
+    {
+        u8 x = 5 + 46 * tier;
+        const u8 *name = HfcWatch_GetRaidDifficultyInfo(tier)->name;
+        bool8 selected = tier == sRaidDifficulty;
+        u8 font = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 40);
+        UnholyUi_Card(sWatchWindowId, x, 24, 44, 18, selected);
+        UnholyUi_PrintOnFill(sWatchWindowId, font, x + 3, 27, 40, UnholyUi_CardFill(selected), name);
+    }
     if (!HfcWatch_IsRaidDifficultyUnlocked(sRaidDifficulty, HfcWatch_CountBadges()))
     {
         cursor = StringCopy(text, COMPOUND_STRING("Unlocks at "));
         cursor = ConvertUIntToDecimalStringN(cursor, info->minBadges, STR_CONV_MODE_LEFT_ALIGN, 1);
         StringCopy(cursor, COMPOUND_STRING(" badges."));
-        PrintWatchText(text, 8, 42);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        PrintWatchText(text, 8, 52);
+        UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("L/R:TIER  B:BACK"));
         return;
     }
 
@@ -190,32 +197,41 @@ static void RenderRaidSelection(void)
     struct HfcRaidOpponent boss = HfcWatch_GetRaidOpponent(day, trainerId, sRaidDifficulty, HFC_RAID_BOSS, 0);
     if (boss.species == SPECIES_NONE)
     {
-        PrintWatchText(sMessages[HFC_RAID_UNAVAILABLE], 8, 42);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        PrintWatchText(sMessages[HFC_RAID_UNAVAILABLE], 8, 52);
+        UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("L/R:TIER  B:BACK"));
         return;
     }
-    cursor = StringCopy(text, COMPOUND_STRING("Boss "));
-    cursor = StringCopy(cursor, GetSpeciesName(boss.species));
+    UnholyUi_Card(sWatchWindowId, 5, 51, 182, 38, FALSE);
+    PrintWatchText(COMPOUND_STRING("BOSS"), 10, 53);
+    cursor = StringCopy(text, GetSpeciesName(boss.species));
     cursor = StringCopy(cursor, COMPOUND_STRING("  Lv. "));
-    ConvertUIntToDecimalStringN(cursor, boss.level, STR_CONV_MODE_LEFT_ALIGN, 2);
-    PrintWatchText(text, 8, 39);
-    PrintWatchText(COMPOUND_STRING("Two double battles, then the boss."), 8, 54);
-    PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 69);
+    ConvertUIntToDecimalStringN(cursor, boss.level, STR_CONV_MODE_LEFT_ALIGN, 3);
+    PrintWatchText(text, 10, 65);
+    const u8 *equipment = NULL;
     if (boss.gear != GEAR_NONE)
-        PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone + Gear")
-                                 : COMPOUND_STRING("Boss  Held item + Gear"), 8, 84);
+        equipment = boss.mega ? COMPOUND_STRING("Mega Stone + Gear") : COMPOUND_STRING("Held item + Gear");
     else if (boss.heldItem != ITEM_NONE)
-        PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone")
-                                 : COMPOUND_STRING("Boss  Held item"), 8, 84);
-    PrintWatchText(COMPOUND_STRING("A  Start raid     B  Back"), 8, 123);
+        equipment = boss.mega ? COMPOUND_STRING("Mega Stone") : COMPOUND_STRING("Held item");
+    if (equipment != NULL)
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 10, 77, 168, equipment);
+
+    PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 91);
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 104, 175, COMPOUND_STRING("Two double battles, then the boss."));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("L/R:TIER  A:START RAID  B:BACK"));
 }
 
 static void RenderRaidReward(void)
 {
     const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(HfcWatch_GetActiveRaidDifficulty());
 
-    PrintWatchText(COMPOUND_STRING("Raid won. Choose one reward."), 8, 24);
-    PrintWatchText(sRaidCaptureSelected ? COMPOUND_STRING("  Loot    > Capture") : COMPOUND_STRING("> Loot      Capture"), 8, 39);
+    for (u8 i = 0; i < 2; i++)
+    {
+        u8 x = 5 + 92 * i;
+        bool8 selected = i == sRaidCaptureSelected;
+        UnholyUi_Card(sWatchWindowId, x, 25, 90, 22, selected);
+        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL, x + 6, 29, 75, UnholyUi_CardFill(selected),
+            i == 0 ? COMPOUND_STRING("LOOT") : COMPOUND_STRING("CAPTURE"));
+    }
     if (sRaidCaptureSelected)
     {
         PrintRaidCaptureChance(HfcWatch_GetActiveRaidCaptureChance(), 55);
@@ -229,15 +245,15 @@ static void RenderRaidReward(void)
             u8 *cursor = CopyItemName(info->loot[i].item, text);
             cursor = StringCopy(cursor, COMPOUND_STRING("  x"));
             ConvertUIntToDecimalStringN(cursor, info->loot[i].quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
-            PrintWatchText(text, 8, 55 + 12 * i);
+            PrintWatchText(text, 8, 54 + 13 * i);
         }
     }
 
     if (sRaidRewardError == HFC_RAID_REWARD_BAG_FULL)
-        PrintWatchText(COMPOUND_STRING("Make room in the Bag."), 8, 109);
+        PrintWatchText(COMPOUND_STRING("Make room in the Bag."), 8, 104);
     else if (sRaidRewardError == HFC_RAID_REWARD_STORAGE_FULL)
-        PrintWatchText(COMPOUND_STRING("Make room for a Pokémon."), 8, 109);
-    PrintWatchText(COMPOUND_STRING("L/R Choose   A Confirm   B Back"), 8, 123);
+        PrintWatchText(COMPOUND_STRING("Make room for a Pokémon."), 8, 104);
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("L/R:CHOOSE  A:CONFIRM  B:BACK"));
 }
 
 static void RenderRaid(void)
@@ -255,7 +271,7 @@ static void RenderRaid(void)
             : COMPOUND_STRING("Round 2/3   Double battle");
         PrintWatchText(message, 8, 22);
         PrintWatchText(COMPOUND_STRING("Your party keeps its HP and PP."), 8, 42);
-        PrintWatchText(COMPOUND_STRING("A  Continue     B  Abandon"), 8, 123);
+        UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("A:CONTINUE  B:ABANDON"));
         return;
     case HFC_RAID_CHOOSE_REWARD:
         RenderRaidReward();
@@ -275,39 +291,42 @@ static void RenderRaid(void)
     }
 
     PrintWatchText(message, 8, 23);
-    PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("B:BACK"));
 }
 
 static void RenderFrequency(void)
 {
     u8 remaining = HfcWatch_GetFrequencyRemaining();
-    u8 text[56];
+    bool8 canActivate = remaining == 0 && HfcWatch_CanActivateFrequency();
+    u8 text[40];
     u8 *cursor;
 
+    UnholyUi_Card(sWatchWindowId, 5, 23, 182, 23, remaining != 0);
     if (remaining != 0)
     {
         cursor = ConvertUIntToDecimalStringN(text, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
-        StringCopy(cursor, COMPOUND_STRING(" wild encounters left."));
-        PrintWatchText(text, 8, 21);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
+        StringCopy(cursor, COMPOUND_STRING(" encounters left"));
     }
-    else if (HfcWatch_CanActivateFrequency())
+    else if (canActivate)
     {
         cursor = StringCopy(text, COMPOUND_STRING("Tier C/B mutation odds +"));
         cursor = ConvertUIntToDecimalStringN(cursor, HfcWatch_GetFrequencyBoost(HfcWatch_CountBadges()), STR_CONV_MODE_LEFT_ALIGN, 2);
         StringCopy(cursor, COMPOUND_STRING("%"));
-        PrintWatchText(text, 8, 21);
-        PrintWatchText(COMPOUND_STRING("10 wild Pokémon here, once daily."), 8, 35);
-        PrintWatchText(COMPOUND_STRING("A  Activate     B  Back"), 8, 58);
     }
     else
     {
-        const u8 *message = FlagGet(FLAG_DAILY_HFC_FREQUENCY)
-                          ? COMPOUND_STRING("Come back tomorrow for another signal.")
-                          : COMPOUND_STRING("Find an area with wild encounters.");
-        PrintWatchText(message, 8, 23);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
+        StringCopy(text, FlagGet(FLAG_DAILY_HFC_FREQUENCY)
+                         ? COMPOUND_STRING("Used today") : COMPOUND_STRING("No signal here"));
     }
+    UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL, 11, 28, 170, UnholyUi_CardFill(remaining != 0), text);
+    if (remaining != 0)
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 49, 175, COMPOUND_STRING("Active for wild encounters."));
+    else if (canActivate)
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 49, 175, COMPOUND_STRING("10 wild encounters, once per day."));
+    else
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 49, 175, FlagGet(FLAG_DAILY_HFC_FREQUENCY)
+            ? COMPOUND_STRING("Come back tomorrow.") : COMPOUND_STRING("Find an area with wild encounters."));
+    UnholyUi_Footer(sWatchWindowId, canActivate ? COMPOUND_STRING("A:ACTIVATE  B:BACK") : COMPOUND_STRING("B:BACK"));
 }
 
 static void RenderArchive(void)
@@ -321,18 +340,30 @@ static void RenderArchive(void)
     u16 registered = HfcWatch_ReadArchive();
     for (u8 i = 0; i < ARRAY_COUNT(order); i++)
     {
-        u8 y = 25 + i * 11;
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, y, 83, HorizonMarketMutationName(order[i]));
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 92, y, 27, MutationTierGetName(MutationTierFromBadge(order[i])));
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 125, y, 58,
-            registered & order[i] ? COMPOUND_STRING("RECORDED") : COMPOUND_STRING("--"));
+        u8 x = 5 + (i % 3) * 61;
+        u8 y = 24 + (i / 3) * 31;
+        bool8 found = (registered & order[i]) != 0;
+        u8 fill = UnholyUi_CardFill(found);
+        const u8 *name = HorizonMarketMutationName(order[i]);
+        u8 font = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 52);
+        UnholyUi_Card(sWatchWindowId, x, y, 59, 29, found);
+        UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 1, 52, fill, name);
+
+        u8 status[18];
+        u8 *end = StringCopy(status, MutationTierGetName(MutationTierFromBadge(order[i])));
+        StringCopy(end, found ? COMPOUND_STRING("  SEEN") : COMPOUND_STRING("  UNSEEN"));
+        font = GetFontIdToFit(status, FONT_SMALL_NARROW, 0, 52);
+        UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 13, 52, fill, status);
     }
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 130, 176, COMPOUND_STRING("B:BACK"));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("B:BACK"));
 }
 
 static void RenderPanel(u8 feature)
 {
-    UnholyUi_Frame(sWatchWindowId, sFeatureNames[feature]);
+    const u8 *title = sFeatureNames[feature];
+    if (feature == HFC_WATCH_FEATURE_RAID && HfcWatch_GetRaidState() == HFC_RAID_CHOOSE_REWARD)
+        title = COMPOUND_STRING("RAID REWARD");
+    UnholyUi_Frame(sWatchWindowId, title);
 
     switch (feature)
     {
@@ -434,7 +465,7 @@ static void Task_HfcWatchPanel(u8 taskId)
 
 static void OpenPanel(u8 feature)
 {
-    u8 height = 9;
+    u8 height = 10;
     if (feature == HFC_WATCH_FEATURE_ARCHIVE)
         height = 18;
     else if (feature == HFC_WATCH_FEATURE_RAID)
@@ -536,8 +567,7 @@ static void RenderHub(void)
     if (!ready)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 104, 194,
             HfcWatch_GetRequirement(tier, sHubCursor, progress));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 122, 194,
-        ready ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:BACK") : COMPOUND_STRING("L/R:PAGE  B:BACK"));
+    UnholyUi_Footer(sWatchWindowId, ready ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:BACK") : COMPOUND_STRING("L/R:PAGE  B:BACK"));
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
 
