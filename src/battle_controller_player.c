@@ -469,7 +469,9 @@ void HandleInputChooseTarget(enum BattlerId battler)
             gBattleStruct->zmove.viewing = TRUE;
             ReloadMoveNames(battler);
         }
-        TryToAddMoveInfoWindow();
+        // The old floating L hint covers the battler sprites in double battles.
+        // Move controls are now displayed in the move panel itself.
+        TryToHideMoveInfoWindow();
         DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
         DoBounceEffect(battler, BOUNCE_MON, 7, 1);
         EndBounceEffect(gMultiUsePlayerCursor, BOUNCE_HEALTHBOX);
@@ -1789,15 +1791,31 @@ static void DrawChainPreview(enum BattlerId battler)
     { ClearChainPreview(); return; }
     if (secondValid) cost += Stamina_GetActionCost(battler, info->moves[selected], TRUE);
     FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
-    if (Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect)
+    if (Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect && marked)
     {
         FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
         PrintChainSlot(1, 1, GetMoveName(info->moves[first]));
         PrintChainSlot(55, 2, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
         AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("START"));
-        PutWindowTilemap(B_WIN_DUMMY);
     }
-    else ClearWindowTilemap(B_WIN_DUMMY);
+    else
+    {
+        // Keep a readable header even when the selected Pokémon cannot chain.
+        // A transparent/cleared window exposes a black strip in the menu art.
+        bool32 canChain = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
+        const u8 *hint = canChain
+            ? COMPOUND_STRING("START:CHAIN L:INFO SEL:SORT")
+            : COMPOUND_STRING("A:MOVE L:INFO SEL:SORT");
+        if (!B_SHOW_MOVE_DESCRIPTION)
+            hint = canChain ? COMPOUND_STRING("START:CHAIN SEL:SORT")
+                            : COMPOUND_STRING("A:MOVE SEL:SORT");
+        if (GetStringWidth(FONT_SMALL_NARROW, hint, 0) > 142)
+            hint = B_SHOW_MOVE_DESCRIPTION
+                ? (canChain ? COMPOUND_STRING("START:CHAIN L:INFO") : COMPOUND_STRING("A:MOVE L:INFO"))
+                : (canChain ? COMPOUND_STRING("START:CHAIN") : COMPOUND_STRING("A:MOVE"));
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 1, 0, 0, colors, TEXT_SKIP_DRAW, hint);
+    }
+    PutWindowTilemap(B_WIN_DUMMY);
     CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
     FillWindowPixelBuffer(B_WIN_CHAIN_HELP, PIXEL_FILL(14));
     StringCopy(text, COMPOUND_STRING("STA "));
@@ -2274,7 +2292,7 @@ void PlayerHandleChooseMove(enum BattlerId battler)
         gBattleStruct->chainFirstPos[battler] = 0;
         gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gimmick.playerSelect = FALSE;
-        TryToAddMoveInfoWindow();
+        TryToHideMoveInfoWindow();
 
         AssignUsableZMoves(battler, moveInfo->moves);
         gBattleStruct->zmove.viable = (gBattleStruct->zmove.possibleZMoves[battler] & (1u << gMoveSelectionCursor[battler])) != 0;

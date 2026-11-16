@@ -546,23 +546,9 @@ static void UnholyCraftRenderMenu(void)
     {
         const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
 
-        StringCopy(gStringVar4, COMPOUND_STRING("> "));
-        StringAppend(gStringVar4, GetItemName(recipe->result));
-        UnholyCraftPrint(4, 23, gStringVar4);
-        const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
-        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 40, 168, description);
-        while (*description != EOS && *description != CHAR_NEWLINE)
-            description++;
-        if (*description == CHAR_NEWLINE)
-            UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, 52, 168, description + 1);
-        UnholyCraftPrint(4, 69, sUnholyCraftRequirements);
-
-        for (u8 i = 0; i < recipe->materialCount; i++)
-            UnholyCraftPrintMaterial(i, &recipe->materials[i]);
-        if (recipe->badgeFlag)
-            UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
-                             FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("BADGE: OK") : COMPOUND_STRING("BADGE: LOCKED"));
-        UnholyCraftPrint(4, 122, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
+        UnholyCraftDrawRecipeList();
+        UnholyCraftDrawRecipeDetail(recipe);
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else
@@ -600,8 +586,8 @@ static void UnholyCraftRenderMenu(void)
         if (sUnholyCraftStatus != CRAFT_STATUS_READY)
             UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
-            UnholyCraftPrint(6, 105, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
-        UnholyCraftPrint(4, 122, sUnholyEquipControls);
+            UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }
 
