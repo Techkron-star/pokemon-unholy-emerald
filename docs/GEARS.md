@@ -158,6 +158,8 @@ En esta primera versión, los ataques con varios objetivos activos, los multigol
 
 Probabilidad inicial del **20 %** al dañar al primer rival elegible de una ejecución. Encadenado bloquea segundas acciones durante el resto de ese turno y el siguiente turno completo. El Gear puede tirar una vez por ejecución y el efecto no se acumula. La receta inicial usa un Revestimiento Metálico y una Piedra Dura.
 
+La tarjeta del Pokémon afectado muestra un candado en su anillo de Stamina mientras dure Encadenado.
+
 | Gear | Efecto confirmado | Qué falta |
 |---|---|---|
 | **Teseracto** | Excepción a los ciclos: se **consume una sola vez, como una gema equipada**, y hace persistentes clima, campos, salas y trampas hasta que se eliminen **explícitamente**. | Evento exacto de activación, persistencia del estado global hasta fin de combate y reglas de consumo. |

@@ -8142,23 +8142,26 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
         return damage; // No damage will be dealt
 
     u32 hp = gBattleMons[ctx->battlerDef].hp;
-    if (ctx->isSelfInflicted || ctx->battlerAtk == ctx->battlerDef || hp == 0 || damage < (s32)hp)
+    if (hp == 0 || damage < (s32)hp)
         return damage;
 
     bool32 enduredHit = FALSE;
     bool32 activatesGuard = FALSE;
+    // Self-inflicted damage can still trigger native effects, but never uses the turn guard.
+    bool32 tracksTurnSurvival = ctx->updateFlags && !ctx->isSelfInflicted && ctx->battlerAtk != ctx->battlerDef;
     u32 targetBit = 1u << ctx->battlerDef;
     u32 rand = Random() % 100;
     u32 affectionScore = GetBattlerAffectionHearts(ctx->battlerDef);
 
-    if (gBattleStruct->survivalUsedThisMoveMask & targetBit)
+    if (tracksTurnSurvival && (gBattleStruct->survivalUsedThisMoveMask & targetBit))
     {
         // Later impacts of this same move can defeat the target.
         if (GetMoveEffect(ctx->move) != EFFECT_FALSE_SWIPE)
             return damage;
         enduredHit = TRUE;
     }
-    else if (gBattleMons[ctx->battlerDef].volatiles.endured || (gBattleStruct->survivalGuardMask & targetBit))
+    else if (gBattleMons[ctx->battlerDef].volatiles.endured
+          || (tracksTurnSurvival && (gBattleStruct->survivalGuardMask & targetBit)))
     {
         enduredHit = TRUE;
         activatesGuard = TRUE;
@@ -8203,7 +8206,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
         }
     }
 
-    if (activatesGuard && ctx->updateFlags)
+    if (activatesGuard && tracksTurnSurvival)
     {
         gBattleStruct->survivalGuardMask |= targetBit;
         gBattleStruct->survivalUsedThisMoveMask |= targetBit;
@@ -8227,7 +8230,8 @@ s32 CalculateMoveDamage(struct DamageContext *ctx)
     else
         damage = DoMoveDamageCalc(ctx);
 
-    if (damage > 0 && ctx->updateFlags && !ctx->isSelfInflicted && Chain_IsFollowingUp(ctx->battlerAtk)
+    if (damage > 0 && ctx->updateFlags && !ctx->isSelfInflicted && ctx->battlerAtk != ctx->battlerDef
+     && Chain_IsFollowingUp(ctx->battlerAtk)
      && !gSpecialStatuses[ctx->battlerAtk].dancerUsedMove && !gBattleStruct->bouncedMoveIsUsed)
         damage = max(1, damage * CHAIN_FOLLOW_UP_DAMAGE_PERCENT / 100);
 

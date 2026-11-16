@@ -50,6 +50,29 @@ SINGLE_BATTLE_TEST("Unholy Focus Sash can be broken by the Storm Staff's additio
     }
 }
 
+DOUBLE_BATTLE_TEST("Unholy Focus Sash turn guard does not protect from confusion self-damage")
+{
+    GIVEN {
+        PLAYER(SPECIES_WOBBUFFET) { Item(ITEM_FOCUS_SASH); Level(5); Speed(50); }
+        PLAYER(SPECIES_WYNAUT) { Speed(40); }
+        OPPONENT(SPECIES_ABRA) { Speed(120); SpAttack(180); }
+        OPPONENT(SPECIES_ABRA) { Speed(100); }
+    } WHEN {
+        TURN {
+            MOVE(opponentLeft, MOVE_POWER_GEM, target: playerLeft);
+            MOVE(opponentRight, MOVE_CONFUSE_RAY, target: playerLeft);
+            MOVE(playerLeft, MOVE_POUND, target: opponentLeft, WITH_RNG(RNG_CONFUSION, TRUE));
+            MOVE(playerRight, MOVE_CELEBRATE);
+        }
+    } SCENE {
+        MESSAGE("Wobbuffet hung on using its Focus Sash!");
+        MESSAGE("It hurt itself in its confusion!");
+    } THEN {
+        EXPECT_EQ(playerLeft->hp, 0);
+        EXPECT_EQ(playerLeft->item, ITEM_NONE);
+    }
+}
+
 SINGLE_BATTLE_TEST("Unholy Shackle checks once across a multihit move")
 {
     PASSES_RANDOMLY(1, 5, RNG_GEAR_SHACKLE);

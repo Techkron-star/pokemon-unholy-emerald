@@ -34,10 +34,12 @@ TEST("Unholy circular stamina meter handles empty, partial and full values")
     {
         u8 small[STAMINA_RING_COMPACT_TILE_BYTES];
         u8 smallFull[STAMINA_RING_COMPACT_TILE_BYTES];
-        StaminaRing_RenderCompact(small, 0, 100, FALSE);
-        StaminaRing_RenderCompact(smallFull, 100, 100, FALSE);
+        StaminaRing_RenderCompact(small, 0, 100, FALSE, FALSE);
+        StaminaRing_RenderCompact(smallFull, 100, 100, FALSE, FALSE);
         EXPECT_EQ(memcmp(small, smallFull, sizeof(small)) == 0, FALSE);
         EXPECT_EQ(small[(1 * 2 + 1) * 32], 0);
+        StaminaRing_RenderCompact(small, 0, 100, FALSE, TRUE);
+        EXPECT_NE(small[(1 * 2 + 1) * 32], 0);
     }
 }
 
@@ -47,7 +49,7 @@ TEST("Unholy Stamina ring pixels clear healthbox text and status rows")
     s32 radius = STAMINA_RING_COMPACT_RADIUS;
     u32 painted = 0;
 
-    StaminaRing_RenderCompact(pixels, 100, 100, FALSE);
+    StaminaRing_RenderCompact(pixels, 100, 100, FALSE, TRUE);
     for (s32 y = 0; y < 16; y++)
     {
         for (s32 x = 0; x < 16; x++)
