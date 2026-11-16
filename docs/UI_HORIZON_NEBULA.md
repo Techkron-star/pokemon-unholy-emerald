@@ -198,3 +198,10 @@ Para Omega: reutilizar el **timing y mecanismo de aparición del glint shiny** p
 ## Paleta del concepto Pokewatch (15/11/2026)
 
 Eclipse y Daylight toman los colores del concepto «Pokewatch UI – Unholy Emerald»: Eclipse en violeta profundo (panel `#150d2e`, línea `#3b2a73`, acento cian `#5ef0e0`, mutación rosa `#ff5fc8`) y Daylight en crema con verde salvia (fondo `#e6efdc`, panel `#fffdf2`, línea `#9fb48f`, acento `#2f7d4f`). Solo cambian los 16 colores de `sHorizonPaletteEclipse` y `sHorizonPaletteDaylight` en `src/shop.c`; cada índice conserva su función y ninguna pantalla cambia de composición.
+
+## Marco fino y menú de Equipo (15/11/2026)
+
+- `DrawUnholyUiPanelAccents` dibuja ahora un marco de 1 px en el color de borde, sin los destellos de esquina, y reserva el acento para la línea bajo la cabecera. Ningún contenido depende del grosor del marco, así que no se mueve nada.
+- El menú de Equipo carga su paleta con `LoadPartyMenuPalette` (`src/party_menu.c`): telón y rayas de fondo, tarjeta normal y tarjeta seleccionada toman los colores del tema. Los rellenos se mantienen oscuros en ambos temas porque el texto del menú es blanco. Debilitado, múltiple y selección de acción conservan sus tonos propios.
+- Pendiente: el interfaz de combate (healthboxes). Su paleta es compartida y fija el color del texto dentro de los tiles; recolorearla a ciegas puede dejar texto ilegible, así que requiere comprobarla en mGBA.
+

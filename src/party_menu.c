@@ -903,6 +903,51 @@ static bool8 AllocPartyMenuBg(void)
     return TRUE;
 }
 
+// Pokewatch look for the party menu. Only the background and the normal/selected box colors
+// change; fainted, multi and action states keep their own hues. Ids are color slots of the
+// shared party palette (bank * 16 + index). Box fills stay dark in both themes because the
+// party text is white.
+struct PartyThemeColor
+{
+    u8 id;
+    u16 eclipse;
+    u16 daylight;
+};
+
+static const struct PartyThemeColor sPartyThemeColors[] =
+{
+    {0,   RGB(1, 1, 3),    RGB(27, 29, 24)},   // backdrop
+    {19,  RGB(2, 2, 6),    RGB(22, 26, 19)},   // background frame
+    {20,  RGB(3, 2, 7),    RGB(27, 30, 24)},   // background stripe
+    {21,  RGB(2, 2, 5),    RGB(25, 28, 22)},   // background stripe
+    {35,  RGB(2, 2, 6),    RGB(22, 26, 19)},
+    {36,  RGB(3, 2, 7),    RGB(27, 30, 24)},
+    {37,  RGB(2, 2, 5),    RGB(25, 28, 22)},
+    {49,  RGB(10, 8, 22),  RGB(5, 10, 6)},     // box outline and text shadow
+    {52,  RGB(7, 6, 15),   RGB(12, 19, 13)},   // normal box fill, light to dark
+    {53,  RGB(5, 4, 11),   RGB(9, 15, 10)},
+    {54,  RGB(3, 2, 8),    RGB(7, 12, 8)},
+    {55,  RGB(7, 6, 15),   RGB(12, 19, 13)},
+    {56,  RGB(3, 2, 8),    RGB(7, 12, 8)},
+    {97,  RGB(12, 30, 28), RGB(22, 29, 18)},   // selected box outline
+    {103, RGB(12, 30, 28), RGB(22, 29, 18)},
+    {104, RGB(8, 22, 24),  RGB(16, 24, 12)},
+    {116, RGB(9, 11, 22),  RGB(16, 23, 16)},   // selected box fill
+    {117, RGB(7, 9, 19),   RGB(13, 20, 13)},
+    {118, RGB(5, 7, 15),   RGB(10, 17, 10)},
+};
+
+static void LoadPartyMenuPalette(void)
+{
+    u16 colors[11 * 16];
+    bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
+
+    CpuCopy16(gPartyMenuBg_Pal, colors, sizeof(colors));
+    for (u32 i = 0; i < ARRAY_COUNT(sPartyThemeColors); i++)
+        colors[sPartyThemeColors[i].id] = daylight ? sPartyThemeColors[i].daylight : sPartyThemeColors[i].eclipse;
+    LoadPalette(colors, BG_PLTT_ID(0), sizeof(colors));
+}
+
 static bool8 AllocPartyMenuBgGfx(void)
 {
     u32 sizeout;
@@ -922,7 +967,7 @@ static bool8 AllocPartyMenuBgGfx(void)
         }
         break;
     case 2:
-        LoadPalette(gPartyMenuBg_Pal, BG_PLTT_ID(0), 11 * PLTT_SIZE_4BPP);
+        LoadPartyMenuPalette();
         CpuCopy16(gPlttBufferUnfaded, sPartyMenuInternal->palBuffer, 11 * PLTT_SIZE_4BPP);
         sPartyMenuInternal->data[0]++;
         break;

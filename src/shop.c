@@ -314,17 +314,14 @@ void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY)
     if (width < 12 || height < 24 || dividerY >= height - 19)
         return;
 
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, 0, width, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, height - 2, width, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, 2, 2, height - 4);
-    FillWindowPixelRect(windowId, PIXEL_FILL(edge), width - 2, 2, 2, height - 4);
+    // Pokewatch look: a thin 1px frame, no corner ornaments, and the accent kept for the
+    // line under the header. Content positions do not depend on the frame thickness.
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, 0, width, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, height - 1, width, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, 1, 1, height - 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(edge), width - 1, 1, 1, height - 2);
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), 5, dividerY, width - 10, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(edge), 5, height - 19, width - 10, 1);
-    // Three-pixel corner highlights keep the motif crisp at 240x160.
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, 2, 3, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, 2, 3, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, height - 4, 3, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, height - 4, 3, 2);
 }
 
 // Root navigation spans the screen horizontally (five native tab cells).
