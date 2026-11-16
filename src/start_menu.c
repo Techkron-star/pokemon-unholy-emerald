@@ -216,7 +216,11 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 static const u8 sText_MenuDebug[] = _("DEBUG");
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
-#define UNHOLY_CRAFT_RECIPE_JUMP 5
+#define UNHOLY_CRAFT_RECIPES_PER_PAGE 5
+#define UNHOLY_CRAFT_DETAIL_X 103
+#define UNHOLY_CRAFT_DETAIL_WIDTH 100
+#define UNHOLY_CRAFT_MATERIAL_Y 83
+#define UNHOLY_CRAFT_MATERIAL_STEP 10
 
 enum UnholyCraftStatus
 {
@@ -251,18 +255,17 @@ struct UnholyCraftRecipe
 };
 
 static const u8 sUnholyCraftTitle[] = _("CRAFTING");
-static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
-static const u8 sUnholyCraftControls[] = _("L/R:RECIPE  A:CRAFT  SEL:EQUIP  B:BACK");
+static const u8 sUnholyCraftControls[] = _("L/R:PAGE  A:CRAFT  SEL:EQUIP  B:BACK");
 static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
 
-static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
-static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
+static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP\nwith eligible allies.");
+static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and EVs.\nWarms party eggs.");
 static const u8 sUnholyRecipeVisor[] = _("Changes Ghost type\nmatchups.");
-static const u8 sUnholyRecipeHeart[] = _("Boosts physical moves.");
+static const u8 sUnholyRecipeHeart[] = _("Boosts physical\nmoves.");
 static const u8 sUnholyRecipeMask[] = _("Boosts Dark moves.");
 static const u8 sUnholyRecipeScepter[] = _("Changes Dark type\nmatchups.");
-static const u8 sUnholyRecipeImpulse[] = _("Boosts special moves.");
-static const u8 sUnholyRecipeIce[] = _("Ice attacks freeze more.\nIce Pokemon regenerate.");
+static const u8 sUnholyRecipeImpulse[] = _("Boosts special\nmoves.");
+static const u8 sUnholyRecipeIce[] = _("More freeze chance.\nIce users heal.");
 static const u8 sUnholyCraftReady[] = _("Select a recipe.");
 static const u8 sUnholyCraftConfirmText[] = _("Craft this item?");
 static const u8 sUnholyCraftNeedMats[] = _("Missing materials.");
@@ -273,7 +276,7 @@ static const u8 sUnholyCraftNoMon[] = _("Empty party slot.");
 static const u8 sUnholyCraftNoGear[] = _("That Gear is not in Bag.");
 static const u8 sUnholyCraftEquipped[] = _("Gear equipped.");
 static const u8 sUnholyCraftAlready[] = _("Already equipped.");
-static const u8 sUnholyCraftError[] = _("Unable to finish. Try again.");
+static const u8 sUnholyCraftError[] = _("Crafting failed.");
 
 static const u8 *const sUnholyCraftStatuses[] =
 {
@@ -283,8 +286,8 @@ static const u8 *const sUnholyCraftStatuses[] =
     [CRAFT_STATUS_BADGE] = sUnholyCraftNeedBadge,
     [CRAFT_STATUS_SPACE] = sUnholyCraftNoSpace,
     [CRAFT_STATUS_COMPLETED] = sUnholyCraftDone,
-    [CRAFT_STATUS_SHARE_UPGRADED] = COMPOUND_STRING("Crafted! EXP Share upgraded."),
-    [CRAFT_STATUS_SHARE_OWNED] = COMPOUND_STRING("You already have this upgrade."),
+    [CRAFT_STATUS_SHARE_UPGRADED] = COMPOUND_STRING("Exp. Share upgraded."),
+    [CRAFT_STATUS_SHARE_OWNED] = COMPOUND_STRING("Upgrade already owned."),
     [CRAFT_STATUS_EMPTY_SLOT] = sUnholyCraftNoMon,
     [CRAFT_STATUS_NO_GEAR] = sUnholyCraftNoGear,
     [CRAFT_STATUS_EQUIPPED] = sUnholyCraftEquipped,
@@ -314,7 +317,7 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
     { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
       {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) \
-    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING(moveTypeName " moves: +40% once,\n+12% while recharging."), \
+    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING(moveTypeName ": +40% once\n+12% on recharge."), \
       0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -473,8 +476,8 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
         struct Sprite *icon = &gSprites[sUnholyCraftIconSpriteId];
-        icon->x = 190;
-        icon->y = sUnholyCraftMode ? 46 : 58;
+        icon->x = sUnholyCraftMode ? 190 : 137;
+        icon->y = 46;
         icon->oam.priority = 0;
     }
 }
@@ -487,15 +490,94 @@ static void UnholyCraftPrint(u8 x, u8 y, const u8 *text)
 
 static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *ingredient)
 {
+    u8 window = sUnholyCraftWindowId;
+    u8 y = UNHOLY_CRAFT_MATERIAL_Y + row * UNHOLY_CRAFT_MATERIAL_STEP;
     u16 owned = CountTotalItemQuantityInBag(ingredient->itemId);
-    u8 y = 82 + row * 12;
-    u8 *cursor = ConvertUIntToDecimalStringN(gStringVar4, owned, STR_CONV_MODE_LEFT_ALIGN, 3);
-    cursor = StringCopy(cursor, COMPOUND_STRING("/"));
-    ConvertUIntToDecimalStringN(cursor, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
-    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 8, y, 122, GetItemName(ingredient->itemId));
-    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL, 136, y, 44, gStringVar4);
-    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 181, y + 2, 20,
-        owned >= ingredient->quantity ? COMPOUND_STRING("OK") : COMPOUND_STRING("NEED"));
+    u8 amounts[10];
+    u8 *end = ConvertUIntToDecimalStringN(amounts, owned, STR_CONV_MODE_LEFT_ALIGN, 5);
+    end = StringCopy(end, COMPOUND_STRING("/"));
+    ConvertUIntToDecimalStringN(end, ingredient->quantity, STR_CONV_MODE_LEFT_ALIGN, 3);
+
+    const u8 *name = GetItemName(ingredient->itemId);
+    u8 amountFont = GetFontIdToFit(amounts, FONT_SMALL_NARROW, 0, 37);
+    u8 amountX = 200 - GetStringWidth(amountFont, amounts, 0);
+    u8 nameWidth = amountX - 111;
+    u8 nameFont = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, nameWidth);
+    UnholyUi_Print(window, nameFont, 108, y, nameWidth, name);
+    UnholyUi_Print(window, amountFont, amountX, y, 37, amounts);
+    if (owned < ingredient->quantity)
+        FillWindowPixelRect(window, PIXEL_FILL(13), 103, y + 5, 3, 3);
+}
+
+static void UnholyCraftDrawRecipeList(void)
+{
+    const u8 count = ARRAY_COUNT(sUnholyCraftRecipes);
+    const u8 visible = min(count, UNHOLY_CRAFT_RECIPES_PER_PAGE);
+    const u8 firstOnPage = sUnholyCraftRecipeCursor / UNHOLY_CRAFT_RECIPES_PER_PAGE * UNHOLY_CRAFT_RECIPES_PER_PAGE;
+    const u8 first = min(firstOnPage, count - visible);
+    u8 position[12];
+    u8 *end = ConvertUIntToDecimalStringN(position, sUnholyCraftRecipeCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+    end = StringCopy(end, COMPOUND_STRING("/"));
+    ConvertUIntToDecimalStringN(end, count, STR_CONV_MODE_LEFT_ALIGN, 2);
+    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 175, 5, 27, position);
+
+    for (u8 row = 0; row < visible; row++)
+    {
+        u8 index = first + row;
+        u8 y = 23 + row * 18;
+        bool8 selected = index == sUnholyCraftRecipeCursor;
+        const u8 *name = GetItemName(sUnholyCraftRecipes[index].result);
+        u8 font = GetFontIdToFit(name, FONT_SMALL, 0, 85);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, y, 94, 17, selected);
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, font, 10, y + 2, 85, UnholyUi_CardFill(selected), name);
+    }
+}
+
+static void UnholyCraftDrawRecipeDetail(const struct UnholyCraftRecipe *recipe)
+{
+    u8 window = sUnholyCraftWindowId;
+    u8 fill = UnholyUi_CardFill(FALSE);
+    const u8 *name = GetItemName(recipe->result);
+    u8 firstLine[ITEM_NAME_LENGTH + 1];
+    const u8 *nextLine = NULL;
+
+    UnholyUi_Card(window, UNHOLY_CRAFT_DETAIL_X, 23, UNHOLY_CRAFT_DETAIL_WIDTH, 48, FALSE);
+    if (GetStringWidth(FONT_SMALL_NARROW, name, 0) > 65)
+    {
+        for (const u8 *p = name; *p != EOS; p++)
+        {
+            if (*p != CHAR_SPACE)
+                continue;
+            *StringCopyN(firstLine, name, p - name) = EOS;
+            if (GetStringWidth(FONT_SMALL_NARROW, firstLine, 0) > 65)
+                break;
+            nextLine = p + 1;
+        }
+    }
+    if (nextLine != NULL)
+    {
+        *StringCopyN(firstLine, name, nextLine - name - 1) = EOS;
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 134, 26, 65, fill, firstLine);
+        name = nextLine;
+    }
+    u8 nameFont = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 65);
+    UnholyUi_PrintOnFill(window, nameFont, 134, nextLine == NULL ? 31 : 37, 65, fill, name);
+
+    const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
+    u8 descriptionFont = GetFontIdToFit(description, FONT_SMALL_NARROW, 0, 90);
+    UnholyUi_PrintOnFill(window, descriptionFont, 108, 48, 90, fill, description);
+    while (*description != EOS && *description != CHAR_NEWLINE)
+        description++;
+    if (*description == CHAR_NEWLINE)
+        UnholyUi_PrintOnFill(window, descriptionFont, 108, 58, 90, fill, description + 1);
+
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 72, 53, COMPOUND_STRING("MATERIALS"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 155, 72, 45, COMPOUND_STRING("HAVE/NEED"));
+    for (u8 i = 0; i < recipe->materialCount; i++)
+        UnholyCraftPrintMaterial(i, &recipe->materials[i]);
+    if (recipe->badgeFlag && recipe->materialCount < UNHOLY_CRAFT_MATERIAL_LIMIT)
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 108, UNHOLY_CRAFT_MATERIAL_Y + recipe->materialCount * UNHOLY_CRAFT_MATERIAL_STEP, 93,
+            FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("Badge earned") : COMPOUND_STRING("Badge required"));
 }
 
 static void UnholyCraftRenderMenu(void)
@@ -508,30 +590,8 @@ static void UnholyCraftRenderMenu(void)
     {
         const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
 
-        u8 recipeNumber[12];
-        u8 *end = ConvertUIntToDecimalStringN(recipeNumber, sUnholyCraftRecipeCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
-        end = StringCopy(end, COMPOUND_STRING("/"));
-        ConvertUIntToDecimalStringN(end, ARRAY_COUNT(sUnholyCraftRecipes), STR_CONV_MODE_LEFT_ALIGN, 2);
-        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 108, 5, 65, COMPOUND_STRING("UP/DOWN:5"));
-        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 177, 5, 24, recipeNumber);
-
-        u8 fill = UnholyUi_CardFill(TRUE);
-        UnholyUi_Card(sUnholyCraftWindowId, 5, 22, 198, 42, TRUE);
-        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 24, 147, fill, GetItemName(recipe->result));
-        const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
-        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 37, 148, fill, description);
-        while (*description != EOS && *description != CHAR_NEWLINE)
-            description++;
-        if (*description == CHAR_NEWLINE)
-            UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL, 10, 49, 148, fill, description + 1);
-        UnholyCraftPrint(7, 67, sUnholyCraftRequirements);
-        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 135, 69, 66, COMPOUND_STRING("HAVE/NEED"));
-
-        for (u8 i = 0; i < recipe->materialCount; i++)
-            UnholyCraftPrintMaterial(i, &recipe->materials[i]);
-        if (recipe->badgeFlag)
-            UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
-                             FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("BADGE: OK") : COMPOUND_STRING("BADGE: LOCKED"));
+        UnholyCraftDrawRecipeList();
+        UnholyCraftDrawRecipeDetail(recipe);
         UnholyCraftPrint(4, 122, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
@@ -754,35 +814,27 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         sUnholyCraftMode ^= 1;
         changed = TRUE;
     }
-    else if (JOY_NEW(DPAD_LEFT) || JOY_NEW(L_BUTTON))
+    else if (!sUnholyCraftMode && (JOY_REPEAT(DPAD_ANY) || JOY_NEW(L_BUTTON | R_BUTTON)))
     {
-        if (sUnholyCraftMode == 0)
-            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + ARRAY_COUNT(sUnholyCraftRecipes) - 1) % ARRAY_COUNT(sUnholyCraftRecipes);
-        else
-            sUnholyCraftGearCursor = (sUnholyCraftGearCursor + GEAR_COUNT - 1) % GEAR_COUNT;
+        const u8 last = ARRAY_COUNT(sUnholyCraftRecipes) - 1;
+        u8 step = JOY_NEW(L_BUTTON | R_BUTTON) ? UNHOLY_CRAFT_RECIPES_PER_PAGE : 1;
+        bool32 previous = JOY_NEW(L_BUTTON) || (!JOY_NEW(R_BUTTON) && JOY_REPEAT(DPAD_UP | DPAD_LEFT));
+        u8 next = previous ? max(0, (s16)sUnholyCraftRecipeCursor - step)
+                          : min(sUnholyCraftRecipeCursor + step, last);
+        if (next == sUnholyCraftRecipeCursor)
+            return;
+        sUnholyCraftRecipeCursor = next;
         changed = TRUE;
     }
-    else if (JOY_NEW(DPAD_RIGHT) || JOY_NEW(R_BUTTON))
+    else if (sUnholyCraftMode && JOY_NEW(DPAD_LEFT | DPAD_RIGHT | L_BUTTON | R_BUTTON))
     {
-        if (sUnholyCraftMode == 0)
-            sUnholyCraftRecipeCursor = (sUnholyCraftRecipeCursor + 1) % ARRAY_COUNT(sUnholyCraftRecipes);
-        else
-            sUnholyCraftGearCursor = (sUnholyCraftGearCursor + 1) % GEAR_COUNT;
+        bool32 previous = JOY_NEW(DPAD_LEFT | L_BUTTON);
+        sUnholyCraftGearCursor = (sUnholyCraftGearCursor + (previous ? GEAR_COUNT - 1 : 1)) % GEAR_COUNT;
         changed = TRUE;
     }
-    else if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+    else if (sUnholyCraftMode && JOY_NEW(DPAD_UP | DPAD_DOWN))
     {
-        bool32 previous = JOY_NEW(DPAD_UP);
-        if (sUnholyCraftMode)
-            sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + (previous ? PARTY_SIZE - 1 : 1)) % PARTY_SIZE;
-        else
-        {
-            u8 next = previous ? max(0, (s16)sUnholyCraftRecipeCursor - UNHOLY_CRAFT_RECIPE_JUMP)
-                              : min(sUnholyCraftRecipeCursor + UNHOLY_CRAFT_RECIPE_JUMP, ARRAY_COUNT(sUnholyCraftRecipes) - 1);
-            if (next == sUnholyCraftRecipeCursor)
-                return;
-            sUnholyCraftRecipeCursor = next;
-        }
+        sUnholyCraftPartyCursor = (sUnholyCraftPartyCursor + (JOY_NEW(DPAD_UP) ? PARTY_SIZE - 1 : 1)) % PARTY_SIZE;
         changed = TRUE;
     }
     else if (JOY_NEW(A_BUTTON))
@@ -798,7 +850,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         {
             CloseUnholyCraftingMenu();
             DestroyTask(taskId);
-        sUnholyCraftOnClose = NULL;
+            sUnholyCraftOnClose = NULL;
             ScriptUnfreezeObjectEvents();
             UnlockPlayerFieldControls();
             ScriptContext_SetupScript(EventScript_CraftSuperExpShare_Recipe);

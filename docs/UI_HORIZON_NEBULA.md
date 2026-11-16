@@ -85,7 +85,7 @@ Los tres tamaños usados son `FONT_NARROW` (hasta 15 px, títulos), `FONT_SMALL`
 - **Poké Watch.** La cruceta selecciona una tarjeta y L/R cambia de página. Al volver de un servicio se recupera el foco en su tarjeta. B desde el Watch vuelve al menú que lo abrió.
 - **Horizon.** Al entrar aparecen cinco tarjetas de tienda. La cruceta o L/R selecciona la tienda y A la abre. Dentro de un catálogo, L/R cambia de tienda y SELECT devuelve al selector con la tienda actual marcada. La cruceta recorre las tarjetas de mercancía. Discos muestra el nombre completo del movimiento seleccionado. Solo abrir el catálogo de Pokémon marca como visto el stock mutante.
 - **Compras y herramientas.** B cancela la confirmación activa. B desde un catálogo regresa al Watch. Al salir del selector de equipo, del gestor o del selector de movimientos para olvidar, Horizon recupera la pestaña Movimientos.
-- **Crafting.** La tarjeta muestra la receta elegida y su posición. Arriba/abajo salta cinco recetas, L/R recorre una y la tabla de materiales indica cuánto tienes y cuánto exige la receta.
+- **Crafting.** A la izquierda aparecen cinco tarjetas de receta. A la derecha se muestra el objeto elegido con su icono y los materiales debajo. Arriba/abajo recorre el catálogo, L/R salta cinco recetas y SELECT abre Equipar. Los materiales muestran cuánto tienes y cuánto pide la receta.
 
 ## Renaissance Horizon UI — entrega PR #30 (12/11/2026)
 
