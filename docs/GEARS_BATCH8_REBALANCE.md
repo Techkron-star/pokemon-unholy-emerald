@@ -45,6 +45,16 @@ Se integran 20 sprites aprobados de las tandas cuarta, quinta y MASKARA para que
 
 La especificación de efectos aprobados vive en `docs/GEARS_MASKARA_ARSENAL.md`; no se sustituye por efectos falsos para apresurar la compilación.
 
+### Decisiones confirmadas por Camilo (16-11-2026)
+
+Estas tres reglas sustituyen los límites provisionales de la propuesta de los 20 Gears pendientes:
+
+1. **El Milagro — sin límite de activaciones:** siempre que un golpe habría sido letal y el portador **sobreviva gracias a otro efecto**, restaura el **20 % del daño calculado antes de aplicar esa supervivencia**. No salva del KO ni se activa solo por estar bajo un umbral de PS. Puede volver a funcionar si sobrevive a otro golpe letal, incluso durante el mismo combate. Las restricciones anticuración (como Muramasa) siguen aplicándose a la recuperación.
+2. **Aguja de Cronos — cada 3 turnos:** durante su turno de activación anula toda prioridad positiva o negativa del campo, tanto en individuales como en dobles; afecta a movimientos, habilidades, objetos y Gears. Las acciones se ordenan por Velocidad normal, respetando la inversión de Espacio Raro si está activa. No genera acciones adicionales ni restaura PP/stamina. El contador avanza por **turno completo**, no por ataque encadenado, y cambiar de Pokémon no debe reiniciarlo.
+3. **Inyección Berserker — +50 % / −40 %:** mientras esté activa, **Ataque y Ataque Especial efectivos suben 50 %**, y **Defensa y Defensa Especial efectivos bajan 40 %**. No cambia las etapas reales de estadísticas. Se conserva como propuesta el ciclo de **2 turnos activos / 3 de recarga**, pendiente de confirmar al revisar las interacciones. En cálculos defensivos, el mínimo numérico válido es 1 para evitar desbordamientos.
+
+Los otros diecisiete efectos conservan los valores presentados en la propuesta de revisión hasta que Camilo los corrija o apruebe. **No se consideran implementados por documentar estas decisiones.**
+
 ## QA a completar
 
 - Verificar compilación de Emerald/FireRed/LeafGreen, pruebas `test/unholy_recent_gears.c` y validación de textos.
