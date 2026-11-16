@@ -182,7 +182,7 @@ static void RenderParty(void)
             reason = lock;
     }
     const u8 *notice = sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300    EV point ¥20");
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 105, 192, notice);
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 104, 192, notice);
     UnholyUi_Footer(window, sSimulator.partyCount != 0 && reason == NULL
         ? COMPOUND_STRING("A:EDIT  B:BACK") : COMPOUND_STRING("B:BACK"));
 }
@@ -224,8 +224,11 @@ static void RenderSpread(void)
     ConvertUIntToDecimalStringN(evCursor, MAX_TOTAL_EVS, STR_CONV_MODE_LEFT_ALIGN, 3);
     ApplyValues(&preview, &sSimulator.draft);
 
-    GetMonData(mon, MON_DATA_NICKNAME, name);
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 112, 5, 88, name);
+    if (sSimulator.notice == NULL)
+    {
+        GetMonData(mon, MON_DATA_NICKNAME, name);
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 112, 5, 88, name);
+    }
     u8 activeX = sSimulator.editingEvs ? 94 : 65;
     if (!reviewing)
         UnholyUi_Card(window, activeX, 20, 23, 12, TRUE);
@@ -244,17 +247,17 @@ static void RenderSpread(void)
     PrintMoney(COMPOUND_STRING("Cost ¥"), CalculateCost(mon, &sSimulator.draft), 72);
     PrintMoney(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), 138);
 
-    const u8 *notice = reviewing ? COMPOUND_STRING("Pay to apply these changes?")
-                                : COMPOUND_STRING("LEFT/RIGHT:1  L/R:10  SEL:IV/EV");
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 113, 192, sSimulator.notice != NULL ? sSimulator.notice : notice);
     UnholyUi_Footer(window, reviewing ? COMPOUND_STRING("A:PAY  B:KEEP EDITING")
-                                    : COMPOUND_STRING("A:REVIEW  B:DISCARD"));
+        : COMPOUND_STRING("{LEFT_ARROW}{RIGHT_ARROW}:1  L/R:10  SEL:IV/EV  A:REVIEW  B:DISCARD"));
 }
 
 static void Render(void)
 {
-    UnholyUi_Frame(sSimulator.window, sSimulator.mode == SIMULATOR_REVIEW
-        ? COMPOUND_STRING("REVIEW PAYMENT") : COMPOUND_STRING("POKé SIMULATOR"));
+    const u8 *title = sSimulator.mode == SIMULATOR_REVIEW
+        ? COMPOUND_STRING("REVIEW PAYMENT") : COMPOUND_STRING("POKé SIMULATOR");
+    if (sSimulator.mode != SIMULATOR_PARTY && sSimulator.notice != NULL)
+        title = sSimulator.notice;
+    UnholyUi_Frame(sSimulator.window, title);
     if (sSimulator.mode == SIMULATOR_PARTY)
         RenderParty();
     else

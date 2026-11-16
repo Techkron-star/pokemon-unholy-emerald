@@ -338,23 +338,32 @@ static void RenderArchive(void)
         POKEMON_BADGE_TITAN, POKEMON_BADGE_ASCENDED, POKEMON_BADGE_OMEGA,
     };
     u16 registered = HfcWatch_ReadArchive();
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 22, 83, COMPOUND_STRING("MUTATION"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 92, 22, 27, COMPOUND_STRING("TIER"));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 125, 22, 58, COMPOUND_STRING("STATUS"));
     for (u8 i = 0; i < ARRAY_COUNT(order); i++)
     {
-        u8 y = 34 + i * 10;
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, y, 83, HorizonMarketMutationName(order[i]));
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 92, y, 27, MutationTierGetName(MutationTierFromBadge(order[i])));
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 125, y, 58,
-            registered & order[i] ? COMPOUND_STRING("RECORDED") : COMPOUND_STRING("--"));
+        u8 x = 5 + (i % 3) * 61;
+        u8 y = 24 + (i / 3) * 29;
+        bool8 found = (registered & order[i]) != 0;
+        u8 fill = UnholyUi_CardFill(found);
+        const u8 *name = HorizonMarketMutationName(order[i]);
+        u8 font = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 52);
+        UnholyUi_Card(sWatchWindowId, x, y, 59, 27, found);
+        UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 1, 52, fill, name);
+
+        u8 status[18];
+        u8 *end = StringCopy(status, MutationTierGetName(MutationTierFromBadge(order[i])));
+        StringCopy(end, found ? COMPOUND_STRING("  SEEN") : COMPOUND_STRING("  UNSEEN"));
+        font = GetFontIdToFit(status, FONT_SMALL_NARROW, 0, 52);
+        UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 13, 52, fill, status);
     }
     UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("B:BACK"));
 }
 
 static void RenderPanel(u8 feature)
 {
-    UnholyUi_Frame(sWatchWindowId, sFeatureNames[feature]);
+    const u8 *title = sFeatureNames[feature];
+    if (feature == HFC_WATCH_FEATURE_RAID && HfcWatch_GetRaidState() == HFC_RAID_CHOOSE_REWARD)
+        title = COMPOUND_STRING("RAID REWARD");
+    UnholyUi_Frame(sWatchWindowId, title);
 
     switch (feature)
     {

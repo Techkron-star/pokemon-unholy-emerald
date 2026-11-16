@@ -301,9 +301,9 @@ static void RenderPlans(void)
     for (enum HfcMutatorPlan plan = 0; plan < HFC_MUTATOR_PLAN_COUNT; plan++)
         RenderPlanRow(plan, level);
 
-    PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 95, MAX_MONEY_DIGITS);
+    PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 93, MAX_MONEY_DIGITS);
     Print(sMutator.result == HFC_MUTATOR_INSUFFICIENT_FUNDS ? sMessages[sMutator.result]
-          : COMPOUND_STRING("The fee applies even if it fails."), 8, 106);
+          : COMPOUND_STRING("The fee applies even if it fails."), 8, 105);
     UnholyUi_Footer(window, sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A:PAY  B:CANCEL")
                                                              : COMPOUND_STRING("UP/DOWN:PLAN  A:REVIEW  B:BACK"));
 }

@@ -44,7 +44,7 @@ Usar cuadrícula cuando varias opciones se comparan de un vistazo, lista con fic
 ## Servicios complementarios del reloj
 
 - **PC:** abre la organización existente de cajas y regresa al reloj; conserva sus operaciones y selección.
-- **Archivo:** nueve registros en una tabla con encabezados para mutación, tier y estado.
+- **Archivo:** nueve tarjetas de mutación con su tier y una marca en las registradas.
 - **Señal mutante:** tarjeta de estado con el aumento, los encuentros restantes o la condición para activarla.
 - **Simulador:** equipo en tarjetas y comparación alineada de IV, EV, estadísticas actuales y previstas. El coste y el dinero disponible se leen debajo antes de pagar.
 - **Incursiones:** dificultad y recompensas en tarjetas. El cuerpo muestra el requisito, el jefe y su equipo, la probabilidad de captura o el detalle de la recompensa elegida.
