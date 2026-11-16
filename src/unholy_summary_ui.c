@@ -427,11 +427,11 @@ static void Render(void)
         case PAGE_GEAR: Gear(); break;
         }
     }
-    const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB L/R:IV/EV START:TOOLS B:BACK")
-                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB L/R:VIEW START:TOOLS B:BACK")
+    const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB  L/R:IV/EV  START:TOOLS  B:BACK")
+                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB  L/R:VIEW  START:TOOLS  B:BACK")
                    : sSummary->showDetails ? COMPOUND_STRING("A/B:BACK  START:TOOLS")
-                   : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
-    UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 7, 131, 210, help);
+                   : COMPOUND_STRING("<>:TAB  A:DETAIL  START:TOOLS  B:BACK");
+    UnholyUi_Hint(sSummary->window, 7, 131, 210, help);
     PutWindowTilemap(sSummary->window);
     CopyWindowToVram(sSummary->window, COPYWIN_FULL);
 }
@@ -560,7 +560,7 @@ static void QolFooter(const u8 *first, const u8 *second)
     FillWindowPixelRect(sSummary->window, PIXEL_FILL(1), 5, 125, 214, 1);
     FillWindowPixelRect(sSummary->window, PIXEL_FILL(3), 5, 117, 214, 1);
     QolText(7, 118, 210, first);
-    QolText(7, 130, 210, second);
+    UnholyUi_Hint(sSummary->window, 7, 130, 210, second);
 }
 
 static const u8 *EquipmentResult(u8 result)

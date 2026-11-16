@@ -1765,7 +1765,7 @@ static void MoveSelectionDisplaySwapHelp(void)
     FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
     FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
     AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 1, 1, 0, 0, colors, TEXT_SKIP_DRAW,
-        COMPOUND_STRING("A:SWAP   B:CANCEL"));
+        COMPOUND_STRING("A:SWAP  B:CANCEL"));
     PutWindowTilemap(B_WIN_DUMMY);
     CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
 }

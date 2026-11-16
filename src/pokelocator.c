@@ -274,8 +274,8 @@ static void DrawHeader(void)
 
 static void Footer(const u8 *first, const u8 *second)
 {
-    Print(5, 118, 214, first);
-    Print(5, 130, 214, second);
+    UnholyUi_Hint(sUi.windowId, 5, 118, 214, first);
+    UnholyUi_Hint(sUi.windowId, 5, 130, 214, second);
 }
 
 static void SpeciesTypes(u8 *text, u16 species)
@@ -527,7 +527,7 @@ static void DrawTools(void)
         Print(7, 103, 210, SignalRequirement());
     }
     if (sUi.toolCursor == 2) Print(7, 103, 210, sCollections[sUi.collection]);
-    Footer(COMPOUND_STRING("UP/DN:CHOOSE  A:OPEN / NEXT AREA"), COMPOUND_STRING("B:CATALOG"));
+    Footer(COMPOUND_STRING("UP/DN:CHOOSE  A:OPEN  B:CATALOG"), COMPOUND_STRING("B:CATALOG"));
 }
 
 static void DrawSignal(void)

@@ -53,8 +53,11 @@ static void Print(u16 x, u16 y, u16 width, const u8 *text)
 static void Footer(const u8 *first, const u8 *second)
 {
     FillWindowPixelRect(0, PIXEL_FILL(1), 5, 115, 214, 1);
-    Print(7, 118, 210, first);
-    Print(7, 130, 210, second);
+    if (sMoves->notice != NULL && first == sMoves->notice)
+        Print(7, 118, 210, first);
+    else
+        UnholyUi_Hint(0, 7, 118, 210, first);
+    UnholyUi_Hint(0, 7, 130, 210, second);
 }
 
 static struct Pokemon *ActualMon(void)
@@ -148,7 +151,7 @@ static void Render(void)
         }
         if (!count) Print(12, 64, 200, COMPOUND_STRING("NO MOVES"));
         Footer(sMoves->notice != NULL ? sMoves->notice : COMPOUND_STRING("L/R:SOURCE  A:DETAIL"),
-            sMoves->editable ? COMPOUND_STRING("SELECT:MOVE SLOTS  B:BACK") : COMPOUND_STRING("B:BACK"));
+            sMoves->editable ? COMPOUND_STRING("SELECT:SLOTS  B:BACK") : COMPOUND_STRING("B:BACK"));
     }
     else if (sMoves->mode == MOVE_DETAIL)
     {

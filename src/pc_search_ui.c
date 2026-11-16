@@ -135,9 +135,9 @@ static void Render(void)
     u8 *cursor = StringCopy(text, COMPOUND_STRING("MATCHES "));
     ConvertUIntToDecimalStringN(cursor, sSearch->count, STR_CONV_MODE_LEFT_ALIGN, 4);
     UnholyUi_Print(sSearch->window, FONT_SMALL_NARROW, 7, 108, 178, text);
-    UnholyUi_Print(sSearch->window, FONT_SMALL_NARROW, 7, 123, 178,
-        sSearch->row == SEARCH_ROWS - 1 ? COMPOUND_STRING("A:FIND B:BACK")
-                                      : COMPOUND_STRING("L/R:CHANGE A:NEXT B:BACK"));
+    UnholyUi_Hint(sSearch->window, 7, 123, 178,
+        sSearch->row == SEARCH_ROWS - 1 ? COMPOUND_STRING("A:FIND  B:BACK")
+                                      : COMPOUND_STRING("L/R:CHANGE  A:NEXT  B:BACK"));
     CopyWindowToVram(sSearch->window, COPYWIN_FULL);
     ScheduleBgCopyTilemapToVram(0);
 }

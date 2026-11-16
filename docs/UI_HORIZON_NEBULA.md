@@ -205,3 +205,10 @@ Eclipse y Daylight toman los colores del concepto «Pokewatch UI – Unholy Emer
 - El menú de Equipo carga su paleta con `LoadPartyMenuPalette` (`src/party_menu.c`): telón y rayas de fondo, tarjeta normal y tarjeta seleccionada toman los colores del tema. Los rellenos se mantienen oscuros en ambos temas porque el texto del menú es blanco. Debilitado, múltiple y selección de acción conservan sus tonos propios.
 - Pendiente: el interfaz de combate (healthboxes). Su paleta es compartida y fija el color del texto dentro de los tiles; recolorearla a ciegas puede dejar texto ilegible, así que requiere comprobarla en mGBA.
 
+
+## Control hints (footer)
+
+All footer control hints use `UnholyUi_Hint` (Horizon shop: `HorizonPrintHint`): small narrow font in the theme's dim
+text color (palette index 11 Eclipse, 10 Daylight), so they read as secondary to content. Format is always
+`KEY:ACTION` pairs separated by two spaces, uppercase English, e.g. `L/R:PAGE  A:OPEN  B:BACK`. Notices stay in the
+normal text color. Layout positions are unchanged. Not verified in mGBA yet.

@@ -254,7 +254,7 @@ static const u8 sUnholyCraftTitle[] = _("CRAFTING");
 static const u8 sUnholyCraftRequirements[] = _("REQUIREMENTS");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
-static const u8 sUnholyCraftControls[] = _("L/R: RECIPE A: CRAFT SEL: EQUIP");
+static const u8 sUnholyCraftControls[] = _("L/R:RECIPE  A:CRAFT  SEL:EQUIP");
 static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
 
 static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
@@ -537,7 +537,7 @@ static void UnholyCraftRenderMenu(void)
         if (recipe->badgeFlag)
             UnholyCraftPrint(8, 82 + recipe->materialCount * 12,
                              FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("BADGE: OK") : COMPOUND_STRING("BADGE: LOCKED"));
-        UnholyCraftPrint(4, 122, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
+        UnholyUi_Hint(sUnholyCraftWindowId, 4, 122, 196, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else

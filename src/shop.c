@@ -273,6 +273,8 @@ static const u8 *const sHorizonEggCardNames[HORIZON_EGG_TIER_COUNT] =
 };
 
 static const u8 sHorizonTextColors[] = {1, 2, 3};
+static const u8 sHorizonHintColorsEclipse[] = {1, 11, 3};
+static const u8 sHorizonHintColorsDaylight[] = {1, 10, 3};
 
 // Colors follow the Pokewatch concept. Only the colors change: each index keeps its role
 // (1 panel, 2 text, 3 line, 4 selected fill, 5/7 accents, 13 alert), so no layout moves.
@@ -767,6 +769,12 @@ static void HorizonPrintSmall(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
     HorizonPrintFitStyle(panel, source, x, y, width, FONT_SMALL_NARROW, sHorizonTextColors);
 }
 
+static void HorizonPrintHint(u8 panel, const u8 *source, u8 x, u8 y, u8 width)
+{
+    HorizonPrintFitStyle(panel, source, x, y, width, FONT_SMALL_NARROW,
+        FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonHintColorsDaylight : sHorizonHintColorsEclipse);
+}
+
 static void HorizonPrintCardText(u8 panel, const u8 *source,
                                  u8 x, u8 y, u8 width, bool8 selected, u8 fontId)
 {
@@ -926,7 +934,7 @@ static void HorizonDrawInfo(void)
             HorizonPrintSmall(panel, gStringVar4, 7, 83, 202);
         }
 
-        HorizonPrintSmall(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
+        HorizonPrintHint(panel, sHorizonPokemonConfirm ? sHorizonTextConfirm : sHorizonTextBrowse,
                           6, 99, 204);
     }
     else if (sHorizonEggBrowsing)
@@ -973,7 +981,7 @@ static void HorizonDrawInfo(void)
             HorizonPrintSmall(panel, gStringVar4, 7, 84, 153);
         }
 
-        HorizonPrintSmall(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
+        HorizonPrintHint(panel, sHorizonEggConfirm ? sHorizonTextConfirm : sHorizonTextEggBrowse,
                           6, 99, 188);
     }
     else if (sHorizonMoveBrowsing)
@@ -990,7 +998,7 @@ static void HorizonDrawInfo(void)
                                     : COMPOUND_STRING("Remove a move"),
                                      x + 7, 62, 78, option == sHorizonMoveSelection, FONT_SMALL_NARROW);
         }
-        HorizonPrintSmall(panel, sHorizonMoveInstructions, 10, 98, 194);
+        HorizonPrintHint(panel, sHorizonMoveInstructions, 10, 98, 194);
     }
     else
     {
@@ -1004,7 +1012,7 @@ static void HorizonDrawInfo(void)
             HorizonPrintSmall(panel, sHorizonTextRare, 128, 81, 79);
             FillWindowPixelRect(panel, PIXEL_FILL(13), 206, 84, 3, 3);
         }
-        HorizonPrintSmall(panel, sHorizonTextControls, 8, 97, 198);
+        HorizonPrintHint(panel, sHorizonTextControls, 8, 97, 198);
     }
 
     CopyWindowToVram(panel, COPYWIN_FULL);
@@ -1707,8 +1715,10 @@ static void BuyMenuDrawHorizonGoods(void)
     if (count != 0)
         HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]),
             6, 88, 108, FONT_SMALL, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 103, 107, FONT_SMALL_NARROW, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 115, 106, FONT_SMALL_NARROW, colors);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 103, 107, FONT_SMALL_NARROW,
+        FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonHintColorsDaylight : sHorizonHintColorsEclipse);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 115, 106, FONT_SMALL_NARROW,
+        FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sHorizonHintColorsDaylight : sHorizonHintColorsEclipse);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }

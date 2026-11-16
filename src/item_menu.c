@@ -301,7 +301,7 @@ static const struct ListMenuTemplate sItemListMenu =
 
 static const u8 sText_NothingToSort[] = _("There's nothing to sort!");
 static const u8 sQuickPocketTitle[] = _("POCKETS  L+R");
-static const u8 sQuickPocketInstructions[] = _("A: GO    B: BACK");
+static const u8 sQuickPocketInstructions[] = _("A:GO  B:BACK");
 static const struct MenuAction sItemMenuActions[] = {
     [ACTION_USE]               = {gMenuText_Use,                {ItemMenu_UseOutOfBattle}},
     [ACTION_TOSS]              = {gMenuText_Toss,               {ItemMenu_Toss}},
@@ -1475,7 +1475,7 @@ static void DrawQuickPocketPicker(void)
         ConvertIntToDecimalStringN(gStringVar3, count, STR_CONV_MODE_RIGHT_ALIGN, 3);
         UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 111, y + 1, 19, UnholyUi_CardFill(selected), gStringVar3);
     }
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 7, 123, 122, sQuickPocketInstructions);
+    UnholyUi_Hint(window, 7, 123, 122, sQuickPocketInstructions);
     CopyWindowToVram(window, COPYWIN_GFX);
 }
 

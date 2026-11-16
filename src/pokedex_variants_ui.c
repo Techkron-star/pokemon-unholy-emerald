@@ -122,7 +122,7 @@ static void DrawGrid(void)
         UnholyUi_PrintOnFill(sVariants->window, FONT_SMALL_NARROW, x + 18, y + 13, 46, fill, text);
         sVariants->icons[i] = MutationIcon_Create(badge, 16 + x + 10, 24 + y + 13, 0);
     }
-    Print(5, 96, 171, COMPOUND_STRING("+:CHOOSE  A:BONUS  B:INFO"));
+    UnholyUi_Hint(sVariants->window, 5, 96, 171, COMPOUND_STRING("+:CHOOSE  A:BONUS  B:INFO"));
     end = ConvertIntToDecimalStringN(text, first / VISIBLE_VARIANTS + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
     StringAppend(end, COMPOUND_STRING("/2"));
     Print(184, 96, 19, text);
@@ -177,7 +177,7 @@ static void Render(void)
     {
         Print(8, 34, 192, COMPOUND_STRING("READING PARTY AND POKéMON BOXES"));
         UnholyUi_Bar(window, 8, 63, 192, sVariants->scanCursor, PokedexVariants_ScanTotal(), 5);
-        Print(5, 96, 198, COMPOUND_STRING("B:CANCEL"));
+        UnholyUi_Hint(sVariants->window, 5, 96, 198, COMPOUND_STRING("B:CANCEL"));
     }
     else if (sVariants->detail)
     {

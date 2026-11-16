@@ -247,7 +247,7 @@ static void RenderParty(void)
     }
     if (sMutator.result != HFC_MUTATOR_READY)
         Print(sMessages[sMutator.result], 8, 108);
-    Print(COMPOUND_STRING("A  Choose      B  Back"), 8, 124);
+    UnholyUi_Hint(sMutator.window, 8, 124, 192, COMPOUND_STRING("A:CHOOSE  B:BACK"));
 }
 
 static void RenderPlans(void)
@@ -278,8 +278,8 @@ static void RenderPlans(void)
     PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 91, MAX_MONEY_DIGITS);
     Print(sMutator.result == HFC_MUTATOR_INSUFFICIENT_FUNDS ? sMessages[sMutator.result]
           : COMPOUND_STRING("The fee applies even if it fails."), 8, 108);
-    Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A  Pay      B  Cancel")
-                                             : COMPOUND_STRING("A  Review plan      B  Back"), 8, 124);
+    UnholyUi_Hint(sMutator.window, 8, 124, 192, sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A:PAY  B:CANCEL")
+                                                                                  : COMPOUND_STRING("A:REVIEW  B:BACK"));
 }
 
 static void RenderResult(void)

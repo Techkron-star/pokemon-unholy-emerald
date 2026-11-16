@@ -58,6 +58,34 @@ void UnholyUi_PrintOnFill(u8 window, u8 font, u16 x, u16 y, u16 width, u8 fill, 
     AddTextPrinterParameterized4(window, font, x, y, 0, 0, colors, TEXT_SKIP_DRAW, text);
 }
 
+void UnholyUi_Hint(u8 window, u16 x, u16 y, u16 width, const u8 *text)
+{
+    // Dim text index: 11 (muted lavender) in Eclipse, 10 (moss) in Daylight.
+    u8 dim = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 10 : 11;
+    const u8 colors[] = {1, dim, 1};
+    u8 buffer[96];
+    u16 length = 0;
+    u16 windowWidth = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH;
+
+    if (x >= windowWidth)
+        return;
+    width = min(width, windowWidth - x);
+    buffer[0] = EOS;
+    while (*text != EOS && length + 1 < sizeof(buffer))
+    {
+        buffer[length] = *text;
+        buffer[length + 1] = EOS;
+        if (GetStringWidth(FONT_SMALL_NARROW, buffer, 0) > width)
+        {
+            buffer[length] = EOS;
+            break;
+        }
+        length++;
+        text++;
+    }
+    AddTextPrinterParameterized4(window, FONT_SMALL_NARROW, x, y, 0, 0, colors, TEXT_SKIP_DRAW, buffer);
+}
+
 void UnholyUi_Print(u8 window, u8 font, u16 x, u16 y, u16 width, const u8 *text)
 {
     UnholyUi_PrintOnFill(window, font, x, y, width, 1, text);

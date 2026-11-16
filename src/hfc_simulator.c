@@ -193,7 +193,7 @@ static void RenderParty(void)
             PrintText(reason, 107, y);
     }
     PrintText(sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300     EV point ¥20"), 8, 108);
-    PrintText(COMPOUND_STRING("A  Edit      B  Back"), 8, 124);
+    UnholyUi_Hint(sSimulator.window, 8, 124, 192, COMPOUND_STRING("A:EDIT  B:BACK"));
 }
 
 static void RenderSpread(void)

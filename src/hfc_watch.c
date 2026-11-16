@@ -143,6 +143,11 @@ static void PrintWatchText(const u8 *text, u8 x, u8 y)
     UnholyUi_Print(sWatchWindowId, FONT_SMALL, x, y, 184 - min(x, 184), text);
 }
 
+static void PrintWatchHint(const u8 *text, u8 x, u8 y)
+{
+    UnholyUi_Hint(sWatchWindowId, x, y, 184 - min(x, 184), text);
+}
+
 static void PrintRaidCaptureChance(u16 basisPoints, u8 y)
 {
     u8 text[48];
@@ -171,7 +176,7 @@ static void RenderRaidSelection(void)
     if (status != HFC_RAID_READY)
     {
         PrintWatchText(sMessages[status], 8, 23);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 123);
         return;
     }
 
@@ -183,7 +188,7 @@ static void RenderRaidSelection(void)
         cursor = ConvertUIntToDecimalStringN(cursor, info->minBadges, STR_CONV_MODE_LEFT_ALIGN, 1);
         StringCopy(cursor, COMPOUND_STRING(" badges."));
         PrintWatchText(text, 8, 42);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 123);
         return;
     }
 
@@ -193,7 +198,7 @@ static void RenderRaidSelection(void)
     if (boss.species == SPECIES_NONE)
     {
         PrintWatchText(sMessages[HFC_RAID_UNAVAILABLE], 8, 42);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+        PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 123);
         return;
     }
     cursor = StringCopy(text, COMPOUND_STRING("Boss "));
@@ -209,7 +214,7 @@ static void RenderRaidSelection(void)
     else if (boss.heldItem != ITEM_NONE)
         PrintWatchText(boss.mega ? COMPOUND_STRING("Boss  Mega Stone")
                                  : COMPOUND_STRING("Boss  Held item"), 8, 84);
-    PrintWatchText(COMPOUND_STRING("A  Start raid     B  Back"), 8, 123);
+    PrintWatchHint(COMPOUND_STRING("A:START RAID  B:BACK"), 8, 123);
 }
 
 static void RenderRaidReward(void)
@@ -239,7 +244,7 @@ static void RenderRaidReward(void)
         PrintWatchText(COMPOUND_STRING("Make room in the Bag."), 8, 109);
     else if (sRaidRewardError == HFC_RAID_REWARD_STORAGE_FULL)
         PrintWatchText(COMPOUND_STRING("Make room for a Pokémon."), 8, 109);
-    PrintWatchText(COMPOUND_STRING("L/R Choose   A Confirm   B Back"), 8, 123);
+    PrintWatchHint(COMPOUND_STRING("L/R:CHOOSE  A:CONFIRM  B:BACK"), 8, 123);
 }
 
 static void RenderRaid(void)
@@ -277,7 +282,7 @@ static void RenderRaid(void)
     }
 
     PrintWatchText(message, 8, 23);
-    PrintWatchText(COMPOUND_STRING("B  Back"), 8, 123);
+    PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 123);
 }
 
 static void RenderFrequency(void)
@@ -291,7 +296,7 @@ static void RenderFrequency(void)
         cursor = ConvertUIntToDecimalStringN(text, remaining, STR_CONV_MODE_LEFT_ALIGN, 2);
         StringCopy(cursor, COMPOUND_STRING(" wild encounters left."));
         PrintWatchText(text, 8, 21);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
+        PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 58);
     }
     else if (HfcWatch_CanActivateFrequency())
     {
@@ -300,7 +305,7 @@ static void RenderFrequency(void)
         StringCopy(cursor, COMPOUND_STRING("%"));
         PrintWatchText(text, 8, 21);
         PrintWatchText(COMPOUND_STRING("10 wild Pokémon here, once daily."), 8, 35);
-        PrintWatchText(COMPOUND_STRING("A  Activate     B  Back"), 8, 58);
+        PrintWatchHint(COMPOUND_STRING("A:ACTIVATE  B:BACK"), 8, 58);
     }
     else
     {
@@ -308,7 +313,7 @@ static void RenderFrequency(void)
                           ? COMPOUND_STRING("Come back tomorrow for another signal.")
                           : COMPOUND_STRING("Find an area with wild encounters.");
         PrintWatchText(message, 8, 23);
-        PrintWatchText(COMPOUND_STRING("B  Back"), 8, 58);
+        PrintWatchHint(COMPOUND_STRING("B:BACK"), 8, 58);
     }
 }
 
@@ -329,7 +334,7 @@ static void RenderArchive(void)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 125, y, 58,
             registered & order[i] ? COMPOUND_STRING("RECORDED") : COMPOUND_STRING("--"));
     }
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 130, 176, COMPOUND_STRING("B:BACK"));
+    UnholyUi_Hint(sWatchWindowId, 8, 130, 176, COMPOUND_STRING("B:BACK"));
 }
 
 static void RenderPanel(u8 feature)
@@ -540,7 +545,7 @@ static void RenderHub(void)
     if (!ready)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 104, 194,
             HfcWatch_GetRequirement(tier, sHubCursor, progress));
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 7, 122, 194,
+    UnholyUi_Hint(sWatchWindowId, 7, 122, 194,
         ready ? COMPOUND_STRING("L/R:PAGE  A:OPEN  B:BACK") : COMPOUND_STRING("L/R:PAGE  B:BACK"));
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
