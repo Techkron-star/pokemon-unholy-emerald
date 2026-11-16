@@ -7,6 +7,7 @@
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
+#include "battle_stamina.h"
 #include "graphics.h"
 #include "item.h"
 #include "data/gears.h"
@@ -46,6 +47,9 @@ enum Gear Gear_FromItem(enum Item item)
 #define RECENT_GEAR(id, gfx, path, name, description) case ITEM_GEAR_##id: return GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
+#define NEW_GEAR(id, gfx, name, description) case ITEM_GEAR_##id: return GEAR_##id;
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case ITEM_GEAR_BLOOD_##type: return GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -68,6 +72,9 @@ enum Item Gear_ToItem(enum Gear gear)
 #define RECENT_GEAR(id, gfx, path, name, description) case GEAR_##id: return ITEM_GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
+#define NEW_GEAR(id, gfx, name, description) case GEAR_##id: return ITEM_GEAR_##id;
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case GEAR_BLOOD_##type: return ITEM_GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -154,6 +161,7 @@ static struct GearCycle *Prepare(enum BattlerId battler)
         if (cycle->gear != gear)
         {
             cycle->gear = gear;
+            cycle->activations = 0;
             StartCycle(cycle, &gGearsInfo[gear]);
         }
     }
@@ -303,6 +311,16 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         return;
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
+    if (cycle->gear == GEAR_AMPLIFICADOR)
+    {
+        bool32 charged = cycle->phase == GEAR_PHASE_ARMED
+                       && !IsBattleMoveStatus(move) && IsSoundMove(move);
+        gBattleStruct->gearSnapshotMove[battler] = move;
+        gBattleStruct->gearSnapshotPercent[battler] = charged ? 125 : 100;
+        if (charged)
+            Gear_ActivateEvent(battler);
+        return;
+    }
     if (info->trigger == GEAR_TRIGGER_EVENT && cycle->gear == GEAR_LENTE_CERTEZA)
     {
         if (!IsBattleMoveStatus(move) && GetMoveAccuracy(move) != 0 && GetMoveEffect(move) != EFFECT_OHKO)
@@ -336,6 +354,58 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         if (info->trigger == GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE && cycle->phase == GEAR_PHASE_ARMED)
             StartRecharge(cycle, info);
     }
+}
+
+void Gear_OnDamaged(enum BattlerId battler, u32 damage)
+{
+    struct GearCycle *cycle;
+
+    if (!GEARS_ENABLED || damage == 0 || !IsBattlerAlive(battler))
+        return;
+    cycle = Prepare(battler);
+    if (cycle == NULL)
+        return;
+
+    if (cycle->gear == GEAR_BOTON_PANICO && cycle->activations == 0
+     && gBattleMons[battler].hp * 100 < gBattleMons[battler].maxHP * 30)
+    {
+        cycle->activations = 1;
+        Stamina_RestorePercent(battler, 18);
+        gBattleMons[battler].statStages[STAT_SPEED] = min(MAX_STAT_STAGE,
+            gBattleMons[battler].statStages[STAT_SPEED] + 1);
+        // Cancel before the queued second action can spend PP or Stamina.
+        gBattleStruct->chainSecondPos[battler] = 0;
+        gBattleStruct->gearActivations[battler]++;
+    }
+    else if (cycle->gear == GEAR_NUCLEO_HYDRA && cycle->activations < 2
+          && cycle->phase == GEAR_PHASE_ARMED
+          && gBattleMons[battler].hp * 2 < gBattleMons[battler].maxHP)
+    {
+        cycle->activations++;
+        cycle->phase = GEAR_PHASE_OVERLOAD;
+        // Triggering turn does not heal. The following three turns do.
+        cycle->turns = 4;
+        gBattleStruct->gearActivations[battler]++;
+    }
+}
+
+void Gear_OnProtectSuccess(enum BattlerId battler)
+{
+    if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE) || Gear_GetBattlerGear(battler) != GEAR_CASCO_HOPLITA)
+        return;
+    if (Gear_ActivateEvent(battler))
+        Stamina_RestorePercent(battler, 12);
+}
+
+u32 Gear_GetEndTurnHeal(enum BattlerId battler)
+{
+    struct GearCycle *cycle = Prepare(battler);
+
+    if (cycle == NULL || cycle->gear != GEAR_NUCLEO_HYDRA
+     || cycle->phase != GEAR_PHASE_OVERLOAD || cycle->turns > 3
+     || !IsBattlerAlive(battler) || IsBattlerAtMaxHp(battler))
+        return 0;
+    return max(1, gBattleMons[battler].maxHP * 8 / 100);
 }
 
 void Gear_EndOfTurn(enum BattlerId battler)

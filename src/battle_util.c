@@ -7748,6 +7748,14 @@ static inline uq4_12_t GetOtherModifiers(struct DamageContext *ctx)
      && Gear_GetBattlerGear(ctx->battlerDef) == GEAR_ANILLO_FEERICO)
         DAMAGE_MULTIPLY_MODIFIER(UQ_4_12(0.75));
 
+    if (Gear_GetBattlerGear(ctx->battlerDef) == GEAR_HEADPHONES && IsSoundMove(ctx->move))
+        DAMAGE_MULTIPLY_MODIFIER(UQ_4_12(0.6));
+
+    if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+     && IsBattlerAlive(GetPartnerBattler(ctx->battlerDef))
+     && Gear_GetBattlerGear(GetPartnerBattler(ctx->battlerDef)) == GEAR_CASCO_HOPLITA)
+        DAMAGE_MULTIPLY_MODIFIER(UQ_4_12(0.88));
+
     if (unmodifiedAttackerSpeed >= unmodifiedDefenderSpeed)
     {
         DAMAGE_MULTIPLY_MODIFIER(GetAttackerAbilitiesModifier(ctx->battlerAtk, ctx->typeEffectivenessModifier, ctx->isCrit, ctx->abilities[ctx->battlerAtk]));

@@ -312,6 +312,7 @@ extern const u8 BattleScript_EffectLifeDew[];
 extern const u8 BattleScript_PowderMoveNoEffect[];
 extern const u8 BattleScript_GrassyTerrainHeals[];
 extern const u8 BattleScript_PermafrostHeal[];
+extern const u8 BattleScript_UnholyGearHeal[];
 extern const u8 BattleScript_SpikyShieldEffect[];
 extern const u8 BattleScript_KingsShieldEffect[];
 extern const u8 BattleScript_BanefulBunkerEffect[];

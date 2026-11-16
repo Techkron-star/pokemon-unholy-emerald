@@ -1819,7 +1819,9 @@ static void Cmd_setadditionaleffects(void)
             const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
 
             // Various checks for if this move effect can be applied this turn
-            if (CanApplyAdditionalEffect(additionalEffect))
+            if (CanApplyAdditionalEffect(additionalEffect)
+             && !(additionalEffect->chance != 0 && !additionalEffect->self
+               && IsSoundMove(gCurrentMove) && Gear_GetBattlerGear(cv.battlerDef) == GEAR_HEADPHONES))
             {
                 percentChance = CalcSecondaryEffectChance(gBattlerAttacker, cv.abilities[cv.battlerAtk], additionalEffect);
 
@@ -5185,6 +5187,8 @@ static void Cmd_setprotectlike(void)
     }
 
     gBattleMons[gBattlerAttacker].volatiles.consecutiveMoveUses++;
+    if (GetMoveEffect(gCurrentMove) == EFFECT_PROTECT)
+        Gear_OnProtectSuccess(gBattlerAttacker);
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 

@@ -51,6 +51,16 @@ u32 Stamina_GetMax(enum BattlerId battler)
     return gBattleStruct->maxStamina[battler];
 }
 
+void Stamina_RestorePercent(enum BattlerId battler, u32 percent)
+{
+    if (!STAMINA_ENABLED)
+        return;
+    EnsureInitialized(battler);
+    u32 maxStamina = gBattleStruct->maxStamina[battler];
+    gBattleStruct->stamina[battler] = min(maxStamina,
+        gBattleStruct->stamina[battler] + max(1, maxStamina * percent / 100));
+}
+
 bool32 Stamina_IsExhausted(enum BattlerId battler)
 {
     EnsureInitialized(battler);
@@ -96,6 +106,10 @@ u32 Stamina_GetActionCost(enum BattlerId battler, enum Move move, bool32 followU
         else if (Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
             cost = (cost * 92 + 99) / 100;
     }
+    if (Gear_GetBattlerGear(battler) == GEAR_AMPLIFICADOR
+     && IsSoundMove(move) && GetMoveCategory(move) != DAMAGE_CATEGORY_STATUS
+     && Gear_GetPhase(battler) == GEAR_PHASE_ARMED)
+        cost = (cost * 110 + 99) / 100;
     return cost;
 }
 

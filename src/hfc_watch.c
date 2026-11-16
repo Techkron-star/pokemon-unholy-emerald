@@ -222,8 +222,6 @@ static void RenderRaidSelection(void)
 
 static void RenderRaidReward(void)
 {
-    const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(HfcWatch_GetActiveRaidDifficulty());
-
     for (u8 i = 0; i < 2; i++)
     {
         u8 x = 5 + 92 * i;
@@ -241,10 +239,11 @@ static void RenderRaidReward(void)
     {
         for (u8 i = 0; i < HFC_RAID_LOOT_COUNT; i++)
         {
+            struct HfcRaidLoot loot = HfcWatch_GetActiveRaidLoot(i);
             u8 text[40];
-            u8 *cursor = CopyItemName(info->loot[i].item, text);
+            u8 *cursor = CopyItemName(loot.item, text);
             cursor = StringCopy(cursor, COMPOUND_STRING("  x"));
-            ConvertUIntToDecimalStringN(cursor, info->loot[i].quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+            ConvertUIntToDecimalStringN(cursor, loot.quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
             PrintWatchText(text, 8, 54 + 13 * i);
         }
     }

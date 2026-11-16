@@ -63,6 +63,16 @@ static const u32 sRecentGearIcon_LenteCerteza[] = INCGFX_U32("graphics/gears/len
 static const u16 sRecentGearPalette_LenteCerteza[] = INCGFX_U16("graphics/gears/lente_certeza/icon.pal", ".gbapal");
 static const u32 sRecentGearIcon_ModuloVectorial[] = INCGFX_U32("graphics/gears/modulo_vectorial/icon.png", ".4bpp");
 static const u16 sRecentGearPalette_ModuloVectorial[] = INCGFX_U16("graphics/gears/modulo_vectorial/icon.pal", ".gbapal");
+static const u32 sNewGearIcon_Amplificador[] = INCGFX_U32("graphics/gears/amplificador/icon.png", ".4bpp");
+static const u16 sNewGearPalette_Amplificador[] = INCGFX_U16("graphics/gears/amplificador/icon.pal", ".gbapal");
+static const u32 sNewGearIcon_Headphones[] = INCGFX_U32("graphics/gears/headphones/icon.png", ".4bpp");
+static const u16 sNewGearPalette_Headphones[] = INCGFX_U16("graphics/gears/headphones/icon.pal", ".gbapal");
+static const u32 sNewGearIcon_BotonPanico[] = INCGFX_U32("graphics/gears/boton_panico/icon.png", ".4bpp");
+static const u16 sNewGearPalette_BotonPanico[] = INCGFX_U16("graphics/gears/boton_panico/icon.pal", ".gbapal");
+static const u32 sNewGearIcon_NucleoHydra[] = INCGFX_U32("graphics/gears/nucleo_hydra/icon.png", ".4bpp");
+static const u16 sNewGearPalette_NucleoHydra[] = INCGFX_U16("graphics/gears/nucleo_hydra/icon.pal", ".gbapal");
+static const u32 sNewGearIcon_CascoHoplita[] = INCGFX_U32("graphics/gears/casco_hoplita/icon.png", ".4bpp");
+static const u16 sNewGearPalette_CascoHoplita[] = INCGFX_U16("graphics/gears/casco_hoplita/icon.pal", ".gbapal");
 
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
@@ -195,4 +205,16 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     },
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
+#define NEW_GEAR(id, gfx, visibleName, shortDescription) \
+    [GEAR_##id] = \
+    { \
+        .name = COMPOUND_STRING(visibleName), \
+        .description = COMPOUND_STRING(shortDescription), \
+        .iconGfx = sNewGearIcon_##gfx, \
+        .iconPal = sNewGearPalette_##gfx, \
+        .trigger = GEAR_TRIGGER_EVENT, \
+        .cooldownTurns = GEAR_##id == GEAR_NUCLEO_HYDRA ? 4 : 3, \
+    },
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
 };

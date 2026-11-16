@@ -4980,6 +4980,14 @@ BattleScript_PermafrostHeal::
 	datahpupdate BS_ATTACKER, ASSURANCE_DOUBLE
 	return
 
+BattleScript_UnholyGearHeal::
+	playanimation BS_ATTACKER, B_ANIM_SIMPLE_HEAL
+	printstring STRINGID_PKMNREGAINEDHEALTH
+	waitmessage B_WAIT_TIME_LONG
+	healthbarupdate BS_ATTACKER
+	datahpupdate BS_ATTACKER, ASSURANCE_DOUBLE
+	return
+
 BattleScript_StickyHoldActivates::
 	call BattleScript_StickyHoldActivatesRet
 	goto BattleScript_MoveEnd

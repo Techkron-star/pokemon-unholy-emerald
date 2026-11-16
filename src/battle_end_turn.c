@@ -440,6 +440,14 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
         gBattleStruct->eventState.endTurnBlock++;
         break;
     case FIRST_EVENT_BLOCK_GEAR_HEAL:
+        if (IsBattlerPresent(battler) && Gear_GetEndTurnHeal(battler) != 0
+         && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battler].volatiles.healBlockTimer))
+        {
+            gBattlerAttacker = battler;
+            SetHealAmount(battler, Gear_GetEndTurnHeal(battler));
+            BattleScriptCall(BattleScript_UnholyGearHeal);
+            effect = TRUE;
+        }
         // Permafrost es un Restos de 1/16 por turno, no vampirismo.
         // Si el item ordinario ya cura 1/16 con Restos o Lodo Negro
         // a un usuario Veneno, el promedio de ambos sigue siendo 1/16.

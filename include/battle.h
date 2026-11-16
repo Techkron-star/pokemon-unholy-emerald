@@ -587,6 +587,7 @@ struct GearCycle
     u8 gear;
     u8 phase;
     u8 turns;
+    u8 activations; // Per-Pokemon lifetime limit (not cleared on switch).
 };
 
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.

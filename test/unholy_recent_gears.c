@@ -93,3 +93,36 @@ TEST("Recent Gear event cooldown and periodic normalization keep distinct activa
     Free(gBattleStruct);
     gBattleStruct = oldStruct;
 }
+
+TEST("Latest Gear batch keeps IDs append-only, equippable and displayable")
+{
+    static const struct { enum Gear gear; enum Item item; } gears[] = {
+#define NEW_GEAR(id, gfx, name, description) {GEAR_##id, ITEM_GEAR_##id},
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
+    };
+    struct Pokemon mon;
+    u32 ordinaryItem = ITEM_LEFTOVERS;
+
+    EXPECT_EQ(ARRAY_COUNT(gears), 5);
+    EXPECT_EQ(gears[0].gear, GEAR_MODULO_VECTORIAL + 1);
+    EXPECT_EQ(gears[0].item, ITEM_GEAR_MODULO_VECTORIAL + 1);
+    CreateMonWithIVs(&mon, SPECIES_MUDKIP, 35, 0, OTID_STRUCT_PRESET(14), 15);
+    SetMonData(&mon, MON_DATA_HELD_ITEM, &ordinaryItem);
+    SetBagItemsPointers();
+    ClearBag();
+
+    for (u32 i = 0; i < ARRAY_COUNT(gears); i++)
+    {
+        EXPECT_EQ(gears[i].gear, GEAR_MODULO_VECTORIAL + 1 + i);
+        EXPECT_EQ(gears[i].item, ITEM_GEAR_MODULO_VECTORIAL + 1 + i);
+        EXPECT_EQ(Gear_FromItem(gears[i].item), gears[i].gear);
+        EXPECT_EQ(Gear_ToItem(gears[i].gear), gears[i].item);
+        EXPECT(gGearsInfo[gears[i].gear].iconGfx != NULL);
+        EXPECT(gGearsInfo[gears[i].gear].iconPal != NULL);
+        EXPECT_EQ(GetItemDisplayPocket(gears[i].item), POCKET_GEARS);
+        EXPECT(AddBagItem(gears[i].item, 1));
+        EXPECT_EQ(Gear_TryEquipFromBag(&mon, gears[i].item), GEAR_EQUIP_OK);
+        EXPECT_EQ(GetMonData(&mon, MON_DATA_HELD_ITEM), ordinaryItem);
+    }
+}

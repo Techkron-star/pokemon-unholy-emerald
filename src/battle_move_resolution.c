@@ -3508,6 +3508,12 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 {
     gBattleScripting.moveendState++;
 
+    if (!IsBattleMoveStatus(cv->move)
+     && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     && gBattleStruct->moveDamage[cv->battlerDef] > 0
+     && IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES))
+        Gear_OnDamaged(cv->battlerDef, gBattleStruct->moveDamage[cv->battlerDef]);
+
     if (Gear_GetBattlerGear(cv->battlerAtk) == GEAR_ARIETE_NAUTILO
      && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
      && !IsBattleMoveStatus(cv->move)

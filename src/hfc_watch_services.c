@@ -81,11 +81,40 @@ static EWRAM_DATA struct
     struct Pokemon boss;
 } sRaid;
 
+static u32 DailyRaidSeed(u16 day, u32 trainerId);
+
 const struct HfcRaidDifficultyInfo *HfcWatch_GetRaidDifficultyInfo(enum HfcRaidDifficulty difficulty)
 {
     if ((u32)difficulty >= HFC_RAID_DIFFICULTY_COUNT)
         return NULL;
     return &sRaidDifficulties[difficulty];
+}
+
+struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index)
+{
+    const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(sRaid.difficulty);
+
+    if (info == NULL || index >= HFC_RAID_LOOT_COUNT)
+        return (struct HfcRaidLoot){ITEM_NONE, 0};
+
+    if (index == HFC_RAID_LOOT_COUNT - 1 && sRaid.difficulty == HFC_RAID_EXPERT)
+    {
+        static const enum Item expertGears[] = {
+            ITEM_GEAR_GUANTES_COHETE, ITEM_GEAR_PIEDRA_AFILAR,
+        };
+        u32 roll = DailyRaidSeed(sRaid.day, GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(expertGears);
+        return (struct HfcRaidLoot){expertGears[roll], 1};
+    }
+    if (sRaid.difficulty == HFC_RAID_MASTER && index == HFC_RAID_LOOT_COUNT - 1)
+    {
+        // Rare Gear reward rotates by day and trainer; preview and claim match.
+        static const enum Item rareGears[] = {
+            ITEM_GEAR_NUCLEO_HYDRA, ITEM_GEAR_ESCUDO_AEGIS, ITEM_GEAR_NIHIL_ENGINE,
+        };
+        u32 roll = DailyRaidSeed(sRaid.day, GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(rareGears);
+        return (struct HfcRaidLoot){rareGears[roll], 1};
+    }
+    return info->loot[index];
 }
 
 bool32 HfcWatch_IsRaidDifficultyUnlocked(enum HfcRaidDifficulty difficulty, u8 badges)
@@ -386,16 +415,16 @@ enum HfcRaidRewardError HfcWatch_ClaimRaidReward(bool32 capture)
     }
     else
     {
-        const struct HfcRaidLoot *loot = sRaidDifficulties[sRaid.difficulty].loot;
-
         for (u8 i = 0; i < HFC_RAID_LOOT_COUNT; i++)
         {
-            if (!AddBagItem(loot[i].item, loot[i].quantity))
+            struct HfcRaidLoot loot = HfcWatch_GetActiveRaidLoot(i);
+            if (!AddBagItem(loot.item, loot.quantity))
             {
                 while (i > 0)
                 {
                     i--;
-                    RemoveBagItem(loot[i].item, loot[i].quantity);
+                    loot = HfcWatch_GetActiveRaidLoot(i);
+                    RemoveBagItem(loot.item, loot.quantity);
                 }
                 return HFC_RAID_REWARD_BAG_FULL;
             }
