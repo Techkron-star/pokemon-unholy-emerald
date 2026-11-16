@@ -3510,6 +3510,7 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 
     if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)
      || IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     || gSpecialStatuses[cv->battlerAtk].attackerInParty
      || !IsBattlerAlive(cv->battlerDef)
      || IsBattlerUnaffectedByMove(cv->battlerDef)
      || gBattleStruct->moveDamage[cv->battlerDef] <= 0

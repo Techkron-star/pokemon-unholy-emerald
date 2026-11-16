@@ -81,3 +81,23 @@ SINGLE_BATTLE_TEST("Unholy Shackle prevents chaining for the following complete 
         EXPECT_EQ(gBattleStruct->shackleTurns[B_BATTLER_1], 0);
     }
 }
+
+SINGLE_BATTLE_TEST("Unholy Shackle does not trigger when its holder replaces the Future Sight user")
+{
+    PASSES_RANDOMLY(1, 1, RNG_GEAR_SHACKLE);
+
+    GIVEN {
+        PLAYER(SPECIES_ABRA);
+        PLAYER(SPECIES_WYNAUT);
+        Gear_SetEquipped(&PLAYER_PARTY[1], GEAR_SHACKLE);
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_FUTURE_SIGHT); }
+        TURN { SWITCH(player, 1); }
+        TURN {}
+    } SCENE {
+        MESSAGE("The opposing Wobbuffet took the Future Sight attack!");
+        HP_BAR(opponent);
+        NOT MESSAGE("The opposing Wobbuffet can't chain moves!");
+    }
+}
