@@ -259,6 +259,7 @@ enum RandomTag
     RNG_DAYCARE_MALE_CHILD,
     RNG_DEXNAV_RANDOM_EGG_MOVE,
     RNG_RANDOM_BALL,
+    RNG_GEAR_SHACKLE,
 };
 
 #define RandomWeighted(tag, ...) \

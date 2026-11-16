@@ -1012,6 +1012,14 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
      || cv->move == MOVE_STRUGGLE)
         return CANCELER_RESULT_SUCCESS;
 
+    bool32 followUp = Chain_IsFollowingUp(cv->battlerAtk);
+    if (STAMINA_ENABLED && followUp
+     && Stamina_GetActionCost(cv->battlerAtk, cv->move, TRUE) > Stamina_GetCurrent(cv->battlerAtk))
+    {
+        gBattlescriptCurrInstr = BattleScript_ButItFailed;
+        return CANCELER_RESULT_FAILURE;
+    }
+
     s32 ppToDeduct = 1;
     enum MoveTarget moveTarget = GetBattlerMoveTargetType(cv->battlerAtk, cv->move);
     u32 movePosition = gCurrMovePos;
@@ -1046,7 +1054,8 @@ static enum CancelerResult CancelerPPDeduction(struct BattleCalcValues *cv)
         gBattleMons[cv->battlerAtk].pp[movePosition] = 0;
 
     gLastMoves[cv->battlerAtk] = gChosenMove;
-    Stamina_SpendForMove(cv->battlerAtk, cv->move);
+    Stamina_SpendForMove(cv->battlerAtk, cv->move, followUp);
+    Chain_RecordOpeningMove(cv->battlerAtk, cv->move);
 
     if (MOVE_IS_PERMANENT(cv->battlerAtk, movePosition))
     {
@@ -2335,6 +2344,8 @@ static void SetRandomMultiHitCounter(enum HoldEffect holdEffect)
 
 static enum CancelerResult CancelerMultihitMoves(struct BattleCalcValues *cv)
 {
+    gBattleStruct->survivalUsedThisMoveMask = 0;
+    gBattleStruct->shackleTriedThisMove = FALSE;
     SetPossibleNewSmartTarget(cv->move);
 
     if (IsBattlerUnaffectedByMove(gBattlerTarget))
@@ -3491,6 +3502,30 @@ static enum MoveEndResult MoveEndFormChangeOnHit(struct BattleCalcValues *cv)
 
     gBattleScripting.moveendState++;
     return result;
+}
+
+static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
+{
+    gBattleScripting.moveendState++;
+
+    if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)
+     || IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     || !IsBattlerAlive(cv->battlerDef)
+     || IsBattlerUnaffectedByMove(cv->battlerDef)
+     || gBattleStruct->moveDamage[cv->battlerDef] <= 0
+     || !IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES)
+     || Gear_GetBattlerGear(cv->battlerAtk) != GEAR_SHACKLE)
+        return MOVEEND_RESULT_CONTINUE;
+
+    gBattleStruct->shackleTriedThisMove = TRUE;
+    if (gBattleStruct->shackleTurns[cv->battlerDef] != 0 || !RandomPercentage(RNG_GEAR_SHACKLE, 20))
+        return MOVEEND_RESULT_CONTINUE;
+
+    // Includes the rest of this turn and the target's next complete turn.
+    gBattleStruct->shackleTurns[cv->battlerDef] = 2;
+    gBattleStruct->gearActivations[cv->battlerAtk]++;
+    BattleScriptCall(BattleScript_GearShackle);
+    return MOVEEND_RESULT_RUN_SCRIPT;
 }
 
 static enum MoveEndResult MoveEndAbilitiesAttacker(struct BattleCalcValues *cv)
@@ -5346,6 +5381,7 @@ static enum MoveEndResult (*const sMoveEndHandlers[])(struct BattleCalcValues *c
     [MOVEEND_ABILITIES] = MoveEndAbilities,
     [MOVEEND_RESIST_BERRY_MESSAGE] = MoveEndResistBerryMessage,
     [MOVEEND_FORM_CHANGE_ON_HIT] = MoveEndFormChangeOnHit,
+    [MOVEEND_GEAR_ON_HIT] = MoveEndGearOnHit,
     [MOVEEND_ABILITIES_ATTACKER] = MoveEndAbilitiesAttacker,
     [MOVEEND_QUEUE_DANCER] = MoveEndQueueDancer,
     [MOVEEND_STATUS_IMMUNITY_ABILITIES] = MoveEndStatusImmunityAbilities,

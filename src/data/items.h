@@ -10057,6 +10057,19 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_StormStaff,
     },
 
+    [ITEM_GEAR_SHACKLE] =
+    {
+        .name = ITEM_NAME("Grillete"),
+        .description = COMPOUND_STRING("A damaging move\nhas a 20% chance\nto block chaining."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_Shackle,
+        .iconPalette = gItemIconPalette_Shackle,
+    },
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

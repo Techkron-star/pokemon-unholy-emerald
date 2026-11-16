@@ -488,7 +488,7 @@ void HandleAction_UseMove(void)
         return;
     }
 
-    if (Chain_PrepareAction(gBattlerAttacker, gCurrentTurnActionNumber))
+    if (Chain_PrepareAction(gBattlerAttacker))
     {
         gCurrentActionFuncId = B_ACTION_FINISHED;
         return;
@@ -1020,6 +1020,7 @@ void HandleAction_ActionFinished(void)
                           && gSpecialStatuses[gBattlerByTurnOrder[gCurrentTurnActionNumber + 1]].afterYou;
     gBattleStruct->monToSwitchIntoId[gBattlerByTurnOrder[gCurrentTurnActionNumber]] = gSelectedMonPartyId = PARTY_SIZE;
     gCurrentTurnActionNumber++;
+    Chain_OrderFollowUps();
     if (gCurrentTurnActionNumber < Chain_GetNumTurnActions())
         gCurrentActionFuncId = gActionsByTurnOrder[gCurrentTurnActionNumber];
     else
@@ -8138,16 +8139,27 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
      || DoesIceFaceBlockMove(ctx->battlerDef, ctx->move))
         return damage; // No damage will be dealt
 
-    if (gBattleMons[ctx->battlerDef].hp > damage)
+    u32 hp = gBattleMons[ctx->battlerDef].hp;
+    if (ctx->isSelfInflicted || ctx->battlerAtk == ctx->battlerDef || hp == 0 || damage < (s32)hp)
         return damage;
 
     bool32 enduredHit = FALSE;
+    bool32 activatesGuard = FALSE;
+    u32 targetBit = 1u << ctx->battlerDef;
     u32 rand = Random() % 100;
     u32 affectionScore = GetBattlerAffectionHearts(ctx->battlerDef);
 
-    if (gBattleMons[ctx->battlerDef].volatiles.endured)
+    if (gBattleStruct->survivalUsedThisMoveMask & targetBit)
+    {
+        // Later impacts of this same move can defeat the target.
+        if (GetMoveEffect(ctx->move) != EFFECT_FALSE_SWIPE)
+            return damage;
+        enduredHit = TRUE;
+    }
+    else if (gBattleMons[ctx->battlerDef].volatiles.endured || (gBattleStruct->survivalGuardMask & targetBit))
     {
         enduredHit = TRUE;
+        activatesGuard = TRUE;
         gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_FOE_ENDURED;
     }
     else if (GetMoveEffect(ctx->move) == EFFECT_FALSE_SWIPE)
@@ -8157,6 +8169,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
     else if (GetConfig(B_STURDY) >= GEN_5 && ctx->abilities[ctx->battlerDef] == ABILITY_STURDY && IsBattlerAtMaxHp(ctx->battlerDef))
     {
         enduredHit = TRUE;
+        activatesGuard = TRUE;
         RecordAbilityBattle(ctx->battlerDef, ABILITY_STURDY);
         gLastUsedAbility = ABILITY_STURDY;
         gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_STURDIED;
@@ -8164,6 +8177,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
     else if (ctx->holdEffects[ctx->battlerDef] == HOLD_EFFECT_FOCUS_BAND && rand < GetBattlerHoldEffectParam(ctx->battlerDef))
     {
         enduredHit = TRUE;
+        activatesGuard = TRUE;
         RecordItemEffectBattle(ctx->battlerDef, ctx->holdEffects[ctx->battlerDef]);
         gLastUsedItem = gBattleMons[ctx->battlerDef].item;
         gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_FOE_HUNG_ON;
@@ -8171,6 +8185,7 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
     else if (ctx->holdEffects[ctx->battlerDef] == HOLD_EFFECT_FOCUS_SASH && IsBattlerAtMaxHp(ctx->battlerDef))
     {
         enduredHit = TRUE;
+        activatesGuard = TRUE;
         RecordItemEffectBattle(ctx->battlerDef, ctx->holdEffects[ctx->battlerDef]);
         gLastUsedItem = gBattleMons[ctx->battlerDef].item;
         gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_FOE_HUNG_ON;
@@ -8184,6 +8199,12 @@ s32 GetAdjustedDamage(struct DamageContext *ctx, s32 damage)
             enduredHit = TRUE;
             gBattleStruct->moveResultFlags[ctx->battlerDef] |= MOVE_RESULT_FOE_ENDURED_AFFECTION;
         }
+    }
+
+    if (activatesGuard)
+    {
+        gBattleStruct->survivalGuardMask |= targetBit;
+        gBattleStruct->survivalUsedThisMoveMask |= targetBit;
     }
 
     if (enduredHit)
@@ -8203,6 +8224,10 @@ s32 CalculateMoveDamage(struct DamageContext *ctx)
         damage = DoFutureSightAttackDamageCalc(ctx);
     else
         damage = DoMoveDamageCalc(ctx);
+
+    if (damage > 0 && !ctx->isSelfInflicted && Chain_IsFollowingUp(ctx->battlerAtk)
+     && !gSpecialStatuses[ctx->battlerAtk].dancerUsedMove && !gBattleStruct->bouncedMoveIsUsed)
+        damage = max(1, damage * CHAIN_FOLLOW_UP_DAMAGE_PERCENT / 100);
 
     return GetAdjustedDamage(ctx, damage);
 }

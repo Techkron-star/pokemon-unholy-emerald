@@ -23,7 +23,16 @@
 #define STAMINA_COST_POWER_DIVISOR     10
 
 // Recarga al final de cada turno, en % de la stamina máxima.
-#define STAMINA_REGEN_PERCENT           20
+#define STAMINA_REGEN_PERCENT           18
+#define STAMINA_BURN_REGEN_PERCENT      12
+#define STAMINA_PARALYSIS_REGEN_PERCENT 15
+#define STAMINA_FREEZE_REGEN_PERCENT     6
+#define STAMINA_POISON_REGEN_PERCENT    14
+#define STAMINA_TOXIC_REGEN_PERCENT     12
+#define STAMINA_SLEEP_REGEN_PERCENT     22
+#define STAMINA_CHAIN_COST_PERCENT     150
+#define STAMINA_PARALYSIS_CHAIN_PERCENT 160
+#define STAMINA_CONFUSION_COST_BONUS    10
 
 // Si la stamina llega a 0, el Pokémon queda agotado (pierde el turno, sin Struggle)
 // hasta que su stamina vuelva a este % del máximo.

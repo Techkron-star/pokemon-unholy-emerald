@@ -4,6 +4,7 @@
 #include "battle_util.h"
 #include "battle_controllers.h"
 #include "move.h"
+#include "item.h"
 #include "battle_stamina.h"
 #include "battle_chain.h"
 #include "gear.h"
@@ -11,7 +12,7 @@
 
 bool32 Chain_IsAvailable(enum BattlerId battler)
 {
-    if (!CHAIN_ENABLED)
+    if (!CHAIN_ENABLED || gBattleStruct->shackleTurns[battler] != 0)
         return FALSE;
     if (IsDoubleBattle())
         return FALSE;
@@ -24,14 +25,28 @@ bool32 Chain_IsMoveChainable(enum Move move)
 {
     enum BattleMoveEffects effect = GetMoveEffect(move);
 
-    return move != MOVE_NONE && effect != EFFECT_PROTECT && effect != EFFECT_ENDURE;
+    return move != MOVE_NONE && move != MOVE_STRUGGLE
+        && GetMoveCategory(move) != DAMAGE_CATEGORY_STATUS
+        && !gBattleMoveEffects[effect].twoTurnEffect
+        && effect != EFFECT_FUTURE_SIGHT;
 }
 
 bool32 Chain_IsPairAllowed(enum BattlerId battler, enum Move first, enum Move second)
 {
+    if (first == second || !Chain_IsMoveChainable(first) || !Chain_IsMoveChainable(second))
+        return FALSE;
+    if (IsHoldEffectChoice(GetBattlerHoldEffect(battler)) || GetBattlerAbility(battler) == ABILITY_GORILLA_TACTICS)
+        return FALSE;
+
     return GetMoveCategory(first) != DAMAGE_CATEGORY_SPECIAL
         || GetMoveCategory(second) != DAMAGE_CATEGORY_SPECIAL
         || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF;
+}
+
+bool32 Chain_CanAfford(enum BattlerId battler, enum Move first, enum Move second)
+{
+    return !STAMINA_ENABLED || Stamina_GetMoveCost(battler, first) + Stamina_GetActionCost(battler, second, TRUE)
+                           <= Stamina_GetCurrent(battler);
 }
 
 u32 Chain_GetNumTurnActions(void)
@@ -42,8 +57,6 @@ u32 Chain_GetNumTurnActions(void)
 void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
 {
     struct ChooseMoveStruct *moveInfo;
-    u32 remainingStamina;
-    u32 firstMoveCost;
 
     // The AI must make a tactical choice, not automatically chain every turn
     // simply because its moveset contains two different moves.
@@ -53,11 +66,6 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
      || !Chain_IsMoveChainable(gBattleMons[battler].moves[firstMovePos])
      || Stamina_IsExhausted(battler))
         return;
-
-    remainingStamina = Stamina_GetCurrent(battler);
-    firstMoveCost = Stamina_GetMoveCost(battler, gBattleMons[battler].moves[firstMovePos]);
-    if (firstMoveCost >= remainingStamina)
-        return; // A last-effort move cannot be followed by a second action.
 
     // In a trainer battle the AI already simulated the selected attack.
     // If even its minimum expected damage is lethal, a chained move would
@@ -73,22 +81,16 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
     }
 
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
+    u32 limitations = CheckMoveLimitations(battler, 0, MOVE_LIMITATIONS_ALL);
 
     for (u8 movePos = 0; movePos < MAX_MON_MOVES; movePos++)
     {
-        if (movePos == firstMovePos
-         || moveInfo->moves[movePos] == moveInfo->moves[firstMovePos]
-         || moveInfo->moves[movePos] == MOVE_NONE
-         || moveInfo->currentPP[movePos] == 0
-         || !Chain_IsMoveChainable(moveInfo->moves[movePos])
+        if ((limitations & (1u << movePos)) || moveInfo->currentPP[movePos] == 0
          || !Chain_IsPairAllowed(battler, moveInfo->moves[firstMovePos], moveInfo->moves[movePos])
-         || firstMoveCost + Stamina_GetMoveCost(battler, moveInfo->moves[movePos]) >= remainingStamina)
+         || !Chain_CanAfford(battler, moveInfo->moves[firstMovePos], moveInfo->moves[movePos]))
             continue;
 
-        // Never add a damaging follow-up that the AI already knows cannot
-        // affect its chosen target (for example Water Gun into Storm Drain).
-        // Status moves have no simulated damage by definition, so do not
-        // filter them here.
+        // Avoid follow-ups that the AI already knows cannot damage the foe.
         if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
          && gAiLogicData != NULL && gAiBattleData != NULL)
         {
@@ -153,144 +155,139 @@ static void Chain_ShowOpponentSignal(enum BattlerId battler)
     gTasks[taskId].data[2] = gBattlerSpriteIds[battler];
 }
 
-// Rol 0: acción normal. Rol 1: segundo movimiento de una cadena. Rol 3: turno extra del rival,
-// que usa otro movimiento distinto (nunca repite el mismo ataque).
-#define CHAIN_ROLE_NORMAL       0
-#define CHAIN_ROLE_SECOND       1
-#define CHAIN_ROLE_RIVAL_EXTRA  3
-
-static void AddTurnAction(u32 *n, u8 *battlers, u8 *roles, enum BattlerId battler, u8 role)
+enum ChainActionRole
 {
-    battlers[*n] = battler;
-    roles[*n] = role;
-    (*n)++;
+    CHAIN_ROLE_OPENING,
+    CHAIN_ROLE_FOLLOW_UP,
+};
+
+static bool32 HasValidSelection(enum BattlerId battler)
+{
+    u8 first = gBattleStruct->chosenMovePositions[battler];
+    u8 second = gBattleStruct->chainSecondPos[battler] - 1;
+    if (!Chain_IsAvailable(battler) || first >= MAX_MON_MOVES || second >= MAX_MON_MOVES)
+        return FALSE;
+
+    enum Move firstMove = gBattleMons[battler].moves[first];
+    enum Move secondMove = gBattleMons[battler].moves[second];
+    return Chain_IsPairAllowed(battler, firstMove, secondMove) && Chain_CanAfford(battler, firstMove, secondMove);
 }
 
 void Chain_ExpandTurnOrder(void)
 {
-    enum BattlerId player = B_BATTLER_0;
-    enum BattlerId rival = B_BATTLER_1;
-    u8 battlers[MAX_BATTLERS_COUNT] = {0};
-    u8 roles[MAX_BATTLERS_COUNT] = {0};
-    u32 n = 0;
-    bool32 playerChains = gBattleStruct->chainSecondPos[player] != 0 && Chain_IsAvailable(player);
-    bool32 rivalChains = gBattleStruct->chainSecondPos[rival] != 0 && Chain_IsAvailable(rival);
-
     gBattleStruct->numTurnActions = 0;
     gBattleStruct->chainTurnInterrupted = FALSE;
+    gBattleStruct->chainFollowUpsInvalid = FALSE;
     gBattleStruct->chainSpecialMask = 0;
-    memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));
+    gBattleStruct->chainOpeningMask = 0;
+    memset(gBattleStruct->turnActionRole, CHAIN_ROLE_OPENING, sizeof(gBattleStruct->turnActionRole));
 
-    if (!playerChains && !rivalChains)
+    if (!CHAIN_ENABLED || gBattlersCount != 2
+     || gActionsByTurnOrder[0] != B_ACTION_USE_MOVE || gActionsByTurnOrder[1] != B_ACTION_USE_MOVE)
         return;
 
-    // Ambos tienen que estar usando un movimiento; si no, la cadena se descarta.
-    if (gActionsByTurnOrder[0] != B_ACTION_USE_MOVE || gActionsByTurnOrder[1] != B_ACTION_USE_MOVE)
+    u32 nextAction = gBattlersCount;
+    for (u32 action = 0; action < gBattlersCount; action++)
     {
-        gBattleStruct->chainSecondPos[player] = 0;
-        gBattleStruct->chainSecondPos[rival] = 0;
-        return;
-    }
-
-    // Orden: F1 [F2] S1 [S2]. Al que no encadena le toca un turno extra al final.
-    enum BattlerId first = gBattlerByTurnOrder[0];
-    enum BattlerId second = first == player ? rival : player;
-    bool32 firstChains = first == player ? playerChains : rivalChains;
-    bool32 secondChains = second == player ? playerChains : rivalChains;
-
-    AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_NORMAL);
-    if (firstChains)
-        AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_SECOND);
-    AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_NORMAL);
-    if (secondChains)
-        AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_SECOND);
-    // The extra action is an AI counterplay ONLY when the PLAYER chains.
-    // Never enqueue a second normal attack for a player who chose a single
-    // move: that made it repeat automatically after the opponent's move.
-    if (!firstChains && secondChains && first == rival)
-        AddTurnAction(&n, battlers, roles, first, CHAIN_ROLE_RIVAL_EXTRA);
-    if (firstChains && !secondChains && second == rival)
-        AddTurnAction(&n, battlers, roles, second, CHAIN_ROLE_RIVAL_EXTRA);
-
-    for (u32 i = 0; i < n; i++)
-    {
-        gActionsByTurnOrder[i] = B_ACTION_USE_MOVE;
-        gBattlerByTurnOrder[i] = battlers[i];
-        gBattleStruct->turnActionRole[i] = roles[i];
-    }
-    gBattleStruct->numTurnActions = n;
-}
-
-// Turno extra del rival: elige el movimiento más fuerte que no sea el ya usado ni el mismo nombre.
-// Devuelve FALSE si no hay ninguno (la acción se salta).
-static bool32 PickDifferentRivalMove(enum BattlerId battler)
-{
-    u8 used = gBattleStruct->chosenMovePositions[battler];
-    enum Move usedMove = gBattleMons[battler].moves[used];
-    u32 bestPower = 0;
-    u32 bestPos = MAX_MON_MOVES;
-
-    for (u32 i = 0; i < MAX_MON_MOVES; i++)
-    {
-        enum Move move = gBattleMons[battler].moves[i];
-
-        if (i == used || move == MOVE_NONE || move == usedMove || gBattleMons[battler].pp[i] == 0)
-            continue;
-        if (!Chain_IsPairAllowed(battler, usedMove, move)
-         || Stamina_GetMoveCost(battler, move) >= Stamina_GetCurrent(battler))
-            continue;
-        if (bestPos == MAX_MON_MOVES || GetMovePower(move) >= bestPower)
+        enum BattlerId battler = gBattlerByTurnOrder[action];
+        if (HasValidSelection(battler))
         {
-            bestPower = GetMovePower(move);
-            bestPos = i;
+            gBattlerByTurnOrder[nextAction] = battler;
+            gActionsByTurnOrder[nextAction] = B_ACTION_USE_MOVE;
+            gBattleStruct->turnActionRole[nextAction++] = CHAIN_ROLE_FOLLOW_UP;
         }
     }
 
-    if (bestPos == MAX_MON_MOVES)
-        return FALSE;
-    gBattleStruct->chosenMovePositions[battler] = bestPos;
-    return TRUE;
+    if (nextAction > gBattlersCount)
+        gBattleStruct->numTurnActions = nextAction;
+}
+
+void Chain_OrderFollowUps(void)
+{
+    if (gCurrentTurnActionNumber != gBattlersCount || gBattleStruct->numTurnActions != MAX_BATTLERS_COUNT
+     || gBattleStruct->chainTurnInterrupted || gBattleStruct->chainFollowUpsInvalid)
+        return;
+
+    enum BattlerId first = gBattlerByTurnOrder[2];
+    enum BattlerId second = gBattlerByTurnOrder[3];
+    struct BattleCalcValues calc = {.battlerAtk = first, .battlerDef = second};
+    calc.abilities[first] = GetBattlerAbility(first);
+    calc.abilities[second] = GetBattlerAbility(second);
+    calc.holdEffects[first] = GetBattlerHoldEffect(first);
+    calc.holdEffects[second] = GetBattlerHoldEffect(second);
+
+    enum Move firstMove = gBattleMons[first].moves[gBattleStruct->chainSecondPos[first] - 1];
+    enum Move secondMove = gBattleMons[second].moves[gBattleStruct->chainSecondPos[second] - 1];
+    if (GetWhichBattlerFasterArgs(&calc, FALSE,
+         GetBattlerTotalSpeedStat(first, calc.abilities[first], calc.holdEffects[first]),
+         GetBattlerTotalSpeedStat(second, calc.abilities[second], calc.holdEffects[second]),
+         GetBattleMovePriority(first, calc.abilities[first], firstMove),
+         GetBattleMovePriority(second, calc.abilities[second], secondMove)) < 0)
+    {
+        gBattlerByTurnOrder[2] = second;
+        gBattlerByTurnOrder[3] = first;
+    }
+}
+
+bool32 Chain_IsFollowingUp(enum BattlerId battler)
+{
+    u32 action = gCurrentTurnActionNumber;
+    return gBattleStruct->numTurnActions != 0 && action < gBattleStruct->numTurnActions
+        && gBattlerByTurnOrder[action] == battler
+        && gBattleStruct->turnActionRole[action] == CHAIN_ROLE_FOLLOW_UP;
+}
+
+void Chain_RecordOpeningMove(enum BattlerId battler, enum Move move)
+{
+    if (gBattleStruct->numTurnActions == 0 || gCurrentTurnActionNumber >= gBattlersCount
+     || gBattlerByTurnOrder[gCurrentTurnActionNumber] != battler || IsBattleMoveStatus(move))
+        return;
+
+    gBattleStruct->chainOpeningMask |= 1u << battler;
+    if (IsBattleMoveSpecial(move))
+        gBattleStruct->chainSpecialMask |= 1u << battler;
 }
 
 bool32 Chain_AllowsResolvedCategory(enum BattlerId battler, enum Move move)
 {
-    u32 action = gCurrentTurnActionNumber;
-    if (gBattleStruct->numTurnActions == 0
-     || action >= gBattleStruct->numTurnActions
-     || gBattlerByTurnOrder[action] != battler
-     || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF)
+    if (!Chain_IsFollowingUp(battler))
         return TRUE;
+    if (IsBattleMoveStatus(move))
+        return FALSE;
 
-    bool32 special = IsBattleMoveSpecial(move);
-    if (gBattleStruct->turnActionRole[action] != CHAIN_ROLE_NORMAL)
-        return !special || !(gBattleStruct->chainSpecialMask & (1u << battler));
-
-    if (special)
-        gBattleStruct->chainSpecialMask |= 1u << battler;
-    return TRUE;
+    return !IsBattleMoveSpecial(move) || !(gBattleStruct->chainSpecialMask & (1u << battler))
+        || Gear_GetBattlerGear(battler) != GEAR_STORM_STAFF;
 }
 
-bool32 Chain_PrepareAction(enum BattlerId battler, u32 turnActionIndex)
+void Chain_InvalidateFollowUps(void)
+{
+    if (gBattleStruct->numTurnActions != 0)
+        gBattleStruct->chainFollowUpsInvalid = TRUE;
+}
+
+bool32 Chain_PrepareAction(enum BattlerId battler)
 {
     if (gBattleStruct->chainTurnInterrupted)
         return TRUE;
-    if (turnActionIndex >= MAX_BATTLERS_COUNT)
+    if (!Chain_IsFollowingUp(battler))
         return FALSE;
 
-    if (gBattleStruct->turnActionRole[turnActionIndex] == CHAIN_ROLE_RIVAL_EXTRA)
-        return !PickDifferentRivalMove(battler);
-
-    if (gBattleStruct->turnActionRole[turnActionIndex] != CHAIN_ROLE_SECOND)
-        return FALSE;
-
-    // Si el primer movimiento lo dejó agotado, el segundo se pierde.
-    if (Stamina_IsExhausted(battler))
+    if (gBattleStruct->chainFollowUpsInvalid || !Chain_IsAvailable(battler)
+     || !(gBattleStruct->chainOpeningMask & (1u << battler))
+     || gBattleMons[battler].volatiles.multipleTurns
+     || gBattleMons[battler].volatiles.rechargeTimer
+     || (STAMINA_ENABLED && Stamina_IsExhausted(battler)))
         return TRUE;
 
     u8 first = gBattleStruct->chosenMovePositions[battler];
     u8 second = gBattleStruct->chainSecondPos[battler] - 1;
-    if (first >= MAX_MON_MOVES || second >= MAX_MON_MOVES
-     || !Chain_IsPairAllowed(battler, gBattleMons[battler].moves[first], gBattleMons[battler].moves[second]))
+    if (first >= MAX_MON_MOVES || second >= MAX_MON_MOVES)
+        return TRUE;
+
+    enum Move move = gBattleMons[battler].moves[second];
+    if (!Chain_IsPairAllowed(battler, gBattleMons[battler].moves[first], move)
+     || (CheckMoveLimitations(battler, 0, MOVE_LIMITATIONS_ALL) & (1u << second))
+     || (STAMINA_ENABLED && Stamina_GetActionCost(battler, move, TRUE) > Stamina_GetCurrent(battler)))
         return TRUE;
 
     gBattleStruct->chosenMovePositions[battler] = second;
@@ -322,6 +319,8 @@ bool32 Chain_WasInterrupted(void)
 void Chain_Reset(void)
 {
     gBattleStruct->chainSpecialMask = 0;
+    gBattleStruct->chainOpeningMask = 0;
+    gBattleStruct->chainFollowUpsInvalid = FALSE;
     memset(gBattleStruct->chainFirstPos, 0, sizeof(gBattleStruct->chainFirstPos));
     memset(gBattleStruct->chainSecondPos, 0, sizeof(gBattleStruct->chainSecondPos));
     memset(gBattleStruct->turnActionRole, 0, sizeof(gBattleStruct->turnActionRole));

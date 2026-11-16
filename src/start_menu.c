@@ -321,6 +321,8 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
 #undef GEAR_BLOOD_VARIANT
     { ITEM_GEAR_STORM_STAFF, COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondary effects."), 0, 3,
       {{ ITEM_THUNDER_STONE, 1 }, { ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
+    { ITEM_GEAR_SHACKLE, COMPOUND_STRING("20% on a damaging move.\nBlocks the foe's chain."), 0, 2,
+      {{ ITEM_METAL_COAT, 1 }, { ITEM_HARD_STONE, 1 }} },
 };
 
 static const struct WindowTemplate sUnholyCraftWindow =

@@ -150,7 +150,7 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     gBattleStruct->gearOwner[B_BATTLER_0] = 0;
     EXPECT(!Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_WATER_GUN));
     EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_SCRATCH));
-    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_CALM_MIND, MOVE_EMBER));
+    EXPECT(!Chain_IsPairAllowed(B_BATTLER_0, MOVE_CALM_MIND, MOVE_EMBER));
     EXPECT_EQ(Gear_GetPhase(B_BATTLER_0), GEAR_PHASE_ARMED);
     Gear_OnMoveUsed(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE);
     Gear_EndOfTurn(B_BATTLER_0);
@@ -167,6 +167,7 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_PSYWAVE));
     EXPECT(!Gear_StormStaffRepeatsMove(B_BATTLER_0, MOVE_FUTURE_SIGHT));
     EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_EMBER));
+    Chain_RecordOpeningMove(B_BATTLER_0, MOVE_EMBER);
     gCurrentTurnActionNumber = 1;
     EXPECT(!Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_SCRATCH));
     gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_PHYSICAL;

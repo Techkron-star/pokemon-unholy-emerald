@@ -39,6 +39,7 @@ enum Gear
     GEAR_BLOOD_STEEL,
     GEAR_BLOOD_FAIRY,
     GEAR_STORM_STAFF,
+    GEAR_SHACKLE,
     GEAR_COUNT
 };
 

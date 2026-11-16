@@ -2,7 +2,7 @@
 
 Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordinario. Habrá pocos, con identidades marcadas. En vez de «más stats», cada Gear funciona en **ciclos**: una **sobrecarga** potente y, mientras se **recarga**, una **bonificación residual** modesta. El Gear no se consume y se reactiva solo.
 
-**Estado:** los seis Gears originales, los 18 Inyectores y el Báculo Tormentoso tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
+**Estado:** los seis Gears originales, los 18 Inyectores, el Báculo Tormentoso y Grillete tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
 
 ## Cómo funciona
 
@@ -148,11 +148,15 @@ Cada receta usa **1 Polvo Estelar y 1 gema del tipo correspondiente**. Horizon v
 
 El Báculo es pasivo. Un ataque especial que acierta a un solo objetivo puede dar un segundo golpe con **25 % de su potencia**, sin gastar PP ni Stamina adicionales. Si el primer golpe derrota al objetivo, termina ahí. El golpe adicional usa las reglas de multigolpe, incluidas las interacciones con Sustituto y los objetos que se activan entre golpes.
 
-El Báculo suprime los efectos secundarios del ataque especial, incluso los de probabilidad del 100 %. El ataque conserva sus efectos principales, como la bajada de Ataque Especial al usar Sofoco, una vez por movimiento. Un portador puede combinar un ataque especial con uno físico o de estado en una cadena. Jugador e IA quedan sujetos al límite al elegir y al resolver movimientos de categoría variable.
+El Báculo suprime los efectos secundarios del ataque especial, incluso los de probabilidad del 100 %. El ataque conserva sus efectos principales, como la bajada de Ataque Especial al usar Sofoco, una vez por movimiento. Un portador puede combinar un ataque especial con uno físico en una cadena válida. Jugador e IA quedan sujetos al límite al elegir y al resolver movimientos de categoría variable.
 
 En esta primera versión, los ataques con varios objetivos activos, los multigolpe nativos, los movimientos de dos turnos, los golpes diferidos, de daño fijo o de KO directo y los movimientos Z y Max mantienen su cantidad de impactos original.
 
 **Receta inicial**. 1 Piedra Trueno, 1 Imán y 1 Trozo Estrella. En equipos de entrenador se usa `Gear: Storm Staff`.
+
+### Grillete
+
+Probabilidad inicial del **20 %** al dañar al primer rival elegible de una ejecución. Encadenado bloquea segundas acciones durante el resto de ese turno y el siguiente turno completo. El Gear puede tirar una vez por ejecución y el efecto no se acumula. La receta inicial usa un Revestimiento Metálico y una Piedra Dura.
 
 | Gear | Efecto confirmado | Qué falta |
 |---|---|---|

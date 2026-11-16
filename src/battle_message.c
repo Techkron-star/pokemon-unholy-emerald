@@ -647,6 +647,7 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_MISTYTERRAINPREVENTS]                 = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX} surrounds itself with a protective mist!"),
     [STRINGID_GRASSYTERRAINHEALS]                   = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX} is healed by the grassy terrain!"),
     [STRINGID_PERMAFROSTHEALS]                      = COMPOUND_STRING("{B_ATK_NAME_WITH_PREFIX} regained HP with Permafrost!"),
+    [STRINGID_GEARCHAINED]                         = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}\ncan't chain moves!"),
     [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press START\n"
                                                                      "to mark your first move.\p"
                                                                      "Pick a different move with A\n"

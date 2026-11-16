@@ -2956,6 +2956,11 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
 {
     enum BattleMoveEffects effect = GetMoveEffect(gCurrentMove);
 
+    Chain_InvalidateFollowUps();
+    gBattleStruct->shackleTurns[battler] = 0;
+    gBattleStruct->survivalGuardMask &= ~(1u << battler);
+    gBattleStruct->survivalUsedThisMoveMask &= ~(1u << battler);
+
     // Data cleared both on switch and faint
     ClearSetDataOnLeave(battler);
 
@@ -3651,6 +3656,8 @@ bool32 EndTurnEvents(void) // Called from Battle Script
     {
         if (IsBattlerAlive(battler))
             Gear_EndOfTurn(battler);
+        if (gBattleStruct->shackleTurns[battler] != 0)
+            gBattleStruct->shackleTurns[battler]--;
         gChosenActionByBattler[battler] = B_ACTION_NONE;
         gChosenMoveByBattler[battler] = MOVE_NONE;
         gBattleStruct->monToSwitchIntoId[battler] = PARTY_SIZE;
@@ -4758,6 +4765,13 @@ static void SetActionsAndBattlersTurnOrder(void)
 
 static void TurnValuesCleanUp(bool32 endTurn)
 {
+    if (!endTurn)
+    {
+        Chain_Reset();
+        gBattleStruct->survivalGuardMask = 0;
+        gBattleStruct->survivalUsedThisMoveMask = 0;
+    }
+
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
         if (endTurn)
@@ -4779,7 +4793,6 @@ static void TurnValuesCleanUp(bool32 endTurn)
 
             if (IsBattlerAlive(i))
                 Stamina_EndOfTurn(i);
-            Chain_Reset();
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;
             gBattleStruct->battlerState[i].wasAboveHalfHp = FALSE;
