@@ -1,6 +1,19 @@
 # Unholy Emerald — interfaz nativa 240 × 160
 
-La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta entrega adapta su composición al motor GBA de la rama `feat/unholy-cosmic-trainer-gears`. Las mecánicas, precios, probabilidades, progresión y datos de guardado siguen perteneciendo a los proveedores existentes.
+La referencia conceptual es «Pokewatch UI – Unholy Emerald». La organización de Crafting, Horizon y el Poké Watch sirve de referencia para los demás menús de Unholy Emerald.
+
+## Estándar de organización
+
+| Elemento | Criterio |
+| --- | --- |
+| Contexto | El encabezado identifica la pantalla o el paso actual. El nombre, saldo o contador se muestran allí cuando ayudan a decidir. |
+| Selección | El borde y el relleno muestran el foco. El estado bloqueado, agotado o incompleto lleva un texto, un símbolo o una cantidad que se pueda interpretar en ambos temas. |
+| Detalle | El cuerpo de la pantalla agrupa la información de la selección. Crafting pone el objeto sobre sus materiales, el Simulador alinea estadísticas en columnas y una incursión muestra el jefe y las probabilidades debajo de la dificultad. |
+| Acciones | El pie nombra lo que hace cada botón en ese paso. Si la selección está bloqueada, explica el requisito cerca del contenido. Una confirmación muestra el coste, el efecto o el riesgo antes de aplicar la acción. |
+
+Usar cuadrícula cuando varias opciones se comparan de un vistazo, lista con ficha cuando importa inspeccionar cada opción y tabla cuando las mismas cifras se comparan entre filas. En cada caso, reservar espacio para nombres largos, cifras, iconos y estados. Las ayudas describen acciones reales y las cantidades van junto a su etiqueta.
+
+`UnholyUi_Frame`, `UnholyUi_Footer`, `UnholyUi_ChoiceRow` y `UnholyUi_Card` comparten el marco, la zona de acciones y el estilo de selección. Mantener las precauciones de tiles, sprites y paletas de cada menú que los usa. Verificar a 240 × 160 el foco, la lectura y el efecto de los botones en Eclipse y Daylight, incluyendo lista vacía, bloqueo, confirmación, cancelación y retorno.
 
 ## Componentes y resolución
 
@@ -13,14 +26,14 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 
 | Referencia | Implementación |
 | --- | --- |
-| 1, 6 · Pokéwatch | Diez servicios, cinco filas visibles, desplazamiento y contador. La fila bloqueada conserva el foco y muestra el requisito real. A nunca lanza un servicio sin acceso. Se conserva el servicio elegido al regresar. |
+| 1, 6 · Poké Watch | Diez servicios en una cuadrícula de dos columnas y hasta seis tarjetas por página. El servicio bloqueado conserva el foco y muestra su requisito real. Al regresar se conserva el servicio elegido. |
 | 2 · Horizon | Cinco categorías existentes: Pokémon, Discos, Objetos, Huevos y Movimientos. Las seis ofertas Pokémon y cinco huevos reutilizan su compra, confirmación, stock y RNG persistentes. |
 | 3 · PokéNav | Se conserva el mapa real y sus funciones. El panel de ubicación adopta la paleta común y limita los nombres a su espacio. |
 | 4 · Pokélocator | Catálogo 3×2 por especie, categorías presentes/desbloqueadas, ficha previa y progreso. Obtención gratuita individual/ALL/NEW con confirmación y capacidad, Search nativo, objetivo R persistente y Señal existente. Topes globales por medallas. Eclipse/Daylight comparten datos y navegación. Véase [Pokélocator](POKELOCATOR_SEARCH.md). |
-| 5 · Mutator | Lista del equipo, planes, confirmación y resultado comparten marco, paleta y ayudas. Coste, riesgo y requisitos siguen calculándose en el servicio existente. |
+| 5 · Mutator | Equipo en tarjetas con foco y bloqueos. Cada plan alinea coste, probabilidad de éxito y nivel resultante. La confirmación muestra que se cobra también si falla. |
 | 7 · Huevos | Rango y calidad se identifican por separado. La compra sigue ocultando la especie. No hay una acción de reinicio del premio. |
 | 8–11 · Resumen | Cuatro pestañas: INFO, STATS, MOVES, GEAR. Incluye sprite real, PS, stamina máxima, IV/EV, ranuras de objeto/Gear independientes, las nueve mutaciones combinables y bonos positivos/negativos calculados por estadística. |
-| 12 · Crafteo | Nombre y descripción de receta, ingredientes y cantidades poseído/requerido en columnas distintas, estados OK/NEED, requisito de medalla y confirmación existente. |
+| 12 · Crafting | Recetas en tarjetas a la izquierda. A la derecha van el objeto, su icono y debajo los materiales con cantidades disponibles y necesarias. Los materiales que faltan se marcan al lado de la cantidad. |
 | 13, 19 · Combate | Se conservan las tarjetas de PS, estado, anillos e iconos de Gear existentes. En selección de movimientos, una franja muestra dos posiciones de cadena, nombres, coste previsto y stamina disponible. SELECT se indica para marcar/cancelar; A conserva las validaciones existentes. La franja se oculta con descripciones y al salir. |
 | 14 · START | WATCH sigue siendo el acceso al reloj; se conservan las rutas y el retorno del menú existente. |
 | 15 · Opciones | Se muestran las opciones reales de la rama con tipografía de 12 px y vista previa Eclipse/Daylight. |
@@ -31,10 +44,10 @@ La referencia conceptual es el PDF «Pokewatch UI – Unholy Emerald». Esta ent
 ## Servicios complementarios del reloj
 
 - **PC:** abre la organización existente de cajas y regresa al reloj; conserva sus operaciones y selección.
-- **Archivo:** nueve registros con nombre, tier y estado, contenidos en una ventana de 24 × 18 tiles.
-- **Señal mutante:** muestra estado diario, encuentros restantes y activación existente.
-- **Simulador:** selección de Pokémon, edición de IV/EV, comparación de estadísticas y revisión del pago. Las modificaciones se aplican solo al confirmar.
-- **Incursiones:** dificultad y requisito, jefe y equipo, probabilidad de captura, ronda actual y elección de recompensa. El panel no adelanta el estado de la incursión por dibujarse.
+- **Archivo:** nueve registros en una tabla con encabezados para mutación, tier y estado.
+- **Señal mutante:** tarjeta de estado con el aumento, los encuentros restantes o la condición para activarla.
+- **Simulador:** equipo en tarjetas y comparación alineada de IV, EV, estadísticas actuales y previstas. El coste y el dinero disponible se leen debajo antes de pagar.
+- **Incursiones:** dificultad y recompensas en tarjetas. El cuerpo muestra el requisito, el jefe y su equipo, la probabilidad de captura o el detalle de la recompensa elegida.
 
 ## Controles de Resumen
 

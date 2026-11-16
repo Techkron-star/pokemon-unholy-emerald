@@ -45,7 +45,7 @@ static const struct WindowTemplate sSimulatorWindow =
     .tilemapLeft = 1,
     .tilemapTop = 1,
     .width = 26,
-    .height = 17,
+    .height = 18,
     .paletteNum = 14,
     .baseBlock = 0x20,
 };
@@ -154,100 +154,107 @@ static struct Pokemon *SelectedMon(void)
     return &gParties[B_TRAINER_PLAYER][sSimulator.partySlots[sSimulator.partyIndex]];
 }
 
-static void PrintText(const u8 *text, u8 x, u8 y)
-{
-    UnholyUi_Print(sSimulator.window, (y >= 32 && y <= 112) || y >= 120 ? FONT_SMALL_NARROW : FONT_SMALL, x, y, 200 - min(x, 200), text);
-}
-
-static void PrintNumber(u32 number, u8 x, u8 y, u8 digits)
-{
-    u8 text[12];
-    ConvertUIntToDecimalStringN(text, number, STR_CONV_MODE_LEFT_ALIGN, digits);
-    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, x, y, 200 - min(x, 200), text);
-}
-
-static void PrintMoney(const u8 *label, u32 amount, u8 x, u8 y)
+static void PrintMoney(const u8 *label, u32 amount, u8 x)
 {
     u8 text[28];
     u8 *end = StringCopy(text, label);
     ConvertUIntToDecimalStringN(end, amount, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
-    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, x, y, 200 - min(x, 200), text);
+    u8 font = GetFontIdToFit(text, FONT_SMALL_NARROW, 0, 62);
+    UnholyUi_Print(sSimulator.window, font, x, 104, 62, text);
 }
 
 static void RenderParty(void)
 {
-    PrintText(COMPOUND_STRING("Choose a party Pokémon."), 8, 23);
+    u8 window = sSimulator.window;
+    const u8 *reason = NULL;
     if (sSimulator.partyCount == 0)
-        PrintText(COMPOUND_STRING("Your party is empty."), 8, 42);
+        UnholyUi_Print(window, FONT_SMALL, 8, 25, 192, COMPOUND_STRING("Your party is empty."));
+
     for (u8 i = 0; i < sSimulator.partyCount; i++)
     {
         struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sSimulator.partySlots[i]];
-        const u8 *reason = GetLockReason(mon);
-        u8 y = 37 + 11 * i;
+        const u8 *lock = GetLockReason(mon);
+        bool8 selected = i == sSimulator.partyIndex;
         u8 name[POKEMON_NAME_LENGTH + 1];
-        if (i == sSimulator.partyIndex)
-            PrintText(COMPOUND_STRING(">"), 8, y);
         GetMonData(mon, MON_DATA_NICKNAME, name);
-        PrintText(name, 20, y);
-        if (reason != NULL)
-            PrintText(reason, 107, y);
+        UnholyUi_ChoiceRow(window, 23 + 13 * i, name, lock, selected);
+        if (selected)
+            reason = lock;
     }
-    PrintText(sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300     EV point ¥20"), 8, 108);
-    PrintText(COMPOUND_STRING("A  Edit      B  Back"), 8, 124);
+    const u8 *notice = sSimulator.notice != NULL ? sSimulator.notice : COMPOUND_STRING("IV point ¥300    EV point ¥20");
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 105, 192, notice);
+    UnholyUi_Footer(window, sSimulator.partyCount != 0 && reason == NULL
+        ? COMPOUND_STRING("A:EDIT  B:BACK") : COMPOUND_STRING("B:BACK"));
+}
+
+static void RenderStatRow(struct Pokemon *mon, struct Pokemon *preview, u8 row)
+{
+    u8 window = sSimulator.window;
+    enum Stat stat = sStatOrder[row];
+    bool8 selected = row == sSimulator.row && sSimulator.mode == SIMULATOR_EDIT;
+    u8 fill = UnholyUi_CardFill(selected);
+    u8 y = 32 + 12 * row;
+    const u8 columns[] = {70, 99, 132, 174};
+    const u32 values[] = {
+        sSimulator.draft.ivs[stat], sSimulator.draft.evs[stat],
+        GetMonData(mon, MON_DATA_MAX_HP + stat), GetMonData(preview, MON_DATA_MAX_HP + stat),
+    };
+
+    FillWindowPixelRect(window, PIXEL_FILL(fill), 6, y, 196, 12);
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 10, y, 52, fill, sStatNames[stat]);
+    for (u8 i = 0; i < ARRAY_COUNT(values); i++)
+    {
+        u8 text[8];
+        ConvertUIntToDecimalStringN(text, values[i], STR_CONV_MODE_LEFT_ALIGN, 5);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, columns[i], y, 25, fill, text);
+    }
 }
 
 static void RenderSpread(void)
 {
+    u8 window = sSimulator.window;
+    bool8 reviewing = sSimulator.mode == SIMULATOR_REVIEW;
     struct Pokemon *mon = SelectedMon();
     struct Pokemon preview = *mon;
     u8 name[POKEMON_NAME_LENGTH + 1];
-    u16 total = TotalEvs(&sSimulator.draft);
     u8 evText[18];
     u8 *evCursor = StringCopy(evText, COMPOUND_STRING("EV "));
-    evCursor = ConvertUIntToDecimalStringN(evCursor, total, STR_CONV_MODE_LEFT_ALIGN, 4);
+    evCursor = ConvertUIntToDecimalStringN(evCursor, TotalEvs(&sSimulator.draft), STR_CONV_MODE_LEFT_ALIGN, 4);
     evCursor = StringCopy(evCursor, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(evCursor, MAX_TOTAL_EVS, STR_CONV_MODE_LEFT_ALIGN, 3);
     ApplyValues(&preview, &sSimulator.draft);
 
     GetMonData(mon, MON_DATA_NICKNAME, name);
-    PrintText(name, 8, 24);
-    PrintText(sSimulator.editingEvs ? COMPOUND_STRING("IV") : COMPOUND_STRING(">IV"), 80, 24);
-    PrintText(sSimulator.editingEvs ? COMPOUND_STRING(">EV") : COMPOUND_STRING("EV"), 108, 24);
-    UnholyUi_Print(sSimulator.window, FONT_SMALL_NARROW, 138, 26, 62, COMPOUND_STRING("OLD > NEW"));
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 112, 5, 88, name);
+    u8 activeX = sSimulator.editingEvs ? 94 : 65;
+    if (!reviewing)
+        UnholyUi_Card(window, activeX, 20, 23, 12, TRUE);
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 10, 20, 52, COMPOUND_STRING("STAT"));
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 70, 20, 18,
+        UnholyUi_CardFill(!reviewing && !sSimulator.editingEvs), COMPOUND_STRING("IV"));
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 99, 20, 18,
+        UnholyUi_CardFill(!reviewing && sSimulator.editingEvs), COMPOUND_STRING("EV"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 124, 20, 39, COMPOUND_STRING("CURRENT"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 165, 20, 37, COMPOUND_STRING("PREVIEW"));
 
     for (u8 row = 0; row < NUM_STATS; row++)
-    {
-        enum Stat stat = sStatOrder[row];
-        u8 y = 39 + 10 * row;
-        if (row == sSimulator.row && sSimulator.mode == SIMULATOR_EDIT)
-            PrintText(COMPOUND_STRING(">"), 8, y);
-        PrintText(sStatNames[stat], 20, y);
-        PrintNumber(sSimulator.draft.ivs[stat], 81, y, 2);
-        PrintNumber(sSimulator.draft.evs[stat], 109, y, 3);
-        PrintNumber(GetMonData(mon, MON_DATA_MAX_HP + stat), 138, y, 5);
-        PrintText(COMPOUND_STRING(">"), 166, y);
-        PrintNumber(GetMonData(&preview, MON_DATA_MAX_HP + stat), 174, y, 5);
-    }
+        RenderStatRow(mon, &preview, row);
 
-    PrintText(evText, 8, 98);
-    PrintMoney(COMPOUND_STRING("Cost ¥"), CalculateCost(mon, &sSimulator.draft), 73, 98);
-    PrintMoney(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), 135, 98);
-    if (sSimulator.notice != NULL)
-        PrintText(sSimulator.notice, 8, 108);
-    else if (sSimulator.mode == SIMULATOR_REVIEW)
-        PrintText(COMPOUND_STRING("Pay to apply these changes?"), 8, 108);
-    else
-        PrintText(COMPOUND_STRING("Left/Right 1   L/R 10   SELECT IV/EV"), 8, 108);
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 104, 62, evText);
+    PrintMoney(COMPOUND_STRING("Cost ¥"), CalculateCost(mon, &sSimulator.draft), 72);
+    PrintMoney(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), 138);
 
-    if (sSimulator.mode == SIMULATOR_REVIEW)
-        PrintText(COMPOUND_STRING("A  Pay      B  Keep editing"), 8, 124);
-    else
-        PrintText(COMPOUND_STRING("A  Review      B  Discard draft"), 8, 124);
+    const u8 *notice = reviewing ? COMPOUND_STRING("Pay to apply these changes?")
+                                : COMPOUND_STRING("LEFT/RIGHT:1  L/R:10  SEL:IV/EV");
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 113, 192, sSimulator.notice != NULL ? sSimulator.notice : notice);
+    UnholyUi_Footer(window, reviewing ? COMPOUND_STRING("A:PAY  B:KEEP EDITING")
+                                    : COMPOUND_STRING("A:REVIEW  B:DISCARD"));
 }
 
 static void Render(void)
 {
-    UnholyUi_Frame(sSimulator.window, COMPOUND_STRING("POKé SIMULATOR"));
+    UnholyUi_Frame(sSimulator.window, sSimulator.mode == SIMULATOR_REVIEW
+        ? COMPOUND_STRING("REVIEW PAYMENT") : COMPOUND_STRING("POKé SIMULATOR"));
     if (sSimulator.mode == SIMULATOR_PARTY)
         RenderParty();
     else

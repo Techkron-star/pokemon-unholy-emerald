@@ -226,75 +226,106 @@ static void PrintAmount(const u8 *label, u32 amount, const u8 *suffix, u8 x, u8 
 
 static void RenderParty(void)
 {
+    u8 window = sMutator.window;
     bool32 canReroll = FlagGet(FLAG_DEFEATED_SUPER_LEAGUE);
-    Print(COMPOUND_STRING("Choose a party Pokémon."), 8, 23);
+    enum HfcMutatorResult eligibility = HFC_MUTATOR_READY;
     if (sMutator.count == 0)
-        Print(COMPOUND_STRING("Your party is empty."), 8, 42);
+        Print(COMPOUND_STRING("Your party is empty."), 8, 25);
 
     for (u8 i = 0; i < sMutator.count; i++)
     {
         struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][sMutator.slots[i]];
-        u8 y = 37 + 11 * i;
+        enum HfcMutatorResult result = GetEligibility(mon, canReroll);
+        bool8 selected = i == sMutator.cursor;
+        const u8 *detail = NULL;
+        if (result != HFC_MUTATOR_READY)
+            detail = COMPOUND_STRING("LOCKED");
+        else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) != 0)
+            detail = COMPOUND_STRING("REROLL");
         u8 name[POKEMON_NAME_LENGTH + 1];
         GetMonData(mon, MON_DATA_NICKNAME, name);
-        if (i == sMutator.cursor)
-            Print(COMPOUND_STRING(">"), 8, y);
-        Print(name, 20, y);
-        if (GetEligibility(mon, canReroll) != HFC_MUTATOR_READY)
-            Print(COMPOUND_STRING("Locked"), 115, y);
-        else if (GetMonData(mon, MON_DATA_SPECIAL_BADGES) != 0)
-            Print(COMPOUND_STRING("Reroll"), 115, y);
+        UnholyUi_ChoiceRow(window, 23 + 13 * i, name, detail, selected);
+        if (selected)
+            eligibility = result;
     }
-    if (sMutator.result != HFC_MUTATOR_READY)
-        Print(sMessages[sMutator.result], 8, 108);
-    Print(COMPOUND_STRING("A  Choose      B  Back"), 8, 124);
+
+    enum HfcMutatorResult notice = sMutator.result != HFC_MUTATOR_READY ? sMutator.result : eligibility;
+    if (notice != HFC_MUTATOR_READY)
+        Print(sMessages[notice], 8, 105);
+    UnholyUi_Footer(window, sMutator.count != 0 && eligibility == HFC_MUTATOR_READY
+        ? COMPOUND_STRING("A:CHOOSE  B:BACK") : COMPOUND_STRING("B:BACK"));
+}
+
+static void RenderPlanRow(enum HfcMutatorPlan plan, u8 level)
+{
+    u8 window = sMutator.window;
+    u8 y = 49 + 15 * plan;
+    bool8 selected = plan == sMutator.plan;
+    u8 fill = UnholyUi_CardFill(selected);
+    u8 amount[16];
+
+    UnholyUi_Card(window, 6, y, 196, 14, selected);
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 11, y + 1, 61, fill, sPlans[plan].name);
+    u8 *end = StringCopy(amount, COMPOUND_STRING("¥"));
+    ConvertUIntToDecimalStringN(end, sPlans[plan].price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 75, y + 1, 46, fill, amount);
+    end = ConvertUIntToDecimalStringN(amount, sPlans[plan].success, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringCopy(end, COMPOUND_STRING("%"));
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 126, y + 1, 32, fill, amount);
+    ConvertUIntToDecimalStringN(amount, GetResultLevel(level, plan), STR_CONV_MODE_LEFT_ALIGN, 3);
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 172, y + 1, 25, fill, amount);
 }
 
 static void RenderPlans(void)
 {
+    u8 window = sMutator.window;
     struct Pokemon *mon = SelectedMon();
     u8 level = GetMonData(mon, MON_DATA_LEVEL);
     u16 badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
-    u8 name[POKEMON_NAME_LENGTH + 1];
-    GetMonData(mon, MON_DATA_NICKNAME, name);
-    UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 8, 24, 76, name);
-    PrintAmount(COMPOUND_STRING("Current Lv. "), level, NULL, 8, 32, 3);
-    Print(COMPOUND_STRING("On success"), 149, 32);
+    u8 text[32];
+    GetMonData(mon, MON_DATA_NICKNAME, text);
+    u8 *end = StringAppend(text, COMPOUND_STRING("  Lv."));
+    ConvertUIntToDecimalStringN(end, level, STR_CONV_MODE_LEFT_ALIGN, 3);
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 8, 22, 100, text);
     if (badges != 0)
     {
-        UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 91, 24, 40, COMPOUND_STRING("Replace"));
-        UnholyUi_Print(sMutator.window, FONT_SMALL_NARROW, 133, 24, 67, HorizonMarketMutationName(GetPrimaryMutation(badges)));
+        end = StringCopy(text, COMPOUND_STRING("Reroll "));
+        StringCopy(end, HorizonMarketMutationName(GetPrimaryMutation(badges)));
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 111, 22, 89, text);
     }
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 11, 37, 61, COMPOUND_STRING("PLAN"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 75, 37, 46, COMPOUND_STRING("COST"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 122, 37, 42, COMPOUND_STRING("SUCCESS"));
+    UnholyUi_Print(window, FONT_SMALL_NARROWER, 167, 37, 35, COMPOUND_STRING("NEW LV."));
+
     for (enum HfcMutatorPlan plan = 0; plan < HFC_MUTATOR_PLAN_COUNT; plan++)
-    {
-        u8 y = 44 + 14 * plan;
-        if (plan == sMutator.plan)
-            Print(COMPOUND_STRING(">"), 8, y);
-        Print(sPlans[plan].name, 20, y);
-        PrintAmount(COMPOUND_STRING("¥"), sPlans[plan].price, NULL, 79, y, MAX_MONEY_DIGITS);
-        PrintAmount(COMPOUND_STRING(""), sPlans[plan].success, COMPOUND_STRING("%"), 126, y, 3);
-        PrintAmount(COMPOUND_STRING("Lv. "), GetResultLevel(level, plan), NULL, 157, y, 3);
-    }
-    PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 91, MAX_MONEY_DIGITS);
+        RenderPlanRow(plan, level);
+
+    PrintAmount(COMPOUND_STRING("Have ¥"), GetMoney(&gSaveBlock1Ptr->money), NULL, 8, 95, MAX_MONEY_DIGITS);
     Print(sMutator.result == HFC_MUTATOR_INSUFFICIENT_FUNDS ? sMessages[sMutator.result]
-          : COMPOUND_STRING("The fee applies even if it fails."), 8, 108);
-    Print(sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A  Pay      B  Cancel")
-                                             : COMPOUND_STRING("A  Review plan      B  Back"), 8, 124);
+          : COMPOUND_STRING("The fee applies even if it fails."), 8, 106);
+    UnholyUi_Footer(window, sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("A:PAY  B:CANCEL")
+                                                             : COMPOUND_STRING("UP/DOWN:PLAN  A:REVIEW  B:BACK"));
 }
 
 static void RenderResult(void)
 {
-    if (sMutator.result == HFC_MUTATOR_APPLIED)
+    u8 window = sMutator.window;
+    bool8 applied = sMutator.result == HFC_MUTATOR_APPLIED;
+    u8 fill = UnholyUi_CardFill(applied);
+    UnholyUi_Card(window, 6, 23, 196, applied ? 52 : 30, applied);
+    UnholyUi_PrintOnFill(window, FONT_SMALL, 12, 28, 183, fill,
+        applied ? COMPOUND_STRING("Mutation applied.") : sMessages[sMutator.result]);
+    if (applied)
     {
-        Print(COMPOUND_STRING("Mutation applied"), 8, 28);
-        Print(HorizonMarketMutationName(sMutator.mutation), 8, 48);
-        PrintAmount(COMPOUND_STRING("New level "), GetMonData(SelectedMon(), MON_DATA_LEVEL), NULL, 8, 67, 3);
+        UnholyUi_PrintOnFill(window, FONT_SMALL, 12, 44, 183, fill, HorizonMarketMutationName(sMutator.mutation));
+        u8 text[18];
+        u8 *end = StringCopy(text, COMPOUND_STRING("New level "));
+        ConvertUIntToDecimalStringN(end, GetMonData(SelectedMon(), MON_DATA_LEVEL), STR_CONV_MODE_LEFT_ALIGN, 3);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 12, 59, 183, fill, text);
     }
-    else
-        Print(sMessages[sMutator.result], 8, 35);
-
     PrintAmount(COMPOUND_STRING("Paid ¥"), sPlans[sMutator.plan].price, NULL, 8, 89, MAX_MONEY_DIGITS);
-    Print(COMPOUND_STRING("A/B  Continue"), 8, 124);
+    UnholyUi_Footer(window, COMPOUND_STRING("A/B:CONTINUE"));
 }
 
 static void Render(void)

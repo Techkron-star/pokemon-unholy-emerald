@@ -592,7 +592,7 @@ static void UnholyCraftRenderMenu(void)
 
         UnholyCraftDrawRecipeList();
         UnholyCraftDrawRecipeDetail(recipe);
-        UnholyCraftPrint(4, 122, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else
@@ -632,7 +632,7 @@ static void UnholyCraftRenderMenu(void)
             UnholyCraftPrint(6, 103, sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
             UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
-        UnholyCraftPrint(4, 122, sUnholyEquipControls);
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }
 
