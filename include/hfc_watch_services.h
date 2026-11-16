@@ -85,6 +85,7 @@ struct HfcRaidOpponent
 };
 
 const struct HfcRaidDifficultyInfo *HfcWatch_GetRaidDifficultyInfo(enum HfcRaidDifficulty difficulty);
+struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index);
 bool32 HfcWatch_IsRaidDifficultyUnlocked(enum HfcRaidDifficulty difficulty, u8 badges);
 struct HfcRaidOpponent HfcWatch_GetRaidOpponent(u16 day, u32 trainerId, enum HfcRaidDifficulty difficulty,
                                                enum HfcRaidStage stage, u8 slot);

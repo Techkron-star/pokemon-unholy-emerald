@@ -2640,9 +2640,9 @@
 #define FLAG_UNUSED_0x908                           0
 #define FLAG_UNUSED_0x909                           0
 #define FLAG_UNUSED_0x90A                           0
-#define FLAG_UNUSED_0x90B                           0
-#define FLAG_UNUSED_0x90C                           0
-#define FLAG_UNUSED_0x90D                           0
+#define FLAG_UNHOLY_ROUTE119_PANIC                   0
+#define FLAG_UNHOLY_ROUTE120_HOPLITA                 0
+#define FLAG_UNHOLY_ROUTE123_TUNICA                  0
 #define FLAG_UNUSED_0x90E                           0
 #define FLAG_UNUSED_0x90F                           0
 #define FLAG_UNUSED_0x910                           0

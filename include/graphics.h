@@ -1302,6 +1302,11 @@ extern const u16 gItemIconPalette_Shackle[];
     extern const u16 gItemIconPalette_##gfx[];
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
+#define NEW_GEAR(id, gfx, name, description) \
+    extern const u32 gItemIcon_##gfx[]; \
+    extern const u16 gItemIconPalette_##gfx[];
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
 extern const u32 gItemIcon_BloodFire[];
 extern const u32 gItemIcon_BloodDragon[];
 extern const u32 gItemIcon_BloodDark[];

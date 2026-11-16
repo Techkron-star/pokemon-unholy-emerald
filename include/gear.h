@@ -86,6 +86,11 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
 
 // Se llama cuando un movimiento empieza a ejecutarse: fija su bonificación y gasta la sobrecarga.
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType);
+// HP/reactive Gears are resolved after real damage; preview must not consume them.
+void Gear_OnDamaged(enum BattlerId battler, u32 damage);
+void Gear_OnProtectSuccess(enum BattlerId battler);
+// Returns the end-turn heal amount (no direct HP mutation; caller owns battle script).
+u32 Gear_GetEndTurnHeal(enum BattlerId battler);
 
 // Se llama una vez por turno (dos movimientos encadenados = un turno): avanza el ciclo.
 void Gear_EndOfTurn(enum BattlerId battler);

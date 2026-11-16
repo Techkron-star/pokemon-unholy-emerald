@@ -10086,6 +10086,22 @@ const struct ItemInfo gItemsInfo[] =
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
 
+#define NEW_GEAR(id, gfx, visibleName, shortDescription) \
+    [ITEM_GEAR_##id] = \
+    { \
+        .name = ITEM_NAME(visibleName), \
+        .description = COMPOUND_STRING(shortDescription), \
+        .importance = 1, \
+        .pocket = POCKET_KEY_ITEMS, \
+        .sortType = ITEM_TYPE_RELIC, \
+        .type = ITEM_USE_BAG_MENU, \
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, \
+        .iconPic = gItemIcon_##gfx, \
+        .iconPalette = gItemIconPalette_##gfx, \
+    },
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),
