@@ -478,7 +478,7 @@ DOUBLE_BATTLE_TEST("Spread Moves: Unless move hits every target user will not in
     }
 }
 
-DOUBLE_BATTLE_TEST("Spread Moves: Focus Sash activates correctly")
+DOUBLE_BATTLE_TEST("Spread Moves: Focus Sash protects each target for the turn")
 {
     GIVEN {
         ASSUME(gItemsInfo[ITEM_FOCUS_SASH].holdEffect == HOLD_EFFECT_FOCUS_SASH);
@@ -493,9 +493,14 @@ DOUBLE_BATTLE_TEST("Spread Moves: Focus Sash activates correctly")
         MESSAGE("The opposing Wobbuffet hung on using its Focus Sash!");
         MESSAGE("The opposing Wynaut hung on using its Focus Sash!");
         ANIMATION(ANIM_TYPE_MOVE, MOVE_EXPLOSION, playerLeft);
-        MESSAGE("The opposing Wobbuffet fainted!");
+        MESSAGE("The opposing Wobbuffet endured the hit!");
         MESSAGE("Wynaut hung on using its Focus Sash!");
-        MESSAGE("The opposing Wynaut fainted!");
+        MESSAGE("The opposing Wynaut endured the hit!");
+    } THEN {
+        EXPECT_EQ(playerLeft->hp, 0);
+        EXPECT_EQ(playerRight->hp, 1);
+        EXPECT_EQ(opponentLeft->hp, 1);
+        EXPECT_EQ(opponentRight->hp, 1);
     }
 }
 
