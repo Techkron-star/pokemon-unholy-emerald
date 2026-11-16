@@ -1545,9 +1545,9 @@
 #define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag
 #define FLAG_UNUSED_0x909                           (SYSTEM_FLAGS + 0xA9) // Unused Flag
 #define FLAG_UNUSED_0x90A                           (SYSTEM_FLAGS + 0xAA) // Unused Flag
-#define FLAG_UNUSED_0x90B                           (SYSTEM_FLAGS + 0xAB) // Unused Flag
-#define FLAG_UNUSED_0x90C                           (SYSTEM_FLAGS + 0xAC) // Unused Flag
-#define FLAG_UNUSED_0x90D                           (SYSTEM_FLAGS + 0xAD) // Unused Flag
+#define FLAG_UNHOLY_ROUTE119_PANIC                   (SYSTEM_FLAGS + 0xAB) // New Gear pickup; independent of original Route 119 ball.
+#define FLAG_UNHOLY_ROUTE120_HOPLITA                 (SYSTEM_FLAGS + 0xAC) // Existing saves may already have the original item.
+#define FLAG_UNHOLY_ROUTE123_TUNICA                  (SYSTEM_FLAGS + 0xAD) // Preserve collectible status across upgrades.
 #define FLAG_UNUSED_0x90E                           (SYSTEM_FLAGS + 0xAE) // Unused Flag
 #define FLAG_UNUSED_0x90F                           (SYSTEM_FLAGS + 0xAF) // Unused Flag
 #define FLAG_UNUSED_0x910                           (SYSTEM_FLAGS + 0xB0) // Unused Flag

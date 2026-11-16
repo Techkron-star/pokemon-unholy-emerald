@@ -13,6 +13,7 @@ Estado: implementación apilada sobre el PR #62. Valores sujetos a QA de combate
 | Casco Hoplita | En dobles, el compañero recibe 12 % menos daño directo; en individuales, usar con éxito Protección restaura 12 % de stamina máxima, una vez cada 3 turnos. | Poké Ball de Ruta 120. |
 
 El crafteo no ofrece Pánico, Hydra ni Hoplita para conservar el valor de explorar/pelear incursiones.
+Las Poké Balls reutilizan posiciones conocidas, pero **tienen indicadores de recogida nuevos**: una partida que ya recogió los objetos anteriores puede recoger las reliquias una vez tras actualizar. Los objetos antiguos no se borran del inventario.
 
 ## Rebalance de los 15 Gears anteriores
 
