@@ -93,6 +93,31 @@ void UnholyUi_Frame(u8 window, const u8 *title)
     UnholyUi_Print(window, FONT_SMALL, 7, 4, width - 14, title);
 }
 
+void UnholyUi_Footer(u8 window, const u8 *actions)
+{
+    u16 width = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH - 14;
+    u8 font = GetFontIdToFit(actions, FONT_SMALL_NARROW, 0, width);
+    // Each glyph blits 12 or 15 pixels. Leave the two-pixel frame intact.
+    u8 inset = font == FONT_SMALL_NARROWER ? 17 : 14;
+    u16 y = GetWindowAttribute(window, WINDOW_HEIGHT) * TILE_HEIGHT - inset;
+    UnholyUi_Print(window, font, 7, y, width, actions);
+}
+
+void UnholyUi_ChoiceRow(u8 window, u16 y, const u8 *label, const u8 *detail, bool8 selected)
+{
+    u16 width = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH - 12;
+    u8 fill = UnholyUi_CardFill(selected);
+    u16 labelWidth = width - 10;
+    UnholyUi_Card(window, 6, y, width, 13, selected);
+    if (detail != NULL)
+    {
+        u16 detailWidth = min(width / 2, GetStringWidth(FONT_SMALL_NARROW, detail, 0));
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, width + 1 - detailWidth, y + 1, detailWidth, fill, detail);
+        labelWidth -= detailWidth + 5;
+    }
+    UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 11, y + 1, labelWidth, fill, label);
+}
+
 void UnholyUi_Bar(u8 window, u16 x, u16 y, u16 width, u32 value, u32 maximum, u8 color)
 {
     FillWindowPixelRect(window, PIXEL_FILL(3), x, y, width, 3);
