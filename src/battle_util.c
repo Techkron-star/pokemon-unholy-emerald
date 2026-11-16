@@ -6840,6 +6840,19 @@ static inline u32 CalcMoveBasePowerAfterModifiers(struct DamageContext *ctx)
     }
     modifier = uq4_12_multiply(modifier, gearModifier);
 
+    if (activeGear == GEAR_CARTEL_BUSQUEDA && !IsBattleMoveStatus(move))
+    {
+        // Provisional balance: +5% for every positive opposing stat stage,
+        // capped at +60%. Negative stages do not count.
+        u32 raisedStages = 0;
+        for (u32 stat = STAT_ATK; stat <= STAT_EVASION; stat++)
+        {
+            if (gBattleMons[battlerDef].statStages[stat] > DEFAULT_STAT_STAGE)
+                raisedStages += gBattleMons[battlerDef].statStages[stat] - DEFAULT_STAT_STAGE;
+        }
+        modifier = uq4_12_multiply(modifier, (100 + min(raisedStages * 5, 60)) * 4096 / 100);
+    }
+
     // Terastallization boosts weak, non-priority, non-multi hit moves after modifiers to 60 BP.
     if (GetActiveGimmick(battlerAtk) == GIMMICK_TERA
         && (moveType == GetBattlerTeraType(battlerAtk)
@@ -7244,8 +7257,17 @@ static inline u32 CalcDefenseStat(struct DamageContext *ctx)
     if (MoveIgnoresDefenseEvasionStages(move))
         defStage = DEFAULT_STAT_STAGE;
 
-    defStat *= gStatStageRatios[defStage][0];
-    defStat /= gStatStageRatios[defStage][1];
+    // Aegis doubles the *value* of every positive stage, not the actual
+    // stored stage. Never clamp +2n back to +6: a displayed +6 must confer
+    // the effective +12 multiplier (x7), rather than the ordinary x4.
+    // Crits, Unaware and stage-ignoring moves still bypass these boosts.
+    if (defStage > DEFAULT_STAT_STAGE && Gear_GetBattlerGear(battlerDef) == GEAR_ESCUDO_AEGIS)
+        defStat *= 1 + defStage - DEFAULT_STAT_STAGE;
+    else
+    {
+        defStat *= gStatStageRatios[defStage][0];
+        defStat /= gStatStageRatios[defStage][1];
+    }
 
     // apply defense stat modifiers
     modifier = UQ_4_12(1.0);
@@ -7719,6 +7741,12 @@ static inline uq4_12_t GetOtherModifiers(struct DamageContext *ctx)
     DAMAGE_MULTIPLY_MODIFIER(GetAirborneModifier(ctx->move, ctx->battlerDef));
     DAMAGE_MULTIPLY_MODIFIER(GetScreensModifier(ctx));
     DAMAGE_MULTIPLY_MODIFIER(GetCollisionCourseElectroDriftModifier(ctx->move, ctx->typeEffectivenessModifier));
+
+    // Provisional Fairy Ring balance: 25% less direct Poison move damage to
+    // Fairy-type wearers. Type chart and Poison immunities remain untouched.
+    if (ctx->moveType == TYPE_POISON && IS_BATTLER_OF_TYPE(ctx->battlerDef, TYPE_FAIRY)
+     && Gear_GetBattlerGear(ctx->battlerDef) == GEAR_ANILLO_FEERICO)
+        DAMAGE_MULTIPLY_MODIFIER(UQ_4_12(0.75));
 
     if (unmodifiedAttackerSpeed >= unmodifiedDefenderSpeed)
     {
@@ -10595,6 +10623,13 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
         evasionStage = DEFAULT_STAT_STAGE;
     if (MoveIgnoresDefenseEvasionStages(cv->move))
         evasionStage = DEFAULT_STAT_STAGE;
+    // The first ordinary damaging attack bypasses the target's evasion
+    // stages. Accuracy penalties on the user and immunities still apply.
+    if (Gear_GetBattlerGear(battlerAtk) == GEAR_LENTE_CERTEZA
+     && (Gear_GetPhase(battlerAtk) == GEAR_PHASE_ARMED
+       || (gBattleStruct->gearSnapshotMove[battlerAtk] == cv->move
+        && gBattleStruct->gearSnapshotPercent[battlerAtk] == 101)))
+        evasionStage = DEFAULT_STAT_STAGE;
     if (cv->abilities[battlerDef] == ABILITY_UNAWARE)
         accStage = DEFAULT_STAT_STAGE;
 
@@ -10620,6 +10655,13 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
 
     u32 calc = gAccuracyStageRatios[buff].dividend * moveAcc;
     calc /= gAccuracyStageRatios[buff].divisor;
+
+    if (Gear_GetBattlerGear(battlerAtk) == GEAR_LENTE_CERTEZA
+     && Gear_GetPhase(battlerAtk) == GEAR_PHASE_RECHARGING
+     && !(gBattleStruct->gearSnapshotMove[battlerAtk] == cv->move
+       && gBattleStruct->gearSnapshotPercent[battlerAtk] == 101)
+     && GetMoveEffect(cv->move) != EFFECT_OHKO)
+        calc = calc * 110 / 100;
 
     // Attacker's ability
     switch (cv->abilities[battlerAtk])

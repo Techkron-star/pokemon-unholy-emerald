@@ -3,6 +3,7 @@
 #include "move.h"
 #include "pokemon.h"
 #include "battle_stamina.h"
+#include "gear.h"
 
 // La stamina vive en gBattleStruct, así que no toca el formato de guardado.
 // Se (re)inicializa al máximo cada vez que un Pokémon entra al campo: se detecta
@@ -86,7 +87,16 @@ u32 Stamina_GetActionCost(enum BattlerId battler, enum Move move, bool32 followU
     if (gBattleMons[battler].volatiles.confusionTimer)
         costPercent += STAMINA_CONFUSION_COST_BONUS;
 
-    return (baseCost * costPercent + 99) / 100;
+    u32 cost = (baseCost * costPercent + 99) / 100;
+    if (Gear_GetBattlerGear(battler) == GEAR_MODULO_VECTORIAL && GetMoveEffect(move) == EFFECT_HIT_ESCAPE)
+    {
+        // Only actual pivot attacks, never generic quick attacks or switches.
+        if (Gear_GetPhase(battler) == GEAR_PHASE_ARMED)
+            cost = (cost * 75 + 99) / 100;
+        else if (Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+            cost = (cost * 92 + 99) / 100;
+    }
+    return cost;
 }
 
 void Stamina_SpendForMove(enum BattlerId battler, enum Move move, bool32 followUp)
@@ -97,6 +107,9 @@ void Stamina_SpendForMove(enum BattlerId battler, enum Move move, bool32 followU
     EnsureInitialized(battler);
 
     u32 cost = Stamina_GetActionCost(battler, move, followUp);
+
+    if (Gear_GetBattlerGear(battler) == GEAR_MODULO_VECTORIAL && GetMoveEffect(move) == EFFECT_HIT_ESCAPE)
+        Gear_ActivateEvent(battler);
 
     if (cost >= gBattleStruct->stamina[battler])
     {
@@ -152,6 +165,16 @@ void Stamina_EndOfTurn(enum BattlerId battler)
     u32 max = gBattleStruct->maxStamina[battler];
     u32 regen = max * Stamina_GetRegenPercent(battler) / 100;
     u32 stamina = gBattleStruct->stamina[battler] + (regen > 0 ? regen : 1);
+
+    if (Gear_GetBattlerGear(battler) == GEAR_BATERIA_RESERVA)
+    {
+        // Apply ordinary regeneration first. Crossing below half at the
+        // end of a turn triggers the 20% surge only once per charge cycle.
+        if (stamina * 2 < max && Gear_ActivateEvent(battler))
+            stamina += max * 20 / 100;
+        else if (Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+            stamina += max * 4 / 100;
+    }
 
     if (stamina > max)
         stamina = max;

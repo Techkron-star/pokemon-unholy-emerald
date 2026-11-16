@@ -10070,6 +10070,22 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_Shackle,
     },
 
+#define RECENT_GEAR(id, gfx, path, displayName, displayDescription) \
+    [ITEM_GEAR_##id] = \
+    { \
+        .name = ITEM_NAME(displayName), \
+        .description = COMPOUND_STRING(displayDescription), \
+        .importance = 1, \
+        .pocket = POCKET_KEY_ITEMS, \
+        .sortType = ITEM_TYPE_RELIC, \
+        .type = ITEM_USE_BAG_MENU, \
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, \
+        .iconPic = gItemIcon_##gfx, \
+        .iconPalette = gItemIconPalette_##gfx, \
+    },
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

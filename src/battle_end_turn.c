@@ -135,14 +135,16 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
         break;
     case BATTLE_WEATHER_SUN:
     case BATTLE_WEATHER_SUN_PRIMAL:
-        if (ability == ABILITY_DRY_SKIN || ability == ABILITY_SOLAR_POWER)
+        if ((ability == ABILITY_DRY_SKIN || ability == ABILITY_SOLAR_POWER)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
         }
         break;
     case BATTLE_WEATHER_SANDSTORM:
-        if (ability != ABILITY_SAND_VEIL
+        if (Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA
+         && ability != ABILITY_SAND_VEIL
          && ability != ABILITY_SAND_FORCE
          && ability != ABILITY_SAND_RUSH
          && ability != ABILITY_OVERCOAT
@@ -165,7 +167,8 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
         }
-        else if (currBattleWeather == BATTLE_WEATHER_HAIL)
+        else if (currBattleWeather == BATTLE_WEATHER_HAIL
+              && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (ability != ABILITY_SNOW_CLOAK
              && ability != ABILITY_OVERCOAT
@@ -347,7 +350,8 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     {
     case FIRST_EVENT_BLOCK_GMAX_MOVE_RESIDUAL: // TODO: Has to be split into 3 statuses and needs a queue
         side = GetBattlerSide(battler);
-        if (gSideStatuses[side] & SIDE_STATUS_DAMAGE_NON_TYPES)
+        if ((gSideStatuses[side] & SIDE_STATUS_DAMAGE_NON_TYPES)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (!IS_BATTLER_OF_TYPE(battler, gSideTimers[side].damageNonTypesType)
              && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
@@ -363,6 +367,7 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     case FIRST_EVENT_BLOCK_SEA_OF_FIRE_DAMAGE:
         side = GetBattlerSide(battler);
         if ((gSideStatuses[side] & SIDE_STATUS_SEA_OF_FIRE)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA
          && !IS_BATTLER_OF_TYPE(battler, TYPE_FIRE)
          && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
         {
@@ -451,6 +456,18 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
             SetHealAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
             BattleScriptCall(BattleScript_PermafrostHeal);
             effect = TRUE;
+        }
+        if (IsBattlerPresent(battler)
+         && gBattleMons[battler].status1 != 0
+         && Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+         && Gear_ActivateEvent(battler))
+        {
+            // Status cures are once per charge cycle, at the close of a turn.
+            // Keep party status synchronized with the battle controller.
+            gBattleMons[battler].status1 = 0;
+            BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE, 0, 4,
+                                         &gBattleMons[battler].status1);
+            MarkBattlerForControllerExec(battler);
         }
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler++;
@@ -581,12 +598,18 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
             if ((gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) != STATUS1_TOXIC_TURN(15)) // not 16 turns
                 gBattleMons[battler].status1 += STATUS1_TOXIC_TURN(1);
             gBattleStruct->passiveHpUpdate[battler] *= (gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) >> 8;
+            if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
         else
         {
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
+            if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
@@ -615,6 +638,9 @@ static bool32 HandleEndTurnBurn(enum BattlerId battler)
             burnDamage /= 2;
         }
         SetPassiveDamageAmount(battler, burnDamage);
+        if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+         && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+            gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
         BattleScriptCall(BattleScript_BurnTurnDmg);
         effect = TRUE;
     }

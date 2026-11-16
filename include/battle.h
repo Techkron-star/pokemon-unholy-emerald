@@ -760,6 +760,7 @@ struct BattleStruct
     // Sistema de Gears (ver src/gear.c)
     u8 gearOwner[MAX_BATTLERS_COUNT];        // entrenador × PARTY_SIZE + índice de equipo + 1
     u8 gearActivations[MAX_BATTLERS_COUNT];  // serial de activación para el HUD
+    u8 gearHazardGuard[MAX_BATTLERS_COUNT]; // Umbral protects the entire current switch-in
     u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
     u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
     // La fase sigue al Pokémon dentro del combate, incluso al cambiar de lado en dobles.

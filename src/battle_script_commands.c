@@ -1823,17 +1823,29 @@ static void Cmd_setadditionaleffects(void)
             {
                 percentChance = CalcSecondaryEffectChance(gBattlerAttacker, cv.abilities[cv.battlerAtk], additionalEffect);
 
+                // Velo Criptico only protects against secondary effects aimed
+                // at its wearer. Primary effects, damage and self-buffs stay.
+                bool32 veilTarget = percentChance != 0 && !additionalEffect->self
+                                 && !IsBattlerAlly(cv.battlerAtk, cv.battlerDef)
+                                 && Gear_GetBattlerGear(cv.battlerDef) == GEAR_VELO_CRIPTICO;
+                if (veilTarget && percentChance < 100
+                 && Gear_GetPhase(cv.battlerDef) == GEAR_PHASE_RECHARGING)
+                    percentChance = percentChance * 75 / 100;
+
                 // Activate effect if it's primary (chance == 0) or if RNGesus says so
                 if ((percentChance == 0) || RandomPercentage(RNG_SECONDARY_EFFECT + gBattleStruct->additionalEffectsCounter, percentChance))
                 {
-                    se.additionalEffect = additionalEffect;
-                    se.moveEffect = additionalEffect->moveEffect;
-                    se.script = gBattlescriptCurrInstr;
-                    se.effectBattler = additionalEffect->self ? cv.battlerAtk : cv.battlerDef;
-                    se.primary = percentChance == 0;
-                    se.certain = percentChance >= 100;
-                    se.onSide = additionalEffect->onSide; // TODO
-                    SetMoveEffect(&cv, &se);
+                    if (!veilTarget || !Gear_ActivateEvent(cv.battlerDef))
+                    {
+                        se.additionalEffect = additionalEffect;
+                        se.moveEffect = additionalEffect->moveEffect;
+                        se.script = gBattlescriptCurrInstr;
+                        se.effectBattler = additionalEffect->self ? cv.battlerAtk : cv.battlerDef;
+                        se.primary = percentChance == 0;
+                        se.certain = percentChance >= 100;
+                        se.onSide = additionalEffect->onSide; // TODO
+                        SetMoveEffect(&cv, &se);
+                    }
                 }
             }
 

@@ -3,6 +3,7 @@
 #include "battle_controllers.h"
 #include "battle_dynamax.h"
 #include "battle_z_move.h"
+#include "battle_util.h"
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -42,6 +43,9 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
     case ITEM_GEAR_STORM_STAFF: return GEAR_STORM_STAFF;
     case ITEM_GEAR_SHACKLE: return GEAR_SHACKLE;
+#define RECENT_GEAR(id, gfx, path, name, description) case ITEM_GEAR_##id: return GEAR_##id;
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case ITEM_GEAR_BLOOD_##type: return GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -61,6 +65,9 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
     case GEAR_STORM_STAFF: return ITEM_GEAR_STORM_STAFF;
     case GEAR_SHACKLE: return ITEM_GEAR_SHACKLE;
+#define RECENT_GEAR(id, gfx, path, name, description) case GEAR_##id: return ITEM_GEAR_##id;
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case GEAR_BLOOD_##type: return ITEM_GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -202,6 +209,22 @@ u8 Gear_GetTurnsRemaining(enum BattlerId battler)
     return cycle == NULL ? 0 : cycle->turns;
 }
 
+bool32 Gear_ActivateEvent(enum BattlerId battler)
+{
+    struct GearCycle *cycle;
+
+    if (!GEARS_ENABLED)
+        return FALSE;
+    cycle = Prepare(battler);
+    if (cycle == NULL || cycle->phase != GEAR_PHASE_ARMED
+     || gGearsInfo[cycle->gear].trigger != GEAR_TRIGGER_EVENT)
+        return FALSE;
+
+    StartRecharge(cycle, &gGearsInfo[cycle->gear]);
+    gBattleStruct->gearActivations[battler]++;
+    return TRUE;
+}
+
 uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type moveType)
 {
     const struct GearCycle *cycle;
@@ -211,6 +234,10 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
         return UQ_4_12(1.0);
     cycle = Prepare(battler);
     if (cycle == NULL)
+        return UQ_4_12(1.0);
+
+    // The accuracy lens uses this snapshot for its accuracy window only.
+    if (cycle->gear == GEAR_LENTE_CERTEZA)
         return UQ_4_12(1.0);
 
     // Si el movimiento ya se está ejecutando, vale lo que se fijó al empezar
@@ -276,8 +303,29 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         return;
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
-    if (info->trigger == GEAR_TRIGGER_PASSIVE)
+    if (info->trigger == GEAR_TRIGGER_EVENT && cycle->gear == GEAR_LENTE_CERTEZA)
+    {
+        if (!IsBattleMoveStatus(move) && GetMoveAccuracy(move) != 0 && GetMoveEffect(move) != EFFECT_OHKO)
+        {
+            bool32 charged = cycle->phase == GEAR_PHASE_ARMED;
+            gBattleStruct->gearSnapshotMove[battler] = move;
+            gBattleStruct->gearSnapshotPercent[battler] = charged ? 101 : 110;
+            if (charged)
+                Gear_ActivateEvent(battler);
+        }
         return;
+    }
+    if (info->trigger == GEAR_TRIGGER_PASSIVE || info->trigger == GEAR_TRIGGER_EVENT)
+    {
+        if (cycle->gear == GEAR_PIEDRA_AFILAR && IsSlicingMove(move)
+         && !IsBattleMoveStatus(move) && gBattleMons[battler].statStages[STAT_ATK] < MAX_STAT_STAGE)
+        {
+            // One stage per move execution, not per individual multihit.
+            gBattleMons[battler].statStages[STAT_ATK]++;
+            gBattleStruct->gearActivations[battler]++;
+        }
+        return;
+    }
 
     gBattleStruct->gearSnapshotMove[battler] = move;
     gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(cycle, move, moveType);
@@ -300,6 +348,27 @@ void Gear_EndOfTurn(enum BattlerId battler)
     cycle = Prepare(battler);
     if (cycle == NULL)
         return;
+
+    if (cycle->gear == GEAR_NIHIL_ENGINE)
+    {
+        // Nihil normalizes ONE opposing hazard every third active turn.
+        // The timer belongs to the trainer's party slot, not the field slot.
+        if (++cycle->turns >= 3)
+        {
+            enum BattleSide otherSide = GetBattlerSide(battler) == B_SIDE_PLAYER ? B_SIDE_OPPONENT : B_SIDE_PLAYER;
+            cycle->turns = 0;
+            for (enum Hazards hazard = HAZARDS_SPIKES; hazard < HAZARDS_MAX_COUNT; hazard++)
+            {
+                if (IsHazardOnSide(otherSide, hazard))
+                {
+                    RemoveHazardFromField(otherSide, hazard);
+                    gBattleStruct->gearActivations[battler]++;
+                    break;
+                }
+            }
+        }
+        return;
+    }
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
     switch (cycle->phase)
