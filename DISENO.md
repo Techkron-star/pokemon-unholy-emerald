@@ -1,5 +1,7 @@
 # Pokémon Unholy Emerald — Documento de diseño
 
+**Catálogo nuevo de Gears (diseño, no implementado):** [familia MASKARA (11) y otros 19 Gears](docs/GEARS_MASKARA_ARSENAL.md). Incluye efectos, enfriamientos, compatibilidades, pendientes y cautelas de propiedad intelectual.
+
 **UI nativa:** la adaptación del concepto de Pokéwatch a 240 × 160, sus cuatro pestañas de Resumen, servicios del reloj, componentes Eclipse/Daylight y matriz de QA se documentan en [UI_NATIVE_240.md](docs/UI_NATIVE_240.md).
 
 **Estado:** documento de diseño y seguimiento de implementación; las tablas de estado distinguen funciones compiladas, funciones no probadas en hardware/emulador y diseño pendiente.
