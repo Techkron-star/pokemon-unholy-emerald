@@ -58,6 +58,11 @@ bool32 Stamina_IsExhausted(enum BattlerId battler)
 
 u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
 {
+    return Stamina_GetActionCost(battler, move, FALSE);
+}
+
+u32 Stamina_GetActionCost(enum BattlerId battler, enum Move move, bool32 followUp)
+{
     // Every battler pays the same share of their own capacity. This keeps
     // cheap moves and status moves relevant even at the level cap.
     u32 maxStamina = Stamina_GetMax(battler);
@@ -73,17 +78,25 @@ u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
     percent = STAMINA_COST_BASE_PERCENT
             + (power * accuracy / 100) / STAMINA_COST_POWER_DIVISOR;
     // Ceiling prevents tiny fractional costs from disappearing at low levels.
-    return (maxStamina * percent + 99) / 100;
+    u32 baseCost = (maxStamina * percent + 99) / 100;
+    u32 costPercent = 100;
+    if (followUp)
+        costPercent = gBattleMons[battler].status1 & STATUS1_PARALYSIS
+                    ? STAMINA_PARALYSIS_CHAIN_PERCENT : STAMINA_CHAIN_COST_PERCENT;
+    if (gBattleMons[battler].volatiles.confusionTimer)
+        costPercent += STAMINA_CONFUSION_COST_BONUS;
+
+    return (baseCost * costPercent + 99) / 100;
 }
 
-void Stamina_SpendForMove(enum BattlerId battler, enum Move move)
+void Stamina_SpendForMove(enum BattlerId battler, enum Move move, bool32 followUp)
 {
     if (!STAMINA_ENABLED)
         return;
 
     EnsureInitialized(battler);
 
-    u32 cost = Stamina_GetMoveCost(battler, move);
+    u32 cost = Stamina_GetActionCost(battler, move, followUp);
 
     if (cost >= gBattleStruct->stamina[battler])
     {
@@ -111,6 +124,24 @@ void Stamina_RestoreOnKnockout(enum BattlerId battler, u32 numKos)
     // Si estaba agotado y ya supera el umbral, el chequeo de fin de turno lo recuperará.
 }
 
+u32 Stamina_GetRegenPercent(enum BattlerId battler)
+{
+    u32 status = gBattleMons[battler].status1;
+    if (status & STATUS1_SLEEP)
+        return STAMINA_SLEEP_REGEN_PERCENT;
+    if (status & STATUS1_FREEZE)
+        return STAMINA_FREEZE_REGEN_PERCENT;
+    if (status & STATUS1_BURN)
+        return STAMINA_BURN_REGEN_PERCENT;
+    if (status & STATUS1_PARALYSIS)
+        return STAMINA_PARALYSIS_REGEN_PERCENT;
+    if (status & STATUS1_TOXIC_POISON)
+        return STAMINA_TOXIC_REGEN_PERCENT;
+    if (status & STATUS1_POISON)
+        return STAMINA_POISON_REGEN_PERCENT;
+    return STAMINA_REGEN_PERCENT;
+}
+
 void Stamina_EndOfTurn(enum BattlerId battler)
 {
     if (!STAMINA_ENABLED)
@@ -119,7 +150,7 @@ void Stamina_EndOfTurn(enum BattlerId battler)
     EnsureInitialized(battler);
 
     u32 max = gBattleStruct->maxStamina[battler];
-    u32 regen = max * STAMINA_REGEN_PERCENT / 100;
+    u32 regen = max * Stamina_GetRegenPercent(battler) / 100;
     u32 stamina = gBattleStruct->stamina[battler] + (regen > 0 ? regen : 1);
 
     if (stamina > max)

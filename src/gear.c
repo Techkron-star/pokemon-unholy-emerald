@@ -41,6 +41,7 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_IMPULSO_COSMICO: return GEAR_IMPULSO_COSMICO;
     case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
     case ITEM_GEAR_STORM_STAFF: return GEAR_STORM_STAFF;
+    case ITEM_GEAR_SHACKLE: return GEAR_SHACKLE;
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case ITEM_GEAR_BLOOD_##type: return GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
@@ -59,6 +60,7 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_IMPULSO_COSMICO: return ITEM_GEAR_IMPULSO_COSMICO;
     case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
     case GEAR_STORM_STAFF: return ITEM_GEAR_STORM_STAFF;
+    case GEAR_SHACKLE: return ITEM_GEAR_SHACKLE;
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) case GEAR_BLOOD_##type: return ITEM_GEAR_BLOOD_##type;
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT

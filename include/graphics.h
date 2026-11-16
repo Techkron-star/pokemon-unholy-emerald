@@ -1295,6 +1295,8 @@ extern const u16 gItemIconPalette_PermafrostFragment[];
 extern const u32 gItemIcon_BloodVial[];
 extern const u32 gItemIcon_StormStaff[];
 extern const u16 gItemIconPalette_StormStaff[];
+extern const u32 gItemIcon_Shackle[];
+extern const u16 gItemIconPalette_Shackle[];
 extern const u32 gItemIcon_BloodFire[];
 extern const u32 gItemIcon_BloodDragon[];
 extern const u32 gItemIcon_BloodDark[];

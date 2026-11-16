@@ -4,7 +4,7 @@
 
 **Revisión 12/11/2026:** ambos bandos usan un anillo visible de **9×9 px** dentro de un OBJ de 16×16 (4 tiles y una paleta compartida). En la tarjeta alta del jugador ocupa el hueco inferior izquierdo. En las demás tarjetas tiene un espacio reservado delante del nombre y deja libres los indicadores de estado y captura, la barra de PS y el nivel. Los nombres anchos se condensan y, si hace falta, se acortan conservando el género y la insignia de mutación.
 
-- `STAMINA_REGEN_PERCENT = 20`: recarga **20 %** de Stamina máxima al final del turno (antes era **12 %**). **Advertencia de balance:** 20 % recupera MÁS que 12 %, aunque la petición verbal mencionara reducirla; se ha priorizado el porcentaje explícito.
+- `STAMINA_REGEN_PERCENT = 18` fija la recuperación base en **18 %** de la Stamina máxima una vez por turno. Los estados alterados cambian ese porcentaje según las [reglas de combate](../DISENO.md#recuperación-y-estados-en-combate).
 - `src/stamina_ring.c`: rasterizador GBA eficiente sin trigonometría ni memoria dinámica; 64 segmentos de anillo, 3 píxeles de grosor, borde oscuro y centro transparente. Colores: verde (capacidad holgada), amarillo (intermedia) y rojo (baja/agotada). Al llegar a cero permanece visible el contorno oscuro.
 - `src/battle_interface.c`: jugador y rival dibujan el mismo anillo con animación suave al gastar o recuperar Stamina. El cambio de Pokémon restablece el valor mostrado. El anillo sigue la tarjeta al entrar, salir y abrir menús.
 - `src/battle_gfx_sfx_util.c`: 128 bytes reservados para **cada** círculo, incluidos rivales; disminuye el consumo de OBJ VRAM respecto al indicador anterior.

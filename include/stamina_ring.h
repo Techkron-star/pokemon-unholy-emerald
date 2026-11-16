@@ -9,6 +9,6 @@
 #define STAMINA_RING_COMPACT_RADIUS 4
 u32 StaminaRing_FilledSegments(u32 current, u32 max);
 void StaminaRing_Render(u8 *tiles, u32 current, u32 max, bool32 exhausted);
-void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted);
+void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted, bool32 chained);
 
 #endif // GUARD_STAMINA_RING_H

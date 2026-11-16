@@ -32,6 +32,7 @@ static const u16 sGearIconPal_PermafrostFragment[] = INCGFX_U16("graphics/gears/
 static const u32 sBloodGearIcon[] = INCGFX_U32("graphics/gears/blood_vial/icon.png", ".4bpp");
 
 static const u32 sStormStaffIcon[] = INCGFX_U32("graphics/gears/storm_staff/icon.png", ".4bpp");
+static const u32 sShackleIcon[] = INCGFX_U32("graphics/gears/shackle/icon.png", ".4bpp");
 
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
@@ -135,6 +136,14 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .description = COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondaries or two Sp. moves in a chain."),
         .iconGfx = sStormStaffIcon,
         .iconPal = gItemIconPalette_StormStaff,
+        .trigger = GEAR_TRIGGER_PASSIVE,
+    },
+    [GEAR_SHACKLE] =
+    {
+        .name = COMPOUND_STRING("Grillete"),
+        .description = COMPOUND_STRING("20% per damaging move\nto block the foe's chain."),
+        .iconGfx = sShackleIcon,
+        .iconPal = gItemIconPalette_Shackle,
         .trigger = GEAR_TRIGGER_PASSIVE,
     },
 };

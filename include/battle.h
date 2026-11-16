@@ -768,6 +768,12 @@ struct BattleStruct
     u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
     u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
     u8 chainSpecialMask;
+    u8 chainOpeningMask;
+    bool8 chainFollowUpsInvalid;
+    u8 survivalGuardMask;
+    u8 survivalUsedThisMoveMask;
+    u8 shackleTurns[MAX_BATTLERS_COUNT];
+    bool8 shackleTriedThisMove;
     u8 turnActionRole[MAX_BATTLERS_COUNT]; // por acción del turno: 1 = usa el 2º movimiento de la cadena
     u8 numTurnActions;                     // 0 = el normal (gBattlersCount)
     u8 chainTurnInterrupted;               // un KO cancela las acciones pendientes de esta cadena

@@ -5281,6 +5281,11 @@ BattleScript_BerryReduceAnimation::
 	waitabilitypopup
 	return
 
+BattleScript_GearShackle::
+	printstring STRINGID_GEARCHAINED
+	waitmessage B_WAIT_TIME_LONG
+	return
+
 BattleScript_BerryReduceDmg::
 	printstring STRINGID_BERRYDMGREDUCES
 	waitmessage B_WAIT_TIME_LONG

@@ -52,7 +52,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | HUD circular de Stamina | Anillo visible de 9×9 px en un OBJ de 16×16. En la tarjeta alta del aliado queda en el hueco inferior izquierdo. Las tarjetas compactas y rivales reservan espacio delante del nombre para dejar visibles PS, estado y nivel |
 | Coste e información de stamina | Implementados en la selección de movimientos: coste del movimiento y stamina actual/máxima |
 | Moxie y habilidades de snowball | Implementado. Restauran stamina por KO (Moxie, Beast Boost, Chilling/Grim Neigh, As One) |
-| Movimientos encadenados | START marca el primer movimiento y A confirma el segundo. SELECT reordena movimientos en combate. R activa la mecánica especial disponible. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. La IA conserva su réplica extra cuando el jugador encadena; pendiente validar en ROM |
+| Movimientos encadenados | START marca el primer movimiento y A confirma el segundo. SELECT reordena movimientos en combate. R activa la mecánica especial disponible. Corregida la repetición automática: el jugador solo ejecuta una segunda acción si encadenó explícitamente. Jugador e IA eligen su segundo movimiento con el mismo recargo de Stamina. Las primeras acciones se resuelven antes de los segundos ataques |
 | Señal visual del encadenamiento rival | Implementada como destello breve del sprite rival antes de su segundo movimiento |
 | Velocidad de texto | Implementada en Opciones: NORMAL, FAST e INSTANT. Los valores antiguos SLOW se normalizan al abrir el menú |
 | Inicio rápido | Tras fijar el reloj se omiten TV/casa del rival/habitación, apareciendo en Pueblo Raíz justo detrás de la niña antes de subir hacia la Ruta 101 |
@@ -98,7 +98,7 @@ Las pruebas locales de esta entrega pasan en mGBA: 17 casos del grupo Unholy, 25
 | P1 | Pulido de Horizon por capturas: marcos/precios de Pokémon, etiquetas y pie de Huevos/MOVES, contraste de selección Eclipse/Daylight y tipografías de 8/12/15 px | Rama `fix/unholy-horizon-ui-alignment-colors-20261112`; código implementado, requiere CI y capturas nuevas |
 | P2 | Nuevos Gears, crafteos, IA avanzada, legendarios y animaciones | Continúan pendientes de implementación/integración completa |
 
-**Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; la IA puede responder con una acción adicional válida, nunca repitiendo su misma selección por defecto. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
+**Regla del encadenamiento validable:** sin cadena del jugador, jamás hay segundo ataque suyo en el mismo turno; con cadena explícita, se ejecutan los dos movimientos elegidos si quedan vivos y no se agota Stamina; La IA selecciona su propia cadena con las mismas restricciones. Probar velocidades relativas (jugador antes/después), IA con y sin cadena, KO intermedio y cambio de Pokémon.
 
 **Matriz de QA inmediata:** comprobar el marco y las etiquetas de Horizon en Eclipse/Daylight, cantidades e iconos de compra, cancelar y volver a las pestañas; anillos de ambos bandos en individual/doble y transiciones; Horizon MOVES con Pokémon de 1, 2 y 4 ataques, cancelaciones, HMs y guardado/carga; llenar MEDICINE con Debug y con pociones normales; verificar Game Boy Advance ROM final y artefacto descargable.
 
@@ -115,12 +115,24 @@ Todos los números de balance están en `include/config/stamina.h`.
 - Cada movimiento gasta stamina según su **potencia**.
 - Al agotarse, hay que esperar a que se recargue; mientras tanto no se puede hacer nada, ni siquiera Struggle.
 
-### Movimientos encadenados (compuestos)
-- Se pueden ejecutar **máximo dos movimientos encadenados naturalmente**, con restricciones; **los dos cuentan como un solo turno**.
-- Cada movimiento consume su stamina correspondiente. No se pueden repetir movimientos dentro de la misma cadena (regla previa del diseño).
-- Los movimientos de protección o que anulan un ataque durante un turno (tipo Protect) **no se encadenan** con otros.
-- Un turno con dos movimientos solo avanza **una vez** la recarga de Gears y efectos medidos por turnos.
-- Resto de restricciones y orden de actuación frente al rival: pendientes de detallar.
+### Movimientos encadenados
+
+- START marca el primer ataque y A elige el segundo. La cadena usa dos ataques directos distintos. Los movimientos de estado, los de dos turnos, Premonición y Deseo Oculto se eligen como acciones individuales.
+- Primero actúan ambos Pokémon. Después se ordenan los segundos ataques pendientes por prioridad y Velocidad. Un KO o un cambio invalida los segundos ataques pendientes.
+- El primero usa el 100 % de su daño y coste normal. El segundo usa el **70 % del daño final** y paga el **150 % del coste base**, redondeado hacia arriba. Esto se aplica a cada impacto interno de ese segundo ataque, incluido el del Báculo.
+- Se comprueba la stamina total al confirmar y la acción se revalida antes de pagar PP. Los ataques multigolpe y el segundo impacto del Báculo cuentan como una sola ejecución.
+
+### Recuperación y estados en combate
+
+Cada Pokémon recupera Stamina una vez al cerrar el turno. Con su estado vigente, recupera **18 %** sin estado, **12 %** quemado, **15 %** paralizado, **6 %** congelado, **14 %** envenenado, **12 %** gravemente envenenado o **22 %** dormido. Al paralizarse, el segundo ataque cuesta el **160 %** del coste base. La confusión añade **10 puntos porcentuales** del coste base a una acción que llega a ejecutarse. Con parálisis y confusión, una segunda acción cuesta el **170 %**. Las demás recuperaciones de Stamina siguen su flujo habitual.
+
+### Aguante, Banda Focus y multigolpes
+
+Aguante, Banda Focus, Robustez y Cinta Focus pueden conservar **1 PS** frente a ataques separados durante el mismo turno. Cada ejecución de movimiento puede gastar la protección una vez por objetivo. Un segundo impacto interno, incluido el Báculo, puede rematar. El turno o la salida del Pokémon limpian el escudo temporal. Los disparadores y condiciones de PS completos siguen vigentes. En un golpe con varios disparadores, Aguante o un escudo vigente preceden a Robustez y los objetos.
+
+### Encadenado y Grillete
+
+El Gear **Grillete** tiene una probabilidad inicial del **20 %** de aplicar Encadenado al primer rival que pierda PS ante el movimiento. Tira una vez por ejecución y el estado dura el resto del turno de aplicación y el siguiente turno completo. Mientras dure, cancela las segundas acciones seleccionadas y bloquea nuevas cadenas. El afectado conserva su movimiento individual y sus impactos internos. Cambiar de Pokémon limpia Encadenado. La receta inicial usa **1 Revestimiento Metálico y 1 Piedra Dura**. La vía mediante un movimiento de estado sigue en diseño.
 
 ### Habilidades de snowball
 - **Moxie reworkeado:** al noquear a un Pokémon, restaura al instante un porcentaje de stamina, además de subir el ataque. Así los atacantes de mucho daño (Haxorus y similares) se vuelven requeridos.
@@ -197,7 +209,7 @@ Clasificación unificada por **poder/acceso**, distinta de las probabilidades RN
 - Inspiradas en las gemas de tipo, **sin reemplazarlas literalmente**.
 - Proporcionan un **gran bonus al primer ataque compatible**, luego un **bonus de daño residual menor** que se mantiene hasta que se recargue la siguiente sobrecarga cada X turnos.
 - La bonificación residual debe notarse, sin superar permanentemente objetos ofensivos especializados.
-- **Catálogo de 18 Gears:** un Inyector por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) asigna Flamígero a Fuego, Demoníaco a Siniestro, Divino a Hada y Escamado a Dragón.
+- **Catálogo de 18 Gears:** un Inyector por tipo. La tabla del [PR #19](https://github.com/Techkron-star/pokemon-unholy-emerald/pull/19) usa los nombres del catálogo elemental. En la ROM, la familia sigue el formato Inyector + tipo.
 - Primera implementación para balance: +40 % al primer movimiento compatible y +12 % en recarga durante tres finales de turno. Un segundo movimiento compatible en la misma cadena recibe el +12 %.
 
 ### Báculo Tormentoso
@@ -498,7 +510,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Animación residual del profesor al saltar la introducción: pendiente de limpiar el estado visual del objeto tras el warp inicial.
 - Horizon Shop con catálogo persistente, medallas, día/noche, compras múltiples y economía equilibrada.
 - Crianza y huevos: progreso por pasos/EXP, recogida múltiple, almacenamiento y compatibilidad.
-- Gears: seis piezas originales, 18 Inyectores y el Báculo Tormentoso fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Queda ampliar el equipamiento a más entrenadores.
+- Gears: seis piezas originales, 18 Inyectores, Báculo Tormentoso y Grillete fabricables. El equipo y el resumen muestran el Gear equipado. El HUD de combate muestra su fase, destella al activarse o recargarse y cuenta los turnos restantes (`docs/GEARS.md`). Queda ampliar el equipamiento a más entrenadores.
 - Información ampliada de estados, campos, habilidades y registro de combate.
 
 ### P2 — Contenido avanzado

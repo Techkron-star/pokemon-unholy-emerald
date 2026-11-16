@@ -763,9 +763,10 @@ void HandleInputChooseMove(enum BattlerId battler)
             if (first == gMoveSelectionCursor[battler]
              || canSelectTarget != 0
              || moveInfo->currentPP[gMoveSelectionCursor[battler]] == 0
+             || (CheckMoveLimitations(battler, 0, MOVE_LIMITATIONS_ALL) & (1u << gMoveSelectionCursor[battler]))
              || gBattleStruct->gimmick.playerSelect
-             || !Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]])
-             || !Chain_IsPairAllowed(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]]))
+             || !Chain_IsPairAllowed(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]])
+             || !Chain_CanAfford(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]]))
             {
                 PlaySE(SE_FAILURE);
                 return;
@@ -1786,7 +1787,7 @@ static void DrawChainPreview(enum BattlerId battler)
     u8 text[32];
     if (gBattleStruct->descriptionSubmenu || gBattleStruct->zmove.viewing)
     { ClearChainPreview(); return; }
-    if (secondValid) cost += Stamina_GetMoveCost(battler, info->moves[selected]);
+    if (secondValid) cost += Stamina_GetActionCost(battler, info->moves[selected], TRUE);
     FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
     if (Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect)
     {
@@ -1804,7 +1805,10 @@ static void DrawChainPreview(enum BattlerId battler)
     StringAppend(text, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
     if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
-    if (marked && selected != first && !pairAllowed) StringCopy(text, COMPOUND_STRING("NO 2 SP."));
+    if (gBattleStruct->shackleTurns[battler] != 0)
+        StringCopy(text, COMPOUND_STRING("CHAINED"));
+    else if (marked && selected != first && !pairAllowed)
+        StringCopy(text, COMPOUND_STRING("CAN'T CHAIN"));
     AddTextPrinterParameterized4(B_WIN_CHAIN_HELP, FONT_SMALL_NARROW, 0, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
     PutWindowTilemap(B_WIN_CHAIN_HELP);
     CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_FULL);

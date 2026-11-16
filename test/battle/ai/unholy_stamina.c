@@ -16,9 +16,9 @@ AI_SINGLE_BATTLE_TEST("Unholy trainer AI breaks primary move ties by avoiding ex
         PLAYER(SPECIES_WOBBUFFET) { HP(1000); Defense(500); SpDefense(200); Moves(MOVE_SPLASH); }
         OPPONENT(SPECIES_WOBBUFFET) { Level(100); HPIV(20); SpAttack(50); Moves(MOVE_BOOMBURST, MOVE_ENDURE); }
     } WHEN {
-        // Endure cannot chain. At 100 max stamina, Boomburst costs 28
-        // and regenerating 20 per turn leaves exactly 28 on turn ten.
-        for (u32 turn = 0; turn < 9; turn++)
+        // With 100 max stamina, Boomburst costs 28 and 18 is restored per turn.
+        // The ninth turn starts at 20: Endure still fits, but Boomburst exhausts.
+        for (u32 turn = 0; turn < 8; turn++)
         {
             TURN { MOVE(player, MOVE_SPLASH); EXPECT_MOVE(opponent, MOVE_BOOMBURST); }
         }

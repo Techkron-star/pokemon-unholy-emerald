@@ -82,6 +82,7 @@ enum
     RING_WARNING,
     RING_EXHAUSTED,
     RING_OUTLINE,
+    RING_CHAINED,
 };
 
 static void SetRingPixel(u8 *tiles, s32 x, s32 y, u8 color)
@@ -170,7 +171,7 @@ static void SetCompactRingPixel(u8 *tiles, s32 x, s32 y, u8 color)
         tiles[byteIndex] = (tiles[byteIndex] & 0xF0) | color;
 }
 
-void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted)
+void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted, bool32 chained)
 {
     u32 filled;
     u8 color;
@@ -201,5 +202,14 @@ void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted
         const s8 *point = sRingPoint[i];
         SetCompactRingPixel(tiles, 8 + point[2] / 3, 8 + point[3] / 3, color);
         SetCompactRingPixel(tiles, 8 + point[4] / 3, 8 + point[5] / 3, color);
+    }
+
+    if (chained)
+    {
+        static const u8 lockRows[] = {0b010, 0b101, 0b111, 0b101, 0b111};
+        for (u32 row = 0; row < ARRAY_COUNT(lockRows); row++)
+            for (u32 x = 0; x < 3; x++)
+                if (lockRows[row] & (1u << x))
+                    SetCompactRingPixel(tiles, 7 + x, 6 + row, RING_CHAINED);
     }
 }

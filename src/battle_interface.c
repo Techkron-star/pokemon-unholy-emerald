@@ -344,6 +344,7 @@ static const u16 sStaminaRingColors[16] =
     RGB(31, 25, 4),  // 3: recovering / warning
     RGB(31, 8, 7),   // 4: depleted / exhausted
     RGB(3, 6, 8),    // 5: dark silhouette
+    RGB(29, 21, 31), // 6: Chained status
 };
 static const struct SpritePalette sStaminaRingPalette = {
     sStaminaRingColors, TAG_STAMINA_RING_PAL
@@ -673,6 +674,7 @@ static EWRAM_DATA u8 sStaminaBarOwner[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA s32 sStaminaRingDisplayed[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA s32 sStaminaRingLastDrawn[MAX_BATTLERS_COUNT] = {0};
 static EWRAM_DATA bool32 sStaminaRingWasExhausted[MAX_BATTLERS_COUNT] = {0};
+static EWRAM_DATA bool8 sStaminaRingWasChained[MAX_BATTLERS_COUNT] = {0};
 // Shared scratch; callbacks render sequentially, VRAM is sprite-private.
 static EWRAM_DATA u32 sStaminaRingTiles[STAMINA_RING_COMPACT_TILE_BYTES / sizeof(u32)];
 
@@ -898,6 +900,7 @@ static void UpdateStaminaRing(struct Sprite *sprite, enum BattlerId battler)
     s32 maxValue = Stamina_GetMax(battler);
     s32 target = Stamina_GetCurrent(battler);
     bool32 exhausted = Stamina_IsExhausted(battler);
+    bool32 chained = gBattleStruct->shackleTurns[battler] != 0;
     u8 owner = gBattleStruct->staminaOwner[battler];
     s32 shown = sStaminaRingDisplayed[battler];
 
@@ -921,15 +924,17 @@ static void UpdateStaminaRing(struct Sprite *sprite, enum BattlerId battler)
 
     sStaminaRingDisplayed[battler] = shown;
     if (sStaminaRingLastDrawn[battler] == shown
-     && sStaminaRingWasExhausted[battler] == exhausted)
+     && sStaminaRingWasExhausted[battler] == exhausted
+     && sStaminaRingWasChained[battler] == chained)
         return;
 
-    StaminaRing_RenderCompact((u8 *)sStaminaRingTiles, shown, maxValue, exhausted);
+    StaminaRing_RenderCompact((u8 *)sStaminaRingTiles, shown, maxValue, exhausted, chained);
     CpuCopy32(sStaminaRingTiles,
               (void *)(OBJ_VRAM0 + sprite->oam.tileNum * TILE_SIZE_4BPP),
               STAMINA_RING_COMPACT_TILE_BYTES);
     sStaminaRingLastDrawn[battler] = shown;
     sStaminaRingWasExhausted[battler] = exhausted;
+    sStaminaRingWasChained[battler] = chained;
 }
 
 static bool32 StaminaRingUsesNicknameRow(enum BattlerId battler)
