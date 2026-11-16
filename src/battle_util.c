@@ -7257,13 +7257,17 @@ static inline u32 CalcDefenseStat(struct DamageContext *ctx)
     if (MoveIgnoresDefenseEvasionStages(move))
         defStage = DEFAULT_STAT_STAGE;
 
-    // Aegis doubles effective positive stages, not the actual stored boosts.
-    // Critical hits, Unaware and stage-ignoring moves still bypass them.
+    // Aegis doubles the *value* of every positive stage, not the actual
+    // stored stage. Never clamp +2n back to +6: a displayed +6 must confer
+    // the effective +12 multiplier (x7), rather than the ordinary x4.
+    // Crits, Unaware and stage-ignoring moves still bypass these boosts.
     if (defStage > DEFAULT_STAT_STAGE && Gear_GetBattlerGear(battlerDef) == GEAR_ESCUDO_AEGIS)
-        defStage = min(MAX_STAT_STAGE, DEFAULT_STAT_STAGE + 2 * (defStage - DEFAULT_STAT_STAGE));
-
-    defStat *= gStatStageRatios[defStage][0];
-    defStat /= gStatStageRatios[defStage][1];
+        defStat *= 1 + defStage - DEFAULT_STAT_STAGE;
+    else
+    {
+        defStat *= gStatStageRatios[defStage][0];
+        defStat /= gStatStageRatios[defStage][1];
+    }
 
     // apply defense stat modifiers
     modifier = UQ_4_12(1.0);

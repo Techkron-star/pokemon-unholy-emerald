@@ -10070,11 +10070,11 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_Shackle,
     },
 
-#define RECENT_GEAR(id, gfx, path, name, description) \
+#define RECENT_GEAR(id, gfx, path, displayName, displayDescription) \
     [ITEM_GEAR_##id] = \
     { \
-        .name = ITEM_NAME(name), \
-        .description = COMPOUND_STRING(description), \
+        .name = ITEM_NAME(displayName), \
+        .description = COMPOUND_STRING(displayDescription), \
         .importance = 1, \
         .pocket = POCKET_KEY_ITEMS, \
         .sortType = ITEM_TYPE_RELIC, \

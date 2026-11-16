@@ -176,11 +176,11 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .iconPal = gItemIconPalette_Shackle,
         .trigger = GEAR_TRIGGER_PASSIVE,
     },
-#define RECENT_GEAR(id, gfx, path, name, description) \
+#define RECENT_GEAR(id, gfx, path, displayName, displayDescription) \
     [GEAR_##id] = \
     { \
-        .name = COMPOUND_STRING(name), \
-        .description = COMPOUND_STRING(description), \
+        .name = COMPOUND_STRING(displayName), \
+        .description = COMPOUND_STRING(displayDescription), \
         .iconGfx = sRecentGearIcon_##gfx, \
         .iconPal = sRecentGearPalette_##gfx, \
         .trigger = (GEAR_##id == GEAR_BATERIA_RESERVA \

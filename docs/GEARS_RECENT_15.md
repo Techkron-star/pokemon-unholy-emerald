@@ -6,7 +6,7 @@
 
 | Gear | Implementación de este lote | Límites y QA específico |
 |---|---|---|
-| Escudo de Aegis | +n etapas positivas de Defensa/Def. Esp. se calculan como +2n, sin modificar niveles almacenados. | Críticos, Ignorante y movimientos que ignoran aumentos permanecen normales. Probar dobles y movimientos que usan Defensa en ataques especiales. |
+| Escudo de Aegis | +n etapas positivas de Defensa/Def. Esp. se calculan como +2n, sin modificar niveles almacenados. +6 visible equivale a multiplicador ×7, sin limitar el efecto al multiplicador nativo de +6. | Críticos, Ignorante y movimientos que ignoran aumentos permanecen normales. Probar dobles y movimientos que usan Defensa en ataques especiales. |
 | Ariete Náutilo | Movimiento dañino de contacto reduce una etapa de Defensa por evento de impacto válido, con motor nativo de bajadas. | Verificar mensajería, habilidades contrarias y cada impacto de multigolpe en emulador. |
 | Guantes Cohete | +1 prioridad en movimientos clasificados como puñetazos; se suma a la prioridad innata y de habilidades. | Dobles, terreno Psíquico y ataques ya prioritarios. |
 | Túnica Rúnica | Bloquea trampas de entrada del lado propio y elimina las existentes al entrar; si elimina alguna, +1 At. Esp. hasta el límite habitual. Niega daño ambiental de clima, Mar de Llamas y daño residual de tipo del campo. | La elección de limpiar solo el lado propio y de activar +1 únicamente al limpiar trampas es **provisional**. Otros efectos residuales de atrapamiento requieren ampliación. |
