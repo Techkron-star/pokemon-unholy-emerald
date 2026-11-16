@@ -6,6 +6,7 @@
 #include "battle_scripts.h"
 #include "battle_switch_in.h"
 #include "battle_controllers.h"
+#include "gear.h"
 #include "config_changes.h"
 #include "constants/battle.h"
 #include "constants/moves.h"
@@ -246,6 +247,31 @@ static bool32 FirstEventBlockEvents(struct BattleCalcValues *calcValues)
         gBattleStruct->eventState.battlerSwitchIn++;
         break;
     case FIRST_EVENT_BLOCK_HAZARDS:
+        if (gBattleStruct->hazardsCounter == 0)
+        {
+            enum BattleSide hazardSide = GetBattlerSide(battler);
+            gBattleStruct->gearHazardGuard[battler] = FALSE;
+            if (gBattleStruct->battlerState[battler].switchIn
+             && Gear_GetBattlerGear(battler) == GEAR_TUNICA_RUNICA)
+            {
+                bool32 cleared = FALSE;
+                for (enum Hazards hazard = HAZARDS_SPIKES; hazard < HAZARDS_MAX_COUNT; hazard++)
+                {
+                    if (IsHazardOnSide(hazardSide, hazard))
+                    {
+                        RemoveHazardFromField(hazardSide, hazard);
+                        cleared = TRUE;
+                    }
+                }
+                // The +1 Sp. Atk is earned by clearing hazards, not by
+                // switching repeatedly into an empty battlefield.
+                if (cleared && gBattleMons[battler].statStages[STAT_SPATK] < MAX_STAT_STAGE)
+                {
+                    gBattleMons[battler].statStages[STAT_SPATK]++;
+                    gBattleStruct->gearActivations[battler]++;
+                }
+            }
+        }
         if (!gBattleStruct->battlerState[battler].switchIn)
         {
             gBattleStruct->eventState.battlerSwitchIn++;
@@ -310,6 +336,21 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
     enum BattleSide side = GetBattlerSide(battler);
     bool32 clearedToxicSpikes = FALSE;
 
+    if (gBattleStruct->gearHazardGuard[battler])
+    {
+        gBattleStruct->hazardsCounter++;
+        return FALSE;
+    }
+    if (Gear_GetBattlerGear(battler) == GEAR_BOTAS_UMBRAL
+     && IsBattlerAffectedByHazards(battler, holdEffect, FALSE)
+     && Gear_ActivateEvent(battler))
+    {
+        // One charged entry denies every queued hazard on this entry.
+        gBattleStruct->gearHazardGuard[battler] = TRUE;
+        gBattleStruct->hazardsCounter++;
+        return FALSE;
+    }
+
     switch (hazardType)
     {
     case HAZARDS_NONE:
@@ -321,6 +362,9 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
         {
             s32 spikesDmg = GetNonDynamaxMaxHP(battler) / ((5 - gSideTimers[side].spikesAmount) * 2);
             SetPassiveDamageAmount(battler, spikesDmg);
+            if (Gear_GetBattlerGear(battler) == GEAR_BOTAS_UMBRAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] / 2);
             SetDmgHazardsBattlescript(battler, B_MSG_PKMNHURTBYSPIKES);
             effect = TRUE;
         }
@@ -373,6 +417,10 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
         if (IsBattlerAffectedByHazards(battler, holdEffect, FALSE) && ability != ABILITY_MAGIC_GUARD)
         {
             gBattleStruct->passiveHpUpdate[battler] = GetStealthHazardDamage(TYPE_SIDE_HAZARD_POINTED_STONES, battler);
+            if (gBattleStruct->passiveHpUpdate[battler] != 0
+             && Gear_GetBattlerGear(battler) == GEAR_BOTAS_UMBRAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] / 2);
             if (gBattleStruct->passiveHpUpdate[battler] != 0)
             {
                 SetDmgHazardsBattlescript(battler, B_MSG_STEALTHROCKDMG);
@@ -384,6 +432,10 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
         if (IsBattlerAffectedByHazards(battler, holdEffect, FALSE) && ability != ABILITY_MAGIC_GUARD)
         {
             gBattleStruct->passiveHpUpdate[battler] = GetStealthHazardDamage(TYPE_SIDE_HAZARD_SHARP_STEEL, battler);
+            if (gBattleStruct->passiveHpUpdate[battler] != 0
+             && Gear_GetBattlerGear(battler) == GEAR_BOTAS_UMBRAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] / 2);
             if (gBattleStruct->passiveHpUpdate[battler] != 0)
             {
                 SetDmgHazardsBattlescript(battler, B_MSG_SHARPSTEELDMG);

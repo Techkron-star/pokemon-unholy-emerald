@@ -3508,6 +3508,29 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 {
     gBattleScripting.moveendState++;
 
+    if (Gear_GetBattlerGear(cv->battlerAtk) == GEAR_ARIETE_NAUTILO
+     && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     && !IsBattleMoveStatus(cv->move)
+     && IsBattlerAlive(cv->battlerDef)
+     && !IsBattlerUnaffectedByMove(cv->battlerDef)
+     && gBattleStruct->moveDamage[cv->battlerDef] > 0
+     && IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES)
+     && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef,
+                            cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
+    {
+        struct StatStages defDrop = { .stat = STAT_DEF, .stage = -1 };
+        struct StatChange statChange = {
+            .statStageQueue = &defDrop,
+            .statStageAmount = 1,
+            .silentFailure = TRUE,
+        };
+
+        // Use the native stat-change API so Mist, Clear Body, Mirror Armor,
+        // Contrary and the regular stage limits continue to apply.
+        if (TryStatChange(cv, &statChange) == STAT_CHANGE_WORKED)
+            gBattleStruct->gearActivations[cv->battlerAtk]++;
+    }
+
     if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)
      || IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
      || gSpecialStatuses[cv->battlerAtk].attackerInParty

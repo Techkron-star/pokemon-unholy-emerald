@@ -33,6 +33,36 @@ static const u32 sBloodGearIcon[] = INCGFX_U32("graphics/gears/blood_vial/icon.p
 
 static const u32 sStormStaffIcon[] = INCGFX_U32("graphics/gears/storm_staff/icon.png", ".4bpp");
 static const u32 sShackleIcon[] = INCGFX_U32("graphics/gears/shackle/icon.png", ".4bpp");
+static const u32 sRecentGearIcon_EscudoAegis[] = INCGFX_U32("graphics/gears/escudo_aegis/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_EscudoAegis[] = INCGFX_U16("graphics/gears/escudo_aegis/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_ArieteNautilo[] = INCGFX_U32("graphics/gears/ariete_nautilo/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_ArieteNautilo[] = INCGFX_U16("graphics/gears/ariete_nautilo/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_GuantesCohete[] = INCGFX_U32("graphics/gears/guantes_cohete/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_GuantesCohete[] = INCGFX_U16("graphics/gears/guantes_cohete/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_TunicaRunica[] = INCGFX_U32("graphics/gears/tunica_runica/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_TunicaRunica[] = INCGFX_U16("graphics/gears/tunica_runica/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_CartelBusqueda[] = INCGFX_U32("graphics/gears/cartel_busqueda/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_CartelBusqueda[] = INCGFX_U16("graphics/gears/cartel_busqueda/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_NihilEngine[] = INCGFX_U32("graphics/gears/nihil_engine/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_NihilEngine[] = INCGFX_U16("graphics/gears/nihil_engine/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_AnilloFeerico[] = INCGFX_U32("graphics/gears/anillo_feerico/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_AnilloFeerico[] = INCGFX_U16("graphics/gears/anillo_feerico/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_PiedraAfilar[] = INCGFX_U32("graphics/gears/piedra_afilar/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_PiedraAfilar[] = INCGFX_U16("graphics/gears/piedra_afilar/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_BateriaReserva[] = INCGFX_U32("graphics/gears/bateria_reserva/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_BateriaReserva[] = INCGFX_U16("graphics/gears/bateria_reserva/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_BotasUmbral[] = INCGFX_U32("graphics/gears/botas_umbral/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_BotasUmbral[] = INCGFX_U16("graphics/gears/botas_umbral/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_VeloCriptico[] = INCGFX_U32("graphics/gears/velo_criptico/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_VeloCriptico[] = INCGFX_U16("graphics/gears/velo_criptico/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_AmuletoInquebrantable[] = INCGFX_U32("graphics/gears/amuleto_inquebrantable/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_AmuletoInquebrantable[] = INCGFX_U16("graphics/gears/amuleto_inquebrantable/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_CrisolEspiritual[] = INCGFX_U32("graphics/gears/crisol_espiritual/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_CrisolEspiritual[] = INCGFX_U16("graphics/gears/crisol_espiritual/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_LenteCerteza[] = INCGFX_U32("graphics/gears/lente_certeza/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_LenteCerteza[] = INCGFX_U16("graphics/gears/lente_certeza/icon.pal", ".gbapal");
+static const u32 sRecentGearIcon_ModuloVectorial[] = INCGFX_U32("graphics/gears/modulo_vectorial/icon.png", ".4bpp");
+static const u16 sRecentGearPalette_ModuloVectorial[] = INCGFX_U16("graphics/gears/modulo_vectorial/icon.pal", ".gbapal");
 
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
@@ -146,4 +176,23 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .iconPal = gItemIconPalette_Shackle,
         .trigger = GEAR_TRIGGER_PASSIVE,
     },
+#define RECENT_GEAR(id, gfx, path, name, description) \
+    [GEAR_##id] = \
+    { \
+        .name = COMPOUND_STRING(name), \
+        .description = COMPOUND_STRING(description), \
+        .iconGfx = sRecentGearIcon_##gfx, \
+        .iconPal = sRecentGearPalette_##gfx, \
+        .trigger = (GEAR_##id == GEAR_BATERIA_RESERVA \
+                 || GEAR_##id == GEAR_BOTAS_UMBRAL \
+                 || GEAR_##id == GEAR_VELO_CRIPTICO \
+                 || GEAR_##id == GEAR_AMULETO_INQUEBRANTABLE \
+                 || GEAR_##id == GEAR_CRISOL_ESPIRITUAL \
+                 || GEAR_##id == GEAR_LENTE_CERTEZA \
+                 || GEAR_##id == GEAR_MODULO_VECTORIAL \
+                   ? GEAR_TRIGGER_EVENT : GEAR_TRIGGER_PASSIVE), \
+        .cooldownTurns = 3, \
+    },
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
 };

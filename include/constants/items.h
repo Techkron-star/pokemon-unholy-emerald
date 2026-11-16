@@ -1090,6 +1090,9 @@ enum __attribute__((packed)) Item
     ITEM_GEAR_BLOOD_FAIRY = 905,
     ITEM_GEAR_STORM_STAFF = 906,
     ITEM_GEAR_SHACKLE = 907,
+#define RECENT_GEAR(id, gfx, path, name, description) ITEM_GEAR_##id,
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,
 };

@@ -40,6 +40,9 @@ enum Gear
     GEAR_BLOOD_FAIRY,
     GEAR_STORM_STAFF,
     GEAR_SHACKLE,
+#define RECENT_GEAR(id, gfx, path, name, description) GEAR_##id,
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
     GEAR_COUNT
 };
 

@@ -4515,6 +4515,9 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
         priority += 3;
     }
 
+    if (Gear_GetBattlerGear(battler) == GEAR_GUANTES_COHETE && IsPunchingMove(move))
+        priority++;
+
     return priority;
 }
 

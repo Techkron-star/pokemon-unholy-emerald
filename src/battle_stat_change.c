@@ -9,6 +9,7 @@
 #include "battle_ai_util.h"
 #include "item.h"
 #include "move.h"
+#include "gear.h"
 
 // Stat change
 static enum StatChangeResult CanDecreaseStat(struct BattleCalcValues *cv, struct StatChange *st);
@@ -301,6 +302,21 @@ static enum StatChangeResult CanDecreaseStat(struct BattleCalcValues *cv, struct
      || IsAbilityBlocked(cv, st)
      || IsMirrorArmorReflected(cv, st))
         return STAT_CHANGE_DIDNT_WORK;
+
+    if (cv->battlerAtk != cv->battlerDef
+     && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     && Gear_GetBattlerGear(cv->battlerDef) == GEAR_AMULETO_INQUEBRANTABLE)
+    {
+        if (Gear_GetPhase(cv->battlerDef) == GEAR_PHASE_ARMED)
+        {
+            if (!st->onlyChecking)
+                Gear_ActivateEvent(cv->battlerDef);
+            return STAT_CHANGE_DIDNT_WORK;
+        }
+        if (Gear_GetPhase(cv->battlerDef) == GEAR_PHASE_RECHARGING
+         && st->stage <= -2 && !st->onlyChecking)
+            st->stage++; // Mitigate multi-stage debuffs by one stage.
+    }
     return STAT_CHANGE_WORKED;
 }
 

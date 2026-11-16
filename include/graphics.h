@@ -1297,6 +1297,11 @@ extern const u32 gItemIcon_StormStaff[];
 extern const u16 gItemIconPalette_StormStaff[];
 extern const u32 gItemIcon_Shackle[];
 extern const u16 gItemIconPalette_Shackle[];
+#define RECENT_GEAR(id, gfx, path, name, description) \
+    extern const u32 gItemIcon_##gfx[]; \
+    extern const u16 gItemIconPalette_##gfx[];
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
 extern const u32 gItemIcon_BloodFire[];
 extern const u32 gItemIcon_BloodDragon[];
 extern const u32 gItemIcon_BloodDark[];
