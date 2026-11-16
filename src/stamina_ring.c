@@ -206,8 +206,8 @@ void StaminaRing_RenderCompact(u8 *tiles, u32 current, u32 max, bool32 exhausted
 
     if (chained)
     {
-        static const u8 lockRows[] = {0b010, 0b101, 0b111, 0b101, 0b111};
-        for (u32 row = 0; row < ARRAY_COUNT(lockRows); row++)
+        static const u8 lockRows[] = {2, 5, 7, 5, 7};
+        for (u32 row = 0; row < sizeof(lockRows) / sizeof(lockRows[0]); row++)
             for (u32 x = 0; x < 3; x++)
                 if (lockRows[row] & (1u << x))
                     SetCompactRingPixel(tiles, 7 + x, 6 + row, RING_CHAINED);

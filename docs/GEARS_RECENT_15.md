@@ -36,4 +36,4 @@
 4. Confirmar mensajería en pantalla de cambios de etapas y curaciones, y el mantenimiento de ciclos al cambiar de Pokémon.
 5. Probar compatibilidad de guardado y la amplitud de los nuevos ID (Gear hasta 255, sin modificar `BoxPokemon`).
 
-**Pendiente:** las pruebas nativas del motor todavía no se ejecutaron en el entorno de edición por falta de `arm-none-eabi-gcc`, herramientas gráficas y mGBA. No considerar los 15 efectos totalmente validados por el solo registro del sprite.
+**Verificado localmente:** `host_save_schema.sh`, `host_pc_search.sh`, `validate_mutation_badges.py` e `inclusive_summary.py` pasan. **Pendiente:** compilar y ejecutar la batería de tests de batalla de GBA (sin `arm-none-eabi-gcc` en el entorno local), además de QA visual en emulador. No considerar los 15 efectos totalmente validados por el solo registro del sprite.
