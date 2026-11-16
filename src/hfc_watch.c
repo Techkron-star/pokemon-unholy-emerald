@@ -341,12 +341,12 @@ static void RenderArchive(void)
     for (u8 i = 0; i < ARRAY_COUNT(order); i++)
     {
         u8 x = 5 + (i % 3) * 61;
-        u8 y = 24 + (i / 3) * 29;
+        u8 y = 24 + (i / 3) * 31;
         bool8 found = (registered & order[i]) != 0;
         u8 fill = UnholyUi_CardFill(found);
         const u8 *name = HorizonMarketMutationName(order[i]);
         u8 font = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 52);
-        UnholyUi_Card(sWatchWindowId, x, y, 59, 27, found);
+        UnholyUi_Card(sWatchWindowId, x, y, 59, 29, found);
         UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 1, 52, fill, name);
 
         u8 status[18];

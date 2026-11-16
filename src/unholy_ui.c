@@ -96,8 +96,10 @@ void UnholyUi_Frame(u8 window, const u8 *title)
 void UnholyUi_Footer(u8 window, const u8 *actions)
 {
     u16 width = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH - 14;
-    u16 y = GetWindowAttribute(window, WINDOW_HEIGHT) * TILE_HEIGHT - 14;
     u8 font = GetFontIdToFit(actions, FONT_SMALL_NARROW, 0, width);
+    // Each glyph blits 12 or 15 pixels. Leave the two-pixel frame intact.
+    u8 inset = font == FONT_SMALL_NARROWER ? 17 : 14;
+    u16 y = GetWindowAttribute(window, WINDOW_HEIGHT) * TILE_HEIGHT - inset;
     UnholyUi_Print(window, font, 7, y, width, actions);
 }
 
