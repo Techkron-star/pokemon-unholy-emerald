@@ -194,7 +194,7 @@ TEST("Unholy Gear effects stay on the equipped Pokémon, not its opponent or rep
     u16 previousOpponentSlot = gBattlerPartyIndexes[B_BATTLER_1];
     struct Pokemon *equipped = &gParties[B_TRAINER_PLAYER][0];
     struct Pokemon *replacement = &gParties[B_TRAINER_PLAYER][1];
-    struct Pokemon *opponent = &gParties[B_TRAINER_OPPONENT][0];
+    struct Pokemon *opponent = &gParties[B_TRAINER_OPPONENT_A][0];
     struct Pokemon oldEquipped = *equipped;
     struct Pokemon oldReplacement = *replacement;
     struct Pokemon oldOpponent = *opponent;
