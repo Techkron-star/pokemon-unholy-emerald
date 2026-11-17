@@ -652,6 +652,12 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
                                                                      "to mark your first move.\p"
                                                                      "Pick a different move with A\n"
                                                                      "to chain them.\p"
+                                                                     "Only direct attacks chain.\n"
+                                                                     "Status moves go alone.\p"
+                                                                     "STRING SHOT is a status move.\n"
+                                                                     "Use it by itself.\p"
+                                                                     "Two-turn and delayed moves\n"
+                                                                     "also cannot be chained.\p"
                                                                      "A KO or too little stamina\n"
                                                                      "stops the chain."),
     [STRINGID_ELECTRICTERRAINPREVENTS]              = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX} surrounds itself with electrified terrain!"),

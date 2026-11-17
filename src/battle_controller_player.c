@@ -1802,7 +1802,8 @@ static void DrawChainPreview(enum BattlerId battler)
     {
         // Keep a readable header even when the selected Pokémon cannot chain.
         // A transparent/cleared window exposes a black strip in the menu art.
-        bool32 canChain = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
+        bool32 chainAvailable = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
+        bool32 canChain = chainAvailable && Chain_IsMoveChainable(info->moves[selected]);
         const u8 *hint = canChain
             ? COMPOUND_STRING("START:CHAIN L:INFO SEL:SORT")
             : COMPOUND_STRING("A:MOVE L:INFO SEL:SORT");
@@ -1813,6 +1814,8 @@ static void DrawChainPreview(enum BattlerId battler)
             hint = B_SHOW_MOVE_DESCRIPTION
                 ? (canChain ? COMPOUND_STRING("START:CHAIN L:INFO") : COMPOUND_STRING("A:MOVE L:INFO"))
                 : (canChain ? COMPOUND_STRING("START:CHAIN") : COMPOUND_STRING("A:MOVE"));
+        if (chainAvailable && !canChain)
+            hint = COMPOUND_STRING("SINGLE MOVE - NO CHAIN");
         AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 1, 0, 0, colors, TEXT_SKIP_DRAW, hint);
     }
     PutWindowTilemap(B_WIN_DUMMY);
@@ -1825,6 +1828,8 @@ static void DrawChainPreview(enum BattlerId battler)
     if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
     if (gBattleStruct->shackleTurns[battler] != 0)
         StringCopy(text, COMPOUND_STRING("CHAINED"));
+    else if (Chain_IsAvailable(battler) && !marked && !Chain_IsMoveChainable(info->moves[selected]))
+        StringCopy(text, COMPOUND_STRING("SINGLE MOVE"));
     else if (marked && selected != first && !pairAllowed)
         StringCopy(text, COMPOUND_STRING("CAN'T CHAIN"));
     AddTextPrinterParameterized4(B_WIN_CHAIN_HELP, FONT_SMALL_NARROW, 0, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);

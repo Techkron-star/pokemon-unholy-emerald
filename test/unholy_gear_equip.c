@@ -185,6 +185,55 @@ TEST("Unholy Storm Staff permits mixed chains and rejects two resolved special m
     gBattleStruct = previousBattleStruct;
 }
 
+TEST("Unholy Gear effects stay on the equipped Pokémon, not its opponent or replacement")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    u32 previousBattleType = gBattleTypeFlags;
+    u8 previousCount = gBattlersCount;
+    u16 previousPlayerSlot = gBattlerPartyIndexes[B_BATTLER_0];
+    u16 previousOpponentSlot = gBattlerPartyIndexes[B_BATTLER_1];
+    struct Pokemon *equipped = &gParties[B_TRAINER_PLAYER][0];
+    struct Pokemon *replacement = &gParties[B_TRAINER_PLAYER][1];
+    struct Pokemon *opponent = &gParties[B_TRAINER_OPPONENT][0];
+    struct Pokemon oldEquipped = *equipped;
+    struct Pokemon oldReplacement = *replacement;
+    struct Pokemon oldOpponent = *opponent;
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleTypeFlags = 0;
+    gBattlersCount = 2;
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    gBattlerPartyIndexes[B_BATTLER_1] = 0;
+    CreateMonWithIVs(equipped, SPECIES_CHARMANDER, 40, 0, OTID_STRUCT_PRESET(1), 10);
+    CreateMonWithIVs(replacement, SPECIES_CHARMANDER, 40, 0, OTID_STRUCT_PRESET(2), 10);
+    CreateMonWithIVs(opponent, SPECIES_CHARMANDER, 40, 0, OTID_STRUCT_PRESET(3), 10);
+    Gear_SetEquipped(equipped, GEAR_BLOOD_FIRE);
+    Gear_SetEquipped(replacement, GEAR_NONE);
+    Gear_SetEquipped(opponent, GEAR_NONE);
+
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_BLOOD_FIRE);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.4));
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_1), GEAR_NONE);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_1, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.0));
+
+    // A new party slot must not reuse the original holder's cached cycle.
+    gBattlerPartyIndexes[B_BATTLER_0] = 1;
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_NONE);
+    EXPECT_EQ(Gear_GetPowerModifier(B_BATTLER_0, MOVE_EMBER, TYPE_FIRE), UQ_4_12(1.0));
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_BLOOD_FIRE);
+
+    *equipped = oldEquipped;
+    *replacement = oldReplacement;
+    *opponent = oldOpponent;
+    gBattlerPartyIndexes[B_BATTLER_0] = previousPlayerSlot;
+    gBattlerPartyIndexes[B_BATTLER_1] = previousOpponentSlot;
+    gBattleTypeFlags = previousBattleType;
+    gBattlersCount = previousCount;
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
+
 TEST("Unholy Gear cooldown follows its party member across doubles positions")
 {
     struct BattleStruct *previousBattleStruct = gBattleStruct;
