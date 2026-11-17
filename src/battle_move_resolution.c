@@ -3519,7 +3519,8 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 
     if (Gear_ResolveMeteorArmorAsh(cv->battlerDef, cv->battlerAtk))
     {
-        BattleScriptCall(BattleScript_MeteorArmorAsh);
+        BattleScriptCall(GetBattlerAbility(cv->battlerDef) == ABILITY_CONTRARY
+            ? BattleScript_MeteorArmorAshContrary : BattleScript_MeteorArmorAsh);
         return MOVEEND_RESULT_RUN_SCRIPT;
     }
 

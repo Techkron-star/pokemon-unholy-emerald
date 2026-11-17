@@ -449,14 +449,17 @@ static void MeteorArmorBurn(enum BattlerId defender, enum BattlerId target)
 bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attacker)
 {
     u8 tier = gBattleStruct->meteorArmorPending[defender];
+    s32 stageChange;
 
     if (tier == 0)
         return FALSE;
     gBattleStruct->meteorArmorPending[defender] = 0;
-    gBattleMons[defender].statStages[STAT_DEF] = max(MIN_STAT_STAGE,
-        (s32)gBattleMons[defender].statStages[STAT_DEF] - tier);
-    gBattleMons[defender].statStages[STAT_SPDEF] = max(MIN_STAT_STAGE,
-        (s32)gBattleMons[defender].statStages[STAT_SPDEF] - tier);
+    // This is a stat loss caused by the wearer's Gear: Contrary reverses it.
+    stageChange = GetBattlerAbility(defender) == ABILITY_CONTRARY ? tier : -(s32)tier;
+    gBattleMons[defender].statStages[STAT_DEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
+        (s32)gBattleMons[defender].statStages[STAT_DEF] + stageChange));
+    gBattleMons[defender].statStages[STAT_SPDEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
+        (s32)gBattleMons[defender].statStages[STAT_SPDEF] + stageChange));
 
     MeteorArmorBurn(defender, attacker);
     if (tier == 3 && (gBattleTypeFlags & BATTLE_TYPE_DOUBLE))

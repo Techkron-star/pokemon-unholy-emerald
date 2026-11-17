@@ -20,6 +20,7 @@
 - [Unholy Emerald · Implementación de los 15 Gears recientes](./GEARS_RECENT_15.md)
 - [Unholy Emerald · MASKARA y arsenal de Gears propuestos](./GEARS_MASKARA_ARSENAL.md)
 - [Unholy Emerald · Octava tanda y rebalance de Gears](./GEARS_BATCH8_REBALANCE.md)
+- [Unholy Emerald · Armadura Meteórica](./METEOR_ARMOR.md)
 - [Unholy Emerald · Arquitectura de guardados extendidos](./UNHOLY_SAVE_ARCHITECTURE.md)
 - [Unholy Emerald · HUD circular de Stamina y reforma de estadísticas](./UNHOLY_STAMINA_HUD.md)
 - [Unholy Emerald · Equipar Gears, bolsillos y depuración de mutantes](./UNHOLY_GEAR_DEBUG_BAG.md)

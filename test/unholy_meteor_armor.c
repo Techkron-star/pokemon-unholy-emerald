@@ -88,3 +88,39 @@ TEST("Meteor Armor requires a single-turn lethal hit and scales its overkill")
     Free(gBattleStruct);
     gBattleStruct = oldBattle;
 }
+
+TEST("Contrary reverses both Meteor Armor Defense penalties into boosts")
+{
+    struct BattleStruct *oldBattle = gBattleStruct;
+    struct BattlePokemon oldDef = gBattleMons[B_BATTLER_0];
+    struct BattlePokemon oldAtk = gBattleMons[B_BATTLER_1];
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleMons[B_BATTLER_0] = (struct BattlePokemon){
+        .hp = 60, .maxHP = 200, .ability = ABILITY_CONTRARY,
+    };
+    gBattleMons[B_BATTLER_1] = (struct BattlePokemon){0}; // No ash burn in this stage test.
+
+    for (u8 tier = 1; tier <= 3; tier++)
+    {
+        gBattleMons[B_BATTLER_0].statStages[STAT_DEF] = DEFAULT_STAT_STAGE;
+        gBattleMons[B_BATTLER_0].statStages[STAT_SPDEF] = DEFAULT_STAT_STAGE;
+        gBattleStruct->meteorArmorPending[B_BATTLER_0] = tier;
+        EXPECT(Gear_ResolveMeteorArmorAsh(B_BATTLER_0, B_BATTLER_1));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_DEF], DEFAULT_STAT_STAGE + tier);
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_SPDEF], DEFAULT_STAT_STAGE + tier);
+        EXPECT(!Gear_ResolveMeteorArmorAsh(B_BATTLER_0, B_BATTLER_1));
+    }
+
+    gBattleMons[B_BATTLER_0].statStages[STAT_DEF] = MAX_STAT_STAGE - 1;
+    gBattleMons[B_BATTLER_0].statStages[STAT_SPDEF] = MAX_STAT_STAGE - 1;
+    gBattleStruct->meteorArmorPending[B_BATTLER_0] = 3;
+    EXPECT(Gear_ResolveMeteorArmorAsh(B_BATTLER_0, B_BATTLER_1));
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_DEF], MAX_STAT_STAGE);
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_SPDEF], MAX_STAT_STAGE);
+
+    gBattleMons[B_BATTLER_0] = oldDef;
+    gBattleMons[B_BATTLER_1] = oldAtk;
+    Free(gBattleStruct);
+    gBattleStruct = oldBattle;
+}

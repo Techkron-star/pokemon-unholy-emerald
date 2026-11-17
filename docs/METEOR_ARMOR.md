@@ -20,6 +20,8 @@ Si un **único impacto directo de un ataque de un turno** fuera a dejar al porta
 
 3. La ceniza respeta inmunidades y estados existentes: nunca sobrescribe otro estado principal. Si un objetivo no puede quemarse, conserva su estado.
 
+**Contrario (Contrary) invierte la penalización de ambas defensas:** el portador recibe +1, +2 o +3 niveles en Defensa y Defensa Especial en vez de perderlos. Se respetan los límites normales de etapas (−6 a +6).
+
 Solo se activa **una vez por Pokémon y combate**; cambiarlo no restaura la carga. El Gear tampoco evita otros impactos del mismo turno. Se excluyen los movimientos de estado, de carga de dos turnos, los impactos diferidos, los movimientos multigolpe, OHKO directos, Bide y ataques potenciados por Parental Bond. Las interacciones defensivas anteriores, como Aguante, Robustez y Banda Focus, se resuelven primero. Los daños indirectos —clima, veneno, quemadura, trampas— no activan la armadura.
 
 ## Estado de arte y QA
