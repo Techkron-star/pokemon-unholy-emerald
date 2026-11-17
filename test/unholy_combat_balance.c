@@ -91,6 +91,10 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
     }
 
     EXPECT(!Chain_IsMoveChainable(MOVE_CALM_MIND));
+    EXPECT(!Chain_IsMoveChainable(MOVE_STRING_SHOT));
+    EXPECT(!Chain_IsMoveChainable(MOVE_SOLAR_BEAM));
+    EXPECT(!Chain_IsMoveChainable(MOVE_FUTURE_SIGHT));
+    EXPECT(Chain_IsMoveChainable(MOVE_SCRATCH));
     gBattleStruct->chainSecondPos[B_BATTLER_0] = 2;
     Chain_ExpandTurnOrder();
     EXPECT_EQ(Chain_GetNumTurnActions(), 3);

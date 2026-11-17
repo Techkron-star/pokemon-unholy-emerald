@@ -121,6 +121,7 @@ static EWRAM_DATA struct MartInfo sMartInfo = {0};
 static EWRAM_DATA bool8 sHorizonActive = FALSE;
 static EWRAM_DATA MainCallback sHorizonFieldReturn = NULL;
 static EWRAM_DATA bool8 sHorizonExitToWatch = FALSE;
+static EWRAM_DATA bool8 sHorizonReturnToDirectory = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
@@ -220,7 +221,7 @@ static const u8 *const sHorizonTabLabels[] =
     sHorizonTabPokemon, sHorizonTabDiscs, sHorizonTabItems,
     sHorizonTabEggs, sHorizonTabMoves,
 };
-static const u8 sHorizonTextBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
+static const u8 sHorizonTextBrowse[] = _("L/R:SHOP SEL:TABS A:BUY B:EXIT");
 static const u8 sHorizonTextConfirm[] = _("A: CONFIRM   B: CANCEL");
 static const u8 sHorizonTextRare[] = _("!!! RARE STOCK");
 static const u8 sHorizonTextSold[] = _("SOLD");
@@ -229,7 +230,7 @@ static const u8 sHorizonTextNeedSpace[] = _("Party and PC are full.");
 static const u8 sHorizonTextBought[] = _("Purchased!");
 static const u8 sHorizonTextFailed[] = _("Could not buy.");
 static const u8 sHorizonTextConfirmBuy[] = _("Confirm purchase?");
-static const u8 sHorizonTextEggBrowse[] = _("L/R: SHOP  A: BUY  B: WATCH");
+static const u8 sHorizonTextEggBrowse[] = _("L/R:SHOP SEL:TABS A:BUY B:EXIT");
 static const u8 sHorizonTextEggSold[] = _("SOLD");
 static const u8 sHorizonTextPrize[] = _("Egg purchased!");
 static const u8 *const sHorizonPokemonStatuses[] =
@@ -244,7 +245,7 @@ static const u8 sHorizonTextEggs[] = _("EGGS");
 static const u8 sHorizonTextMoves[] = _("MOVES");
 static const u8 sHorizonMoveLearn[] = _("MOVE MANAGER");
 static const u8 sHorizonMoveForget[] = _("FORGET");
-static const u8 sHorizonMoveInstructions[] = _("L/R: SHOP  A: OPEN  B: WATCH");
+static const u8 sHorizonMoveInstructions[] = _("L/R:SHOP SEL:TABS A:OPEN B:EXIT");
 static const u8 sHorizonTitle[] = _("HORIZON SHOP");
 static const u8 sHorizonTextControls[] = _("L/R: TABS   A: OPEN   B: EXIT");
 static const u8 sHorizonGoodsControls[] = _("L/R: SHOP  A: BUY");
@@ -1027,6 +1028,20 @@ static void HorizonOpenTab(u8 taskId, u8 tab)
     sHorizonTabs[tab].func.void_u8(taskId);
 }
 
+static void HorizonShowDirectory(void)
+{
+    HorizonEggIconHide();
+    sHorizonMoveBrowsing = FALSE;
+    sHorizonPokemonBrowsing = FALSE;
+    sHorizonEggBrowsing = FALSE;
+    sHorizonPokemonConfirm = FALSE;
+    sHorizonEggConfirm = FALSE;
+    sHorizonPokemonStatus = 0;
+    sHorizonEggStatus = 0;
+    HorizonDrawTabs();
+    HorizonDrawInfo();
+}
+
 static void Task_ShopMenu(u8 taskId)
 {
     s8 inputCode;
@@ -1034,7 +1049,18 @@ static void Task_ShopMenu(u8 taskId)
     if (sHorizonActive && gPaletteFade.active)
         return;
 
-    if (sHorizonActive && !sHorizonPokemonConfirm && !sHorizonEggConfirm
+    // SELECT returns from a catalogue to the five-store directory. It must
+    // not silently activate Pokémon (tab zero) when the directory opens.
+    if (sHorizonActive && JOY_NEW(SELECT_BUTTON)
+     && (sHorizonMoveBrowsing || sHorizonPokemonBrowsing || sHorizonEggBrowsing))
+    {
+        PlaySE(SE_SELECT);
+        HorizonShowDirectory();
+        return;
+    }
+
+    if (sHorizonActive && (sHorizonMoveBrowsing || sHorizonPokemonBrowsing || sHorizonEggBrowsing)
+     && !sHorizonPokemonConfirm && !sHorizonEggConfirm
      && JOY_NEW(L_BUTTON | R_BUTTON))
     {
         PlaySE(SE_SELECT);
@@ -1376,6 +1402,7 @@ static void Task_HandleShopMenuQuit(u8 taskId)
             sMartInfo.windowId = 0xFF;
         }
         sHorizonActive = FALSE;
+        sHorizonReturnToDirectory = FALSE;
         sHorizonSelectedTab = 0;
         sHorizonPokemonBrowsing = FALSE;
         sHorizonEggBrowsing = FALSE;
@@ -1443,7 +1470,11 @@ static void ShowShopMenuAfterExitingBuyOrSellMenu(u8 taskId)
     u8 shopTask = CreateShopMenu(sMartInfo.martType);
     DestroyTask(taskId);
     if (sHorizonActive)
-        HorizonOpenTab(shopTask, sHorizonSelectedTab);
+    {
+        if (!sHorizonReturnToDirectory)
+            HorizonOpenTab(shopTask, sHorizonSelectedTab);
+        sHorizonReturnToDirectory = FALSE;
+    }
 }
 
 static void CB2_BuyMenu(void)
@@ -2030,6 +2061,15 @@ static void Task_BuyMenu(u8 taskId)
 
         if (sHorizonActive)
         {
+            if (JOY_NEW(SELECT_BUTTON))
+            {
+                // Return to the directory after the buy screen restores the
+                // field; preserve the selected store for its preview.
+                sHorizonReturnToDirectory = TRUE;
+                PlaySE(SE_SELECT);
+                ExitBuyMenu(taskId);
+                return;
+            }
             if (JOY_NEW(L_BUTTON | R_BUTTON))
             {
                 u8 tab = HorizonAdjacentTab(JOY_NEW(L_BUTTON));
@@ -2415,6 +2455,8 @@ void CreateHorizonShopMenu(void (*fieldReturn)(void))
     HorizonMarketRefresh();
     sHorizonActive = TRUE;
     sHorizonFieldReturn = fieldReturn;
+    sHorizonExitToWatch = FALSE;
+    sHorizonReturnToDirectory = FALSE;
     sHorizonSelectedTab = 0;
     sHorizonGoodsSelection = 0;
     sHorizonGoodsCursor[0] = 0;
@@ -2431,10 +2473,11 @@ void CreateHorizonShopMenu(void (*fieldReturn)(void))
     sHorizonPokemonConfirm = FALSE;
     sHorizonPokemonSelection = 0;
     sHorizonPokemonStatus = 0;
-    u8 taskId = CreateShopMenu(MART_TYPE_NORMAL);
+    CreateShopMenu(MART_TYPE_NORMAL);
     ClearItemPurchases();
     SetShopMenuCallback(NULL);
-    HorizonOpenTab(taskId, sHorizonSelectedTab);
+    // CreateShopMenu already paints the directory preview. Opening tab zero
+    // here skipped the category picker and immediately entered Pokémon.
 }
 
 void CreateDecorationShop1Menu(const u16 *itemsForSale)
