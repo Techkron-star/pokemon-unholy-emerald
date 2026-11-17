@@ -696,7 +696,9 @@ void HandleInputChooseMove(enum BattlerId battler)
     else
         gPlayerDpadHoldFrames = 0;
 
-    if (JOY_NEW(A_BUTTON) && !gBattleStruct->descriptionSubmenu)
+    // In the L=A option, the input layer also marks A as newly pressed when L
+    // is pressed. Give the explicit chain binding priority in the FIGHT menu.
+    if (JOY_NEW(A_BUTTON) && !JOY_NEW(B_CHAIN_SELECT_BUTTON) && !gBattleStruct->descriptionSubmenu)
     {
         TryToHideMoveInfoWindow();
         PlaySE(SE_SELECT);
@@ -759,7 +761,7 @@ void HandleInputChooseMove(enum BattlerId battler)
 
         if (gBattleStruct->chainFirstPos[battler] != 0)
         {
-            // START marks the first move; A confirms the second.
+            // L marks the first move; A confirms the second.
             u8 first = gBattleStruct->chainFirstPos[battler] - 1;
 
             if (first == gMoveSelectionCursor[battler]
@@ -815,7 +817,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             break;
         }
     }
-    else if (JOY_NEW(START_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
+    else if (JOY_NEW(B_CHAIN_SELECT_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
           && !gBattleStruct->descriptionSubmenu && !gBattleStruct->gimmick.playerSelect)
     {
         if (gBattleStruct->chainFirstPos[battler] != 0)
@@ -973,7 +975,7 @@ void HandleInputChooseMove(enum BattlerId battler)
         gBattleStruct->descriptionSubmenu = TRUE;
         TryMoveSelectionDisplayMoveDescription(battler);
     }
-    else if (JOY_NEW(R_BUTTON))
+    else if (JOY_NEW(B_GIMMICK_SELECT_BUTTON))
     {
         if (gBattleStruct->gimmick.usableGimmick[battler] != GIMMICK_NONE
             && !HasTrainerUsedGimmick(battler, gBattleStruct->gimmick.usableGimmick[battler])
@@ -1796,7 +1798,7 @@ static void DrawChainPreview(enum BattlerId battler)
         FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
         PrintChainSlot(1, 1, GetMoveName(info->moves[first]));
         PrintChainSlot(55, 2, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
-        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("START"));
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("L"));
     }
     else
     {
@@ -1805,15 +1807,15 @@ static void DrawChainPreview(enum BattlerId battler)
         bool32 chainAvailable = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
         bool32 canChain = chainAvailable && Chain_IsMoveChainable(info->moves[selected]);
         const u8 *hint = canChain
-            ? COMPOUND_STRING("START:CHAIN L:INFO SEL:SORT")
-            : COMPOUND_STRING("A:MOVE L:INFO SEL:SORT");
+            ? COMPOUND_STRING("L:CHAIN R:INFO SEL:SORT")
+            : COMPOUND_STRING("A:MOVE R:INFO SEL:SORT");
         if (!B_SHOW_MOVE_DESCRIPTION)
-            hint = canChain ? COMPOUND_STRING("START:CHAIN SEL:SORT")
+            hint = canChain ? COMPOUND_STRING("L:CHAIN SEL:SORT")
                             : COMPOUND_STRING("A:MOVE SEL:SORT");
         if (GetStringWidth(FONT_SMALL_NARROW, hint, 0) > 142)
             hint = B_SHOW_MOVE_DESCRIPTION
-                ? (canChain ? COMPOUND_STRING("START:CHAIN L:INFO") : COMPOUND_STRING("A:MOVE L:INFO"))
-                : (canChain ? COMPOUND_STRING("START:CHAIN") : COMPOUND_STRING("A:MOVE"));
+                ? (canChain ? COMPOUND_STRING("L:CHAIN R:INFO") : COMPOUND_STRING("A:MOVE R:INFO"))
+                : (canChain ? COMPOUND_STRING("L:CHAIN") : COMPOUND_STRING("A:MOVE"));
         if (chainAvailable && !canChain)
             hint = COMPOUND_STRING("SINGLE MOVE - NO CHAIN");
         AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 1, 0, 0, colors, TEXT_SKIP_DRAW, hint);
