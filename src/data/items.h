@@ -10102,6 +10102,19 @@ const struct ItemInfo gItemsInfo[] =
 #include "constants/gear_batch8.h"
 #undef NEW_GEAR
 
+    [ITEM_GEAR_ARMADURA_METEORICA] =
+    {
+        .name = ITEM_NAME("Armadura Meteórica"),
+        .description = COMPOUND_STRING("Survives one lethal\nhit at 30% HP.\nScorching ash burns foes."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_Meteorite,
+        .iconPalette = gItemIconPalette_Meteorite,
+    },
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

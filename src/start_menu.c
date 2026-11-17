@@ -353,6 +353,8 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
       {{ ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
     { ITEM_GEAR_HEADPHONES, COMPOUND_STRING("Reduces sound damage\nand secondary effects."), FLAG_BADGE03_GET, 2,
       {{ ITEM_SILK_SCARF, 1 }, { ITEM_MAGNET, 1 }} },
+    { ITEM_GEAR_ARMADURA_METEORICA, COMPOUND_STRING("Survive one lethal hit;\nscorching ash burns foes."), 0, 2,
+      {{ ITEM_METAL_COAT, 1 }, { ITEM_METEORITE, 1 }} },
 };
 
 static const struct WindowTemplate sUnholyCraftWindow =

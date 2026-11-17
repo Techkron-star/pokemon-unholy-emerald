@@ -764,6 +764,7 @@ struct BattleStruct
     u8 gearHazardGuard[MAX_BATTLERS_COUNT]; // Umbral protects the entire current switch-in
     u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
     u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
+    u8 meteorArmorPending[MAX_BATTLERS_COUNT]; // 0 = none; 1-3 = lethal overkill tier
     // La fase sigue al Pokémon dentro del combate, incluso al cambiar de lado en dobles.
     struct GearCycle gearCycles[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     // Encadenado de movimientos (ver src/battle_chain.c)

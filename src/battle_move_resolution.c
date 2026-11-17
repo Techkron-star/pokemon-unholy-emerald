@@ -3043,13 +3043,19 @@ static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
         {
             u16 hpBefore;
             u16 hpLost;
-
-            gBideDmg[cv->battlerDef] += gBattleStruct->moveDamage[cv->battlerDef];
-            gBideTarget[cv->battlerDef] = cv->battlerAtk;
+            u16 meteorArmorHp;
 
             // Deal damage to the battler
             hpBefore = gBattleMons[cv->battlerDef].hp;
-            if (gBattleMons[cv->battlerDef].hp > gBattleStruct->moveDamage[cv->battlerDef])
+            if (Gear_TryMeteorArmorSurvive(cv->battlerDef, cv->battlerAtk, cv->move,
+                                          gBattleStruct->moveDamage[cv->battlerDef], &meteorArmorHp))
+            {
+                gBattleMons[cv->battlerDef].hp = meteorArmorHp;
+                // Track only actual HP loss; the Gear can restore an ally below 30%.
+                gBattleStruct->moveDamage[cv->battlerDef] = hpBefore > meteorArmorHp
+                    ? hpBefore - meteorArmorHp : 0;
+            }
+            else if (gBattleMons[cv->battlerDef].hp > gBattleStruct->moveDamage[cv->battlerDef])
             {
                 if (cv->moveEffect == EFFECT_OHKO && gBattleStruct->moveResultFlags[cv->battlerDef] & MOVE_RESULT_FOE_HUNG_ON)
                 {
@@ -3063,7 +3069,10 @@ static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
                 gBattleMons[cv->battlerDef].hp = 0;
             }
 
-            hpLost = hpBefore - gBattleMons[cv->battlerDef].hp;
+            hpLost = hpBefore > gBattleMons[cv->battlerDef].hp
+                ? hpBefore - gBattleMons[cv->battlerDef].hp : 0;
+            gBideDmg[cv->battlerDef] += hpLost;
+            gBideTarget[cv->battlerDef] = cv->battlerAtk;
             if (hpLost != 0)
                 gBattleStruct->innardsOutHpLost[cv->battlerDef] += hpLost;
 
@@ -3508,6 +3517,13 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 {
     gBattleScripting.moveendState++;
 
+    if (Gear_ResolveMeteorArmorAsh(cv->battlerDef, cv->battlerAtk))
+    {
+        BattleScriptCall(GetBattlerAbilityIgnoreMoldBreaker(cv->battlerDef) == ABILITY_CONTRARY
+            ? BattleScript_MeteorArmorAshContrary : BattleScript_MeteorArmorAsh);
+        return MOVEEND_RESULT_RUN_SCRIPT;
+    }
+
     if (!IsBattleMoveStatus(cv->move)
      && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
      && gBattleStruct->moveDamage[cv->battlerDef] > 0
@@ -3524,17 +3540,25 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
      && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef,
                             cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
     {
-        struct StatStages defDrop = { .stat = STAT_DEF, .stage = -1 };
+        struct StatStages defDrop = {
+            .stat = STAT_DEF,
+            .stage = Gear_ModifyStatStageByAbility(cv->abilities[cv->battlerDef], -1),
+        };
         struct StatChange statChange = {
             .statStageQueue = &defDrop,
             .statStageAmount = 1,
             .silentFailure = TRUE,
         };
 
-        // Use the native stat-change API so Mist, Clear Body, Mirror Armor,
-        // Contrary and the regular stage limits continue to apply.
+        // Damage-dealt Gear debuff: adjust Contrary/Simple first, then let the
+        // native pipeline apply target defenses, Mirror Armor and responses.
         if (TryStatChange(cv, &statChange) == STAT_CHANGE_WORKED)
             gBattleStruct->gearActivations[cv->battlerAtk]++;
+        if (statChange.script != NULL)
+        {
+            BattleScriptCall(statChange.script);
+            return MOVEEND_RESULT_RUN_SCRIPT;
+        }
     }
 
     if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)

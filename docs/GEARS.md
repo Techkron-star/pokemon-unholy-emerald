@@ -35,6 +35,17 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 - La bonificación del movimiento en ejecución se fija al empezar, así que los golpes múltiples y los objetivos múltiples reciben el mismo valor.
 - La IA ve la bonificación al estimar daño sin gastar nada (`Gear_GetPowerModifier` no tiene efectos secundarios).
 
+### Cambios de estadísticas y habilidades
+
+Los Gears no ignoran las habilidades que modifican cambios de etapas:
+
+- **Contrario** invierte las subidas y bajadas. Por ejemplo, el +1 Ataque de Piedra de Afilar pasa a −1, y el −3 Defensa/Def. Esp. de Armadura Meteórica pasa a +3.
+- **Simple** duplica la magnitud. Una subida de +1 pasa a +2 y una bajada de −3 pasa a −6, siempre respetando los límites de etapas.
+- **Efectos provocados por el propio Gear** (Piedra de Afilar, Botón de Pánico, Túnica Rúnica y Armadura Meteórica) usan `Gear_ApplySelfStatChange`: Rompemoldes del rival no anula Contrario, y Cuerpo Puro/Armadura Reflejo no bloquean ni reflejan las penalizaciones propias.
+- **Bajadas infligidas a otro Pokémon** (Ariete Náutilo) pasan por `TryStatChange`: Contrario, Simple, Cuerpo Puro, Neblina y Armadura Reflejo conservan sus respuestas nativas. La reflexión puede afectar al portador del Gear.
+
+Para nuevos Gears: usar `Gear_ApplySelfStatChange` para efectos propios y el sistema nativo de cambios de estadísticas para efectos contra adversarios; nunca modificar `statStages[]` directamente.
+
 ## Cómo crear un Gear
 
 ### 1. Constante

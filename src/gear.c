@@ -4,6 +4,7 @@
 #include "battle_dynamax.h"
 #include "battle_z_move.h"
 #include "battle_util.h"
+#include "battle_ai_record.h"
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -44,6 +45,7 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_PERMAFROST_FRAGMENT: return GEAR_PERMAFROST_FRAGMENT;
     case ITEM_GEAR_STORM_STAFF: return GEAR_STORM_STAFF;
     case ITEM_GEAR_SHACKLE: return GEAR_SHACKLE;
+    case ITEM_GEAR_ARMADURA_METEORICA: return GEAR_ARMADURA_METEORICA;
 #define RECENT_GEAR(id, gfx, path, name, description) case ITEM_GEAR_##id: return GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
@@ -69,6 +71,7 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_PERMAFROST_FRAGMENT: return ITEM_GEAR_PERMAFROST_FRAGMENT;
     case GEAR_STORM_STAFF: return ITEM_GEAR_STORM_STAFF;
     case GEAR_SHACKLE: return ITEM_GEAR_SHACKLE;
+    case GEAR_ARMADURA_METEORICA: return ITEM_GEAR_ARMADURA_METEORICA;
 #define RECENT_GEAR(id, gfx, path, name, description) case GEAR_##id: return ITEM_GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
@@ -116,6 +119,39 @@ enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item)
     return GEAR_EQUIP_OK;
 }
 
+s8 Gear_ModifyStatStageByAbility(enum Ability ability, s8 stages)
+{
+    if (ability == ABILITY_CONTRARY)
+        return -stages;
+    if (ability == ABILITY_SIMPLE)
+        return 2 * stages;
+    return stages;
+}
+
+bool32 Gear_ApplySelfStatChange(enum BattlerId battler, enum Stat stat, s8 stages)
+{
+    enum Ability ability;
+    s32 oldStage, newStage;
+
+    if (!GEARS_ENABLED || stat < STAT_ATK || stat > STAT_EVASION || stages == 0)
+        return FALSE;
+
+    // Self-inflicted Gear stat changes are not bypassed by the opponent's Mold Breaker.
+    // Mirror Armor / Clear Body / Defiant / Competitive are foe-source interactions,
+    // so they do not reflect or block the wearer's own Gear recoil.
+    ability = GetBattlerAbilityIgnoreMoldBreaker(battler);
+    stages = Gear_ModifyStatStageByAbility(ability, stages);
+    oldStage = gBattleMons[battler].statStages[stat];
+    newStage = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE, oldStage + stages));
+    if (newStage == oldStage)
+        return FALSE;
+
+    gBattleMons[battler].statStages[stat] = newStage;
+    if (ability == ABILITY_CONTRARY || ability == ABILITY_SIMPLE)
+        RecordAbilityBattle(battler, ability);
+    return TRUE;
+}
+
 static void StartCycle(struct GearCycle *cycle, const struct GearInfo *info)
 {
     if (info->trigger == GEAR_TRIGGER_TIMED)
@@ -157,6 +193,7 @@ static struct GearCycle *Prepare(enum BattlerId battler)
         gBattleStruct->gearOwner[battler] = owner;
         gBattleStruct->gearActivations[battler] = 0;
         gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
+        gBattleStruct->meteorArmorPending[battler] = 0;
 
         if (cycle->gear != gear)
         {
@@ -336,10 +373,9 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
     if (info->trigger == GEAR_TRIGGER_PASSIVE || info->trigger == GEAR_TRIGGER_EVENT)
     {
         if (cycle->gear == GEAR_PIEDRA_AFILAR && IsSlicingMove(move)
-         && !IsBattleMoveStatus(move) && gBattleMons[battler].statStages[STAT_ATK] < MAX_STAT_STAGE)
+         && !IsBattleMoveStatus(move) && Gear_ApplySelfStatChange(battler, STAT_ATK, 1))
         {
             // One stage per move execution, not per individual multihit.
-            gBattleMons[battler].statStages[STAT_ATK]++;
             gBattleStruct->gearActivations[battler]++;
         }
         return;
@@ -371,8 +407,7 @@ void Gear_OnDamaged(enum BattlerId battler, u32 damage)
     {
         cycle->activations = 1;
         Stamina_RestorePercent(battler, 18);
-        gBattleMons[battler].statStages[STAT_SPEED] = min(MAX_STAT_STAGE,
-            gBattleMons[battler].statStages[STAT_SPEED] + 1);
+        Gear_ApplySelfStatChange(battler, STAT_SPEED, 1);
         // Cancel before the queued second action can spend PP or Stamina.
         gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gearActivations[battler]++;
@@ -387,6 +422,76 @@ void Gear_OnDamaged(enum BattlerId battler, u32 damage)
         cycle->turns = 4;
         gBattleStruct->gearActivations[battler]++;
     }
+}
+
+bool32 Gear_TryMeteorArmorSurvive(enum BattlerId defender, enum BattlerId attacker,
+                                 enum Move move, s32 damage, u16 *remainingHp)
+{
+    struct GearCycle *cycle;
+    enum BattleMoveEffects effect;
+    u32 overkill;
+    u16 maxHp;
+
+    if (!GEARS_ENABLED || remainingHp == NULL || damage <= 0 || defender == attacker
+     || !IsBattlerAlive(defender)
+     || IsBattlerAlly(attacker, defender) || gBattleMons[defender].hp > damage
+     || IsBattleMoveStatus(move) || IsMultiHitMove(move) || GetMoveStrikeCount(move) > 1
+     || gSpecialStatuses[attacker].multiHitOn || gSpecialStatuses[attacker].attackerInParty
+     || GetBattlerAbility(attacker) == ABILITY_PARENTAL_BOND)
+        return FALSE;
+
+    effect = GetMoveEffect(move);
+    if (gBattleMoveEffects[effect].twoTurnEffect || effect == EFFECT_FUTURE_SIGHT
+     || effect == EFFECT_OHKO || effect == EFFECT_BIDE)
+        return FALSE;
+
+    cycle = Prepare(defender);
+    if (cycle == NULL || cycle->gear != GEAR_ARMADURA_METEORICA
+     || cycle->phase != GEAR_PHASE_ARMED || cycle->activations != 0)
+        return FALSE;
+
+    maxHp = gBattleMons[defender].maxHP;
+    if (maxHp == 0)
+        return FALSE;
+    overkill = (u32)damage - gBattleMons[defender].hp;
+    gBattleStruct->meteorArmorPending[defender] = overkill >= (maxHp * 3 + 3) / 4 ? 3
+                                               : overkill >= (maxHp + 3) / 4 ? 2 : 1;
+    *remainingHp = max(1, (maxHp * 30 + 99) / 100);
+
+    // One activation for the entire fight, including switching and entering again.
+    // Keep its HUD discharged rather than advertising another activation in 3 turns.
+    Gear_ActivateEvent(defender);
+    cycle->activations = 1;
+    cycle->turns = 0;
+    return TRUE;
+}
+
+static void MeteorArmorBurn(enum BattlerId defender, enum BattlerId target)
+{
+    if (!IsBattlerAlive(target)
+     || !CanBeBurned(defender, target, GetBattlerAbility(target)))
+        return;
+
+    gBattleMons[target].status1 = STATUS1_BURN;
+    BtlController_EmitSetMonData(target, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
+                                 0, sizeof(gBattleMons[target].status1), &gBattleMons[target].status1);
+    MarkBattlerForControllerExec(target);
+}
+
+bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attacker)
+{
+    u8 tier = gBattleStruct->meteorArmorPending[defender];
+
+    if (tier == 0)
+        return FALSE;
+    gBattleStruct->meteorArmorPending[defender] = 0;
+    Gear_ApplySelfStatChange(defender, STAT_DEF, -(s8)tier);
+    Gear_ApplySelfStatChange(defender, STAT_SPDEF, -(s8)tier);
+
+    MeteorArmorBurn(defender, attacker);
+    if (tier == 3 && (gBattleTypeFlags & BATTLE_TYPE_DOUBLE))
+        MeteorArmorBurn(defender, GetPartnerBattler(attacker));
+    return TRUE;
 }
 
 void Gear_OnProtectSuccess(enum BattlerId battler)
@@ -417,6 +522,10 @@ void Gear_EndOfTurn(enum BattlerId battler)
     gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
     cycle = Prepare(battler);
     if (cycle == NULL)
+        return;
+
+    // The meteorite has broken: no reactivation until a new battle.
+    if (cycle->gear == GEAR_ARMADURA_METEORICA && cycle->activations != 0)
         return;
 
     if (cycle->gear == GEAR_NIHIL_ENGINE)

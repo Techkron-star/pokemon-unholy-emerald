@@ -5294,6 +5294,16 @@ BattleScript_GearShackle::
 	waitmessage B_WAIT_TIME_LONG
 	return
 
+BattleScript_MeteorArmorAsh::
+	printstring STRINGID_METEORARMORASH
+	waitmessage B_WAIT_TIME_LONG
+	return
+
+BattleScript_MeteorArmorAshContrary::
+	printstring STRINGID_METEORARMORCONTRARY
+	waitmessage B_WAIT_TIME_LONG
+	return
+
 BattleScript_BerryReduceDmg::
 	printstring STRINGID_BERRYDMGREDUCES
 	waitmessage B_WAIT_TIME_LONG

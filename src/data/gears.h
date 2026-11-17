@@ -217,4 +217,14 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     },
 #include "constants/gear_batch8.h"
 #undef NEW_GEAR
+    [GEAR_ARMADURA_METEORICA] =
+    {
+        .name = COMPOUND_STRING("Armadura Meteórica"),
+        .description = COMPOUND_STRING("Survives one lethal hit at 30% HP.\nLoses Def/Sp.Def; burns foes with ash."),
+        // Temporary art: the meteorite in the bag and Hoplite armor in the HUD.
+        .iconGfx = sNewGearIcon_CascoHoplita,
+        .iconPal = sNewGearPalette_CascoHoplita,
+        .trigger = GEAR_TRIGGER_EVENT,
+        .cooldownTurns = 3,
+    },
 };
