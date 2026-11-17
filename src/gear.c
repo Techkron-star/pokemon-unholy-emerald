@@ -9,6 +9,7 @@
 #include "pokemon.h"
 #include "gear.h"
 #include "battle_stamina.h"
+#include "battle_chain.h"
 #include "graphics.h"
 #include "item.h"
 #include "data/gears.h"
@@ -46,6 +47,20 @@ enum Gear Gear_FromItem(enum Item item)
     case ITEM_GEAR_STORM_STAFF: return GEAR_STORM_STAFF;
     case ITEM_GEAR_SHACKLE: return GEAR_SHACKLE;
     case ITEM_GEAR_ARMADURA_METEORICA: return GEAR_ARMADURA_METEORICA;
+    case ITEM_GEAR_ESCUDO_PALADIN: return GEAR_ESCUDO_PALADIN;
+#define EXTRA_ARTIFACT(id) case ITEM_GEAR_##id: return GEAR_##id;
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA)
+    EXTRA_ARTIFACT(FARO)
+    EXTRA_ARTIFACT(ROMPEOLAS)
+    EXTRA_ARTIFACT(RED_SILOS)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO)
+    EXTRA_ARTIFACT(CRT)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR)
+    EXTRA_ARTIFACT(BOMBA_ARIETE)
+    EXTRA_ARTIFACT(GLICERINA)
+    EXTRA_ARTIFACT(ABONO)
+#undef EXTRA_ARTIFACT
 #define RECENT_GEAR(id, gfx, path, name, description) case ITEM_GEAR_##id: return GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
@@ -72,6 +87,20 @@ enum Item Gear_ToItem(enum Gear gear)
     case GEAR_STORM_STAFF: return ITEM_GEAR_STORM_STAFF;
     case GEAR_SHACKLE: return ITEM_GEAR_SHACKLE;
     case GEAR_ARMADURA_METEORICA: return ITEM_GEAR_ARMADURA_METEORICA;
+    case GEAR_ESCUDO_PALADIN: return ITEM_GEAR_ESCUDO_PALADIN;
+#define EXTRA_ARTIFACT(id) case GEAR_##id: return ITEM_GEAR_##id;
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA)
+    EXTRA_ARTIFACT(FARO)
+    EXTRA_ARTIFACT(ROMPEOLAS)
+    EXTRA_ARTIFACT(RED_SILOS)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO)
+    EXTRA_ARTIFACT(CRT)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR)
+    EXTRA_ARTIFACT(BOMBA_ARIETE)
+    EXTRA_ARTIFACT(GLICERINA)
+    EXTRA_ARTIFACT(ABONO)
+#undef EXTRA_ARTIFACT
 #define RECENT_GEAR(id, gfx, path, name, description) case GEAR_##id: return ITEM_GEAR_##id;
 #include "constants/recent_gears.h"
 #undef RECENT_GEAR
@@ -192,6 +221,7 @@ static struct GearCycle *Prepare(enum BattlerId battler)
         enum Gear gear = Gear_GetEquipped(&GetTrainerParty(trainer)[slot]);
         gBattleStruct->gearOwner[battler] = owner;
         gBattleStruct->gearActivations[battler] = 0;
+        gBattleStruct->artifactLastAnnounced[battler] = 0;
         gBattleStruct->gearSnapshotMove[battler] = MOVE_NONE;
         gBattleStruct->meteorArmorPending[battler] = 0;
 
@@ -199,6 +229,7 @@ static struct GearCycle *Prepare(enum BattlerId battler)
         {
             cycle->gear = gear;
             cycle->activations = 0;
+            cycle->paladinLastBlockTurn = 0;
             StartCycle(cycle, &gGearsInfo[gear]);
         }
     }
@@ -330,11 +361,213 @@ bool32 Gear_StormStaffRepeatsMove(enum BattlerId battler, enum Move move)
 
 bool32 Gear_SuppressesAdditionalEffect(enum BattlerId battler, enum Move move, const struct AdditionalEffect *effect)
 {
+    if (gBattleStruct->artifactReplicaKind[battler] != 0 && gSpecialStatuses[battler].multiHitOn)
+        return TRUE;
     if (gSpecialStatuses[battler].stormStaffStrike && gSpecialStatuses[battler].multiHitOn)
         return TRUE;
 
     return effect->chance != 0 && IsBattleMoveSpecial(move)
         && Gear_GetBattlerGear(battler) == GEAR_STORM_STAFF;
+}
+
+static u32 GetWarBannerControlMask(enum BattlerId battler)
+{
+    const struct Volatiles *v = &gBattleMons[battler].volatiles;
+    return (!!v->torment << 0) | (!!v->wrapped << 1) | (!!v->infatuation << 2)
+         | (!!v->escapePrevention << 3) | (!!v->nightmare << 4)
+         | (!!v->cursed << 5) | (!!v->saltCure << 6)
+         | (!!v->syrupBomb << 7) | (!!v->leechSeed << 8)
+         | (!!v->yawn << 9) | (!!v->disabledMove << 10)
+         | (!!v->encoredMove << 11) | (!!v->healBlockTimer << 12)
+         | (!!v->tauntTimer << 13) | (!!v->perishSong << 14);
+}
+
+// The engine already has a single-target multi-strike path. Artifact echoes
+// borrow it instead of issuing new moves (which would spend PP and Stamina,
+// replay chains, or trigger another Artifact recursively).
+u8 Gear_TryStartExtraStrikes(enum BattlerId battler, enum Move move, enum BattlerId target, bool32 singleTarget)
+{
+    struct GearCycle *cycle = GEARS_ENABLED ? Prepare(battler) : NULL;
+    enum BattleMoveEffects effect = GetMoveEffect(move);
+    enum Gear gear;
+    u8 count = 0, kind = 0;
+
+    gBattleStruct->artifactReplicaTotal[battler] = 0;
+    gBattleStruct->artifactReplicaKind[battler] = 0;
+    if (!singleTarget || cycle == NULL || IsBattleMoveStatus(move) || GetMovePower(move) == 0
+     || IsMultiHitMove(move) || GetMoveStrikeCount(move) > 1 || IsMoveParentalBondBanned(move)
+     || IsZMove(move) || IsMaxMove(move) || gBattleMoveEffects[effect].twoTurnEffect)
+        return 0;
+    switch (effect)
+    {
+    case EFFECT_OHKO:
+    case EFFECT_LEVEL_DAMAGE:
+    case EFFECT_PSYWAVE:
+    case EFFECT_FIXED_HP_DAMAGE:
+    case EFFECT_FIXED_PERCENT_DAMAGE:
+    case EFFECT_FINAL_GAMBIT:
+    case EFFECT_REFLECT_DAMAGE:
+    case EFFECT_ENDEAVOR:
+    case EFFECT_BIDE:
+    case EFFECT_FUTURE_SIGHT:
+        return 0;
+    default:
+        break;
+    }
+
+    gear = cycle->gear;
+    if (gear == GEAR_RED_SILOS && IsBallisticMove(move)
+     && move != MOVE_PIN_MISSILE && move != MOVE_SPIKE_CANNON
+     && move != MOVE_BULLET_SEED)
+    {
+        count = RandomUniform(RNG_GEAR_SILOS, 1, 4);
+        kind = 1;
+    }
+    else if (gear == GEAR_BOMBA_ARIETE && GetBattleMoveType(move) == TYPE_WATER && cycle->turns >= 2)
+    {
+        // A linked pair fires the extra Water strike on its LAST move, not the
+        // opener. If the follow-up is cancelled, the charge is preserved.
+        if (gBattleStruct->chainSecondPos[battler] != 0 && !Chain_IsFollowingUp(battler))
+            return 0;
+        count = 1;
+        kind = 2;
+        cycle->turns = 0;
+    }
+    else if (gear == GEAR_TABLERO_TRIFASICO && GetBattleMoveType(move) == TYPE_ELECTRIC
+          && (gBattleTypeFlags & BATTLE_TYPE_DOUBLE)
+          && target < gBattlersCount && IsBattlerAlive(GetPartnerBattler(target))
+          && !IsBattlerAlly(battler, target))
+    {
+        count = 1;
+        kind = 3;
+    }
+
+    if (count != 0)
+    {
+        gBattleStruct->artifactReplicaTotal[battler] = count;
+        gBattleStruct->artifactReplicaKind[battler] = kind;
+        gBattleStruct->gearActivations[battler]++;
+    }
+    return count;
+}
+
+u32 Gear_AdjustResolvedDamage(enum BattlerId attacker, enum BattlerId defender,
+                             enum Move move, u32 damage, bool32 spread)
+{
+    u8 kind = gBattleStruct->artifactReplicaKind[attacker];
+    u8 count = gBattleStruct->artifactReplicaTotal[attacker];
+
+    if (damage == 0)
+        return 0;
+    if (kind != 0 && count != 0 && gSpecialStatuses[attacker].multiHitOn)
+    {
+        u8 index = count + 1 - gMultiHitCounter;
+        u32 percent = kind == 1 ? (index <= 2 ? 15 : 10) : 25;
+        damage = max(1, damage * percent / 100);
+    }
+
+    if (GetBattleMoveType(move) == TYPE_WATER && Gear_GetBattlerGear(defender) == GEAR_ROMPEOLAS)
+    {
+        struct GearCycle *cycle = Prepare(defender);
+        if (cycle != NULL && cycle->turns >= 2)
+        {
+            damage = max(1, damage * (spread ? 60 : 75) / 100);
+            cycle->turns = 0;
+            gBattleStruct->gearActivations[defender]++;
+        }
+    }
+    return damage;
+}
+
+enum BattlerId Gear_GetReboundTarget(enum BattlerId attacker, enum BattlerId originalTarget)
+{
+    enum BattlerId partner;
+    if (gBattleStruct->artifactReplicaKind[attacker] != 3 || originalTarget >= gBattlersCount)
+        return originalTarget;
+    partner = GetPartnerBattler(originalTarget);
+    return partner < gBattlersCount && IsBattlerAlive(partner) ? partner : originalTarget;
+}
+
+static void ArtifactSetStatus(enum BattlerId target, u32 status)
+{
+    gBattleMons[target].status1 = status;
+    BtlController_EmitSetMonData(target, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE,
+                                 0, sizeof(gBattleMons[target].status1), &gBattleMons[target].status1);
+    MarkBattlerForControllerExec(target);
+}
+
+void Gear_OnExtraStrike(enum BattlerId attacker, enum BattlerId defender, enum Move move)
+{
+    if (gBattleStruct->artifactReplicaKind[attacker] == 3
+     && gSpecialStatuses[attacker].multiHitOn
+     && IsBattlerAlive(defender) && !IsBattlerAlly(attacker, defender)
+     && CanBeParalyzed(attacker, defender, GetBattlerAbility(defender))
+     && RandomPercentage(RNG_GEAR_TABLERO, 10))
+        ArtifactSetStatus(defender, STATUS1_PARALYSIS);
+}
+
+void Gear_OnFireMoveHit(enum BattlerId attacker, enum BattlerId defender, enum Move move)
+{
+    if (Gear_GetBattlerGear(attacker) == GEAR_GLICERINA && GetBattleMoveType(move) == TYPE_FIRE
+     && !gSpecialStatuses[attacker].multiHitOn
+     && IsBattlerAlive(defender) && !IsBattlerAlly(attacker, defender)
+     && CanBeBurned(attacker, defender, GetBattlerAbility(defender))
+     && RandomPercentage(RNG_GEAR_GLICERINA, 20))
+    {
+        ArtifactSetStatus(defender, STATUS1_BURN);
+        gBattleStruct->gearActivations[attacker]++;
+    }
+}
+
+enum BattlerId Gear_TryWarBannerSupport(enum BattlerId attacker, enum BattlerId defender)
+{
+    enum BattlerId partner;
+    bool32 control = FALSE;
+
+    if (Gear_GetBattlerGear(attacker) != GEAR_ESTANDARTE_GUERRA || defender >= gBattlersCount
+     || IsBattlerAlly(attacker, defender))
+        return MAX_BATTLERS_COUNT;
+
+    if ((gBattleMons[defender].status1 & ~gBattleStruct->warBannerInitialStatus[defender]) != 0
+     || (gBattleMons[defender].volatiles.flinched && !gBattleStruct->warBannerInitialFlinch[defender])
+     || (gBattleMons[defender].volatiles.confusionTimer > 0 && !gBattleStruct->warBannerInitialConfusion[defender])
+     || (GetWarBannerControlMask(defender) & ~gBattleStruct->warBannerInitialControlMask[defender]))
+        control = TRUE;
+    for (enum Stat stat = STAT_ATK; stat <= STAT_EVASION; stat++)
+    {
+        if (gBattleMons[defender].statStages[stat] < gBattleStruct->warBannerInitialStages[defender][stat])
+            control = TRUE;
+    }
+    // Consume this exact change even when several MoveEnd callbacks occur.
+    gBattleStruct->warBannerInitialStatus[defender] = gBattleMons[defender].status1;
+    memcpy(gBattleStruct->warBannerInitialStages[defender], gBattleMons[defender].statStages,
+           sizeof(gBattleMons[defender].statStages));
+    gBattleStruct->warBannerInitialFlinch[defender] = gBattleMons[defender].volatiles.flinched;
+    gBattleStruct->warBannerInitialConfusion[defender] = gBattleMons[defender].volatiles.confusionTimer;
+    gBattleStruct->warBannerInitialControlMask[defender] = GetWarBannerControlMask(defender);
+
+    if (!control)
+        return MAX_BATTLERS_COUNT;
+
+    partner = (gBattleTypeFlags & BATTLE_TYPE_DOUBLE) ? GetPartnerBattler(attacker) : attacker;
+    if (partner >= gBattlersCount || !IsBattlerAlive(partner))
+        return MAX_BATTLERS_COUNT;
+    if (gBattleMons[partner].status1 != STATUS1_NONE && RandomPercentage(RNG_GEAR_ESTANDARTE, 30))
+    {
+        ArtifactSetStatus(partner, STATUS1_NONE);
+    }
+    else if (gBattleMons[partner].volatiles.confusionTimer
+          && RandomPercentage(RNG_GEAR_ESTANDARTE, 30))
+    {
+        gBattleMons[partner].volatiles.confusionTimer = 0;
+    }
+    if (IsBattlerAtMaxHp(partner))
+    {
+        gBattleStruct->gearActivations[attacker]++;
+        return MAX_BATTLERS_COUNT;
+    }
+    gBattleStruct->gearActivations[attacker]++;
+    return partner;
 }
 
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
@@ -348,6 +581,18 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         return;
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
+    if (cycle->gear == GEAR_ESTANDARTE_GUERRA)
+    {
+        for (enum BattlerId other = 0; other < gBattlersCount; other++)
+        {
+            gBattleStruct->warBannerInitialStatus[other] = gBattleMons[other].status1;
+            memcpy(gBattleStruct->warBannerInitialStages[other], gBattleMons[other].statStages,
+                   sizeof(gBattleMons[other].statStages));
+            gBattleStruct->warBannerInitialFlinch[other] = gBattleMons[other].volatiles.flinched;
+            gBattleStruct->warBannerInitialConfusion[other] = gBattleMons[other].volatiles.confusionTimer;
+            gBattleStruct->warBannerInitialControlMask[other] = GetWarBannerControlMask(other);
+        }
+    }
     if (cycle->gear == GEAR_AMPLIFICADOR)
     {
         bool32 charged = cycle->phase == GEAR_PHASE_ARMED
@@ -494,6 +739,44 @@ bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attack
     return TRUE;
 }
 
+u16 Gear_GetPaladinChanceTenths(enum BattlerId battler)
+{
+    struct GearCycle *cycle;
+
+    if (!GEARS_ENABLED || battler >= gBattlersCount || !IsBattlerAlive(battler))
+        return 0;
+    cycle = Prepare(battler);
+    if (cycle == NULL || cycle->gear != GEAR_ESCUDO_PALADIN
+     || cycle->paladinLastBlockTurn == gBattleStruct->paladinTurnSerial + 1)
+        return 0;
+    if (cycle->turns >= 8)
+        return 1000;
+    return 125 + min(cycle->turns, 5) * 25;
+}
+
+bool32 Gear_TryPaladinBlock(enum BattlerId defender)
+{
+    u16 chance = Gear_GetPaladinChanceTenths(defender);
+    struct GearCycle *cycle;
+
+    // No RNG consumption when it cannot activate; guaranteed pity uses no roll.
+    if (chance == 0 || (chance < 1000 && RandomUniform(RNG_GEAR_PALADIN, 0, 999) >= chance))
+        return FALSE;
+    cycle = Prepare(defender);
+    cycle->paladinLastBlockTurn = gBattleStruct->paladinTurnSerial + 1;
+    cycle->turns = 0;
+    gBattleStruct->gearActivations[defender]++;
+    return TRUE;
+}
+
+u32 Gear_ApplyPaladinChainPenalty(enum BattlerId attacker, enum BattlerId defender, u32 damage)
+{
+    if (attacker < gBattlersCount && defender < gBattlersCount
+     && gBattleStruct->paladinWeakenedChainTarget[attacker] == defender + 1)
+        return damage * 75 / 100;
+    return damage;
+}
+
 void Gear_OnProtectSuccess(enum BattlerId battler)
 {
     if ((gBattleTypeFlags & BATTLE_TYPE_DOUBLE) || Gear_GetBattlerGear(battler) != GEAR_CASCO_HOPLITA)
@@ -502,15 +785,46 @@ void Gear_OnProtectSuccess(enum BattlerId battler)
         Stamina_RestorePercent(battler, 12);
 }
 
+bool32 Gear_WeatherBonusesSuppressed(enum BattlerId battler)
+{
+    if (!GEARS_ENABLED || gBattleStruct == NULL || battler >= gBattlersCount)
+        return FALSE;
+    return gBattleStruct->faroSuppressionTurn[GetBattlerSide(battler)] == gBattleStruct->paladinTurnSerial + 1;
+}
+
+void Gear_OnScreenSet(enum BattlerId battler, u16 *duration)
+{
+    if (duration != NULL && Gear_GetBattlerGear(battler) == GEAR_CRT)
+    {
+        *duration = min(16, *duration * 2);
+        gBattleStruct->gearActivations[battler]++;
+    }
+}
+
+void Gear_OnProtectExtended(enum BattlerId battler)
+{
+    enum BattlerId partner;
+    if (!(gBattleTypeFlags & BATTLE_TYPE_DOUBLE) || Gear_GetBattlerGear(battler) != GEAR_CRT)
+        return;
+    partner = GetPartnerBattler(battler);
+    if (partner >= gBattlersCount || !IsBattlerAlive(partner))
+        return;
+    gProtectStructs[partner].protected = gProtectStructs[battler].protected;
+    gBattleStruct->gearActivations[battler]++;
+}
+
 u32 Gear_GetEndTurnHeal(enum BattlerId battler)
 {
     struct GearCycle *cycle = Prepare(battler);
 
-    if (cycle == NULL || cycle->gear != GEAR_NUCLEO_HYDRA
-     || cycle->phase != GEAR_PHASE_OVERLOAD || cycle->turns > 3
-     || !IsBattlerAlive(battler) || IsBattlerAtMaxHp(battler))
+    if (cycle == NULL || !IsBattlerAlive(battler) || IsBattlerAtMaxHp(battler))
         return 0;
-    return max(1, gBattleMons[battler].maxHP * 8 / 100);
+    if (cycle->gear == GEAR_NUCLEO_HYDRA && cycle->phase == GEAR_PHASE_OVERLOAD && cycle->turns <= 3)
+        return max(1, gBattleMons[battler].maxHP * 8 / 100);
+    if (cycle->gear == GEAR_ABONO && IS_BATTLER_OF_TYPE(battler, TYPE_GRASS)
+     && (gFieldTimers.terrain == B_TERRAIN_NONE || gFieldTimers.terrain == B_TERRAIN_GRASSY))
+        return max(1, gBattleMons[battler].maxHP / 16) * (gBattleMons[battler].volatiles.root ? 2 : 1);
+    return 0;
 }
 
 void Gear_EndOfTurn(enum BattlerId battler)
@@ -523,6 +837,13 @@ void Gear_EndOfTurn(enum BattlerId battler)
     cycle = Prepare(battler);
     if (cycle == NULL)
         return;
+
+    if (cycle->gear == GEAR_ESCUDO_PALADIN)
+    {
+        if (cycle->paladinLastBlockTurn != gBattleStruct->paladinTurnSerial + 1)
+            cycle->turns = min(cycle->turns + 1, 8);
+        return;
+    }
 
     // The meteorite has broken: no reactivation until a new battle.
     if (cycle->gear == GEAR_ARMADURA_METEORICA && cycle->activations != 0)
@@ -546,6 +867,43 @@ void Gear_EndOfTurn(enum BattlerId battler)
                 }
             }
         }
+        return;
+    }
+
+    if (cycle->gear == GEAR_TORRE_VIGILANCIA && ++cycle->turns >= 3)
+    {
+        cycle->turns = 0;
+        if (gBattleMons[battler].statStages[STAT_ACC] < DEFAULT_STAT_STAGE)
+            gBattleMons[battler].statStages[STAT_ACC] = DEFAULT_STAT_STAGE;
+        if (Gear_ApplySelfStatChange(battler, STAT_ACC, 1))
+            gBattleStruct->gearActivations[battler]++;
+        return;
+    }
+    if (cycle->gear == GEAR_FARO && ++cycle->turns >= 2)
+    {
+        enum BattleSide other = GetBattlerSide(battler) == B_SIDE_PLAYER ? B_SIDE_OPPONENT : B_SIDE_PLAYER;
+        cycle->turns = 0;
+        if (GetWeather() != B_WEATHER_NONE)
+        {
+            gBattleStruct->faroSuppressionTurn[other] = gBattleStruct->paladinTurnSerial + 2;
+            gBattleStruct->gearActivations[battler]++;
+        }
+        return;
+    }
+    if (cycle->gear == GEAR_DESHUMIDIFICADOR && ++cycle->turns >= 2)
+    {
+        cycle->turns = 0;
+        if (GetWeather() != B_WEATHER_NONE && gBattleStruct->weatherDuration > 1)
+        {
+            u8 reduction = RandomUniform(RNG_GEAR_DESHUMIDIFICADOR, 1, 2);
+            gBattleStruct->weatherDuration = max(1, gBattleStruct->weatherDuration - reduction);
+            gBattleStruct->gearActivations[battler]++;
+        }
+        return;
+    }
+    if (cycle->gear == GEAR_BOMBA_ARIETE || cycle->gear == GEAR_ROMPEOLAS)
+    {
+        cycle->turns = min(2, cycle->turns + 1);
         return;
     }
 

@@ -10115,6 +10115,45 @@ const struct ItemInfo gItemsInfo[] =
         .iconPalette = gItemIconPalette_Meteorite,
     },
 
+    [ITEM_GEAR_ESCUDO_PALADIN] =
+    {
+        .name = ITEM_NAME("Escudo de paladín"),
+        .description = COMPOUND_STRING("Puede anular efectos\nhostiles. Gana suerte\ntras fallar cada turno."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        // Placeholder until this Artifact receives its own bag sprite.
+        .iconPic = gItemIcon_Meteorite,
+        .iconPalette = gItemIconPalette_Meteorite,
+    },
+
+#define EXTRA_ARTIFACT(id, displayName, descriptionText, gfx) \
+    [ITEM_GEAR_##id] = { \
+        .name = ITEM_NAME(displayName), \
+        .description = COMPOUND_STRING(descriptionText), \
+        .importance = 1, \
+        .pocket = POCKET_KEY_ITEMS, \
+        .sortType = ITEM_TYPE_RELIC, \
+        .type = ITEM_USE_BAG_MENU, \
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, \
+        .iconPic = gItemIcon_##gfx, \
+        .iconPalette = gItemIconPalette_##gfx, \
+    },
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte de guerra", "Control cura al aliado\ny puede limpiarlo.", KingsRock)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA, "Torre de vigilancia", "Aumenta Precisión\nperiódicamente.", LightClay)
+    EXTRA_ARTIFACT(FARO, "Faro", "Suprime bonificaciones\nclimáticas del rival.", ShinyStone)
+    EXTRA_ARTIFACT(ROMPEOLAS, "Rompeolas", "Amortigua ataques Agua;\nmás los ataques de área.", MysticWater)
+    EXTRA_ARTIFACT(RED_SILOS, "Red de silos", "Genera réplicas de\nproyectiles elegibles.", DubiousDisc)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO, "Tablero trifásico", "Permite rebotes de\nataques eléctricos.", Magnet)
+    EXTRA_ARTIFACT(CRT, "CRT", "Extiende las pantallas\ny comparte la Protección.", Upgrade)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR, "Deshumidificador", "Reduce duración del\nclima ambiental.", AirBalloon)
+    EXTRA_ARTIFACT(BOMBA_ARIETE, "Bomba de ariete", "Repite ataques de Agua\ncon potencia parcial.", MysticWater)
+    EXTRA_ARTIFACT(GLICERINA, "Glicerina", "Los ataques de Fuego\npueden quemar más.", Charcoal)
+    EXTRA_ARTIFACT(ABONO, "Abono", "Regenera a los Planta;\ndoble con Enraizado.", MiracleSeed)
+#undef EXTRA_ARTIFACT
+
     [ITEM_QUICK_CLAW] =
     {
         .name = ITEM_NAME("Quick Claw"),

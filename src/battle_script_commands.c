@@ -1623,6 +1623,7 @@ bool32 TrySetReflect(enum BattlerId battler)
             gSideTimers[side].reflectTimer = 8;
         else
             gSideTimers[side].reflectTimer = 5;
+        Gear_OnScreenSet(battler, &gSideTimers[side].reflectTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, battler) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SET_REFLECT_DOUBLE;
@@ -1644,6 +1645,7 @@ bool32 TrySetLightScreen(enum BattlerId battler)
             gSideTimers[side].lightscreenTimer = 8;
         else
             gSideTimers[side].lightscreenTimer = 5;
+        Gear_OnScreenSet(battler, &gSideTimers[side].lightscreenTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, battler) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SET_LIGHTSCREEN_DOUBLE;
@@ -5188,7 +5190,10 @@ static void Cmd_setprotectlike(void)
 
     gBattleMons[gBattlerAttacker].volatiles.consecutiveMoveUses++;
     if (GetMoveEffect(gCurrentMove) == EFFECT_PROTECT)
+    {
         Gear_OnProtectSuccess(gBattlerAttacker);
+        Gear_OnProtectExtended(gBattlerAttacker);
+    }
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
@@ -11727,6 +11732,7 @@ void BS_SetAuroraVeil(void)
             gSideTimers[GetBattlerSide(gBattlerAttacker)].auroraVeilTimer = 8;
         else
             gSideTimers[GetBattlerSide(gBattlerAttacker)].auroraVeilTimer = 5;
+        Gear_OnScreenSet(gBattlerAttacker, &gSideTimers[side].auroraVeilTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, gBattlerAttacker) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = 5;

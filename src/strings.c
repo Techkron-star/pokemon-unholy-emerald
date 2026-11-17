@@ -149,7 +149,7 @@ const u8 *const gPocketNamesStringsTable[] =
     // The pocket-name window is only 64px wide; long names were clipped.
     [POCKET_BATTLE_ITEMS] = COMPOUND_STRING("BATTLE"),
     [POCKET_MEDICINE]     = COMPOUND_STRING("MEDICINE"),
-    [POCKET_GEARS]        = COMPOUND_STRING("GEARS"),
+    [POCKET_GEARS]        = COMPOUND_STRING("ARTIFACTS"),
     [POCKET_MAIL]         = COMPOUND_STRING("MAIL"),
     [POCKET_MISC]         = COMPOUND_STRING("MISC"),
 };

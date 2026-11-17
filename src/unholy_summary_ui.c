@@ -88,7 +88,7 @@ static const struct WindowTemplate sWindows[] =
 };
 static const u8 *const sTabs[] =
 {
-    COMPOUND_STRING("INFO"), COMPOUND_STRING("STATS"), COMPOUND_STRING("MOVES"), COMPOUND_STRING("GEAR"),
+    COMPOUND_STRING("INFO"), COMPOUND_STRING("STATS"), COMPOUND_STRING("MOVES"), COMPOUND_STRING("ARTIFACT"),
 };
 static const u8 *const sStats[NUM_STATS] =
 {
@@ -339,7 +339,7 @@ static void Gear(void)
         u16 item = GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 55, 198, fill, item == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(item));
         bool32 hasGear = values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT;
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("GEAR"));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("ARTIFACT"));
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, hasGear ? gGearsInfo[values->gearId].name : COMPOUND_STRING("NONE"));
         if (hasGear)
             Paragraph(gGearsInfo[values->gearId].description, 103, 2);
@@ -592,7 +592,7 @@ static void DrawEquipment(void)
     bool8 gear = sSummary->equipmentGear;
     u16 current = gear ? Gear_ToItem(Gear_GetEquipped(&sSummary->mon)) : GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
     u16 next = sSummary->equipmentItems[sSummary->equipmentCursor];
-    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("GEAR") : COMPOUND_STRING("HELD ITEM"));
+    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("ARTIFACT") : COMPOUND_STRING("HELD ITEM"));
     if (sSummary->qol == QOL_EQUIPMENT)
     {
         u8 *end = StringCopy(text, COMPOUND_STRING("NOW: "));
@@ -702,7 +702,7 @@ static void DrawQol(void)
     UnholyUi_Frame(sSummary->window, sSummary->qol == QOL_MENU ? COMPOUND_STRING("TRAINER TOOLS") : COMPOUND_STRING("EVOLUTION PATHS"));
     if (sSummary->qol == QOL_MENU)
     {
-        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("GEAR"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
+        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("ARTIFACT"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
         u8 *position = ConvertUIntToDecimalStringN(text, sSummary->tool + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
         position = StringAppend(position, COMPOUND_STRING("/"));
         ConvertUIntToDecimalStringN(position, TOOL_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);

@@ -15,6 +15,17 @@
 #include "constants/items.h"
 #include "constants/moves.h"
 
+// A shield proc stops this *one* residual tick without removing its status.
+// The caller has already advanced the end-turn cursor, so it cannot replay.
+static bool32 TryPaladinBlockResidual(enum BattlerId battler)
+{
+    if (!Gear_TryPaladinBlock(battler))
+        return FALSE;
+    gBattleScripting.battler = battler;
+    BattleScriptCall(BattleScript_PaladinShieldBlock);
+    return TRUE;
+}
+
 static enum BattlerId GetBattlerSideForMessage(enum BattleSide side)
 {
     enum BattlerId battler;
@@ -154,9 +165,14 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
          && GetBattlerHoldEffect(battler) != HOLD_EFFECT_SAFETY_GOGGLES
          && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
         {
-            SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
-            gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SANDSTORM;
-            BattleScriptCall(BattleScript_DamagingWeather);
+            if (TryPaladinBlockResidual(battler))
+                effect = TRUE;
+            else
+            {
+                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+                gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SANDSTORM;
+                BattleScriptCall(BattleScript_DamagingWeather);
+            }
             effect = TRUE;
         }
         break;
@@ -178,9 +194,12 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
              && GetBattlerHoldEffect(battler) != HOLD_EFFECT_SAFETY_GOGGLES
              && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
             {
-                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
-                gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HAIL;
-                BattleScriptCall(BattleScript_DamagingWeather);
+                if (!TryPaladinBlockResidual(battler))
+                {
+                    SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+                    gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HAIL;
+                    BattleScriptCall(BattleScript_DamagingWeather);
+                }
                 effect = TRUE;
             }
         }
@@ -356,9 +375,12 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
             if (!IS_BATTLER_OF_TYPE(battler, gSideTimers[side].damageNonTypesType)
              && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
             {
-                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 6);
-                ChooseDamageNonTypesString(gSideTimers[side].damageNonTypesType);
-                BattleScriptCall(BattleScript_DamageNonTypesContinues);
+                if (!TryPaladinBlockResidual(battler))
+                {
+                    SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 6);
+                    ChooseDamageNonTypesString(gSideTimers[side].damageNonTypesType);
+                    BattleScriptCall(BattleScript_DamageNonTypesContinues);
+                }
                 effect = TRUE;
             }
         }
@@ -371,11 +393,14 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
          && !IS_BATTLER_OF_TYPE(battler, TYPE_FIRE)
          && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
         {
-            gBattlerAttacker = battler;
-            SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
-            BtlController_EmitStatusAnimation(battler, B_COMM_TO_CONTROLLER, FALSE, STATUS1_BURN);
-            MarkBattlerForControllerExec(battler);
-            BattleScriptCall(BattleScript_HurtByTheSeaOfFire);
+            if (!TryPaladinBlockResidual(battler))
+            {
+                gBattlerAttacker = battler;
+                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
+                BtlController_EmitStatusAnimation(battler, B_COMM_TO_CONTROLLER, FALSE, STATUS1_BURN);
+                MarkBattlerForControllerExec(battler);
+                BattleScriptCall(BattleScript_HurtByTheSeaOfFire);
+            }
             effect = TRUE;
         }
         gBattleStruct->eventState.endTurnBlock++;
@@ -540,6 +565,8 @@ static bool32 HandleEndTurnLeechSeed(enum BattlerId battler)
      && IsBattlerPresent(receiverBattler)
      && !IsAbilityAndRecord(drainedBattler, GetBattlerAbility(drainedBattler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(drainedBattler))
+            return TRUE;
         gBattlerAttacker = receiverBattler;
         gBattlerAbility = gBattleScripting.battler = drainedBattler;
         gBattleScripting.animArg1 = receiverBattler;
@@ -602,6 +629,13 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
         }
         else if (isToxicPoison)
         {
+            // Toxic still advances while this tick is blocked; the status remains.
+            if (TryPaladinBlockResidual(battler))
+            {
+                if ((gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) != STATUS1_TOXIC_TURN(15))
+                    gBattleMons[battler].status1 += STATUS1_TOXIC_TURN(1);
+                return TRUE;
+            }
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
             if ((gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) != STATUS1_TOXIC_TURN(15)) // not 16 turns
                 gBattleMons[battler].status1 += STATUS1_TOXIC_TURN(1);
@@ -614,6 +648,8 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
         }
         else
         {
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
             if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
              && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
@@ -638,6 +674,8 @@ static bool32 HandleEndTurnBurn(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         s32 burnDamage = GetNonDynamaxMaxHP(battler) / ((GetConfig(B_BURN_DAMAGE) >= GEN_7 || GetConfig(B_BURN_DAMAGE) == GEN_1) ? 16 : 8);
         if (ability == ABILITY_HEATPROOF)
         {
@@ -666,6 +704,8 @@ static bool32 HandleEndTurnFrostbite(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / ((GetConfig(B_BURN_DAMAGE) >= GEN_7 || GetConfig(B_BURN_DAMAGE) == GEN_1) ? 16 : 8));
         BattleScriptCall(BattleScript_FrostbiteTurnDmg);
         effect = TRUE;
@@ -686,6 +726,8 @@ static bool32 HandleEndTurnNightmare(enum BattlerId battler)
     {
         if (IsAsleepOrComatose(battler, GetBattlerAbility(battler)))
         {
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 4);
             BattleScriptCall(BattleScript_NightmareTurnDmg);
             effect = TRUE;
@@ -709,6 +751,8 @@ static bool32 HandleEndTurnCurse(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 4);
         BattleScriptCall(BattleScript_CurseTurnDmg);
         effect = TRUE;
@@ -731,6 +775,9 @@ static bool32 HandleEndTurnWrap(enum BattlerId battler)
             gBattleMons[battler].volatiles.wrapTurns--;
             if (IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
                 return effect;
+
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
 
             gBattleScripting.animArg1 = gBattleMons[battler].volatiles.wrappedMove;
             gBattleScripting.animArg2 = gBattleMons[battler].volatiles.wrappedMove >> 8;
@@ -765,6 +812,8 @@ static bool32 HandleEndTurnSaltCure(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         s32 saltCureDamage = 0;
         if (IS_BATTLER_ANY_TYPE(battler, TYPE_STEEL, TYPE_WATER))
             saltCureDamage = GetNonDynamaxMaxHP(battler) / (GetConfig(B_SALT_CURE_DAMAGE) >= GEN_CHAMPIONS ? 8 : 4);
