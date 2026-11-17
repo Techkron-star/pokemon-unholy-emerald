@@ -969,7 +969,7 @@ void HandleInputChooseMove(enum BattlerId battler)
             MoveSelectionDisplayMoveType(battler);
         }
     }
-    else if (JOY_NEW(B_MOVE_DESCRIPTION_BUTTON) &&
+    else if (B_SHOW_MOVE_DESCRIPTION && JOY_NEW(B_MOVE_DESCRIPTION_BUTTON) &&
         !(B_MOVE_DESCRIPTION_BUTTON == L_BUTTON && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A))
     {
         gBattleStruct->descriptionSubmenu = TRUE;
@@ -1806,16 +1806,10 @@ static void DrawChainPreview(enum BattlerId battler)
         // A transparent/cleared window exposes a black strip in the menu art.
         bool32 chainAvailable = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
         bool32 canChain = chainAvailable && Chain_IsMoveChainable(info->moves[selected]);
-        const u8 *hint = canChain
-            ? COMPOUND_STRING("L:CHAIN R:INFO SEL:SORT")
-            : COMPOUND_STRING("A:MOVE R:INFO SEL:SORT");
-        if (!B_SHOW_MOVE_DESCRIPTION)
-            hint = canChain ? COMPOUND_STRING("L:CHAIN SEL:SORT")
-                            : COMPOUND_STRING("A:MOVE SEL:SORT");
+        const u8 *hint = canChain ? COMPOUND_STRING("L:CHAIN SEL:SORT")
+                                  : COMPOUND_STRING("A:MOVE SEL:SORT");
         if (GetStringWidth(FONT_SMALL_NARROW, hint, 0) > 142)
-            hint = B_SHOW_MOVE_DESCRIPTION
-                ? (canChain ? COMPOUND_STRING("L:CHAIN R:INFO") : COMPOUND_STRING("A:MOVE R:INFO"))
-                : (canChain ? COMPOUND_STRING("L:CHAIN") : COMPOUND_STRING("A:MOVE"));
+            hint = canChain ? COMPOUND_STRING("L:CHAIN") : COMPOUND_STRING("A:MOVE");
         if (chainAvailable && !canChain)
             hint = COMPOUND_STRING("SINGLE MOVE - NO CHAIN");
         AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 1, 0, 0, colors, TEXT_SKIP_DRAW, hint);
