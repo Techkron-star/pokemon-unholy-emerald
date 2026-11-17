@@ -454,8 +454,8 @@ bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attack
     if (tier == 0)
         return FALSE;
     gBattleStruct->meteorArmorPending[defender] = 0;
-    // This is a stat loss caused by the wearer's Gear: Contrary reverses it.
-    stageChange = GetBattlerAbility(defender) == ABILITY_CONTRARY ? tier : -(s32)tier;
+    // This is a self-inflicted Gear loss: the attacker's Mold Breaker does not suppress Contrary.
+    stageChange = GetBattlerAbilityIgnoreMoldBreaker(defender) == ABILITY_CONTRARY ? tier : -(s32)tier;
     gBattleMons[defender].statStages[STAT_DEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
         (s32)gBattleMons[defender].statStages[STAT_DEF] + stageChange));
     gBattleMons[defender].statStages[STAT_SPDEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
