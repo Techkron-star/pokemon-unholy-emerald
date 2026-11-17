@@ -265,9 +265,8 @@ static bool32 FirstEventBlockEvents(struct BattleCalcValues *calcValues)
                 }
                 // The +1 Sp. Atk is earned by clearing hazards, not by
                 // switching repeatedly into an empty battlefield.
-                if (cleared && gBattleMons[battler].statStages[STAT_SPATK] < MAX_STAT_STAGE)
+                if (cleared && Gear_ApplySelfStatChange(battler, STAT_SPATK, 1))
                 {
-                    gBattleMons[battler].statStages[STAT_SPATK]++;
                     gBattleStruct->gearActivations[battler]++;
                 }
             }

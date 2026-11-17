@@ -3540,17 +3540,25 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
      && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef,
                             cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
     {
-        struct StatStages defDrop = { .stat = STAT_DEF, .stage = -1 };
+        struct StatStages defDrop = {
+            .stat = STAT_DEF,
+            .stage = Gear_ModifyStatStageByAbility(cv->abilities[cv->battlerDef], -1),
+        };
         struct StatChange statChange = {
             .statStageQueue = &defDrop,
             .statStageAmount = 1,
             .silentFailure = TRUE,
         };
 
-        // Use the native stat-change API so Mist, Clear Body, Mirror Armor,
-        // Contrary and the regular stage limits continue to apply.
+        // Damage-dealt Gear debuff: adjust Contrary/Simple first, then let the
+        // native pipeline apply target defenses, Mirror Armor and responses.
         if (TryStatChange(cv, &statChange) == STAT_CHANGE_WORKED)
             gBattleStruct->gearActivations[cv->battlerAtk]++;
+        if (statChange.script != NULL)
+        {
+            BattleScriptCall(statChange.script);
+            return MOVEEND_RESULT_RUN_SCRIPT;
+        }
     }
 
     if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)

@@ -124,3 +124,52 @@ TEST("Contrary reverses both Meteor Armor Defense penalties into boosts")
     Free(gBattleStruct);
     gBattleStruct = oldBattle;
 }
+
+TEST("All self-triggered Gear stage changes respect Contrary Simple and source rules")
+{
+    struct BattleStruct *oldBattle = gBattleStruct;
+    struct BattlePokemon oldMon = gBattleMons[B_BATTLER_0];
+    enum Stat stats[] = { STAT_ATK, STAT_SPEED, STAT_SPATK, STAT_DEF, STAT_SPDEF };
+
+    EXPECT_EQ(Gear_ModifyStatStageByAbility(ABILITY_CONTRARY, -3), 3);
+    EXPECT_EQ(Gear_ModifyStatStageByAbility(ABILITY_CONTRARY, 1), -1);
+    EXPECT_EQ(Gear_ModifyStatStageByAbility(ABILITY_SIMPLE, -3), -6);
+    EXPECT_EQ(Gear_ModifyStatStageByAbility(ABILITY_SIMPLE, 1), 2);
+    EXPECT_EQ(Gear_ModifyStatStageByAbility(ABILITY_MIRROR_ARMOR, -1), -1);
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleMons[B_BATTLER_0] = (struct BattlePokemon){ .hp = 80, .maxHP = 100 };
+
+    for (u8 i = 0; i < ARRAY_COUNT(stats); i++)
+    {
+        enum Stat stat = stats[i];
+
+        gBattleMons[B_BATTLER_0].ability = ABILITY_CONTRARY;
+        gBattleMons[B_BATTLER_0].statStages[stat] = DEFAULT_STAT_STAGE;
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, 1));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE - 1);
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, -2));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE + 1);
+
+        gBattleMons[B_BATTLER_0].ability = ABILITY_SIMPLE;
+        gBattleMons[B_BATTLER_0].statStages[stat] = DEFAULT_STAT_STAGE;
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, 1));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE + 2);
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, -2));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE - 2);
+
+        // Source is the wearer's own Gear, so self-debuffs are not reflected or blocked.
+        gBattleMons[B_BATTLER_0].ability = ABILITY_MIRROR_ARMOR;
+        gBattleMons[B_BATTLER_0].statStages[stat] = DEFAULT_STAT_STAGE;
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, -1));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE - 1);
+        gBattleMons[B_BATTLER_0].ability = ABILITY_CLEAR_BODY;
+        gBattleMons[B_BATTLER_0].statStages[stat] = DEFAULT_STAT_STAGE;
+        EXPECT(Gear_ApplySelfStatChange(B_BATTLER_0, stat, -1));
+        EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[stat], DEFAULT_STAT_STAGE - 1);
+    }
+
+    gBattleMons[B_BATTLER_0] = oldMon;
+    Free(gBattleStruct);
+    gBattleStruct = oldBattle;
+}

@@ -4,6 +4,7 @@
 #include "battle_dynamax.h"
 #include "battle_z_move.h"
 #include "battle_util.h"
+#include "battle_ai_record.h"
 #include "move.h"
 #include "pokemon.h"
 #include "gear.h"
@@ -116,6 +117,39 @@ enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item)
 
     Gear_SetEquipped(mon, requested);
     return GEAR_EQUIP_OK;
+}
+
+s8 Gear_ModifyStatStageByAbility(enum Ability ability, s8 stages)
+{
+    if (ability == ABILITY_CONTRARY)
+        return -stages;
+    if (ability == ABILITY_SIMPLE)
+        return 2 * stages;
+    return stages;
+}
+
+bool32 Gear_ApplySelfStatChange(enum BattlerId battler, enum Stat stat, s8 stages)
+{
+    enum Ability ability;
+    s32 oldStage, newStage;
+
+    if (!GEARS_ENABLED || stat < STAT_ATK || stat > STAT_EVASION || stages == 0)
+        return FALSE;
+
+    // Self-inflicted Gear stat changes are not bypassed by the opponent's Mold Breaker.
+    // Mirror Armor / Clear Body / Defiant / Competitive are foe-source interactions,
+    // so they do not reflect or block the wearer's own Gear recoil.
+    ability = GetBattlerAbilityIgnoreMoldBreaker(battler);
+    stages = Gear_ModifyStatStageByAbility(ability, stages);
+    oldStage = gBattleMons[battler].statStages[stat];
+    newStage = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE, oldStage + stages));
+    if (newStage == oldStage)
+        return FALSE;
+
+    gBattleMons[battler].statStages[stat] = newStage;
+    if (ability == ABILITY_CONTRARY || ability == ABILITY_SIMPLE)
+        RecordAbilityBattle(battler, ability);
+    return TRUE;
 }
 
 static void StartCycle(struct GearCycle *cycle, const struct GearInfo *info)
@@ -339,10 +373,9 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
     if (info->trigger == GEAR_TRIGGER_PASSIVE || info->trigger == GEAR_TRIGGER_EVENT)
     {
         if (cycle->gear == GEAR_PIEDRA_AFILAR && IsSlicingMove(move)
-         && !IsBattleMoveStatus(move) && gBattleMons[battler].statStages[STAT_ATK] < MAX_STAT_STAGE)
+         && !IsBattleMoveStatus(move) && Gear_ApplySelfStatChange(battler, STAT_ATK, 1))
         {
             // One stage per move execution, not per individual multihit.
-            gBattleMons[battler].statStages[STAT_ATK]++;
             gBattleStruct->gearActivations[battler]++;
         }
         return;
@@ -374,8 +407,7 @@ void Gear_OnDamaged(enum BattlerId battler, u32 damage)
     {
         cycle->activations = 1;
         Stamina_RestorePercent(battler, 18);
-        gBattleMons[battler].statStages[STAT_SPEED] = min(MAX_STAT_STAGE,
-            gBattleMons[battler].statStages[STAT_SPEED] + 1);
+        Gear_ApplySelfStatChange(battler, STAT_SPEED, 1);
         // Cancel before the queued second action can spend PP or Stamina.
         gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gearActivations[battler]++;
@@ -449,17 +481,12 @@ static void MeteorArmorBurn(enum BattlerId defender, enum BattlerId target)
 bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attacker)
 {
     u8 tier = gBattleStruct->meteorArmorPending[defender];
-    s32 stageChange;
 
     if (tier == 0)
         return FALSE;
     gBattleStruct->meteorArmorPending[defender] = 0;
-    // This is a self-inflicted Gear loss: the attacker's Mold Breaker does not suppress Contrary.
-    stageChange = GetBattlerAbilityIgnoreMoldBreaker(defender) == ABILITY_CONTRARY ? tier : -(s32)tier;
-    gBattleMons[defender].statStages[STAT_DEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
-        (s32)gBattleMons[defender].statStages[STAT_DEF] + stageChange));
-    gBattleMons[defender].statStages[STAT_SPDEF] = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE,
-        (s32)gBattleMons[defender].statStages[STAT_SPDEF] + stageChange));
+    Gear_ApplySelfStatChange(defender, STAT_DEF, -(s8)tier);
+    Gear_ApplySelfStatChange(defender, STAT_SPDEF, -(s8)tier);
 
     MeteorArmorBurn(defender, attacker);
     if (tier == 3 && (gBattleTypeFlags & BATTLE_TYPE_DOUBLE))

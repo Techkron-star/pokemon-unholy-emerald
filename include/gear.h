@@ -69,6 +69,12 @@ enum Gear Gear_FromItem(enum Item item);
 enum Item Gear_ToItem(enum Gear gear);
 enum GearEquipResult Gear_TryEquipFromBag(struct Pokemon *mon, enum Item item);
 
+// Gear stat stages obey the same inversion/doubling as battle stat changes.
+// Use ApplySelf only for changes originating from the wearer's own Gear;
+// effects inflicted on an opponent still use the native TryStatChange pipeline.
+s8 Gear_ModifyStatStageByAbility(enum Ability ability, s8 stages);
+bool32 Gear_ApplySelfStatChange(enum BattlerId battler, enum Stat stat, s8 stages);
+
 // --- Combate ---
 // Gear del combatiente y fase actual del ciclo (se inicializa solo al entrar al campo).
 enum Gear Gear_GetBattlerGear(enum BattlerId battler);
