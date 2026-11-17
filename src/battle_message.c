@@ -650,7 +650,7 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_GEARCHAINED]                         = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}\ncan't chain moves!"),
     [STRINGID_METEORARMORASH]                      = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}'s Meteor Armor\nstopped a lethal hit!\pIts defenses fell!\nScorching ash erupted!"),
     [STRINGID_METEORARMORCONTRARY]                 = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}'s Meteor Armor\nstopped a lethal hit!\pCONTRARY raised its defenses!\nScorching ash erupted!"),
-    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press START\n"
+    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press L\n"
                                                                      "to mark your first move.\p"
                                                                      "Pick a different move with A\n"
                                                                      "to chain them.\p"
