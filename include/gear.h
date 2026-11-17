@@ -88,6 +88,11 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType);
 // HP/reactive Gears are resolved after real damage; preview must not consume them.
 void Gear_OnDamaged(enum BattlerId battler, u32 damage);
+// Only actual, direct, single-turn/single-strike lethal move damage can activate it.
+bool32 Gear_TryMeteorArmorSurvive(enum BattlerId defender, enum BattlerId attacker,
+                                 enum Move move, s32 damage, u16 *remainingHp);
+// Consumes the pending impact after the HP update and applies its ash backlash.
+bool32 Gear_ResolveMeteorArmorAsh(enum BattlerId defender, enum BattlerId attacker);
 void Gear_OnProtectSuccess(enum BattlerId battler);
 // Returns the end-turn heal amount (no direct HP mutation; caller owns battle script).
 u32 Gear_GetEndTurnHeal(enum BattlerId battler);

@@ -327,6 +327,7 @@ extern const u8 BattleScript_GemActivates[];
 extern const u8 BattleScript_BerryReduceAnimation[];
 extern const u8 BattleScript_BerryReduceDmg[];
 extern const u8 BattleScript_GearShackle[];
+extern const u8 BattleScript_MeteorArmorAsh[];
 extern const u8 BattleScript_ItemStatChange[];
 extern const u8 BattleScript_RockyHelmetActivates[];
 extern const u8 BattleScript_ItemHurtWithAnim[];

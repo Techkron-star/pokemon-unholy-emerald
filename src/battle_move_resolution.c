@@ -3043,13 +3043,19 @@ static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
         {
             u16 hpBefore;
             u16 hpLost;
-
-            gBideDmg[cv->battlerDef] += gBattleStruct->moveDamage[cv->battlerDef];
-            gBideTarget[cv->battlerDef] = cv->battlerAtk;
+            u16 meteorArmorHp;
 
             // Deal damage to the battler
             hpBefore = gBattleMons[cv->battlerDef].hp;
-            if (gBattleMons[cv->battlerDef].hp > gBattleStruct->moveDamage[cv->battlerDef])
+            if (Gear_TryMeteorArmorSurvive(cv->battlerDef, cv->battlerAtk, cv->move,
+                                          gBattleStruct->moveDamage[cv->battlerDef], &meteorArmorHp))
+            {
+                gBattleMons[cv->battlerDef].hp = meteorArmorHp;
+                // Track only actual HP loss; the Gear can restore an ally below 30%.
+                gBattleStruct->moveDamage[cv->battlerDef] = hpBefore > meteorArmorHp
+                    ? hpBefore - meteorArmorHp : 0;
+            }
+            else if (gBattleMons[cv->battlerDef].hp > gBattleStruct->moveDamage[cv->battlerDef])
             {
                 if (cv->moveEffect == EFFECT_OHKO && gBattleStruct->moveResultFlags[cv->battlerDef] & MOVE_RESULT_FOE_HUNG_ON)
                 {
@@ -3063,7 +3069,10 @@ static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
                 gBattleMons[cv->battlerDef].hp = 0;
             }
 
-            hpLost = hpBefore - gBattleMons[cv->battlerDef].hp;
+            hpLost = hpBefore > gBattleMons[cv->battlerDef].hp
+                ? hpBefore - gBattleMons[cv->battlerDef].hp : 0;
+            gBideDmg[cv->battlerDef] += hpLost;
+            gBideTarget[cv->battlerDef] = cv->battlerAtk;
             if (hpLost != 0)
                 gBattleStruct->innardsOutHpLost[cv->battlerDef] += hpLost;
 
@@ -3507,6 +3516,12 @@ static enum MoveEndResult MoveEndFormChangeOnHit(struct BattleCalcValues *cv)
 static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 {
     gBattleScripting.moveendState++;
+
+    if (Gear_ResolveMeteorArmorAsh(cv->battlerDef, cv->battlerAtk))
+    {
+        BattleScriptCall(BattleScript_MeteorArmorAsh);
+        return MOVEEND_RESULT_RUN_SCRIPT;
+    }
 
     if (!IsBattleMoveStatus(cv->move)
      && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
