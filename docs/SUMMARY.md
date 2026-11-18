@@ -14,6 +14,7 @@
 - [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
+- [Unholy Emerald · Distribución de artefactos por rutas](./qa/artifact_route_distribution.md)
 - [Unholy Emerald · QA tutorial de encadenados](./qa/first-battle-chain-tutorial.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
