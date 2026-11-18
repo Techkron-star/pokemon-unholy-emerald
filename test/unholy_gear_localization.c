@@ -1,4 +1,5 @@
 #include "global.h"
+#include "constants/characters.h"
 #include "gear.h"
 #include "item.h"
 #include "string_util.h"
