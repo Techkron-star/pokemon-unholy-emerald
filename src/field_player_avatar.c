@@ -26,6 +26,7 @@
 #include "task.h"
 #include "tv.h"
 #include "wild_encounter.h"
+#include "unholy_qol.h"
 #include "constants/abilities.h"
 #include "constants/event_objects.h"
 #include "constants/event_object_movement.h"
@@ -911,7 +912,7 @@ static void PlayerNotOnBikeMoving(enum Direction direction, u16 heldKeys)
 
     if (!(gPlayerAvatar.flags & PLAYER_AVATAR_FLAG_UNDERWATER)
      && !(heldKeys & A_BUTTON)
-     && (OW_AUTO_RUN || ((heldKeys & B_BUTTON) && FlagGet(FLAG_SYS_B_DASH)))
+     && (UnholyQolIsEnabled(UQOL_AUTO_RUN) || ((heldKeys & B_BUTTON) && FlagGet(FLAG_SYS_B_DASH)))
      && IsRunningDisallowed(gObjectEvents[gPlayerAvatar.objectEventId].currentMetatileBehavior) == 0
      && !FollowerNPCComingThroughDoor()
      && (I_ORAS_DOWSING_FLAG == 0 || (I_ORAS_DOWSING_FLAG != 0 && !FlagGet(I_ORAS_DOWSING_FLAG))))

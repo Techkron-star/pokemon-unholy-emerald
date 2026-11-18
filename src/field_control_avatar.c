@@ -38,6 +38,7 @@
 #include "vs_seeker.h"
 #include "wild_encounter.h"
 #include "wild_encounter_ow.h"
+#include "unholy_qol.h"
 #include "constants/event_bg.h"
 #include "constants/event_objects.h"
 #include "constants/field_poison.h"
@@ -54,6 +55,8 @@ COMMON_DATA u8 gSelectedObjectEvent = 0;
 static void GetInFrontOfPlayerPosition(struct MapPosition *);
 static u16 GetPlayerCurMetatileBehavior(int);
 static bool8 TryStartInteractionScript(struct MapPosition *, u16, enum Direction);
+static bool8 TryAutoFieldMove(struct MapPosition *, u16, enum Direction);
+static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove);
 static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedObjectEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedBackgroundEventScript(struct MapPosition *, u8, enum Direction);
@@ -97,7 +100,7 @@ void FieldClearPlayerInput(struct FieldInput *input)
     input->tookStep = FALSE;
     input->pressedBButton = FALSE;
     input->pressedRButton = FALSE;
-    input->input_field_1_1 = FALSE;
+    input->pressedLButton = FALSE;
     input->input_field_1_2 = FALSE;
     input->input_field_1_3 = FALSE;
     input->dpadDirection = 0;
@@ -123,6 +126,8 @@ void FieldGetPlayerInput(struct FieldInput *input, u16 newKeys, u16 heldKeys)
                 input->pressedBButton = TRUE;
             if (newKeys & R_BUTTON)
                 input->pressedRButton = TRUE;
+            if (newKeys & L_BUTTON)
+                input->pressedLButton = TRUE;
         }
 
         if (heldKeys & (DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT))
@@ -179,6 +184,12 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     if (TryRunOnFrameMapScript() == TRUE)
         return TRUE;
 
+    if (input->pressedLButton)
+    {
+        ScriptContext_SetupScript(EventScript_UnholyQolMenu);
+        return TRUE;
+    }
+
     if (input->pressedBButton && TrySetupDiveEmergeScript() == TRUE)
         return TRUE;
     if (input->tookStep)
@@ -212,6 +223,11 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     metatileBehavior = MapGridGetMetatileBehaviorAt(position.x, position.y);
 
     if (input->heldDirection && (input->dpadDirection == playerDirection) && (TrySetUpWalkIntoSignpostScript(&position, metatileBehavior, playerDirection) == TRUE))
+        return TRUE;
+
+    // Holding the direction towards a field obstacle acts like A only for
+    // explicitly enabled HMs. NPCs and unrelated interactions remain manual.
+    if (input->heldDirection2 && input->dpadDirection == playerDirection && TryAutoFieldMove(&position, metatileBehavior, playerDirection))
         return TRUE;
 
     if (input->pressedAButton && TryStartInteractionScript(&position, metatileBehavior, playerDirection) == TRUE)
@@ -303,6 +319,61 @@ static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatil
      && script != SecretBase_EventScript_CushionInteract
      && script != EventScript_PC)
         PlaySE(SE_SELECT);
+
+    ScriptContext_SetupScript(script);
+    return TRUE;
+}
+
+static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
+{
+    u32 i;
+    enum Move move;
+
+    if (!IsFieldMoveUnlocked(fieldMove))
+        return FALSE;
+    move = FieldMove_GetMoveId(fieldMove);
+
+    for (i = 0; i < PARTY_SIZE; i++)
+    {
+        struct Pokemon *mon = &gPlayerParty[i];
+
+        if (GetMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
+            break;
+        if (!GetMonData(mon, MON_DATA_IS_EGG) && MonKnowsMove(mon, move))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+static bool8 TryAutoFieldMove(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
+{
+    const u8 *script;
+    enum FieldMove move;
+
+    if (!UnholyQolIsEnabled(UQOL_AUTO_CUT)
+     && !UnholyQolIsEnabled(UQOL_AUTO_ROCK_SMASH)
+     && !UnholyQolIsEnabled(UQOL_AUTO_STRENGTH)
+     && !UnholyQolIsEnabled(UQOL_AUTO_SURF))
+        return FALSE;
+
+    script = GetInteractedObjectEventScript(position, metatileBehavior, direction);
+    if (script == EventScript_CutTree && UnholyQolIsEnabled(UQOL_AUTO_CUT))
+        move = FIELD_MOVE_CUT;
+    else if (script == EventScript_RockSmash && UnholyQolIsEnabled(UQOL_AUTO_ROCK_SMASH))
+        move = FIELD_MOVE_ROCK_SMASH;
+    else if (script == EventScript_StrengthBoulder && UnholyQolIsEnabled(UQOL_AUTO_STRENGTH) && !FlagGet(FLAG_SYS_USE_STRENGTH))
+        move = FIELD_MOVE_STRENGTH;
+    else if (script == NULL && UnholyQolIsEnabled(UQOL_AUTO_SURF)
+          && GetInteractedWaterScript(position, metatileBehavior, direction) == EventScript_UseSurf)
+    {
+        script = EventScript_UseSurf;
+        move = FIELD_MOVE_SURF;
+    }
+    else
+        return FALSE;
+
+    if (!PartyCanUseAutoFieldMove(move))
+        return FALSE;
 
     ScriptContext_SetupScript(script);
     return TRUE;

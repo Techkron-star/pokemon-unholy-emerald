@@ -8,6 +8,7 @@
 #include "text_window.h"
 #include "script.h"
 #include "field_name_box.h"
+#include "unholy_qol.h"
 
 static EWRAM_DATA u8 sFieldMessageBoxMode = 0;
 EWRAM_DATA u8 gWalkAwayFromSignpostTimer = 0;
@@ -20,7 +21,7 @@ void InitFieldMessageBox(void)
     sFieldMessageBoxMode = FIELD_MESSAGE_BOX_HIDDEN;
     gTextFlags.canABSpeedUpPrint = FALSE;
     gTextFlags.useAlternateDownArrow = FALSE;
-    gTextFlags.autoScroll = FALSE;
+    gTextFlags.autoScroll = UnholyQolIsEnabled(UQOL_AUTO_DIALOGUE);
     gTextFlags.forceMidTextSpeed = FALSE;
 }
 
@@ -75,6 +76,7 @@ bool8 ShowFieldMessage(const u8 *str)
 {
     if (sFieldMessageBoxMode != FIELD_MESSAGE_BOX_HIDDEN)
         return FALSE;
+    gTextFlags.autoScroll = UnholyQolIsEnabled(UQOL_AUTO_DIALOGUE);
     ExpandStringAndStartDrawFieldMessage(str, TRUE);
     sFieldMessageBoxMode = FIELD_MESSAGE_BOX_NORMAL;
     return TRUE;
@@ -122,6 +124,7 @@ bool8 ShowFieldMessageFromBuffer(void)
 {
     if (sFieldMessageBoxMode != FIELD_MESSAGE_BOX_HIDDEN)
         return FALSE;
+    gTextFlags.autoScroll = UnholyQolIsEnabled(UQOL_AUTO_DIALOGUE);
     sFieldMessageBoxMode = FIELD_MESSAGE_BOX_NORMAL;
     StartDrawFieldMessage();
     return TRUE;

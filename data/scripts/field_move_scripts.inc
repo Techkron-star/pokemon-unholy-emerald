@@ -6,6 +6,9 @@ EventScript_CutTree::
 	setfieldeffectargument 0, VAR_RESULT
 	bufferpartymonnick STR_VAR_1, VAR_RESULT
 	buffermovename STR_VAR_2, MOVE_CUT
+	setvar VAR_0x8000, 2 @ UQOL_AUTO_CUT
+	specialvar VAR_RESULT, UnholyQolGetScriptSetting
+	goto_if_eq VAR_RESULT, TRUE, EventScript_CutTreeCommon
 	msgbox Text_WantToCut, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelCut
 	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
@@ -68,6 +71,9 @@ EventScript_RockSmash::
 	setfieldeffectargument 0, VAR_RESULT
 	bufferpartymonnick STR_VAR_1, VAR_RESULT
 	buffermovename STR_VAR_2, MOVE_ROCK_SMASH
+	setvar VAR_0x8000, 4 @ UQOL_AUTO_ROCK_SMASH
+	specialvar VAR_RESULT, UnholyQolGetScriptSetting
+	goto_if_eq VAR_RESULT, TRUE, EventScript_RockSmashCommon
 	msgbox Text_WantToSmash, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelSmash
 	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
@@ -227,11 +233,18 @@ EventScript_StrengthBoulder::
 	checkfieldmove FIELD_MOVE_STRENGTH, TRUE
 	goto_if_eq VAR_RESULT, PARTY_SIZE, EventScript_CantStrength
 	setfieldeffectargument 0, VAR_RESULT
+	setvar VAR_0x8000, 3 @ UQOL_AUTO_STRENGTH
+	specialvar VAR_RESULT, UnholyQolGetScriptSetting
+	goto_if_eq VAR_RESULT, TRUE, EventScript_AutoStrength
 	msgbox Text_WantToStrength, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelStrength
+EventScript_AutoStrength:
 	closemessage
 	dofieldeffect FLDEFF_USE_STRENGTH
 	waitstate
+	setvar VAR_0x8000, 3 @ UQOL_AUTO_STRENGTH
+	specialvar VAR_RESULT, UnholyQolGetScriptSetting
+	goto_if_eq VAR_RESULT, TRUE, EventScript_ActivateStrengthAuto
 	goto EventScript_ActivateStrength
 	end
 
@@ -245,6 +258,11 @@ EventScript_UseStrength::
 EventScript_ActivateStrength::
 	setflag FLAG_SYS_USE_STRENGTH
 	msgbox Text_MonUsedStrength, MSGBOX_DEFAULT
+	releaseall
+	end
+
+EventScript_ActivateStrengthAuto::
+	setflag FLAG_SYS_USE_STRENGTH
 	releaseall
 	end
 
