@@ -5031,7 +5031,7 @@ void Task_AbilityCapsule(u8 taskId)
         }
         gPartyMenuUseExitCallback = TRUE;
         GetMonNickname(&gParties[B_TRAINER_PLAYER][tMonId], gStringVar1);
-        StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(tSpecies, tAbilityNum)].name);
+        StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(tSpecies, tAbilityNum)));
         StringExpandPlaceholders(gStringVar4, sText_askText);
         PlaySE(SE_SELECT);
         DisplayPartyMenuMessage(gStringVar4, 1);
@@ -5116,7 +5116,7 @@ void Task_AbilityPatch(u8 taskId)
         }
         gPartyMenuUseExitCallback = TRUE;
         GetMonNickname(&gParties[B_TRAINER_PLAYER][tMonId], gStringVar1);
-        StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(tSpecies, tAbilityNum)].name);
+        StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(tSpecies, tAbilityNum)));
         StringExpandPlaceholders(gStringVar4, sText_askText);
         PlaySE(SE_SELECT);
         DisplayPartyMenuMessage(gStringVar4, 1);
@@ -7165,7 +7165,7 @@ static void TryGiveItemOrMailToSelectedMon(u8 taskId)
         case GEAR_EQUIP_OK:
             DisplayPartyPokemonGear(mon, menuBox);
             CopyWindowToVram(menuBox->windowId, COPYWIN_GFX);
-            message = COMPOUND_STRING("GEAR EQUIPPED!");
+            message = COMPOUND_STRING("¡ARTEFACTO EQUIPADO!");
             break;
         case GEAR_EQUIP_ALREADY:
             message = COMPOUND_STRING("ALREADY EQUIPPED.");
@@ -7174,10 +7174,10 @@ static void TryGiveItemOrMailToSelectedMon(u8 taskId)
             message = COMPOUND_STRING("BAG FULL! NOT EQUIPPED.");
             break;
         case GEAR_EQUIP_NOT_OWNED:
-            message = COMPOUND_STRING("GEAR NOT IN BAG.");
+            message = COMPOUND_STRING("ARTEFACTO NO DISPONIBLE.");
             break;
         default:
-            message = COMPOUND_STRING("CANNOT EQUIP GEAR.");
+            message = COMPOUND_STRING("NO SE PUEDE EQUIPAR.");
             break;
         }
 

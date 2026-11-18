@@ -11,9 +11,37 @@
 #include "battle_stamina.h"
 #include "graphics.h"
 #include "item.h"
+#include "unholy_localization.h"
 #include "data/gears.h"
+#include "data/gear_localization_es_en.h"
 
 STATIC_ASSERT(GEAR_COUNT <= GEAR_MAX_COUNT, TooManyGears);
+
+const u8 *Gear_GetLocalizedName(enum Gear gear)
+{
+    const struct GearLocalizedText *text;
+
+    if (gear <= GEAR_NONE || gear >= GEAR_COUNT)
+        return UnholyLocalize(COMPOUND_STRING("None"), COMPOUND_STRING("Ninguno"));
+
+    text = &sGearLocalizedText[gear];
+    if (UnholyIsSpanish())
+        return text->spanishName != NULL ? text->spanishName : gGearsInfo[gear].name;
+    return text->englishName != NULL ? text->englishName : gGearsInfo[gear].name;
+}
+
+const u8 *Gear_GetLocalizedDescription(enum Gear gear)
+{
+    const struct GearLocalizedText *text;
+
+    if (gear <= GEAR_NONE || gear >= GEAR_COUNT)
+        return COMPOUND_STRING("");
+
+    text = &sGearLocalizedText[gear];
+    if (UnholyIsSpanish())
+        return text->spanishDescription != NULL ? text->spanishDescription : gGearsInfo[gear].description;
+    return text->englishDescription != NULL ? text->englishDescription : gGearsInfo[gear].description;
+}
 
 // El ciclo vive en gBattleStruct (no toca el formato de guardado). Se recuerda
 // al cambiar un Pokémon durante un combate para evitar recargas gratis.

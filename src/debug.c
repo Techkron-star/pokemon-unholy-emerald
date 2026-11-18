@@ -624,7 +624,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_PCBag_Fill[] =
     { COMPOUND_STRING("Fill Pocket Key Items"),     DebugAction_PCBag_Fill_PocketKeyItems },
     { COMPOUND_STRING("Fill Pocket Battle"),        DebugAction_PCBag_Fill_PocketBattleItems },
     { COMPOUND_STRING("Fill Pocket Medicine"),      DebugAction_PCBag_Fill_PocketMedicine },
-    { COMPOUND_STRING("Fill Pocket Gears"),         DebugAction_PCBag_Fill_PocketGears },
+    { COMPOUND_STRING("Llenar Artefactos"),          DebugAction_PCBag_Fill_PocketGears },
     { COMPOUND_STRING("Fill Pocket Mail"),          DebugAction_PCBag_Fill_PocketMail },
     { COMPOUND_STRING("Fill Pocket Misc"),          DebugAction_PCBag_Fill_PocketMisc },
     { NULL }
@@ -668,7 +668,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
 {
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
-    { COMPOUND_STRING("Equip Gear (Party)"), DebugAction_Selection_Init, &sGiveGearSelection },
+    { COMPOUND_STRING("Equipar Artefacto"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
     { COMPOUND_STRING("Pokémon (Unholy)"),  DebugAction_Selection_Init, &sUnholyPokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
@@ -3231,12 +3231,12 @@ static void DebugSelectionStep_UpdateGearId(u8 taskId, u8 digits, u32 min, u32 m
     u32 gear = gTasks[taskId].tInput;
 
     ConvertIntToDecimalStringN(gStringVar3, gear, STR_CONV_MODE_LEFT_ALIGN, digits);
-    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Gear ID: {STR_VAR_3}"));
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("ID Artefacto: {STR_VAR_3}"));
     if (gear == GEAR_NONE)
-        StringCopy(gStringVar2, COMPOUND_STRING("Remove Gear"));
+        StringCopy(gStringVar2, COMPOUND_STRING("Quitar Artefacto"));
     else
-        StringCopy(gStringVar2, gGearsInfo[gear].name);
-    StringCopy(gStringVar3, COMPOUND_STRING("Own Gear slot"));
+        StringCopy(gStringVar2, Gear_GetLocalizedName(gear));
+    StringCopy(gStringVar3, COMPOUND_STRING("Ranura Artefacto"));
     DebugNativeStep_PrintWindowSelection(taskId);
 }
 
@@ -3363,7 +3363,7 @@ static void DebugSelectionStep_UpdateAbility(u8 taskId, u8 digits, u32 min, u32 
 
     ConvertIntToDecimalStringN(gStringVar3, gTasks[taskId].tInput, STR_CONV_MODE_LEADING_ZEROS, digits);
     StringCopy(gStringVar1, COMPOUND_STRING("Ability:"));
-    StringCopy(gStringVar2, gAbilitiesInfo[abilities[gTasks[taskId].tInput]].name);
+    StringCopy(gStringVar2, GetLocalizedAbilityName(abilities[gTasks[taskId].tInput]));
     StringCopy(gStringVar3, COMPOUND_STRING(""));
     DebugNativeStep_PrintWindowSelection(taskId);
 }
@@ -4841,9 +4841,9 @@ static void DebugAction_Party_HealParty(u8 taskId)
 void DebugNative_GetAbilityNames(void)
 {
     enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_SPECIES);
-    StringCopy(gStringVar1, gAbilitiesInfo[GetAbilityBySpecies(species, 0)].name);
-    StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(species, 1)].name);
-    StringCopy(gStringVar3, gAbilitiesInfo[GetAbilityBySpecies(species, 2)].name);
+    StringCopy(gStringVar1, GetLocalizedAbilityName(GetAbilityBySpecies(species, 0)));
+    StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(species, 1)));
+    StringCopy(gStringVar3, GetLocalizedAbilityName(GetAbilityBySpecies(species, 2)));
 }
 
 #define tPartyId               data[6]

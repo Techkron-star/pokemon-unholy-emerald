@@ -3099,7 +3099,7 @@ static void PrintAbilityOnAbilityPopUp(enum Ability ability, u8 spriteId1, u8 sp
     else
         x = 8;
 
-    PrintOnAbilityPopUp(gAbilitiesInfo[ability].name, spriteId1, spriteId2, x, y, FALSE);
+    PrintOnAbilityPopUp(GetLocalizedAbilityName(ability), spriteId1, spriteId2, x, y, FALSE);
 }
 
 static void PrintItemOnItemPopUp(enum Item item, u8 spriteId1, u8 spriteId2)

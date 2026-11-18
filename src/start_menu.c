@@ -47,6 +47,7 @@
 #include "sprite.h"
 #include "start_menu.h"
 #include "hfc_watch.h"
+#include "unholy_localization.h"
 #include "strings.h"
 #include "string_util.h"
 #include "task.h"
@@ -214,13 +215,32 @@ static const struct WindowTemplate sWindowTemplate_PyramidPeak = {
 };
 
 static const u8 sText_MenuDebug[] = _("DEBUG");
+static const u8 *const sStartMenuSpanishNames[] =
+{
+    [MENU_ACTION_POKEDEX]         = COMPOUND_STRING("POKÉDEX"),
+    [MENU_ACTION_POKEMON]         = COMPOUND_STRING("POKÉMON"),
+    [MENU_ACTION_BAG]             = COMPOUND_STRING("MOCHILA"),
+    [MENU_ACTION_POKENAV]         = COMPOUND_STRING("POKÉNAV"),
+    [MENU_ACTION_SAVE]            = COMPOUND_STRING("GUARDAR"),
+    [MENU_ACTION_OPTION]          = COMPOUND_STRING("AJUSTES"),
+    [MENU_ACTION_EXIT]            = COMPOUND_STRING("SALIR"),
+    [MENU_ACTION_RETIRE_SAFARI]   = COMPOUND_STRING("RETIRAR"),
+    [MENU_ACTION_REST_FRONTIER]   = COMPOUND_STRING("REPOSO"),
+    [MENU_ACTION_RETIRE_FRONTIER] = COMPOUND_STRING("RETIRAR"),
+    [MENU_ACTION_PYRAMID_BAG]     = COMPOUND_STRING("MOCHILA"),
+    [MENU_ACTION_DEBUG]           = COMPOUND_STRING("DEBUG"),
+    [MENU_ACTION_DEXNAV]          = COMPOUND_STRING("DEXNAV"),
+    [MENU_ACTION_CRAFTING]        = COMPOUND_STRING("FABRICAR"),
+    [MENU_ACTION_HFC_WATCH]       = COMPOUND_STRING("RELOJ HFC"),
+};
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
-#define UNHOLY_CRAFT_RECIPES_PER_PAGE 5
+#define UNHOLY_CRAFT_RECIPES_PER_PAGE 4
 #define UNHOLY_CRAFT_DETAIL_X 103
 #define UNHOLY_CRAFT_DETAIL_WIDTH 100
-#define UNHOLY_CRAFT_MATERIAL_Y 83
+#define UNHOLY_CRAFT_MATERIAL_Y 88
 #define UNHOLY_CRAFT_MATERIAL_STEP 10
+#define UNHOLY_CRAFT_DESC_LINES 3
 
 enum UnholyCraftStatus
 {
@@ -254,31 +274,31 @@ struct UnholyCraftRecipe
     struct UnholyCraftMaterial materials[UNHOLY_CRAFT_MATERIAL_LIMIT];
 };
 
-static const u8 sUnholyCraftTitle[] = _("CRAFTING");
+static const u8 sUnholyCraftTitle[] = _("FABRICACIÓN");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
-static const u8 sUnholyCraftControls[] = _("L/R:PAGE  A:CRAFT  SEL:EQUIP  B:BACK");
-static const u8 sUnholyEquipControls[] = _("A: SWAP SEL: CRAFT B: EXIT");
+static const u8 sUnholyCraftControls[] = _("L/R PAG.  A CREAR  SEL EQUIP.  B SALIR");
+static const u8 sUnholyEquipControls[] = _("A CAMBIAR  SEL CREAR  B SALIR");
 
-static const u8 sUnholyRecipeExp[] = _("Shares 100% EXP with\neligible party Pokemon.");
-static const u8 sUnholyRecipeOverloadedExp[] = _("Bonus EXP and training.\nWarms party eggs.");
-static const u8 sUnholyRecipeVisor[] = _("Changes Ghost type\nmatchups.");
-static const u8 sUnholyRecipeHeart[] = _("Boosts physical moves.");
-static const u8 sUnholyRecipeMask[] = _("Boosts Dark moves.");
-static const u8 sUnholyRecipeScepter[] = _("Changes Dark type\nmatchups.");
-static const u8 sUnholyRecipeImpulse[] = _("Boosts special moves.");
-static const u8 sUnholyRecipeIce[] = _("Ice attacks freeze more.\nIce Pokemon regenerate.");
-static const u8 sUnholyCraftReady[] = _("Select a recipe.");
-static const u8 sUnholyCraftConfirmText[] = _("Craft this item?");
-static const u8 sUnholyCraftNeedMats[] = _("Missing materials.");
-static const u8 sUnholyCraftNeedBadge[] = _("Badge not yet earned.");
-static const u8 sUnholyCraftNoSpace[] = _("No room in the Bag.");
-static const u8 sUnholyCraftDone[] = _("Added to the Bag.");
-static const u8 sUnholyCraftNoMon[] = _("Empty party slot.");
-static const u8 sUnholyCraftNoGear[] = _("That Gear is not in Bag.");
-static const u8 sUnholyCraftEquipped[] = _("Gear equipped.");
-static const u8 sUnholyCraftAlready[] = _("Already equipped.");
-static const u8 sUnholyCraftError[] = _("Unable to finish. Try again.");
+static const u8 sUnholyRecipeExp[] = _("Reparte el 100% de\nEXP al equipo apto.");
+static const u8 sUnholyRecipeOverloadedExp[] = _("Más EXP y crianza.\nAcelera los huevos.");
+static const u8 sUnholyRecipeVisor[] = _("Fantasma x2 contra\nNormal, Psi. y Hada.");
+static const u8 sUnholyRecipeHeart[] = _("Físicos: +20% al\nactivar; +10% luego.");
+static const u8 sUnholyRecipeMask[] = _("Siniestro: +30% al\nactivar; +21% luego.");
+static const u8 sUnholyRecipeScepter[] = _("Siniestro x2 contra\nNorm., Lucha, Psi.\ny Hada.");
+static const u8 sUnholyRecipeImpulse[] = _("Especiales: +20% al\nactivar; +10% luego.");
+static const u8 sUnholyRecipeIce[] = _("Hielo: x2 prob.\nde congelación.\nHielo cura 1/16 PS.");
+static const u8 sUnholyCraftReady[] = _("Elige una receta.");
+static const u8 sUnholyCraftConfirmText[] = _("¿Crear este objeto?");
+static const u8 sUnholyCraftNeedMats[] = _("Faltan materiales.");
+static const u8 sUnholyCraftNeedBadge[] = _("Falta una medalla.");
+static const u8 sUnholyCraftNoSpace[] = _("Mochila llena.");
+static const u8 sUnholyCraftDone[] = _("Guardado en mochila.");
+static const u8 sUnholyCraftNoMon[] = _("Espacio de equipo vacío.");
+static const u8 sUnholyCraftNoGear[] = _("Artefacto fuera de mochila.");
+static const u8 sUnholyCraftEquipped[] = _("Artefacto equipado.");
+static const u8 sUnholyCraftAlready[] = _("Ya está equipado.");
+static const u8 sUnholyCraftError[] = _("No se pudo crear.");
 
 static const u8 *const sUnholyCraftStatuses[] =
 {
@@ -288,8 +308,8 @@ static const u8 *const sUnholyCraftStatuses[] =
     [CRAFT_STATUS_BADGE] = sUnholyCraftNeedBadge,
     [CRAFT_STATUS_SPACE] = sUnholyCraftNoSpace,
     [CRAFT_STATUS_COMPLETED] = sUnholyCraftDone,
-    [CRAFT_STATUS_SHARE_UPGRADED] = COMPOUND_STRING("Crafted! EXP Share upgraded."),
-    [CRAFT_STATUS_SHARE_OWNED] = COMPOUND_STRING("You already have this upgrade."),
+    [CRAFT_STATUS_SHARE_UPGRADED] = COMPOUND_STRING("Repartir EXP mejorado."),
+    [CRAFT_STATUS_SHARE_OWNED] = COMPOUND_STRING("Ya tienes esta mejora."),
     [CRAFT_STATUS_EMPTY_SLOT] = sUnholyCraftNoMon,
     [CRAFT_STATUS_NO_GEAR] = sUnholyCraftNoGear,
     [CRAFT_STATUS_EQUIPPED] = sUnholyCraftEquipped,
@@ -319,41 +339,41 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
     { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
       {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
 #define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) \
-    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING(moveTypeName " moves: +40% once,\n+12% while recharging."), \
+    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING("Mov. " moveTypeName ":\n+40% al activar;\n+12% en recarga."), \
       0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
-    { ITEM_GEAR_STORM_STAFF, COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondary effects."), 0, 3,
+    { ITEM_GEAR_STORM_STAFF, COMPOUND_STRING("Repite el especial\nal 25% de potencia;\nsin efecto extra."), 0, 3,
       {{ ITEM_THUNDER_STONE, 1 }, { ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
-    { ITEM_GEAR_SHACKLE, COMPOUND_STRING("20% on a damaging move.\nBlocks the foe's chain."), 0, 2,
+    { ITEM_GEAR_SHACKLE, COMPOUND_STRING("Golpe dañino: 20%\nde cortar la cadena\ndel rival."), 0, 2,
       {{ ITEM_METAL_COAT, 1 }, { ITEM_HARD_STONE, 1 }} },
     // Initial progression-aware recipes. Costs are provisional until economy QA.
-    { ITEM_GEAR_ARIETE_NAUTILO, COMPOUND_STRING("Contact lowers the\nfoe's Defense."), FLAG_BADGE03_GET, 3,
+    { ITEM_GEAR_ARIETE_NAUTILO, COMPOUND_STRING("Contacto con daño\nbaja Defensa -1."), FLAG_BADGE03_GET, 3,
       {{ ITEM_SHELL_BELL, 1 }, { ITEM_HARD_STONE, 2 }, { ITEM_MYSTIC_WATER, 1 }} },
-    { ITEM_GEAR_CARTEL_BUSQUEDA, COMPOUND_STRING("Bonus damage versus\nraised opposing stats."), FLAG_BADGE05_GET, 3,
+    { ITEM_GEAR_CARTEL_BUSQUEDA, COMPOUND_STRING("+5% daño por nivel\npositivo del rival;\nmáximo +60%."), FLAG_BADGE05_GET, 3,
       {{ ITEM_BIG_PEARL, 2 }, { ITEM_IRON_BALL, 1 }, { ITEM_STAR_PIECE, 1 }} },
-    { ITEM_GEAR_ANILLO_FEERICO, COMPOUND_STRING("Fairy users resist\nPoison attack damage."), FLAG_BADGE03_GET, 2,
+    { ITEM_GEAR_ANILLO_FEERICO, COMPOUND_STRING("Usuario Hada recibe\n25% menos daño\nde tipo Veneno."), FLAG_BADGE03_GET, 2,
       {{ ITEM_FAIRY_GEM, 2 }, { ITEM_MOON_STONE, 1 }} },
-    { ITEM_GEAR_BATERIA_RESERVA, COMPOUND_STRING("Restore Stamina after\nfalling below half."), FLAG_BADGE02_GET, 2,
+    { ITEM_GEAR_BATERIA_RESERVA, COMPOUND_STRING("Bajo 50% Stamina:\nrecupera 20%; luego\n+4% en recarga."), FLAG_BADGE02_GET, 2,
       {{ ITEM_MAGNET, 2 }, { ITEM_STAR_PIECE, 1 }} },
-    { ITEM_GEAR_BOTAS_UMBRAL, COMPOUND_STRING("Blocks entry hazards\nonce per recharge."), FLAG_BADGE03_GET, 2,
+    { ITEM_GEAR_BOTAS_UMBRAL, COMPOUND_STRING("Anula las trampas\nal entrar una vez\npor recarga."), FLAG_BADGE03_GET, 2,
       {{ ITEM_IRON, 2 }, { ITEM_CLEANSE_TAG, 1 }} },
-    { ITEM_GEAR_VELO_CRIPTICO, COMPOUND_STRING("Blocks one secondary\neffect per recharge."), FLAG_BADGE04_GET, 2,
+    { ITEM_GEAR_VELO_CRIPTICO, COMPOUND_STRING("Anula un efecto\nsecundario ajeno;\nrecarga: 3 turnos."), FLAG_BADGE04_GET, 2,
       {{ ITEM_CLEANSE_TAG, 2 }, { ITEM_BRIGHT_POWDER, 1 }} },
-    { ITEM_GEAR_AMULETO_INQUEBRANTABLE, COMPOUND_STRING("Blocks an enemy\nstat reduction."), FLAG_BADGE04_GET, 2,
+    { ITEM_GEAR_AMULETO_INQUEBRANTABLE, COMPOUND_STRING("Impide una bajada\nde estadísticas del\nrival por recarga."), FLAG_BADGE04_GET, 2,
       {{ ITEM_EVIOLITE, 1 }, { ITEM_LIGHT_CLAY, 1 }} },
-    { ITEM_GEAR_CRISOL_ESPIRITUAL, COMPOUND_STRING("Cures a major status\nonce per recharge."), FLAG_BADGE03_GET, 2,
+    { ITEM_GEAR_CRISOL_ESPIRITUAL, COMPOUND_STRING("Cura un estado\ngrave cada 3\nturnos."), FLAG_BADGE03_GET, 2,
       {{ ITEM_LUM_BERRY, 3 }, { ITEM_SHELL_BELL, 1 }} },
-    { ITEM_GEAR_LENTE_CERTEZA, COMPOUND_STRING("Ignores target evasion\non the next hit."), FLAG_BADGE04_GET, 2,
+    { ITEM_GEAR_LENTE_CERTEZA, COMPOUND_STRING("El siguiente ataque\nignora la evasión.\nRecarga: 3 turnos."), FLAG_BADGE04_GET, 2,
       {{ ITEM_WIDE_LENS, 1 }, { ITEM_BRIGHT_POWDER, 1 }} },
-    { ITEM_GEAR_MODULO_VECTORIAL, COMPOUND_STRING("Pivot moves use\nless Stamina."), FLAG_BADGE03_GET, 3,
+    { ITEM_GEAR_MODULO_VECTORIAL, COMPOUND_STRING("Pivotes gastan 25%\nmenos Stamina; 8%\nmenos en recarga."), FLAG_BADGE03_GET, 3,
       {{ ITEM_MAGNET, 1 }, { ITEM_MYSTIC_WATER, 1 }, { ITEM_STAR_PIECE, 1 }} },
     // Everyday audio utilities can be crafted; unique emergency/raid gear cannot.
-    { ITEM_GEAR_AMPLIFICADOR, COMPOUND_STRING("Sound moves gain power\nonce every 3 turns."), FLAG_BADGE03_GET, 2,
+    { ITEM_GEAR_AMPLIFICADOR, COMPOUND_STRING("Sonido: +25% daño\nal activar; gasta\n10% más Stamina."), FLAG_BADGE03_GET, 2,
       {{ ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
-    { ITEM_GEAR_HEADPHONES, COMPOUND_STRING("Reduces sound damage\nand secondary effects."), FLAG_BADGE03_GET, 2,
+    { ITEM_GEAR_HEADPHONES, COMPOUND_STRING("Sonido: -40% daño;\nsin efectos\nsecundarios."), FLAG_BADGE03_GET, 2,
       {{ ITEM_SILK_SCARF, 1 }, { ITEM_MAGNET, 1 }} },
-    { ITEM_GEAR_ARMADURA_METEORICA, COMPOUND_STRING("Survive one lethal hit;\nscorching ash burns foes."), 0, 2,
+    { ITEM_GEAR_ARMADURA_METEORICA, COMPOUND_STRING("Letal: sobrevive\ncon 30% PS; baja\nDef. y quema rival."), 0, 2,
       {{ ITEM_METAL_COAT, 1 }, { ITEM_METEORITE, 1 }} },
 };
 
@@ -510,8 +530,10 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
     if (sUnholyCraftIconSpriteId != MAX_SPRITES)
     {
         struct Sprite *icon = &gSprites[sUnholyCraftIconSpriteId];
-        icon->x = 190;
-        icon->y = 46;
+        // Item icons contain 24x24 artwork in a 32x32 OAM slot. Keep the
+        // artwork at native resolution inside the dedicated preview area.
+        icon->x = sUnholyCraftMode == 0 ? 140 : 202;
+        icon->y = 48;
         icon->oam.priority = 0;
     }
 }
@@ -520,6 +542,78 @@ static void UnholyCraftPrint(u8 x, u8 y, const u8 *text)
 {
     UnholyUi_Print(sUnholyCraftWindowId, y >= 120 ? FONT_SMALL_NARROW : FONT_SMALL,
         x, y, 200 - min(x, 200), text);
+}
+
+// Two clear lines are preferable to squeezing long names into an unreadable font.
+static void UnholyCraftPrintName(u8 x, u8 y, u8 width, u8 fill, const u8 *name)
+{
+    const u8 *split = NULL;
+    u8 firstLine[ITEM_NAME_LENGTH + 1];
+
+    if (GetStringWidth(FONT_SMALL_NARROW, name, 0) > width)
+    {
+        for (const u8 *p = name; *p != EOS; p++)
+        {
+            if (*p != CHAR_SPACE)
+                continue;
+            *StringCopyN(firstLine, name, p - name) = EOS;
+            if (GetStringWidth(FONT_SMALL_NARROW, firstLine, 0) > width)
+                break;
+            split = p;
+        }
+    }
+
+    if (split != NULL)
+    {
+        *StringCopyN(firstLine, name, split - name) = EOS;
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL_NARROW,
+            x, y + 1, width, fill, firstLine);
+        name = split + 1;
+    }
+    UnholyUi_PrintOnFill(sUnholyCraftWindowId,
+        GetFontIdToFit(name, FONT_SMALL_NARROW, 0, width),
+        x, y + (split == NULL ? 6 : 11), width, fill, name);
+}
+
+// Wrap at word boundaries and use the same legible font for every description.
+static void UnholyCraftPrintDescription(u8 fill, const u8 *source)
+{
+    for (u8 line = 0; line < UNHOLY_CRAFT_DESC_LINES && *source != EOS; line++)
+    {
+        u8 text[64];
+        u8 length = 0;
+        u8 lastSpace = 0xFF;
+        const u8 *end = source;
+
+        while (*end != EOS && *end != CHAR_NEWLINE && length < sizeof(text) - 1)
+        {
+            text[length] = *end;
+            text[length + 1] = EOS;
+            if (GetStringWidth(FONT_SMALL_NARROW, text, 0) > 90)
+                break;
+            if (*end == CHAR_SPACE)
+                lastSpace = length;
+            end++;
+            length++;
+        }
+        if (*end != EOS && *end != CHAR_NEWLINE && lastSpace != 0xFF)
+        {
+            length = lastSpace;
+            end = source + lastSpace + 1;
+        }
+        if (length == 0 && *end != EOS && *end != CHAR_NEWLINE)
+        {
+            text[length++] = *end++;
+        }
+        text[length] = EOS;
+        UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL_NARROW,
+            108, 50 + line * 9, 90, fill, text);
+        source = end;
+        if (*source == CHAR_NEWLINE)
+            source++;
+        while (*source == CHAR_SPACE)
+            source++;
+    }
 }
 
 static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *ingredient)
@@ -558,12 +652,11 @@ static void UnholyCraftDrawRecipeList(void)
     for (u8 row = 0; row < visible; row++)
     {
         u8 index = first + row;
-        u8 y = 23 + row * 18;
+        u8 y = 23 + row * 23;
         bool8 selected = index == sUnholyCraftRecipeCursor;
         const u8 *name = GetItemName(sUnholyCraftRecipes[index].result);
-        u8 font = GetFontIdToFit(name, FONT_SMALL, 0, 85);
-        UnholyUi_Card(sUnholyCraftWindowId, 5, y, 94, 17, selected);
-        UnholyUi_PrintOnFill(sUnholyCraftWindowId, font, 10, y + 2, 85, UnholyUi_CardFill(selected), name);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, y, 94, 22, selected);
+        UnholyCraftPrintName(10, y + 1, 85, UnholyUi_CardFill(selected), name);
     }
 }
 
@@ -572,46 +665,26 @@ static void UnholyCraftDrawRecipeDetail(const struct UnholyCraftRecipe *recipe)
     u8 window = sUnholyCraftWindowId;
     u8 fill = UnholyUi_CardFill(FALSE);
     const u8 *name = GetItemName(recipe->result);
-    u8 firstLine[ITEM_NAME_LENGTH + 1];
-    const u8 *nextLine = NULL;
+    UnholyUi_Card(window, UNHOLY_CRAFT_DETAIL_X, 23, UNHOLY_CRAFT_DETAIL_WIDTH, 54, FALSE);
+    // 24x24 item art occupies x=108..131 and y=24..47 in window pixels.
+    // Title starts after the art; description starts beneath both.
+    UnholyUi_Card(window, 105, 23, 29, 26, FALSE);
+    UnholyCraftPrintName(135, 24, 64, fill, name);
 
-    UnholyUi_Card(window, UNHOLY_CRAFT_DETAIL_X, 23, UNHOLY_CRAFT_DETAIL_WIDTH, 48, FALSE);
-    if (GetStringWidth(FONT_SMALL_NARROW, name, 0) > 65)
-    {
-        for (const u8 *p = name; *p != EOS; p++)
-        {
-            if (*p != CHAR_SPACE)
-                continue;
-            *StringCopyN(firstLine, name, p - name) = EOS;
-            if (GetStringWidth(FONT_SMALL_NARROW, firstLine, 0) > 65)
-                break;
-            nextLine = p + 1;
-        }
-    }
-    if (nextLine != NULL)
-    {
-        *StringCopyN(firstLine, name, nextLine - name - 1) = EOS;
-        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, 134, 26, 65, fill, firstLine);
-        name = nextLine;
-    }
-    u8 nameFont = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 65);
-    UnholyUi_PrintOnFill(window, nameFont, 134, nextLine == NULL ? 31 : 37, 65, fill, name);
+    // Los artefactos comparten descripción con la mochila y los resúmenes,
+    // evitando copias antiguas en inglés o con valores desactualizados.
+    const u8 *description = sUnholyCraftStatus != CRAFT_STATUS_READY ? sUnholyCraftStatuses[sUnholyCraftStatus]
+                          : Gear_FromItem(recipe->result) != GEAR_NONE ? GetItemDescription(recipe->result)
+                          : recipe->description;
+    UnholyCraftPrintDescription(fill, description);
 
-    const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_READY ? recipe->description : sUnholyCraftStatuses[sUnholyCraftStatus];
-    u8 descriptionFont = GetFontIdToFit(description, FONT_SMALL_NARROW, 0, 90);
-    UnholyUi_PrintOnFill(window, descriptionFont, 108, 48, 90, fill, description);
-    while (*description != EOS && *description != CHAR_NEWLINE)
-        description++;
-    if (*description == CHAR_NEWLINE)
-        UnholyUi_PrintOnFill(window, descriptionFont, 108, 58, 90, fill, description + 1);
-
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 72, 53, COMPOUND_STRING("MATERIALS"));
-    UnholyUi_Print(window, FONT_SMALL_NARROWER, 155, 72, 45, COMPOUND_STRING("HAVE/NEED"));
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 68, COMPOUND_STRING("MATERIALES"));
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 180, 78, 21, COMPOUND_STRING("T/N"));
     for (u8 i = 0; i < recipe->materialCount; i++)
         UnholyCraftPrintMaterial(i, &recipe->materials[i]);
     if (recipe->badgeFlag && recipe->materialCount < UNHOLY_CRAFT_MATERIAL_LIMIT)
         UnholyUi_Print(window, FONT_SMALL_NARROW, 108, UNHOLY_CRAFT_MATERIAL_Y + recipe->materialCount * UNHOLY_CRAFT_MATERIAL_STEP, 93,
-            FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("Badge earned") : COMPOUND_STRING("Badge required"));
+            FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("Medalla obtenida") : COMPOUND_STRING("Falta medalla"));
 }
 
 static void UnholyCraftRenderMenu(void)
@@ -628,7 +701,7 @@ static void UnholyCraftRenderMenu(void)
 
         UnholyCraftDrawRecipeList();
         UnholyCraftDrawRecipeDetail(recipe);
-        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? COMPOUND_STRING("A:CONFIRM  B:CANCEL") : sUnholyCraftControls);
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? COMPOUND_STRING("A CONFIRMAR  B CANCELAR") : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else
@@ -637,11 +710,16 @@ static void UnholyCraftRenderMenu(void)
         enum Gear existing = Gear_GetEquipped(mon);
         enum Gear chosen = sUnholyCraftGearCursor;
 
-        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP GEAR"));
-        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(Gear_ToItem(chosen)));
-        UnholyCraftPrint(6, 39, gStringVar4);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, 23, 198, 37, FALSE);
+        UnholyUi_Card(sUnholyCraftWindowId, 167, 23, 29, 26, FALSE);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, 63, 198, 53, FALSE);
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 10, 25, 151,
+            COMPOUND_STRING("EQUIPAR ARTEFACTO"));
+        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> QUITAR ARTEFACTO") : GetItemName(Gear_ToItem(chosen)));
+        UnholyUi_Print(sUnholyCraftWindowId, GetFontIdToFit(gStringVar4, FONT_SMALL_NARROW, 0, 151),
+            10, 40, 151, gStringVar4);
 
-        StringCopy(gStringVar4, COMPOUND_STRING("PARTY "));
+        StringCopy(gStringVar4, COMPOUND_STRING("EQUIPO "));
         ConvertIntToDecimalStringN(gStringVar3, sUnholyCraftPartyCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
         StringAppend(gStringVar4, gStringVar3);
         StringAppend(gStringVar4, COMPOUND_STRING(": "));
@@ -651,22 +729,24 @@ static void UnholyCraftRenderMenu(void)
             StringAppend(gStringVar4, gStringVar1);
         }
         else
-            StringAppend(gStringVar4, COMPOUND_STRING("EMPTY"));
-        UnholyCraftPrint(6, 57, gStringVar4);
+            StringAppend(gStringVar4, COMPOUND_STRING("VACÍO"));
+        UnholyCraftPrint(10, 65, gStringVar4);
 
-        StringCopy(gStringVar4, COMPOUND_STRING("CURRENT: "));
-        StringAppend(gStringVar4, existing == GEAR_NONE ? COMPOUND_STRING("NONE") : gGearsInfo[existing].name);
-        UnholyCraftPrint(6, 73, gStringVar4);
+        StringCopy(gStringVar4, COMPOUND_STRING("EQUIPADO: "));
+        StringAppend(gStringVar4, Gear_GetLocalizedName(existing));
+        UnholyCraftPrint(10, 78, gStringVar4);
 
-        StringCopy(gStringVar4, COMPOUND_STRING("IN BAG: "));
+        StringCopy(gStringVar4, COMPOUND_STRING("EN MOCHILA: "));
         ConvertIntToDecimalStringN(gStringVar3, chosen == GEAR_NONE ? 0 : CountTotalItemQuantityInBag(Gear_ToItem(chosen)), STR_CONV_MODE_LEFT_ALIGN, 3);
         StringAppend(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("N/A") : gStringVar3);
-        UnholyCraftPrint(6, 89, gStringVar4);
+        UnholyCraftPrint(10, 91, gStringVar4);
 
         if (sUnholyCraftStatus != CRAFT_STATUS_READY)
-            UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
+            UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 10, 104, 187,
+                sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
-            UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
+            UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 10, 104, 187,
+                COMPOUND_STRING("L/R ARTEF.  ARR/ABA EQUIPO"));
         UnholyUi_Footer(sUnholyCraftWindowId, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }
@@ -1139,7 +1219,12 @@ static bool32 PrintStartMenuActions(s8 *pIndex, u32 count)
         }
         else
         {
-            StringExpandPlaceholders(gStringVar4, sStartMenuItems[sCurrentStartMenuActions[index]].text);
+            u8 action = sCurrentStartMenuActions[index];
+            const u8 *text = sStartMenuItems[action].text;
+
+            if (UnholyIsSpanish() && sStartMenuSpanishNames[action] != NULL)
+                text = sStartMenuSpanishNames[action];
+            StringExpandPlaceholders(gStringVar4, text);
             AddTextPrinterParameterized(GetStartMenuWindowId(), FONT_NORMAL, gStringVar4, 8, (index << 4) + 9, TEXT_SKIP_DRAW, NULL);
         }
 

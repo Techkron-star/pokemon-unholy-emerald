@@ -209,7 +209,7 @@ static void RenderRaidSelection(void)
     PrintWatchText(text, 10, 65);
     const u8 *equipment = NULL;
     if (boss.gear != GEAR_NONE)
-        equipment = boss.mega ? COMPOUND_STRING("Mega Stone + Gear") : COMPOUND_STRING("Held item + Gear");
+        equipment = boss.mega ? COMPOUND_STRING("Megapiedra + Artefacto") : COMPOUND_STRING("Objeto + Artefacto");
     else if (boss.heldItem != ITEM_NONE)
         equipment = boss.mega ? COMPOUND_STRING("Mega Stone") : COMPOUND_STRING("Held item");
     if (equipment != NULL)

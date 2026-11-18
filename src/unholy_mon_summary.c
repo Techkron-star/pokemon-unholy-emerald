@@ -18,6 +18,7 @@ bool32 UnholyMonSummary_Build(struct Pokemon *mon, struct UnholyMonSummary *out)
     summary.mutationBadges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
     summary.gearId = GetMonData(mon, MON_DATA_GEAR);
     summary.staminaMax = Stamina_CalcMaxForMon(mon);
+    summary.mutationStaminaBonusPercent = Pokemon_GetMutationStaminaBonusPercent(mon);
 
     for (u32 i = 0; i < NUM_STATS; i++)
     {

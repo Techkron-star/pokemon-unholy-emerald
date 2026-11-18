@@ -16,6 +16,7 @@
 #include "link.h"
 #include "menu.h"
 #include "palette.h"
+#include "pokemon.h"
 #include "recorded_battle.h"
 #include "string_util.h"
 #include "strings.h"
@@ -650,7 +651,7 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
     [STRINGID_GEARCHAINED]                         = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}\ncan't chain moves!"),
     [STRINGID_METEORARMORASH]                      = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}'s Meteor Armor\nstopped a lethal hit!\pIts defenses fell!\nScorching ash erupted!"),
     [STRINGID_METEORARMORCONTRARY]                 = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX}'s Meteor Armor\nstopped a lethal hit!\pCONTRARY raised its defenses!\nScorching ash erupted!"),
-    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press START\n"
+    [STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL]         = COMPOUND_STRING("BIRCH: In FIGHT, press L\n"
                                                                      "to mark your first move.\p"
                                                                      "Pick a different move with A\n"
                                                                      "to chain them.\p"
@@ -3296,19 +3297,19 @@ u32 BattleStringExpandPlaceholders(const u8 *src, u8 *dst, u32 dstSize)
                 }
                 break;
             case B_TXT_LAST_ABILITY: // last used ability
-                toCpy = gAbilitiesInfo[gLastUsedAbility].name;
+                toCpy = GetLocalizedAbilityName(gLastUsedAbility);
                 break;
             case B_TXT_ATK_ABILITY: // attacker ability
-                toCpy = gAbilitiesInfo[sBattlerAbilities[gBattlerAttacker]].name;
+                toCpy = GetLocalizedAbilityName(sBattlerAbilities[gBattlerAttacker]);
                 break;
             case B_TXT_DEF_ABILITY: // target ability
-                toCpy = gAbilitiesInfo[sBattlerAbilities[gBattlerTarget]].name;
+                toCpy = GetLocalizedAbilityName(sBattlerAbilities[gBattlerTarget]);
                 break;
             case B_TXT_SCR_ACTIVE_ABILITY: // scripting active ability
-                toCpy = gAbilitiesInfo[sBattlerAbilities[gBattleScripting.battler]].name;
+                toCpy = GetLocalizedAbilityName(sBattlerAbilities[gBattleScripting.battler]);
                 break;
             case B_TXT_EFF_ABILITY: // effect battler ability
-                toCpy = gAbilitiesInfo[sBattlerAbilities[gEffectBattler]].name;
+                toCpy = GetLocalizedAbilityName(sBattlerAbilities[gEffectBattler]);
                 break;
             case B_TXT_TRAINER1_CLASS: // trainer class name
                 toCpy = BattleStringGetOpponentClassByTrainerId(TRAINER_BATTLE_PARAM.opponentA);
@@ -3833,7 +3834,7 @@ void ExpandBattleTextBuffPlaceholders(const u8 *src, u8 *dst)
             srcID += 2;
             break;
         case B_BUFF_ABILITY: // ability names
-            StringAppend(dst, gAbilitiesInfo[T1_READ_16(&src[srcID + 1])].name);
+            StringAppend(dst, GetLocalizedAbilityName(T1_READ_16(&src[srcID + 1])));
             srcID += 3;
             break;
         case B_BUFF_ITEM: // item name

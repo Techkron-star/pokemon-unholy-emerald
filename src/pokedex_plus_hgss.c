@@ -1677,6 +1677,18 @@ static void PrintStatsScreenTextSmallNarrower(u8 windowId, const u8* str, u8 lef
 
     AddTextPrinterParameterized4(windowId, FONT_SMALL_NARROWER, left, top, 0, 0, color, 0, str);
 }
+// Descriptions need two readable lines in the 18-tile Ability panel.
+// Persistent buffers matter because text printers can outlive this function.
+static EWRAM_DATA u8 sAbilityDexDescriptions[2][160] = {0};
+
+static void PrintStatsAbilityDescription(u8 slot, enum Ability ability, u8 left, u8 top)
+{
+    u8 *text = sAbilityDexDescriptions[slot];
+    u8 *end = StringCopyN(text, GetLocalizedAbilityDescription(ability), sizeof(sAbilityDexDescriptions[slot]) - 1);
+    *end = EOS;
+    WrapFontIdToFit(text, end, FONT_SMALL_NARROWER, 134);
+    PrintStatsScreenTextSmallNarrower(WIN_STATS_ABILITIES, text, left, top);
+}
 static void PrintStatsScreenTextSmallWhite(u8 windowId, const u8* str, u8 left, u8 top)
 {
     u8 color[3];
@@ -2951,21 +2963,21 @@ static void PrintStatsScreen_Abilities(u8 taskId)
     if (gTasks[taskId].data[5] == 0)
     {
         ability0 = sPokedexView->sPokemonStats.ability0;
-        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[ability0].name, abilities_x, abilities_y);
-        PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[ability0].description, abilities_x, abilities_y + 14);
+        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(ability0), abilities_x, abilities_y);
+        PrintStatsAbilityDescription(0, ability0, abilities_x, abilities_y + 14);
 
         ability1 = sPokedexView->sPokemonStats.ability1;
         if (ability1 != ABILITY_NONE && ability1 != ability0)
         {
-            PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[ability1].name, abilities_x, abilities_y + 30);
-            PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[ability1].description, abilities_x, abilities_y + 44);
+            PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(ability1), abilities_x, abilities_y + 30);
+            PrintStatsAbilityDescription(1, ability1, abilities_x, abilities_y + 44);
         }
     }
     else //Hidden abilities
     {
         abilityHidden = sPokedexView->sPokemonStats.abilityHidden;
-        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[abilityHidden].name, abilities_x, abilities_y);
-        PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[abilityHidden].description, abilities_x, abilities_y + 14);
+        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(abilityHidden), abilities_x, abilities_y);
+        PrintStatsAbilityDescription(0, abilityHidden, abilities_x, abilities_y + 14);
     }
 }
 

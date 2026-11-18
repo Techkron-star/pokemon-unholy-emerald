@@ -79,8 +79,8 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_NONE] = {0},
     [GEAR_VISOR_COSMICO] =
     {
-        .name = COMPOUND_STRING("Visor Cosmico"),
-        .description = COMPOUND_STRING("Fantasma x2 contra Normal,\nPsiquico y Hada."),
+        .name = COMPOUND_STRING("Visor Cósmico"),
+        .description = COMPOUND_STRING("Fantasma x2 contra Normal,\nPsíquico y Hada."),
         .iconGfx = sGearIconGfx_VisorCosmico,
         .iconPal = sGearIconPal_VisorCosmico,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -92,8 +92,8 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     },
     [GEAR_CORAZON_TITAN] =
     {
-        .name = COMPOUND_STRING("Corazon de Titan"),
-        .description = COMPOUND_STRING("Potencia ataques fisicos.\nSobrecarga y recarga."),
+        .name = COMPOUND_STRING("Corazón Titán"),
+        .description = COMPOUND_STRING("Físicos: +20% al cargar;\n+10% durante recarga."),
         .iconGfx = sGearIconGfx_CorazonTitan,
         .iconPal = sGearIconPal_CorazonTitan,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -106,7 +106,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_SKI_MASK] =
     {
         .name = COMPOUND_STRING("Ski Mask"),
-        .description = COMPOUND_STRING("Siniestro: +30% cargado,\n+21% durante recarga."),
+        .description = COMPOUND_STRING("Siniestro: +30% cargado;\n+21% durante recarga."),
         .iconGfx = sGearIconGfx_SkiMask,
         .iconPal = sGearIconPal_SkiMask,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -119,7 +119,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_CETRO_SINIESTRO] =
     {
         .name = COMPOUND_STRING("Cetro Siniestro"),
-        .description = COMPOUND_STRING("Cambia efectividad\nde ataques Siniestros."),
+        .description = COMPOUND_STRING("Siniestro x2 contra Normal,\nLucha, Psíquico y Hada."),
         .iconGfx = sGearIconGfx_CetroSiniestro,
         .iconPal = sGearIconPal_CetroSiniestro,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -131,8 +131,8 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     },
     [GEAR_IMPULSO_COSMICO] =
     {
-        .name = COMPOUND_STRING("Impulso Cosmico"),
-        .description = COMPOUND_STRING("Especiales +20% en carga.\n+10% en recarga."),
+        .name = COMPOUND_STRING("Impulso Cósmico"),
+        .description = COMPOUND_STRING("Especiales: +20% al cargar;\n+10% durante recarga."),
         .iconGfx = sGearIconGfx_ImpulsoCosmico,
         .iconPal = sGearIconPal_ImpulsoCosmico,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -145,7 +145,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_PERMAFROST_FRAGMENT] =
     {
         .name = COMPOUND_STRING("Permafrost Fragment"),
-        .description = COMPOUND_STRING("Hielo: congela con mas\nfrecuencia; cura Hielo."),
+        .description = COMPOUND_STRING("Congelación Hielo x2;\nusuario Hielo: +1/16 PS."),
         .iconGfx = sGearIconGfx_PermafrostFragment,
         .iconPal = sGearIconPal_PermafrostFragment,
         .trigger = GEAR_TRIGGER_TIMED,
@@ -159,7 +159,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_BLOOD_##type] = \
     { \
         .name = COMPOUND_STRING(displayName), \
-        .description = COMPOUND_STRING(moveTypeName " moves: +40% once,\n+12% while recharging."), \
+        .description = COMPOUND_STRING("Mov. " moveTypeName ": +40% al\nactivar; +12% en recarga."), \
         .iconGfx = sBloodGearIcon, \
         .iconPal = gItemIconPalette_Blood_##type, \
         .trigger = GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE, \
@@ -173,7 +173,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_STORM_STAFF] =
     {
         .name = COMPOUND_STRING("Báculo Tormentoso"),
-        .description = COMPOUND_STRING("Extra Sp. hit: 25% power.\nNo secondaries or two Sp. moves in a chain."),
+        .description = COMPOUND_STRING("Repite ataque especial al\n25%; sin efectos extra."),
         .iconGfx = sStormStaffIcon,
         .iconPal = gItemIconPalette_StormStaff,
         .trigger = GEAR_TRIGGER_PASSIVE,
@@ -181,7 +181,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_SHACKLE] =
     {
         .name = COMPOUND_STRING("Grillete"),
-        .description = COMPOUND_STRING("20% per damaging move\nto block the foe's chain."),
+        .description = COMPOUND_STRING("Cada golpe: 20% de impedir\nla cadena enemiga."),
         .iconGfx = sShackleIcon,
         .iconPal = gItemIconPalette_Shackle,
         .trigger = GEAR_TRIGGER_PASSIVE,
@@ -220,7 +220,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_ARMADURA_METEORICA] =
     {
         .name = COMPOUND_STRING("Armadura Meteórica"),
-        .description = COMPOUND_STRING("Survives one lethal hit at 30% HP.\nLoses Def/Sp.Def; burns foes with ash."),
+        .description = COMPOUND_STRING("Aguanta 1 golpe letal con\n30% PS. Baja Defensas;\nceniza quema al rival."),
         // Temporary art: the meteorite in the bag and Hoplite armor in the HUD.
         .iconGfx = sNewGearIcon_CascoHoplita,
         .iconPal = sNewGearPalette_CascoHoplita,

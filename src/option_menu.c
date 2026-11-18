@@ -29,6 +29,7 @@
 #define tButtonMode data[5]
 #define tWindowFrameType data[6]
 #define tUiTheme data[7]
+#define tLanguageSpanish data[8]
 
 enum
 {
@@ -39,6 +40,7 @@ enum
     MENUITEM_BUTTONMODE,
     MENUITEM_FRAMETYPE,
     MENUITEM_UITHEME,
+    MENUITEM_LANGUAGE,
     MENUITEM_CANCEL,
     MENUITEM_COUNT,
 };
@@ -49,13 +51,15 @@ enum
     WIN_OPTIONS
 };
 
-#define YPOS_TEXTSPEED    (MENUITEM_TEXTSPEED * 13)
-#define YPOS_BATTLESCENE  (MENUITEM_BATTLESCENE * 13)
-#define YPOS_BATTLESTYLE  (MENUITEM_BATTLESTYLE * 13)
-#define YPOS_SOUND        (MENUITEM_SOUND * 13)
-#define YPOS_BUTTONMODE   (MENUITEM_BUTTONMODE * 13)
-#define YPOS_FRAMETYPE    (MENUITEM_FRAMETYPE * 13)
-#define YPOS_UITHEME      (MENUITEM_UITHEME * 13)
+#define OPTION_ROW_HEIGHT 12
+#define YPOS_TEXTSPEED    (MENUITEM_TEXTSPEED * OPTION_ROW_HEIGHT)
+#define YPOS_BATTLESCENE  (MENUITEM_BATTLESCENE * OPTION_ROW_HEIGHT)
+#define YPOS_BATTLESTYLE  (MENUITEM_BATTLESTYLE * OPTION_ROW_HEIGHT)
+#define YPOS_SOUND        (MENUITEM_SOUND * OPTION_ROW_HEIGHT)
+#define YPOS_BUTTONMODE   (MENUITEM_BUTTONMODE * OPTION_ROW_HEIGHT)
+#define YPOS_FRAMETYPE    (MENUITEM_FRAMETYPE * OPTION_ROW_HEIGHT)
+#define YPOS_UITHEME      (MENUITEM_UITHEME * OPTION_ROW_HEIGHT)
+#define YPOS_LANGUAGE     (MENUITEM_LANGUAGE * OPTION_ROW_HEIGHT)
 
 static void Task_OptionMenuFadeIn(u8 taskId);
 static void Task_OptionMenuProcessInput(u8 taskId);
@@ -74,6 +78,9 @@ static u8 FrameType_ProcessInput(u8 selection);
 static void FrameType_DrawChoices(u8 selection);
 static u8 UiTheme_ProcessInput(u8 selection);
 static void UiTheme_DrawChoices(u8 selection);
+static u8 Language_ProcessInput(u8 selection);
+static void Language_DrawChoices(u8 selection);
+static void DrawAllOptionMenuChoices(u8 taskId);
 static u8 ButtonMode_ProcessInput(u8 selection);
 static void ButtonMode_DrawChoices(u8 selection);
 static void DrawHeaderText(void);
@@ -81,20 +88,33 @@ static void DrawOptionMenuTexts(void);
 static void DrawBgWindowFrames(void);
 
 EWRAM_DATA static bool8 sArrowPressed = FALSE;
+EWRAM_DATA static bool8 sPreviewSpanish = FALSE;
 
 static const u8 sText_Options[]            = _("OPTIONS");
+static const u8 sText_OptionsEs[]          = _("AJUSTES");
 static const u8 sText_TextSpeedNormal[]    = _("NORMAL");
 static const u8 sText_TextSpeedFast[]      = _("FAST");
 static const u8 sText_TextSpeedInstant[]   = _("INSTANT");
+static const u8 sText_TextSpeedFastEs[]    = _("RÁPIDA");
+static const u8 sText_TextSpeedInstantEs[] = _("INSTANT.");
 static const u8 gText_BattleSceneOn[]      = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}ON");
 static const u8 gText_BattleSceneOff[]     = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}OFF");
+static const u8 sText_BattleSceneOnEs[]    = _("ACTIVADA");
+static const u8 sText_BattleSceneOffEs[]   = _("DESACTIVADA");
 static const u8 gText_BattleStyleShift[]   = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SHIFT");
 static const u8 gText_BattleStyleSet[]     = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}SET");
+static const u8 sText_BattleStyleShiftEs[] = _("CAMBIO");
+static const u8 sText_BattleStyleSetEs[]   = _("FIJO");
 static const u8 gText_SoundMono[]          = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}MONO");
 static const u8 gText_SoundStereo[]        = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}STEREO");
+static const u8 sText_SoundStereoEs[]      = _("ESTÉREO");
 static const u8 gText_FrameType[]          = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}TYPE");
+static const u8 sText_FrameTypeEs[]        = _("TIPO");
 static const u8 sText_UiThemeEclipse[]     = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}ECLIPSE");
 static const u8 sText_UiThemeDaylight[]    = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}DAYLIGHT");
+static const u8 sText_UiThemeDaylightEs[]  = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}DÍA");
+static const u8 sText_LanguageEnglish[]    = _("ENGLISH");
+static const u8 sText_LanguageSpanish[]    = _("ESPAÑOL");
 static const u8 gText_FrameTypeNumber[]    = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}");
 static const u8 gText_ButtonTypeNormal[]   = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}NORMAL");
 static const u8 gText_ButtonTypeLR[]       = _("{COLOR GREEN}{SHADOW LIGHT_GREEN}LR");
@@ -104,7 +124,7 @@ static const u16 sOptionMenuText_Pal[] = INCGFX_U16("graphics/interface/option_m
 // note: this is only used in the Japanese release
 static const u8 sEqualSignGfx[] = INCGFX_U8("graphics/interface/option_menu_equals_sign.png", ".4bpp");
 
-static const u8 *const sOptionMenuItemsNames[MENUITEM_COUNT] =
+static const u8 *const sOptionMenuItemsNamesEnglish[MENUITEM_COUNT] =
 {
     [MENUITEM_TEXTSPEED]   = COMPOUND_STRING("TEXT SPEED"),
     [MENUITEM_BATTLESCENE] = COMPOUND_STRING("BATTLE SCENE"),
@@ -113,7 +133,21 @@ static const u8 *const sOptionMenuItemsNames[MENUITEM_COUNT] =
     [MENUITEM_BUTTONMODE]  = COMPOUND_STRING("BUTTON MODE"),
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
     [MENUITEM_UITHEME]     = COMPOUND_STRING("THEME"),
+    [MENUITEM_LANGUAGE]    = COMPOUND_STRING("LANGUAGE"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
+};
+
+static const u8 *const sOptionMenuItemsNamesSpanish[MENUITEM_COUNT] =
+{
+    [MENUITEM_TEXTSPEED]   = COMPOUND_STRING("VEL. TEXTO"),
+    [MENUITEM_BATTLESCENE] = COMPOUND_STRING("ANIM. BATALLA"),
+    [MENUITEM_BATTLESTYLE] = COMPOUND_STRING("ESTILO BATALLA"),
+    [MENUITEM_SOUND]       = COMPOUND_STRING("SONIDO"),
+    [MENUITEM_BUTTONMODE]  = COMPOUND_STRING("BOTONES"),
+    [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("MARCO"),
+    [MENUITEM_UITHEME]     = COMPOUND_STRING("TEMA"),
+    [MENUITEM_LANGUAGE]    = COMPOUND_STRING("IDIOMA"),
+    [MENUITEM_CANCEL]      = COMPOUND_STRING("SALIR"),
 };
 
 static const struct WindowTemplate sOptionMenuWinTemplates[] =
@@ -184,6 +218,7 @@ void CB2_InitOptionMenu(void)
     {
     default:
     case 0:
+        sPreviewSpanish = gSaveBlock2Ptr->optionsLanguageSpanish;
         SetVBlankCallback(NULL);
         gMain.state++;
         break;
@@ -267,14 +302,9 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tButtonMode = gSaveBlock2Ptr->optionsButtonMode;
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiTheme = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 1 : 0;
+        gTasks[taskId].tLanguageSpanish = gSaveBlock2Ptr->optionsLanguageSpanish;
 
-        TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
-        BattleScene_DrawChoices(gTasks[taskId].tBattleSceneOff);
-        BattleStyle_DrawChoices(gTasks[taskId].tBattleStyle);
-        Sound_DrawChoices(gTasks[taskId].tSound);
-        ButtonMode_DrawChoices(gTasks[taskId].tButtonMode);
-        FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
-        UiTheme_DrawChoices(gTasks[taskId].tUiTheme);
+        DrawAllOptionMenuChoices(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
 
         CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
@@ -376,6 +406,16 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             if (previousOption != gTasks[taskId].tWindowFrameType)
                 FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
             break;
+        case MENUITEM_LANGUAGE:
+            previousOption = gTasks[taskId].tLanguageSpanish;
+            gTasks[taskId].tLanguageSpanish = Language_ProcessInput(previousOption);
+            if (previousOption != gTasks[taskId].tLanguageSpanish)
+            {
+                sPreviewSpanish = gTasks[taskId].tLanguageSpanish;
+                DrawHeaderText();
+                DrawAllOptionMenuChoices(taskId);
+            }
+            break;
         default:
             return;
         }
@@ -396,6 +436,7 @@ static void Task_OptionMenuSave(u8 taskId)
     gSaveBlock2Ptr->optionsSound = gTasks[taskId].tSound;
     gSaveBlock2Ptr->optionsButtonMode = gTasks[taskId].tButtonMode;
     gSaveBlock2Ptr->optionsWindowFrameType = gTasks[taskId].tWindowFrameType;
+    gSaveBlock2Ptr->optionsLanguageSpanish = gTasks[taskId].tLanguageSpanish;
     if (gTasks[taskId].tUiTheme)
         FlagSet(FLAG_UNHOLY_UI_DAYLIGHT);
     else
@@ -418,7 +459,7 @@ static void Task_OptionMenuFadeOut(u8 taskId)
 static void HighlightOptionMenuItem(u8 index)
 {
     SetGpuReg(REG_OFFSET_WIN0H, WIN_RANGE(16, DISPLAY_WIDTH - 16));
-    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * 13 + 40, index * 13 + 53));
+    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 40, index * OPTION_ROW_HEIGHT + 40 + OPTION_ROW_HEIGHT));
 }
 
 static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
@@ -433,7 +474,7 @@ static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
     u32 font = GetFontIdToFit(text, FONT_SMALL, 0, 208 - x);
     AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y + 1, 0, 0,
         colors, TEXT_SKIP_DRAW, text);
-    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(style ? 7 : 1), x, y + 13,
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(style ? 7 : 1), x, y + OPTION_ROW_HEIGHT - 1,
         min(208 - x, GetStringWidth(font, text, 0)), 1);
 }
 
@@ -462,15 +503,15 @@ static u8 TextSpeed_ProcessInput(u8 selection)
 
 static void TextSpeed_DrawChoices(u8 selection)
 {
-    const s32 xNormal = 104;
-    const s32 xInstant = GetStringRightAlignXOffset(FONT_SMALL, sText_TextSpeedInstant, 198);
-    const s32 endNormal = xNormal + GetStringWidth(FONT_SMALL, sText_TextSpeedNormal, 0);
-    const s32 widthFast = GetStringWidth(FONT_SMALL, sText_TextSpeedFast, 0);
-    const s32 xFast = endNormal + (xInstant - endNormal - widthFast) / 2;
+    const u8 *text = sText_TextSpeedNormal;
 
-    DrawOptionMenuChoice(sText_TextSpeedNormal, xNormal, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_MID);
-    DrawOptionMenuChoice(sText_TextSpeedFast, xFast, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_FAST);
-    DrawOptionMenuChoice(sText_TextSpeedInstant, xInstant, YPOS_TEXTSPEED, selection == OPTIONS_TEXT_SPEED_INSTANT);
+    if (selection == OPTIONS_TEXT_SPEED_FAST)
+        text = sPreviewSpanish ? sText_TextSpeedFastEs : sText_TextSpeedFast;
+    else if (selection == OPTIONS_TEXT_SPEED_INSTANT)
+        text = sPreviewSpanish ? sText_TextSpeedInstantEs : sText_TextSpeedInstant;
+
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_TEXTSPEED, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(text, 117, YPOS_TEXTSPEED, 1);
 }
 
 static u8 BattleScene_ProcessInput(u8 selection)
@@ -486,14 +527,13 @@ static u8 BattleScene_ProcessInput(u8 selection)
 
 static void BattleScene_DrawChoices(u8 selection)
 {
-    u8 styles[2];
+    const u8 *text = selection ? gText_BattleSceneOff : gText_BattleSceneOn;
 
-    styles[0] = 0;
-    styles[1] = 0;
-    styles[selection] = 1;
+    if (sPreviewSpanish)
+        text = selection ? sText_BattleSceneOffEs : sText_BattleSceneOnEs;
 
-    DrawOptionMenuChoice(gText_BattleSceneOn, 104, YPOS_BATTLESCENE, styles[0]);
-    DrawOptionMenuChoice(gText_BattleSceneOff, GetStringRightAlignXOffset(FONT_NORMAL, gText_BattleSceneOff, 198), YPOS_BATTLESCENE, styles[1]);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_BATTLESCENE, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(text, 117, YPOS_BATTLESCENE, 1);
 }
 
 static u8 BattleStyle_ProcessInput(u8 selection)
@@ -509,14 +549,13 @@ static u8 BattleStyle_ProcessInput(u8 selection)
 
 static void BattleStyle_DrawChoices(u8 selection)
 {
-    u8 styles[2];
+    const u8 *text = selection ? gText_BattleStyleSet : gText_BattleStyleShift;
 
-    styles[0] = 0;
-    styles[1] = 0;
-    styles[selection] = 1;
+    if (sPreviewSpanish)
+        text = selection ? sText_BattleStyleSetEs : sText_BattleStyleShiftEs;
 
-    DrawOptionMenuChoice(gText_BattleStyleShift, 104, YPOS_BATTLESTYLE, styles[0]);
-    DrawOptionMenuChoice(gText_BattleStyleSet, GetStringRightAlignXOffset(FONT_NORMAL, gText_BattleStyleSet, 198), YPOS_BATTLESTYLE, styles[1]);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_BATTLESTYLE, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(text, 117, YPOS_BATTLESTYLE, 1);
 }
 
 static u8 Sound_ProcessInput(u8 selection)
@@ -533,14 +572,13 @@ static u8 Sound_ProcessInput(u8 selection)
 
 static void Sound_DrawChoices(u8 selection)
 {
-    u8 styles[2];
+    const u8 *text = selection ? gText_SoundStereo : gText_SoundMono;
 
-    styles[0] = 0;
-    styles[1] = 0;
-    styles[selection] = 1;
+    if (selection && sPreviewSpanish)
+        text = sText_SoundStereoEs;
 
-    DrawOptionMenuChoice(gText_SoundMono, 104, YPOS_SOUND, styles[0]);
-    DrawOptionMenuChoice(gText_SoundStereo, GetStringRightAlignXOffset(FONT_NORMAL, gText_SoundStereo, 198), YPOS_SOUND, styles[1]);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_SOUND, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(text, 117, YPOS_SOUND, 1);
 }
 
 static u8 UiTheme_ProcessInput(u8 selection)
@@ -559,9 +597,26 @@ static void UiTheme_DrawChoices(u8 selection)
     LoadPalette(palette, BG_PLTT_ID(1), PLTT_SIZE_4BPP);
     LoadPalette(palette, BG_PLTT_ID(7), PLTT_SIZE_4BPP);
     LoadPalette(palette + 1, BG_PLTT_ID(0), PLTT_SIZEOF(1));
-    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_UITHEME, 102, 13);
-    DrawOptionMenuChoice(selection ? sText_UiThemeDaylight : sText_UiThemeEclipse,
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_UITHEME, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(selection ? (sPreviewSpanish ? sText_UiThemeDaylightEs : sText_UiThemeDaylight) : sText_UiThemeEclipse,
                          117, YPOS_UITHEME, 1);
+}
+
+static u8 Language_ProcessInput(u8 selection)
+{
+    if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
+    {
+        selection ^= 1;
+        sArrowPressed = TRUE;
+    }
+    return selection;
+}
+
+static void Language_DrawChoices(u8 selection)
+{
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_LANGUAGE, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(selection ? sText_LanguageSpanish : sText_LanguageEnglish,
+                         117, YPOS_LANGUAGE, 1);
 }
 
 static u8 FrameType_ProcessInput(u8 selection)
@@ -618,7 +673,8 @@ static void FrameType_DrawChoices(u8 selection)
 
     text[i] = EOS;
 
-    DrawOptionMenuChoice(gText_FrameType, 104, YPOS_FRAMETYPE, 0);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_FRAMETYPE, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(sPreviewSpanish ? sText_FrameTypeEs : gText_FrameType, 104, YPOS_FRAMETYPE, 0);
     DrawOptionMenuChoice(text, 128, YPOS_FRAMETYPE, 1);
 }
 
@@ -647,42 +703,46 @@ static u8 ButtonMode_ProcessInput(u8 selection)
 
 static void ButtonMode_DrawChoices(u8 selection)
 {
-    s32 widthNormal, widthLR, widthLA, xLR;
-    u8 styles[3];
+    const u8 *text = gText_ButtonTypeNormal;
 
-    styles[0] = 0;
-    styles[1] = 0;
-    styles[2] = 0;
-    styles[selection] = 1;
+    if (selection == 1)
+        text = gText_ButtonTypeLR;
+    else if (selection == 2)
+        text = gText_ButtonTypeLEqualsA;
 
-    DrawOptionMenuChoice(gText_ButtonTypeNormal, 104, YPOS_BUTTONMODE, styles[0]);
-
-    widthNormal = GetStringWidth(FONT_NORMAL, gText_ButtonTypeNormal, 0);
-    widthLR = GetStringWidth(FONT_NORMAL, gText_ButtonTypeLR, 0);
-    widthLA = GetStringWidth(FONT_NORMAL, gText_ButtonTypeLEqualsA, 0);
-
-    widthLR -= 94;
-    xLR = (widthNormal - widthLR - widthLA) / 2 + 104;
-    DrawOptionMenuChoice(gText_ButtonTypeLR, xLR, YPOS_BUTTONMODE, styles[1]);
-
-    DrawOptionMenuChoice(gText_ButtonTypeLEqualsA, GetStringRightAlignXOffset(FONT_NORMAL, gText_ButtonTypeLEqualsA, 198), YPOS_BUTTONMODE, styles[2]);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_BUTTONMODE, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice(text, 117, YPOS_BUTTONMODE, 1);
 }
 
 static void DrawHeaderText(void)
 {
     FillWindowPixelBuffer(WIN_HEADER, PIXEL_FILL(1));
-    UnholyUi_Print(WIN_HEADER, FONT_SMALL, 8, 1, 192, sText_Options);
+    UnholyUi_Print(WIN_HEADER, FONT_SMALL, 8, 1, 192, sPreviewSpanish ? sText_OptionsEs : sText_Options);
     CopyWindowToVram(WIN_HEADER, COPYWIN_FULL);
 }
 
 static void DrawOptionMenuTexts(void)
 {
     u8 i;
+    const u8 *const *names = sPreviewSpanish ? sOptionMenuItemsNamesSpanish : sOptionMenuItemsNamesEnglish;
 
     FillWindowPixelBuffer(WIN_OPTIONS, PIXEL_FILL(1));
     for (i = 0; i < MENUITEM_COUNT; i++)
-        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, (i * 13) + 1, 94, sOptionMenuItemsNames[i]);
+        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, (i * OPTION_ROW_HEIGHT) + 1, 94, names[i]);
     CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
+}
+
+static void DrawAllOptionMenuChoices(u8 taskId)
+{
+    DrawOptionMenuTexts();
+    TextSpeed_DrawChoices(gTasks[taskId].tTextSpeed);
+    BattleScene_DrawChoices(gTasks[taskId].tBattleSceneOff);
+    BattleStyle_DrawChoices(gTasks[taskId].tBattleStyle);
+    Sound_DrawChoices(gTasks[taskId].tSound);
+    ButtonMode_DrawChoices(gTasks[taskId].tButtonMode);
+    FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
+    UiTheme_DrawChoices(gTasks[taskId].tUiTheme);
+    Language_DrawChoices(gTasks[taskId].tLanguageSpanish);
 }
 
 #define TILE_TOP_CORNER_L 0x1A2

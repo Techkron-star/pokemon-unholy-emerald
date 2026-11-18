@@ -2836,12 +2836,12 @@ static void PrintPocketNames(const u8 *pocketName1, const u8 *pocketName2)
     // A 64-pixel vanilla pocket-name window cannot fit all seven long
     // category names in the normal font. Use the narrow font when necessary
     // instead of letting Battle Items or Medicine overflow their header.
-    u8 font = GetStringWidth(FONT_NORMAL, pocketName1, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+    u8 font = GetFontIdToFit(pocketName1, FONT_NORMAL, 0, 0x40);
     offset = GetStringCenterAlignXOffset(font, pocketName1, 0x40);
     BagMenu_Print(windowId, font, pocketName1, max(0, offset), 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     if (pocketName2)
     {
-        font = GetStringWidth(FONT_NORMAL, pocketName2, 0) > 0x40 ? FONT_NARROW : FONT_NORMAL;
+        font = GetFontIdToFit(pocketName2, FONT_NORMAL, 0, 0x40);
         offset = GetStringCenterAlignXOffset(font, pocketName2, 0x40);
         BagMenu_Print(windowId, font, pocketName2, max(0, offset) + 0x40, 1, 0, 0, TEXT_SKIP_DRAW, COLORID_POCKET_NAME);
     }

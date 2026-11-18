@@ -199,6 +199,7 @@ static EWRAM_DATA struct PokemonSummaryScreenData
 
 EWRAM_DATA u8 gLastViewedMonIndex = 0;
 static EWRAM_DATA u8 sMoveSlotToReplace = 0;
+static EWRAM_DATA u8 sAbilityDescriptionText[160] = {0};
 ALIGNED(4) static EWRAM_DATA u8 sAnimDelayTaskId = 0;
 EWRAM_DATA MainCallback gInitialSummaryScreenCallback = NULL; // stores callback from the first time the screen is opened from the party or PC menu
 
@@ -3577,8 +3578,8 @@ static void PrintMonAbilityName(void)
 
     if (page == PSS_INFO_DETAIL_GEAR)
     {
-        u8 *end = StringCopy(gStringVar1, COMPOUND_STRING("GEAR: "));
-        StringCopy(end, gGearsInfo[sMonSummaryScreen->summary.gear].name);
+        u8 *end = StringCopy(gStringVar1, COMPOUND_STRING("ARTEFACTO: "));
+        StringCopy(end, Gear_GetLocalizedName(sMonSummaryScreen->summary.gear));
         u32 fontId = GetFontIdToFit(gStringVar1, FONT_SMALL, 0, WindowWidthPx(windowId));
         PrintTextOnWindowWithFont(windowId, gStringVar1, 0, 0, 0, 1, fontId);
         return;
@@ -3590,7 +3591,7 @@ static void PrintMonAbilityName(void)
     else
     {
         enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-        title = gAbilitiesInfo[ability].name;
+        title = GetLocalizedAbilityName(ability);
     }
 
     PrintTextOnWindowToFit(windowId, title, 0, 1, 0, 1);
@@ -3603,13 +3604,16 @@ static void PrintMonAbilityDescription(void)
 
     if (page == PSS_INFO_DETAIL_GEAR)
     {
-        const struct GearInfo *gear = &gGearsInfo[sMonSummaryScreen->summary.gear];
-        PrintTextOnWindowWithFont(windowId, gear->description, 0, 12, 0, 0, FONT_SMALL_NARROWER);
+        PrintTextOnWindowWithFont(windowId, Gear_GetLocalizedDescription(sMonSummaryScreen->summary.gear),
+            0, 12, 0, 0, FONT_SMALL_NARROWER);
     }
     else if (page == 0)
     {
         enum Ability ability = GetAbilityBySpecies(sMonSummaryScreen->summary.species, sMonSummaryScreen->summary.abilityNum);
-        PrintTextOnWindowToFit(windowId, gAbilitiesInfo[ability].description, 0, 17, 0, 0);
+        u8 *end = StringCopyN(sAbilityDescriptionText, GetLocalizedAbilityDescription(ability), sizeof(sAbilityDescriptionText) - 1);
+        *end = EOS;
+        WrapFontIdToFit(sAbilityDescriptionText, end, FONT_SMALL_NARROWER, WindowWidthPx(windowId) - 4);
+        PrintTextOnWindowWithFont(windowId, sAbilityDescriptionText, 0, 13, 0, 0, FONT_SMALL_NARROWER);
     }
     else if (page >= 4)
     {

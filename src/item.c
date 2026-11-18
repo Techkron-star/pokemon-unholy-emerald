@@ -842,7 +842,16 @@ static enum Item SanitizeBagItemId(enum Item itemId)
 
 const u8 *GetItemName(enum Item itemId)
 {
-    const u8 *name = gItemsInfo[SanitizeItemId(itemId)].name;
+    enum Gear gear;
+    const u8 *name;
+
+    itemId = SanitizeItemId(itemId);
+    gear = itemId >= ITEM_GEAR_VISOR_COSMICO && itemId <= ITEM_GEAR_ARMADURA_METEORICA
+         ? Gear_FromItem(itemId) : GEAR_NONE;
+    if (gear != GEAR_NONE)
+        return Gear_GetLocalizedName(gear);
+
+    name = gItemsInfo[itemId].name;
 
     return name == NULL ? gQuestionMarksItemName : name;
 }
@@ -893,7 +902,14 @@ u32 GetItemHoldEffectParam(enum Item itemId)
 
 const u8 *GetItemDescription(enum Item itemId)
 {
-    return gItemsInfo[SanitizeItemId(itemId)].description;
+    enum Gear gear;
+
+    itemId = SanitizeItemId(itemId);
+    gear = itemId >= ITEM_GEAR_VISOR_COSMICO && itemId <= ITEM_GEAR_ARMADURA_METEORICA
+         ? Gear_FromItem(itemId) : GEAR_NONE;
+    if (gear != GEAR_NONE)
+        return Gear_GetLocalizedDescription(gear);
+    return gItemsInfo[itemId].description;
 }
 
 u8 GetItemImportance(enum Item itemId)

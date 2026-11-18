@@ -339,7 +339,7 @@ static void DrawCatalog(void)
         {
             u16 ability = GetSpeciesAbility(row->species, i);
             end = StringCopy(text, i == 0 ? COMPOUND_STRING("1 ") : i == 1 ? COMPOUND_STRING("2 ") : COMPOUND_STRING("H "));
-            StringAppend(end, ability == ABILITY_NONE ? COMPOUND_STRING("--") : gAbilitiesInfo[ability].name);
+            StringAppend(end, ability == ABILITY_NONE ? COMPOUND_STRING("--") : GetLocalizedAbilityName(ability));
             Print(117, 78 + i * 12, 102, text);
         }
         end = ConvertIntToDecimalStringN(text, sUi.cursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
@@ -367,7 +367,7 @@ static void DrawDetail(void)
     {
         Print(7, 66 + i * 13, 25, i == 2 ? COMPOUND_STRING("HA") : i == 0 ? COMPOUND_STRING("A1") : COMPOUND_STRING("A2"));
         u16 ability = GetSpeciesAbility(row->species, i);
-        Print(35, 66 + i * 13, 182, ability == ABILITY_NONE ? COMPOUND_STRING("--") : gAbilitiesInfo[ability].name);
+        Print(35, 66 + i * 13, 182, ability == ABILITY_NONE ? COMPOUND_STRING("--") : GetLocalizedAbilityName(ability));
     }
     end = StringCopy(text, MethodName(row->method));
     end = StringAppend(end, COMPOUND_STRING(" "));

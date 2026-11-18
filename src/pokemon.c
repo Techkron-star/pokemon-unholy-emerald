@@ -39,6 +39,7 @@
 #include "pokedex.h"
 #include "pokeblock.h"
 #include "pokemon.h"
+#include "unholy_localization.h"
 #include "mutation_tiers.h"
 #include "pokemon_animation.h"
 #include "pokemon_icon.h"
@@ -1397,6 +1398,18 @@ s32 Pokemon_GetMutationStatBonusPercent(struct Pokemon *mon, u32 statIndex)
     s32 bonus = 0;
 
     // Stat bonuses ADD; do not multiply the effects of different mutations.
+    if (badges & POKEMON_BADGE_ENRAGED)
+    {
+        u32 level = min(GetMonData(mon, MON_DATA_LEVEL), 100);
+        u32 squaredLevel = level * level;
+
+        if (statIndex == STAT_ATK || statIndex == STAT_SPATK)
+            bonus += SPECIAL_BADGE_ENRAGED_ATTACK_BASE_PERCENT
+                   + (SPECIAL_BADGE_ENRAGED_ATTACK_GROWTH_PERCENT * squaredLevel + 5000) / 10000;
+        else if (statIndex == STAT_DEF || statIndex == STAT_SPDEF)
+            bonus -= SPECIAL_BADGE_ENRAGED_DEFENSE_BASE_PENALTY_PERCENT
+                   + (SPECIAL_BADGE_ENRAGED_DEFENSE_GROWTH_PENALTY_PERCENT * squaredLevel + 5000) / 10000;
+    }
     if (badges & POKEMON_BADGE_HYPER)
         bonus += 25;
     if ((badges & POKEMON_BADGE_OVERLOADED)
@@ -3357,12 +3370,76 @@ const u8 *GetSpeciesCategory(enum Species species)
     return gSpeciesInfo[species].categoryName;
 }
 
+// Localized prose is kept separate from SpeciesInfo so that species data,
+// evolution rules and the Pokémon's origin language are never modified.
+static const u8 *const sSpanishSpeciesPokedexDescriptions[NUM_SPECIES] =
+{
+#include "data/pokedex_localization_es_gen1_part1.h"
+#include "data/pokedex_localization_es_gen1_part2.h"
+#include "data/pokedex_localization_es_gen1_part3.h"
+#include "data/pokedex_localization_es_gen2_part1.h"
+#include "data/pokedex_localization_es_gen2_part2.h"
+#include "data/pokedex_localization_es_gen3_part1.h"
+#include "data/pokedex_localization_es_gen3_part2.h"
+#include "data/pokedex_localization_es_gen3_part3.h"
+#include "data/pokedex_localization_es_gen4_part1.h"
+#include "data/pokedex_localization_es_gen4_part2.h"
+#include "data/pokedex_localization_es_gen4_part3.h"
+#include "data/pokedex_localization_es_gen5_part1.h"
+#include "data/pokedex_localization_es_gen5_part2.h"
+#include "data/pokedex_localization_es_gen5_part3.h"
+#include "data/pokedex_localization_es_gen5_part4.h"
+#include "data/pokedex_localization_es_gen6_part1.h"
+#include "data/pokedex_localization_es_gen6_part2.h"
+#include "data/pokedex_localization_es_gen7_part1.h"
+#include "data/pokedex_localization_es_gen7_part2.h"
+#include "data/pokedex_localization_es_gen8_part1.h"
+#include "data/pokedex_localization_es_gen8_part2.h"
+#include "data/pokedex_localization_es_gen8_part3.h"
+#include "data/pokedex_localization_es_gen9_part1.h"
+#include "data/pokedex_localization_es_gen9_part2.h"
+#include "data/pokedex_localization_es_gen9_part3.h"
+#include "data/pokedex_localization_es_gen9_part4.h"
+};
+
 const u8 *GetSpeciesPokedexDescription(enum Species species)
 {
     species = SanitizeSpeciesId(species);
+    if (UnholyIsSpanish() && sSpanishSpeciesPokedexDescriptions[species] != NULL)
+        return sSpanishSpeciesPokedexDescriptions[species];
     if (gSpeciesInfo[species].description == NULL)
         return gSpeciesInfo[SPECIES_NONE].description;
     return gSpeciesInfo[species].description;
+}
+
+struct AbilityTranslation
+{
+    const u8 *name;
+    const u8 *description;
+};
+
+// Bilingual catalog: missing translations deliberately fall back to English.
+static const struct AbilityTranslation sSpanishAbilityTranslations[ABILITIES_COUNT] =
+{
+#include "data/ability_localization_es.h"
+};
+
+const u8 *GetLocalizedAbilityName(enum Ability ability)
+{
+    if (ability >= ABILITIES_COUNT)
+        ability = ABILITY_NONE;
+    if (UnholyIsSpanish() && sSpanishAbilityTranslations[ability].name != NULL)
+        return sSpanishAbilityTranslations[ability].name;
+    return gAbilitiesInfo[ability].name;
+}
+
+const u8 *GetLocalizedAbilityDescription(enum Ability ability)
+{
+    if (ability >= ABILITIES_COUNT)
+        ability = ABILITY_NONE;
+    if (UnholyIsSpanish() && sSpanishAbilityTranslations[ability].description != NULL)
+        return sSpanishAbilityTranslations[ability].description;
+    return gAbilitiesInfo[ability].description;
 }
 
 u32 GetSpeciesHeight(enum Species species)

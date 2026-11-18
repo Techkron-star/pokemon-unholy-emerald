@@ -35,6 +35,7 @@ QA adicional: elegir tres iniciales en partidas nuevas separadas, generar varios
 ## Mutaciones múltiples
 
 - Se conservan los badges individuales y sus **bonificaciones porcentuales se suman, nunca se multiplican entre sí**.
+- **Enraged** usa una curva cuadrática de nivel: Ataque y Ataque Especial reciben `+10 % + redondear(50 × (nivel / 100)²)`, mientras que Defensa y Defensa Especial reciben `−5 % − redondear(30 × (nivel / 100)²)`. A nivel 100 equivale a **+60 % de ambos ataques y −35 % de ambas defensas**. No modifica PS, Velocidad ni Stamina. Los cuatro parámetros están en `include/config/special_badges.h` y se muestran en los bonos netos de la pantalla de resumen.
 - El **tier principal** es el más alto entre las mutaciones presentes. Ej.: Alpha + Titan = tier S; Omega + Ancestral = tier Ω.
 - Esta regla **no borra** las otras mutaciones ni introduce un multiplicador de estadísticas adicional por tier. Es una clasificación, no una tercera fuente de buffs.
 - Máximo tres mutaciones por huevo en la ruleta actual; otros encuentros conservan sus límites y probabilidades existentes.
