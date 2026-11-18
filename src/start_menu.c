@@ -275,8 +275,8 @@ static const u8 sUnholyCraftNeedBadge[] = _("Badge not yet earned.");
 static const u8 sUnholyCraftNoSpace[] = _("No room in the Bag.");
 static const u8 sUnholyCraftDone[] = _("Added to the Bag.");
 static const u8 sUnholyCraftNoMon[] = _("Empty party slot.");
-static const u8 sUnholyCraftNoGear[] = _("That Gear is not in Bag.");
-static const u8 sUnholyCraftEquipped[] = _("Gear equipped.");
+static const u8 sUnholyCraftNoGear[] = _("Artifact not in Bag.");
+static const u8 sUnholyCraftEquipped[] = _("Artifact equipped.");
 static const u8 sUnholyCraftAlready[] = _("Already equipped.");
 static const u8 sUnholyCraftError[] = _("Unable to finish. Try again.");
 
@@ -637,8 +637,8 @@ static void UnholyCraftRenderMenu(void)
         enum Gear existing = Gear_GetEquipped(mon);
         enum Gear chosen = sUnholyCraftGearCursor;
 
-        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP GEAR"));
-        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE GEAR") : GetItemName(Gear_ToItem(chosen)));
+        UnholyCraftPrint(4, 22, COMPOUND_STRING("EQUIP ARTIFACT"));
+        StringCopy(gStringVar4, chosen == GEAR_NONE ? COMPOUND_STRING("> REMOVE ARTIFACT") : GetItemName(Gear_ToItem(chosen)));
         UnholyCraftPrint(6, 39, gStringVar4);
 
         StringCopy(gStringVar4, COMPOUND_STRING("PARTY "));
@@ -666,7 +666,7 @@ static void UnholyCraftRenderMenu(void)
         if (sUnholyCraftStatus != CRAFT_STATUS_READY)
             UnholyCraftPrint(6, 105, sUnholyCraftStatuses[sUnholyCraftStatus]);
         else
-            UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: GEAR  UP/DOWN: PARTY"));
+            UnholyCraftPrint(6, 103, COMPOUND_STRING("L/R: ARTIFACT  UP/DOWN: PARTY"));
         UnholyUi_Footer(sUnholyCraftWindowId, sUnholyEquipControls);
         iconItem = chosen == GEAR_NONE ? ITEM_NONE : Gear_ToItem(chosen);
     }

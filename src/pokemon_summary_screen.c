@@ -3577,7 +3577,7 @@ static void PrintMonAbilityName(void)
 
     if (page == PSS_INFO_DETAIL_GEAR)
     {
-        u8 *end = StringCopy(gStringVar1, COMPOUND_STRING("GEAR: "));
+        u8 *end = StringCopy(gStringVar1, COMPOUND_STRING("ARTIFACT: "));
         StringCopy(end, gGearsInfo[sMonSummaryScreen->summary.gear].name);
         u32 fontId = GetFontIdToFit(gStringVar1, FONT_SMALL, 0, WindowWidthPx(windowId));
         PrintTextOnWindowWithFont(windowId, gStringVar1, 0, 0, 0, 1, fontId);

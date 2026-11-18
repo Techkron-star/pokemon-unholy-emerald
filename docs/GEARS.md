@@ -225,3 +225,45 @@ En los archivos `.party`, `Gear: Impulso Cosmico` equipa el Gear del Pokémon. P
 | Phoebe | Dusclops | Visor Cósmico | Baya Zidra |
 | Glacia | Walrein | Fragmento de Permafrost | Baya Zidra |
 | Wallace | Milotic | Impulso Cósmico | Baya Zidra |
+## Escudo de paladín (Artifact)
+
+- Se equipa en la ranura independiente de Gears/Artifacts; no ocupa el objeto equipado.
+- Cada movimiento enemigo dirigido al portador tiene su propia tirada, incluso el segundo movimiento encadenado; los múltiples golpes de un mismo movimiento cuentan como **una sola acción**.
+- La activación anula la acción completa y sus efectos secundarios, incluidos golpes de KO directo (Guillotina). Solo puede activarse **una vez por Pokémon y turno completo**, también en dobles.
+- La probabilidad empieza en **12,5 %** y aumenta **2,5 puntos porcentuales por turno activo sin éxito**, hasta un máximo del **25 %**. Tras **8 turnos activos sin bloqueo**, la próxima instancia hostil se bloquea de forma garantizada (pity). Cada éxito reinicia el contador.
+- Se comprueban individualmente los ticks residuales de veneno, tóxico, quemadura, congelación por frostbite, clima dañino, Drenadoras, Pesadilla, Maldición, atrapamiento, sal y otros daños ambientales. Bloquear un tick no cura el estado ni previene ticks futuros.
+- Si bloquea el movimiento inicial de una cadena, el movimiento siguiente del mismo atacante hace un **25 % menos de daño** al portador. El modificador no afecta a otros objetivos ni otras acciones.
+- El contador persiste al retirar y volver a enviar al Pokémon durante el combate y se reinicia en el siguiente combate.
+- El sprite y la receta aún no están definidos. Temporalmente utiliza el icono de Escudo Aegis en el HUD y un icono genérico en la mochila. No aparece en la lista de recetas.
+
+## Lote Artifacts: soporte, control y ofensiva elemental (17/11/2026)
+
+El nombre visible del equipo pasa a **Artifact** (bolsillo **Artifacts**).
+Los identificadores C `GEAR_*` y el espacio de guardado **no cambian** para conservar compatibilidad.
+Los once identificadores de Gear se añadieron en orden tras Escudo de paladín;
+los IDs de objetos son **930–940**. Siguen equipándose en una ranura distinta al objeto ordinario.
+
+| Artifact | Mecánica de combate | Cadencia |
+| --- | --- | --- |
+| Estandarte de guerra | Cuando el portador impone una condición de control *real* (estadísticas negativas, retroceso, estados o limitaciones volátiles), cura al aliado un 10 % de PS máximos y tira un 30 % para retirar una condición negativa. En individuales, se aplica al portador. No cura por intentos fallidos. | Por imposición de control; se registra cada objetivo afectado. |
+| Torre de vigilancia | Borra las reducciones de Precisión y después intenta subirla un nivel (respetando Contrario/Simple). | Cada 3 turnos activos. |
+| Faro | Durante el siguiente turno del adversario inhibe la contribución del clima al daño de movimientos y a las habilidades de Velocidad ligadas al clima; no elimina el clima. | Se prepara cada 2 turnos activos con clima presente. |
+| Rompeolas | Reduce un golpe de Agua recibido 25 % o 40 % si es movimiento de área. | Máximo una aplicación cada 2 turnos activos. |
+| Red de silos | Movimientos *balísticos* elegibles ejecutan 1–4 golpes extra al mismo objetivo. Los dos primeros ecos tienen 15 % del daño calculado y el tercero/cuarto, 10 %; nunca incluyen Pin Misil, Cañón Pincho, Recurrente, rayos, ondas, láseres, ataques múltiples nativos ni movimientos de estado. Los ecos no repiten secundarios ni consumen PP/Stamina. | Por movimiento elegible. |
+| Tablero trifásico | Un movimiento Eléctrico de objetivo único rebota contra el segundo enemigo (si existe) con 25 % de daño y 10 % adicional de parálisis. No se replica a sí mismo. | Por movimiento elegible en dobles. |
+| CRT | Duplica duración de Reflejo, Pantalla Luz y Velo Aurora (5→10, 8→16), y copia Protección al aliado vivo en dobles. | Al utilizar la pantalla o Protección. |
+| Deshumidificador | Resta entre 1 y 2 turnos restantes de clima/niebla, sin dejar el temporizador en cero artificialmente. Los climas permanentes no se ven alterados. | Cada 2 turnos activos. |
+| Bomba de ariete | Un ataque de Agua dirigido a un único objetivo añade una réplica del 25 %; si es el último de una cadena, se aplica a ese último movimiento. | Tras 2 turnos activos, consumido por el siguiente golpe elegible. |
+| Glicerina | Toda habilidad de daño de Fuego puede quemar con un 20 % *adicional*. Se combina con la posibilidad nativa, sin repetir en ecos. | Por movimiento de Fuego que impacta. |
+| Abono | Un Pokémon Planta recupera 1/16 de PS máximos al final del turno en terreno normal o campo de hierba; si tiene Enraizado recupera 2/16. | Una vez por turno; Bloqueo Cura lo impide. |
+
+El motor de repeticiones utiliza la mecánica multigolpe sin ejecutar el movimiento desde cero;
+el objetivo de Tablero sí pasa al segundo enemigo para el rebote. Las réplicas
+siguen sujetas a inmunidad, sustituto y reglas de precisión como golpes normales.
+Las activaciones de los efectos durante un movimiento generan el mensaje genérico
+`[Pokémon] activó [Artifact]`; Estandarte usa un mensaje con la curación.
+
+**Pendiente de QA en ROM:** pantalla visual, interacción completa de todos los
+estados alterados, precisión de la protección en dobles y clima desde habilidades
+que no calculan daño/Velocidad. No hay sprites únicos ni recetas para el lote:
+se reutilizan iconos existentes temporalmente para poder probar la mecánica.

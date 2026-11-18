@@ -624,7 +624,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_PCBag_Fill[] =
     { COMPOUND_STRING("Fill Pocket Key Items"),     DebugAction_PCBag_Fill_PocketKeyItems },
     { COMPOUND_STRING("Fill Pocket Battle"),        DebugAction_PCBag_Fill_PocketBattleItems },
     { COMPOUND_STRING("Fill Pocket Medicine"),      DebugAction_PCBag_Fill_PocketMedicine },
-    { COMPOUND_STRING("Fill Pocket Gears"),         DebugAction_PCBag_Fill_PocketGears },
+    { COMPOUND_STRING("Fill Artifacts Pocket"),      DebugAction_PCBag_Fill_PocketGears },
     { COMPOUND_STRING("Fill Pocket Mail"),          DebugAction_PCBag_Fill_PocketMail },
     { COMPOUND_STRING("Fill Pocket Misc"),          DebugAction_PCBag_Fill_PocketMisc },
     { NULL }
@@ -668,7 +668,7 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
 {
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
-    { COMPOUND_STRING("Equip Gear (Party)"), DebugAction_Selection_Init, &sGiveGearSelection },
+    { COMPOUND_STRING("Equip Artifact"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
     { COMPOUND_STRING("Pokémon (Unholy)"),  DebugAction_Selection_Init, &sUnholyPokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
@@ -3231,12 +3231,12 @@ static void DebugSelectionStep_UpdateGearId(u8 taskId, u8 digits, u32 min, u32 m
     u32 gear = gTasks[taskId].tInput;
 
     ConvertIntToDecimalStringN(gStringVar3, gear, STR_CONV_MODE_LEFT_ALIGN, digits);
-    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Gear ID: {STR_VAR_3}"));
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Artifact ID: {STR_VAR_3}"));
     if (gear == GEAR_NONE)
-        StringCopy(gStringVar2, COMPOUND_STRING("Remove Gear"));
+        StringCopy(gStringVar2, COMPOUND_STRING("Remove Artifact"));
     else
         StringCopy(gStringVar2, gGearsInfo[gear].name);
-    StringCopy(gStringVar3, COMPOUND_STRING("Own Gear slot"));
+    StringCopy(gStringVar3, COMPOUND_STRING("Artifact slot"));
     DebugNativeStep_PrintWindowSelection(taskId);
 }
 

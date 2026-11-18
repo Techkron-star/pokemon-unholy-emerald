@@ -227,4 +227,34 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .trigger = GEAR_TRIGGER_EVENT,
         .cooldownTurns = 3,
     },
+    [GEAR_ESCUDO_PALADIN] =
+    {
+        .name = COMPOUND_STRING("Escudo de paladín"),
+        .description = COMPOUND_STRING("Puede anular un efecto hostil por turno.\nSu probabilidad aumenta al fallar."),
+        // Reuses the Aegis shield icon until bespoke art is approved.
+        .iconGfx = sRecentGearIcon_EscudoAegis,
+        .iconPal = sRecentGearPalette_EscudoAegis,
+        .trigger = GEAR_TRIGGER_PASSIVE,
+    },
+#define EXTRA_ARTIFACT(id, title, text, gfx) \
+    [GEAR_##id] = { \
+        .name = COMPOUND_STRING(title), \
+        .description = COMPOUND_STRING(text), \
+        .iconGfx = sRecentGearIcon_##gfx, \
+        .iconPal = sRecentGearPalette_##gfx, \
+        .trigger = GEAR_TRIGGER_PASSIVE, \
+    },
+    // Temporary HUD art; final unique icons are tracked separately.
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte de guerra", "Control cura un 10% al aliado.\n30% de limpiar un estado.", CartelBusqueda)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA, "Torre de vigilancia", "Cada 3 turnos sube Precisión\ny borra sus reducciones.", LenteCerteza)
+    EXTRA_ARTIFACT(FARO, "Faro", "Niega beneficios climáticos\nal rival cada 2 turnos.", NihilEngine)
+    EXTRA_ARTIFACT(ROMPEOLAS, "Rompeolas", "Reduce golpes de Agua cada\n2 turnos; más en área.", ArieteNautilo)
+    EXTRA_ARTIFACT(RED_SILOS, "Red de silos", "Proyectiles lanzan hasta 4\nréplicas decrecientes.", ModuloVectorial)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO, "Tablero trifásico", "Electricidad rebota al otro\nrival con 25% de daño.", BateriaReserva)
+    EXTRA_ARTIFACT(CRT, "CRT", "Extiende pantallas y comparte\nProtección con el aliado.", VeloCriptico)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR, "Deshumidificador", "Acorta climas y neblina\nentre 1 y 2 turnos.", TunicaRunica)
+    EXTRA_ARTIFACT(BOMBA_ARIETE, "Bomba de ariete", "Cada 2 turnos repite Agua\ncon 25% de potencia.", ArieteNautilo)
+    EXTRA_ARTIFACT(GLICERINA, "Glicerina", "Todos los ataques de Fuego\npueden causar quemaduras.", GuantesCohete)
+    EXTRA_ARTIFACT(ABONO, "Abono", "Regenera a los tipo Planta;\ndoble con Enraizado.", AnilloFeerico)
+#undef EXTRA_ARTIFACT
 };

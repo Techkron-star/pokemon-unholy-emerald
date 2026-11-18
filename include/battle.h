@@ -588,6 +588,7 @@ struct GearCycle
     u8 phase;
     u8 turns;
     u8 activations; // Per-Pokemon lifetime limit (not cleared on switch).
+    u16 paladinLastBlockTurn; // 1-based full-turn serial; zero means never.
 };
 
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.
@@ -761,10 +762,21 @@ struct BattleStruct
     // Sistema de Gears (ver src/gear.c)
     u8 gearOwner[MAX_BATTLERS_COUNT];        // entrenador × PARTY_SIZE + índice de equipo + 1
     u8 gearActivations[MAX_BATTLERS_COUNT];  // serial de activación para el HUD
+    u8 artifactLastAnnounced[MAX_BATTLERS_COUNT]; // Avoid repeating notices per hit.
     u8 gearHazardGuard[MAX_BATTLERS_COUNT]; // Umbral protects the entire current switch-in
     u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
     u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
     u8 meteorArmorPending[MAX_BATTLERS_COUNT]; // 0 = none; 1-3 = lethal overkill tier
+    u16 paladinTurnSerial; // Increments once per completed full battle turn.
+    u8 paladinWeakenedChainTarget[MAX_BATTLERS_COUNT]; // Target + 1; only next chained move.
+    u8 artifactReplicaTotal[MAX_BATTLERS_COUNT]; // Number of extra strikes; 0 = vanilla multihit.
+    u8 artifactReplicaKind[MAX_BATTLERS_COUNT]; // 1 = silos, 2 = water ram, 3 = electric arc.
+    u16 faroSuppressionTurn[NUM_BATTLE_SIDES]; // 1-based full-turn serial for target side.
+    u32 warBannerInitialStatus[MAX_BATTLERS_COUNT];
+    u8 warBannerInitialStages[MAX_BATTLERS_COUNT][NUM_BATTLE_STATS];
+    u8 warBannerInitialFlinch[MAX_BATTLERS_COUNT];
+    u8 warBannerInitialConfusion[MAX_BATTLERS_COUNT];
+    u32 warBannerInitialControlMask[MAX_BATTLERS_COUNT];
     // La fase sigue al Pokémon dentro del combate, incluso al cambiar de lado en dobles.
     struct GearCycle gearCycles[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     // Encadenado de movimientos (ver src/battle_chain.c)
