@@ -1,15 +1,13 @@
 #include "global.h"
 #include "item_ball.h"
 #include "event_data.h"
+#include "event_object_movement.h"
 #include "constants/event_objects.h"
 #include "constants/items.h"
 
-static u32 GetItemBallAmountFromTemplate(u32);
-static u32 GetItemBallIdFromTemplate(u32);
-
-static u32 GetItemBallAmountFromTemplate(u32 itemBallId)
+static u32 GetItemBallAmountFromTemplate(const struct ObjectEventTemplate *template)
 {
-    u32 amount = gMapHeader.events->objectEvents[itemBallId].movementRangeX;
+    u32 amount = template->movementRangeX;
 
     if (amount > MAX_BAG_ITEM_CAPACITY)
         return MAX_BAG_ITEM_CAPACITY;
@@ -17,16 +15,31 @@ static u32 GetItemBallAmountFromTemplate(u32 itemBallId)
     return (amount == 0) ? 1 : amount;
 }
 
-static u32 GetItemBallIdFromTemplate(u32 itemBallId)
+static u32 GetItemBallIdFromTemplate(const struct ObjectEventTemplate *template)
 {
-    enum Item itemId = gMapHeader.events->objectEvents[itemBallId].trainerRange_berryTreeId;
+    enum Item itemId = template->trainerRange_berryTreeId;
 
-    return (itemId >= ITEMS_COUNT) ? (ITEM_NONE + 1) : itemId;
+    return (itemId == ITEM_NONE || itemId >= ITEMS_COUNT) ? ITEM_POKE_BALL : itemId;
 }
 
 void GetItemBallIdAndAmountFromTemplate(void)
 {
-    u32 itemBallId = (gSpecialVar_LastTalked - 1);
-    gSpecialVar_Result = GetItemBallIdFromTemplate(itemBallId);
-    gSpecialVar_0x8009 = GetItemBallAmountFromTemplate(itemBallId);
+    // Event local IDs need not match template array indices, especially when
+    // object templates are changed at runtime. Read the current map's template.
+    const struct ObjectEventTemplate *template = GetObjectEventTemplateByLocalIdAndMap(
+        gSpecialVar_LastTalked,
+        gSaveBlock1Ptr->location.mapNum,
+        gSaveBlock1Ptr->location.mapGroup);
+
+    // A malformed item ball must still yield a usable item, never an invalid
+    // item ID or an out-of-bounds template access.
+    if (template == NULL)
+    {
+        gSpecialVar_Result = ITEM_POKE_BALL;
+        gSpecialVar_0x8009 = 1;
+        return;
+    }
+
+    gSpecialVar_Result = GetItemBallIdFromTemplate(template);
+    gSpecialVar_0x8009 = GetItemBallAmountFromTemplate(template);
 }

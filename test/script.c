@@ -1,10 +1,16 @@
 #include "global.h"
 #include "test/test.h"
 #include "test/overworld_script.h"
+#include "event_scripts.h"
 #include "script.h"
 #include "constants/decorations.h"
 #include "constants/field_move.h"
 #include "constants/moves.h"
+
+TEST("Route item balls always run their pickup interaction")
+{
+    EXPECT(!Script_HasNoEffect(Common_EventScript_FindItem));
+}
 
 TEST("Script_HasNoEffect control flow")
 {

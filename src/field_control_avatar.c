@@ -42,6 +42,7 @@
 #include "constants/event_bg.h"
 #include "constants/event_objects.h"
 #include "constants/field_poison.h"
+#include "constants/items.h"
 #include "constants/layouts.h"
 #include "constants/metatile_behaviors.h"
 #include "constants/songs.h"
@@ -306,7 +307,9 @@ static u16 GetPlayerCurMetatileBehavior(int runningState)
 static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
 {
     const u8 *script = GetInteractionScript(position, metatileBehavior, direction);
-    if (script == NULL || Script_HasNoEffect(script))
+    // The native item-ball script always has an interaction effect. Never
+    // discard a pickup while preflighting the script for no-op interactions.
+    if (script == NULL || (script != Common_EventScript_FindItem && Script_HasNoEffect(script)))
         return FALSE;
 
     // Don't play interaction sound for certain scripts.
@@ -487,6 +490,20 @@ static const u8 *GetInteractedObjectEventScript(struct MapPosition *position, u8
         script = GetTrainerHillTrainerScript();
     else
         script = GetObjectEventScriptPointerByObjectEventId(objectEventId);
+
+    // Recover a pickup whose script pointer was lost while rebuilding or
+    // modifying map templates. Scripted set pieces with no item stay inert.
+    if (script == NULL && gObjectEvents[objectEventId].graphicsId == OBJ_EVENT_GFX_ITEM_BALL)
+    {
+        const struct ObjectEventTemplate *template = GetObjectEventTemplateByLocalIdAndMap(
+            gObjectEvents[objectEventId].localId,
+            gObjectEvents[objectEventId].mapNum,
+            gObjectEvents[objectEventId].mapGroup);
+
+        if (template != NULL && template->trainerRange_berryTreeId > ITEM_NONE
+         && template->trainerRange_berryTreeId < ITEMS_COUNT)
+            script = Common_EventScript_FindItem;
+    }
 
     script = GetRamScript(gSpecialVar_LastTalked, script);
     return script;
