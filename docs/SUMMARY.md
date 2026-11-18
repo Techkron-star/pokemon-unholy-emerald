@@ -15,6 +15,7 @@
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
 - [Unholy Emerald · QA tutorial de encadenados](./qa/first-battle-chain-tutorial.md)
+- [Unholy Emerald · Jefes Salvajes V1](./qa/wild_bosses_v1.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
 - [Unholy Emerald · Implementación de los 15 Gears recientes](./GEARS_RECENT_15.md)
