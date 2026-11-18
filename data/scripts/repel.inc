@@ -51,8 +51,7 @@ EventScript_AutoRenewSpray::
 
 EventScript_HandleMultipleSprays::
 .if I_REPEL_LURE_MENU == TRUE
-	compare VAR_REPEL_AUTO_RENEW, 2
-	goto_if_eq EventScript_UseLastUsedSpray_Auto
+	@ Auto-renew with the saved spray was handled above. Offer available items.
 	goto EventScript_ChooseWhichSpray
 .else
 	goto EventScript_UseSingleSpray
