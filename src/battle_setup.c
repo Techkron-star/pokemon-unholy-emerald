@@ -105,6 +105,41 @@ EWRAM_DATA u16 gPartnerTrainerId = 0;
 EWRAM_DATA static u8 *sTrainerBattleEndScript = NULL;
 EWRAM_DATA static bool8 sShouldCheckTrainerBScript = FALSE;
 EWRAM_DATA static u8 sNoOfPossibleTrainerRetScripts = 0;
+// Not saved: a scripted boss encounter lives only until its battle ends.
+EWRAM_DATA static u8 sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
+
+void UnholyWildBoss_Arm(void)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_OPPONENT_A][0];
+    u16 badges;
+
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
+    if (gSpecialVar_0x8004 != UNHOLY_WILD_BOSS_AEGIS
+     || GetMonData(mon, MON_DATA_SPECIES) != SPECIES_REGISTEEL)
+        return;
+
+    // The real mutation belongs to the catchable mon and survives capture.
+    // Preserve any additional naturally rolled mutation rather than replacing it.
+    badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES) | POKEMON_BADGE_ALPHA;
+    SetMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
+    CalculateMonStats(mon);
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_AEGIS;
+}
+
+void UnholyWildBoss_ApplyBattleBonuses(u8 battler)
+{
+    if (sUnholyWildBossId != UNHOLY_WILD_BOSS_AEGIS
+     || (gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE | BATTLE_TYPE_LINK))
+     || GetBattlerPosition(battler) != B_POSITION_OPPONENT_LEFT
+     || gBattleMons[battler].species != SPECIES_REGISTEEL)
+        return;
+
+    // Battle-only stat stages. Never set these on gParties or the caught mon.
+    gBattleMons[battler].statStages[STAT_ATK] = DEFAULT_STAT_STAGE + 2;
+    gBattleMons[battler].statStages[STAT_DEF] = DEFAULT_STAT_STAGE + 3;
+    gBattleMons[battler].statStages[STAT_SPDEF] = DEFAULT_STAT_STAGE + 3;
+    gBattleMons[battler].statStages[STAT_SPEED] = DEFAULT_STAT_STAGE + 1;
+}
 
 // The first transition is used if the enemy Pokémon are lower level than our Pokémon.
 // Otherwise, the second transition is used.
@@ -762,6 +797,7 @@ static void CB2_EndHfcRaidBattle(void)
 
 static void CB2_EndScriptedWildBattle(void)
 {
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
 

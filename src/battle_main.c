@@ -3150,6 +3150,7 @@ static void DoBattleIntro(void)
                 memset(&gBattleMons[battler].volatiles, 0, sizeof(struct Volatiles));
                 for (i = 0; i < NUM_BATTLE_STATS; i++)
                     gBattleMons[battler].statStages[i] = DEFAULT_STAT_STAGE;
+                UnholyWildBoss_ApplyBattleBonuses(battler);
                 #if TESTING
                 if (gTestRunnerEnabled)
                 {

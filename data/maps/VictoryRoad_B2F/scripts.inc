@@ -1,5 +1,14 @@
 VictoryRoad_B2F_MapScripts::
+	map_script MAP_SCRIPT_ON_TRANSITION, VictoryRoad_B2F_OnTransition
 	.byte 0
+
+VictoryRoad_B2F_OnTransition:
+	call_if_set FLAG_DEFEATED_SUPER_LEAGUE, VictoryRoad_B2F_ResetWildBoss
+	end
+
+VictoryRoad_B2F_ResetWildBoss:
+	clearflag FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED
+	return
 
 VictoryRoad_B2F_EventScript_Vito::
 	trainerbattle_single TRAINER_VITO, VictoryRoad_B2F_Text_VitoIntro, VictoryRoad_B2F_Text_VitoDefeat
@@ -106,3 +115,68 @@ VictoryRoad_B2F_Text_DiannePostBattle:
 	.string "You do have guts! I like that!\n"
 	.string "Keep it going!$"
 
+
+
+// Unholy Wild Boss: Aegis guardian. Captures preserve Alpha, not battle boosts.
+VictoryRoad_B2F_EventScript_AegisBoss::
+	lock
+	faceplayer
+	msgbox VictoryRoad_B2F_Text_AegisChallenge, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, VictoryRoad_B2F_EventScript_AegisLeave
+	msgbox VictoryRoad_B2F_Text_AegisWarning, MSGBOX_DEFAULT
+	setwildbattle SPECIES_REGISTEEL, 62
+	setvar VAR_0x8004, UNHOLY_WILD_BOSS_AEGIS
+	special UnholyWildBoss_Arm
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_WON, VictoryRoad_B2F_EventScript_AegisWon
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, VictoryRoad_B2F_EventScript_AegisCaught
+	release
+	end
+
+VictoryRoad_B2F_EventScript_AegisWon::
+	setvar VAR_0x8000, ITEM_GEAR_ESCUDO_AEGIS
+	setvar VAR_0x8001, 1
+	call Std_ObtainItem
+	goto_if_eq VAR_RESULT, FALSE, VictoryRoad_B2F_EventScript_AegisBagFull
+	setflag FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED
+	removeobject VAR_LAST_TALKED
+	msgbox VictoryRoad_B2F_Text_AegisReward, MSGBOX_DEFAULT
+	release
+	end
+
+VictoryRoad_B2F_EventScript_AegisCaught::
+	setflag FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED
+	removeobject VAR_LAST_TALKED
+	msgbox VictoryRoad_B2F_Text_AegisCaptured, MSGBOX_DEFAULT
+	release
+	end
+
+VictoryRoad_B2F_EventScript_AegisBagFull::
+	msgbox VictoryRoad_B2F_Text_AegisBagFull, MSGBOX_DEFAULT
+	release
+	end
+
+VictoryRoad_B2F_EventScript_AegisLeave::
+	release
+	end
+
+VictoryRoad_B2F_Text_AegisChallenge:
+	.string "Un REGISTEEL Alpha vigila este\n"
+	.string "paso. ¿Quieres desafiarlo?$"
+
+VictoryRoad_B2F_Text_AegisWarning:
+	.string "Su poder es anormal, pero\n"
+	.string "puedes intentar capturarlo.$"
+
+VictoryRoad_B2F_Text_AegisReward:
+	.string "¡El guardián dejó su\n"
+	.string "Escudo de Aegis!$"
+
+VictoryRoad_B2F_Text_AegisCaptured:
+	.string "Lo capturaste, pero el\n"
+	.string "Escudo de Aegis desapareció.$"
+
+VictoryRoad_B2F_Text_AegisBagFull:
+	.string "No hay espacio para Aegis.\n"
+	.string "Haz espacio y vuelve a luchar.$"

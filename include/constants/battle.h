@@ -98,6 +98,10 @@ enum BattleSide
 #define BIT_FLANK       2
 
 // Battle Type Flags
+// Unholy scripted wild bosses. These are encounter IDs, not battle type flags.
+#define UNHOLY_WILD_BOSS_NONE          0
+#define UNHOLY_WILD_BOSS_AEGIS         1
+
 #define BATTLE_TYPE_DOUBLE             (1 << 0)
 #define BATTLE_TYPE_LINK               (1 << 1)
 #define BATTLE_TYPE_IS_MASTER          (1 << 2) // In not-link battles, it's always set.
