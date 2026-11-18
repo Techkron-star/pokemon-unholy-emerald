@@ -8,7 +8,8 @@
 // ¿Puede este combatiente encadenar ahora mismo?
 bool32 Chain_IsAvailable(enum BattlerId battler);
 
-// ¿Este movimiento se puede encadenar? (los de protección no)
+// Los ataques se encadenan con ataques; apoyo al equipo, solo con apoyo al equipo.
+// Buffs/curas propios, estados ofensivos, control de campo y dobles quedan excluidos.
 bool32 Chain_IsMoveChainable(enum Move move);
 bool32 Chain_IsPairAllowed(enum BattlerId battler, enum Move first, enum Move second);
 bool32 Chain_CanAfford(enum BattlerId battler, enum Move first, enum Move second);

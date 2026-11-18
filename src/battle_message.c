@@ -655,14 +655,18 @@ const u8 *const gBattleStringsTable[STRINGID_COUNT] =
                                                                      "to mark your first move.\p"
                                                                      "Pick a different move with A\n"
                                                                      "to chain them.\p"
-                                                                     "Only direct attacks chain.\n"
-                                                                     "Status moves go alone.\p"
-                                                                     "STRING SHOT is a status move.\n"
-                                                                     "Use it by itself.\p"
-                                                                     "Two-turn and delayed moves\n"
-                                                                     "also cannot be chained.\p"
-                                                                     "A KO or too little stamina\n"
-                                                                     "stops the chain."),
+                                                                     "Chain two attacks, or two\n"
+                                                                     "team-support moves.\p"
+                                                                     "REFLECT and LIGHT SCREEN\n"
+                                                                     "can work together!\p"
+                                                                     "Self-buffs and self-heals\n"
+                                                                     "must be used alone.\p"
+                                                                     "STRING SHOT, enemy status\n"
+                                                                     "and field moves go alone.\p"
+                                                                     "Traps, two-turn and delayed\n"
+                                                                     "cannot chain either.\p"
+                                                                     "No chains in double battles.\n"
+                                                                     "A KO or low stamina stops it."),
     [STRINGID_ELECTRICTERRAINPREVENTS]              = COMPOUND_STRING("{B_DEF_NAME_WITH_PREFIX} surrounds itself with electrified terrain!"),
     [STRINGID_PSYCHICTERRAINPREVENTS]               = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} is protected by the Psychic Terrain!"),
     [STRINGID_SAFETYGOGGLESPROTECTED]               = COMPOUND_STRING("{B_SCR_NAME_WITH_PREFIX} is not affected thanks to its {B_LAST_ITEM}!"),

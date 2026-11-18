@@ -7,14 +7,15 @@
 3. Elegir un inicial. Entrar en el primer combate contra el Zigzagoon.
 4. **Una vez visibles los Pokémon en el campo**, el propio cuadro de texto del combate presenta la explicación del profesor:
    - En FIGHT, L marca el primer movimiento y A elige otro distinto para encadenar.
+   - Se admiten **ataque + ataque** o **apoyo al equipo + apoyo al equipo** (por ejemplo, Reflejo + Pantalla Luz).
+   - Mejoras y curas personales, estados ofensivos (incluido Disparo Demora), trampas, climas y control del campo **no** se encadenan. Tampoco movimientos de dos turnos ni combates dobles.
    - Los movimientos cuestan Stamina. Un KO o agotar la Stamina interrumpe la cadena.
-   - Recordatorio breve sobre los símbolos de mutaciones.
-5. Confirmar las cuatro páginas. En FIGHT, usar L para marcar el primer movimiento, mover el cursor a otro y pulsar A. El menú debe aceptar el encadenamiento y el combate debe avanzar sin congelarse ni retener los controles.
+5. Confirmar las páginas del tutorial. En FIGHT, usar L para marcar el primer movimiento, mover el cursor a otro y pulsar A. El menú debe aceptar una pareja de ataques o de apoyos al equipo, rechazar las combinaciones mixtas y avanzar sin congelarse ni retener los controles.
 6. Comprobar que START activa/desactiva la megaevolución (u otra mecánica disponible) sin marcar una cadena y SELECT permite ordenar movimientos. La descripción no debe aparecer en FIGHT; se consulta en el resumen del Pokémon. Desde el menú principal de batalla, R sigue siendo el acceso rápido a la última Poké Ball.
    - Repetir con la opción de controles `L=A`: en FIGHT, pulsar L debe preparar la cadena y **no** confirmar el movimiento como si se hubiera pulsado A.
 7. Terminar el combate y confirmar que siguen la escena de agradecimiento de Birch y el traslado al laboratorio.
 8. Comprobar que la explicación **no** se repite en combates salvajes posteriores ni en los primeros combates del rival.
-8. Probar derrota y reintento, si la ROM permite ese escenario sin reiniciar partida.
+9. Probar derrota y reintento, si la ROM permite ese escenario sin reiniciar partida.
 
 ## Implementación
 
