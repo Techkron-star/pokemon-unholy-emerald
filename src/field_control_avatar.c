@@ -329,7 +329,7 @@ static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatil
 
 static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
 {
-    u32 i;
+    u32 i, j;
     enum Move move;
 
     if (!IsFieldMoveUnlocked(fieldMove))
@@ -338,12 +338,17 @@ static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        struct Pokemon *mon = &gPlayerParty[i];
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
 
         if (GetMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
             break;
-        if (!GetMonData(mon, MON_DATA_IS_EGG) && MonKnowsMove(mon, move))
-            return TRUE;
+        if (GetMonData(mon, MON_DATA_IS_EGG))
+            continue;
+        for (j = 0; j < MAX_MON_MOVES; j++)
+        {
+            if (GetMonData(mon, MON_DATA_MOVE1 + j) == move)
+                return TRUE;
+        }
     }
     return FALSE;
 }
