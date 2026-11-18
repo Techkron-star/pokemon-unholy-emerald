@@ -88,6 +88,9 @@ void BattleSetup_StartBattlePikeWildBattle(void);
 void BattleSetup_StartRoamerBattle(void);
 void StartWallyTutorialBattle(void);
 void BattleSetup_StartScriptedWildBattle(void);
+// Wild boss modifiers only touch gBattleMons; capture uses the unboosted party mon.
+void UnholyWildBoss_Arm(void);
+void UnholyWildBoss_ApplyBattleBonuses(u8 battler);
 void BattleSetup_StartScriptedDoubleWildBattle(void);
 void BattleSetup_StartLatiBattle(void);
 void BattleSetup_StartLegendaryBattle(void);

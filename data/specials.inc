@@ -199,6 +199,7 @@ gSpecials::
 	def_special GabbyAndTyGetLastBattleTrivia
 	def_special GetGabbyAndTyLocalIds
 	def_special GetBattleOutcome
+	def_special UnholyWildBoss_Arm
 	def_special GetDaycareMonNicknames
 	def_special GetDaycareState
 	def_special RejectEggFromDayCare

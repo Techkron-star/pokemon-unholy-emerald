@@ -1557,7 +1557,7 @@
 #define FLAG_UNHOLY_SHOAL_CAVE_PERMAFROST               (SYSTEM_FLAGS + 0xB4)
 #define FLAG_UNHOLY_UNDERWATER127_ARIETE_NAUTILO        (SYSTEM_FLAGS + 0xB5)
 #define FLAG_UNHOLY_VICTORY_ROAD_NIHIL_ENGINE           (SYSTEM_FLAGS + 0xB6)
-#define FLAG_UNUSED_0x917                           (SYSTEM_FLAGS + 0xB7) // Unused Flag
+#define FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED           (SYSTEM_FLAGS + 0xB7) // Victory Road boss: defeat or capture.
 #define FLAG_UNUSED_0x918                           (SYSTEM_FLAGS + 0xB8) // Unused Flag
 #define FLAG_UNUSED_0x919                           (SYSTEM_FLAGS + 0xB9) // Unused Flag
 #define FLAG_UNUSED_0x91A                           (SYSTEM_FLAGS + 0xBA) // Unused Flag
