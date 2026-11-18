@@ -51,6 +51,11 @@ struct GearInfo
 
 extern const struct GearInfo gGearsInfo[GEAR_COUNT];
 
+// Textos visibles en mochila, resumen, crafting y equipo. Usar estos getters
+// en vez de acceder directamente a gGearsInfo[gear].name/description.
+const u8 *Gear_GetLocalizedName(enum Gear gear);
+const u8 *Gear_GetLocalizedDescription(enum Gear gear);
+
 // --- Guardado: el Gear vive en el Pokémon (slot aparte del objeto equipado) ---
 struct Pokemon;
 enum Gear Gear_GetEquipped(struct Pokemon *mon);

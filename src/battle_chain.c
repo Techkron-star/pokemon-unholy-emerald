@@ -9,6 +9,45 @@
 #include "battle_chain.h"
 #include "gear.h"
 #include "task.h"
+#include "constants/battle_ai.h"
+
+enum ChainMoveType
+{
+    CHAIN_MOVE_NONE,
+    CHAIN_MOVE_ATTACK,
+    CHAIN_MOVE_TEAM_SUPPORT,
+};
+
+// Only effects that benefit the party or the entire side can be paired.
+// Self-buffs, single-target status, self-healing, field control and hazards
+// deliberately remain single actions (including in the trainer AI).
+static enum ChainMoveType Chain_GetMoveType(enum Move move)
+{
+    enum BattleMoveEffects effect;
+
+    if (move == MOVE_NONE || move == MOVE_STRUGGLE)
+        return CHAIN_MOVE_NONE;
+
+    effect = GetMoveEffect(move);
+    if (gBattleMoveEffects[effect].twoTurnEffect || effect == EFFECT_FUTURE_SIGHT)
+        return CHAIN_MOVE_NONE;
+    if (GetMoveCategory(move) != DAMAGE_CATEGORY_STATUS)
+        return CHAIN_MOVE_ATTACK;
+
+    switch (move)
+    {
+    case MOVE_REFLECT:
+    case MOVE_LIGHT_SCREEN:
+    case MOVE_MIST:
+    case MOVE_SAFEGUARD:
+    case MOVE_LUCKY_CHANT:
+    case MOVE_HEAL_BELL:
+    case MOVE_AROMATHERAPY:
+        return CHAIN_MOVE_TEAM_SUPPORT;
+    default:
+        return CHAIN_MOVE_NONE;
+    }
+}
 
 bool32 Chain_IsAvailable(enum BattlerId battler)
 {
@@ -23,17 +62,14 @@ bool32 Chain_IsAvailable(enum BattlerId battler)
 
 bool32 Chain_IsMoveChainable(enum Move move)
 {
-    enum BattleMoveEffects effect = GetMoveEffect(move);
-
-    return move != MOVE_NONE && move != MOVE_STRUGGLE
-        && GetMoveCategory(move) != DAMAGE_CATEGORY_STATUS
-        && !gBattleMoveEffects[effect].twoTurnEffect
-        && effect != EFFECT_FUTURE_SIGHT;
+    return Chain_GetMoveType(move) != CHAIN_MOVE_NONE;
 }
 
 bool32 Chain_IsPairAllowed(enum BattlerId battler, enum Move first, enum Move second)
 {
-    if (first == second || !Chain_IsMoveChainable(first) || !Chain_IsMoveChainable(second))
+    enum ChainMoveType firstType = Chain_GetMoveType(first);
+
+    if (first == second || firstType == CHAIN_MOVE_NONE || firstType != Chain_GetMoveType(second))
         return FALSE;
     if (IsHoldEffectChoice(GetBattlerHoldEffect(battler)) || GetBattlerAbility(battler) == ABILITY_GORILLA_TACTICS)
         return FALSE;
@@ -57,6 +93,10 @@ u32 Chain_GetNumTurnActions(void)
 void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
 {
     struct ChooseMoveStruct *moveInfo;
+    enum BattlerId target = MAX_BATTLERS_COUNT;
+    bool32 hasAiPrediction = FALSE;
+    s32 bestScore = -1;
+    u32 bestDamage = 0;
 
     // The AI must make a tactical choice, not automatically chain every turn
     // simply because its moveset contains two different moves.
@@ -73,9 +113,10 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
     if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
      && gAiLogicData != NULL && gAiBattleData != NULL)
     {
-        enum BattlerId target = gAiBattleData->chosenTarget[battler];
+        target = gAiBattleData->chosenTarget[battler];
+        hasAiPrediction = target < gBattlersCount && IsBattlerAlive(target);
 
-        if (target < gBattlersCount && IsBattlerAlive(target)
+        if (hasAiPrediction
          && gAiLogicData->simulatedDmg[battler][target][firstMovePos].minimum >= gBattleMons[target].hp)
             return;
     }
@@ -85,24 +126,37 @@ void Chain_SelectOpponentMove(enum BattlerId battler, u8 firstMovePos)
 
     for (u8 movePos = 0; movePos < MAX_MON_MOVES; movePos++)
     {
+        s32 score = AI_SCORE_DEFAULT;
+        u32 damage;
+
         if ((limitations & (1u << movePos)) || moveInfo->currentPP[movePos] == 0
          || !Chain_IsPairAllowed(battler, moveInfo->moves[firstMovePos], moveInfo->moves[movePos])
          || !Chain_CanAfford(battler, moveInfo->moves[firstMovePos], moveInfo->moves[movePos]))
             continue;
 
-        // Avoid follow-ups that the AI already knows cannot damage the foe.
-        if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
-         && gAiLogicData != NULL && gAiBattleData != NULL)
-        {
-            enum BattlerId target = gAiBattleData->chosenTarget[battler];
+        damage = GetMovePower(moveInfo->moves[movePos]);
 
-            if (target < gBattlersCount && GetMovePower(moveInfo->moves[movePos]) != 0
-             && gAiLogicData->simulatedDmg[battler][target][movePos].maximum == 0)
+        // Use the AI's existing tactical scores (matchups, support needs,
+        // immunities) rather than taking the first legal move in the slots.
+        if (hasAiPrediction)
+        {
+            score = gAiBattleData->finalScore[battler][target][movePos];
+            if (score < AI_SCORE_DEFAULT)
                 continue;
+            if (Chain_GetMoveType(moveInfo->moves[movePos]) == CHAIN_MOVE_ATTACK)
+            {
+                if (gAiLogicData->simulatedDmg[battler][target][movePos].maximum == 0)
+                    continue;
+                damage = gAiLogicData->simulatedDmg[battler][target][movePos].median;
+            }
         }
 
-        gBattleStruct->chainSecondPos[battler] = movePos + 1;
-        break;
+        if (score > bestScore || (score == bestScore && damage > bestDamage))
+        {
+            bestScore = score;
+            bestDamage = damage;
+            gBattleStruct->chainSecondPos[battler] = movePos + 1;
+        }
     }
 }
 
@@ -240,7 +294,10 @@ bool32 Chain_IsFollowingUp(enum BattlerId battler)
 void Chain_RecordOpeningMove(enum BattlerId battler, enum Move move)
 {
     if (gBattleStruct->numTurnActions == 0 || gCurrentTurnActionNumber >= gBattlersCount
-     || gBattlerByTurnOrder[gCurrentTurnActionNumber] != battler || IsBattleMoveStatus(move))
+     || gBattlerByTurnOrder[gCurrentTurnActionNumber] != battler
+     || !Chain_IsMoveChainable(move)
+     || (Chain_GetMoveType(move) == CHAIN_MOVE_ATTACK && IsBattleMoveStatus(move))
+     || (Chain_GetMoveType(move) == CHAIN_MOVE_TEAM_SUPPORT && !IsBattleMoveStatus(move)))
         return;
 
     gBattleStruct->chainOpeningMask |= 1u << battler;
@@ -253,6 +310,9 @@ bool32 Chain_AllowsResolvedCategory(enum BattlerId battler, enum Move move)
     if (!Chain_IsFollowingUp(battler))
         return TRUE;
     if (IsBattleMoveStatus(move))
+        return Chain_GetMoveType(move) == CHAIN_MOVE_TEAM_SUPPORT;
+
+    if (Chain_GetMoveType(move) != CHAIN_MOVE_ATTACK)
         return FALSE;
 
     return !IsBattleMoveSpecial(move) || !(gBattleStruct->chainSpecialMask & (1u << battler))

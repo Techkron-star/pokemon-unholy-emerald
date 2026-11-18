@@ -1,6 +1,8 @@
 #ifndef GUARD_EVENT_SCRIPTS_H
 #define GUARD_EVENT_SCRIPTS_H
 
+extern const u8 Common_EventScript_FindItem[];
+
 extern const u8 EventScript_Follower[];
 extern const u8 EventScript_FollowerEnd[];
 extern const u8 EventScript_FollowerGeneric[];
@@ -593,6 +595,10 @@ extern const u8 EventScript_Questionnaire[];
 extern const u8 EventScript_TrainerHillTimer[];
 extern const u8 EventScript_CurrentTooFast[];
 extern const u8 EventScript_UseSurf[];
+extern const u8 EventScript_UnholyQolMenu[];
+extern const u8 EventScript_CutTree[];
+extern const u8 EventScript_RockSmash[];
+extern const u8 EventScript_StrengthBoulder[];
 extern const u8 EventScript_UseWaterfall[];
 extern const u8 EventScript_CannotUseWaterfall[];
 extern const u8 EventScript_UseDive[];

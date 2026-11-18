@@ -92,9 +92,21 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
 
     EXPECT(!Chain_IsMoveChainable(MOVE_CALM_MIND));
     EXPECT(!Chain_IsMoveChainable(MOVE_STRING_SHOT));
+    EXPECT(!Chain_IsMoveChainable(MOVE_TOXIC));
+    EXPECT(!Chain_IsMoveChainable(MOVE_RECOVER));
+    EXPECT(!Chain_IsMoveChainable(MOVE_STEALTH_ROCK));
+    EXPECT(!Chain_IsMoveChainable(MOVE_TRICK_ROOM));
+    EXPECT(!Chain_IsMoveChainable(MOVE_TAILWIND));
     EXPECT(!Chain_IsMoveChainable(MOVE_SOLAR_BEAM));
     EXPECT(!Chain_IsMoveChainable(MOVE_FUTURE_SIGHT));
     EXPECT(Chain_IsMoveChainable(MOVE_SCRATCH));
+    EXPECT(Chain_IsMoveChainable(MOVE_REFLECT));
+    EXPECT(Chain_IsMoveChainable(MOVE_LIGHT_SCREEN));
+    EXPECT(Chain_IsMoveChainable(MOVE_HEAL_BELL));
+    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_REFLECT, MOVE_LIGHT_SCREEN));
+    EXPECT(!Chain_IsPairAllowed(B_BATTLER_0, MOVE_REFLECT, MOVE_EMBER));
+    EXPECT(!Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_REFLECT));
+    EXPECT(Chain_IsPairAllowed(B_BATTLER_0, MOVE_EMBER, MOVE_SCRATCH));
     gBattleStruct->chainSecondPos[B_BATTLER_0] = 2;
     Chain_ExpandTurnOrder();
     EXPECT_EQ(Chain_GetNumTurnActions(), 3);
@@ -136,6 +148,23 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
     gBattleStruct->chosenMovePositions[B_BATTLER_0] = 0;
     Chain_InvalidateFollowUps();
     EXPECT(Chain_PrepareAction(B_BATTLER_0));
+
+    // Team-wide support must reach the actual follow-up action. Previously
+    // status moves could be selected but were unconditionally cancelled.
+    gBattleMons[B_BATTLER_0].moves[0] = MOVE_REFLECT;
+    gBattleMons[B_BATTLER_0].moves[1] = MOVE_LIGHT_SCREEN;
+    gBattleStruct->chosenMovePositions[B_BATTLER_0] = 0;
+    gBattleStruct->chainSecondPos[B_BATTLER_0] = 2;
+    gBattleStruct->chainSecondPos[B_BATTLER_1] = 0;
+    gBattleStruct->dynamicMoveCategory = DAMAGE_CATEGORY_NONE;
+    gCurrentTurnActionNumber = 0;
+    Chain_ExpandTurnOrder();
+    EXPECT_EQ(Chain_GetNumTurnActions(), 3);
+    Chain_RecordOpeningMove(B_BATTLER_0, MOVE_REFLECT);
+    gCurrentTurnActionNumber = 2;
+    EXPECT(Chain_IsFollowingUp(B_BATTLER_0));
+    EXPECT(Chain_AllowsResolvedCategory(B_BATTLER_0, MOVE_LIGHT_SCREEN));
+    EXPECT(!Chain_PrepareAction(B_BATTLER_0));
 
     gBattleMons[B_BATTLER_0] = previousMons[0];
     gBattleMons[B_BATTLER_1] = previousMons[1];

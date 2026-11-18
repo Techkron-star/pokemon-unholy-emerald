@@ -230,6 +230,8 @@ struct MoveInfo
 };
 
 extern const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL];
+const u8 *GetLocalizedMoveName(enum Move moveId);
+const u8 *GetLocalizedMoveDescription(enum Move moveId);
 extern const u8 gNotDoneYetDescription[];
 extern const struct BattleMoveEffect gBattleMoveEffects[];
 
@@ -253,7 +255,7 @@ static inline enum Move SanitizeMoveId(enum Move moveId)
 
 static inline const u8 *GetMoveName(enum Move moveId)
 {
-    return gMovesInfo[SanitizeMoveId(moveId)].name;
+    return GetLocalizedMoveName(SanitizeMoveId(moveId));
 }
 
 static inline enum BattleMoveEffects GetMoveEffect(enum Move moveId)
@@ -266,7 +268,7 @@ static inline const u8 *GetMoveDescription(enum Move moveId)
     moveId = SanitizeMoveId(moveId);
     if (GetMoveEffect(moveId) == EFFECT_PLACEHOLDER)
         return gNotDoneYetDescription;
-    return gMovesInfo[moveId].description;
+    return GetLocalizedMoveDescription(moveId);
 }
 
 static inline enum Type GetMoveType(enum Move moveId)

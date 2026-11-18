@@ -1548,15 +1548,15 @@
 #define FLAG_UNHOLY_ROUTE119_PANIC                   (SYSTEM_FLAGS + 0xAB) // New Gear pickup; independent of original Route 119 ball.
 #define FLAG_UNHOLY_ROUTE120_HOPLITA                 (SYSTEM_FLAGS + 0xAC) // Existing saves may already have the original item.
 #define FLAG_UNHOLY_ROUTE123_TUNICA                  (SYSTEM_FLAGS + 0xAD) // Preserve collectible status across upgrades.
-#define FLAG_UNUSED_0x90E                           (SYSTEM_FLAGS + 0xAE) // Unused Flag
-#define FLAG_UNUSED_0x90F                           (SYSTEM_FLAGS + 0xAF) // Unused Flag
-#define FLAG_UNUSED_0x910                           (SYSTEM_FLAGS + 0xB0) // Unused Flag
-#define FLAG_UNUSED_0x911                           (SYSTEM_FLAGS + 0xB1) // Unused Flag
-#define FLAG_UNUSED_0x912                           (SYSTEM_FLAGS + 0xB2) // Unused Flag
-#define FLAG_UNUSED_0x913                           (SYSTEM_FLAGS + 0xB3) // Unused Flag
-#define FLAG_UNUSED_0x914                           (SYSTEM_FLAGS + 0xB4) // Unused Flag
-#define FLAG_UNUSED_0x915                           (SYSTEM_FLAGS + 0xB5) // Unused Flag
-#define FLAG_UNUSED_0x916                           (SYSTEM_FLAGS + 0xB6) // Unused Flag
+#define FLAG_UNHOLY_ROUTE110_LENTE_CERTEZA              (SYSTEM_FLAGS + 0xAE)
+#define FLAG_UNHOLY_ROUTE117_BATERIA_RESERVA            (SYSTEM_FLAGS + 0xAF)
+#define FLAG_UNHOLY_ROUTE111_PIEDRA_AFILAR              (SYSTEM_FLAGS + 0xB0)
+#define FLAG_UNHOLY_ROUTE115_GUANTES_COHETE             (SYSTEM_FLAGS + 0xB1)
+#define FLAG_UNHOLY_ROUTE121_BOTAS_UMBRAL               (SYSTEM_FLAGS + 0xB2)
+#define FLAG_UNHOLY_MT_PYRE_VELO_CRIPTICO               (SYSTEM_FLAGS + 0xB3)
+#define FLAG_UNHOLY_SHOAL_CAVE_PERMAFROST               (SYSTEM_FLAGS + 0xB4)
+#define FLAG_UNHOLY_UNDERWATER127_ARIETE_NAUTILO        (SYSTEM_FLAGS + 0xB5)
+#define FLAG_UNHOLY_VICTORY_ROAD_NIHIL_ENGINE           (SYSTEM_FLAGS + 0xB6)
 #define FLAG_UNUSED_0x917                           (SYSTEM_FLAGS + 0xB7) // Unused Flag
 #define FLAG_UNUSED_0x918                           (SYSTEM_FLAGS + 0xB8) // Unused Flag
 #define FLAG_UNUSED_0x919                           (SYSTEM_FLAGS + 0xB9) // Unused Flag

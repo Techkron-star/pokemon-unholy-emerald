@@ -42,15 +42,16 @@ EventScript_SprayWoreOff_Manual:
 
 EventScript_AutoRenewSpray::
 	copyvar LOCAL_VAR_SPRAY, VAR_LAST_REPEL_LURE_USED
-	call EventScript_UseSpray
+	@ checkitem leaves VAR_RESULT as TRUE, but HandleSprayMenuChoice
+	@ interprets it as a menu index. Select the saved spray explicitly.
+	call EventScript_SetSingleSprayAndUse
 	closemessage
 	releaseall
 	end
 
 EventScript_HandleMultipleSprays::
 .if I_REPEL_LURE_MENU == TRUE
-	compare VAR_REPEL_AUTO_RENEW, 2
-	goto_if_eq EventScript_UseLastUsedSpray_Auto
+	@ Auto-renew with the saved spray was handled above. Offer available items.
 	goto EventScript_ChooseWhichSpray
 .else
 	goto EventScript_UseSingleSpray

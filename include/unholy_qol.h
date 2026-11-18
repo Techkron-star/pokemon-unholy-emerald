@@ -1,0 +1,26 @@
+#ifndef GUARD_UNHOLY_QOL_H
+#define GUARD_UNHOLY_QOL_H
+
+#include "global.h"
+
+struct ScriptContext;
+
+enum UnholyQolOption
+{
+    UQOL_AUTO_REPEL,
+    UQOL_AUTO_RUN,
+    UQOL_AUTO_CUT,
+    UQOL_AUTO_STRENGTH,
+    UQOL_AUTO_ROCK_SMASH,
+    UQOL_AUTO_SURF,
+    UQOL_AUTO_DIALOGUE,
+    UQOL_OPTION_COUNT,
+};
+
+bool32 UnholyQolIsEnabled(enum UnholyQolOption option);
+void UnholyQolToggleOption(enum UnholyQolOption option);
+void UnholyQolDrawMenu(struct ScriptContext *ctx);
+void UnholyQolToggleSelection(struct ScriptContext *ctx);
+u32 UnholyQolGetScriptSetting(void);
+
+#endif // GUARD_UNHOLY_QOL_H

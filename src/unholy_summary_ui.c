@@ -16,6 +16,7 @@
 #include "bg.h"
 #include "data.h"
 #include "gear.h"
+#include "unholy_localization.h"
 #include "gpu_regs.h"
 #include "horizon_market.h"
 #include "item.h"
@@ -64,6 +65,7 @@ static EWRAM_DATA struct NativeSummary
     u8 last;
     u8 page;
     u8 detail;
+    u8 mutationPage;
     bool8 showDetails;
     u8 move;
     u8 qol, tool, depth;
@@ -88,12 +90,12 @@ static const struct WindowTemplate sWindows[] =
 };
 static const u8 *const sTabs[] =
 {
-    COMPOUND_STRING("INFO"), COMPOUND_STRING("STATS"), COMPOUND_STRING("MOVES"), COMPOUND_STRING("GEAR"),
+    COMPOUND_STRING("INFO"), COMPOUND_STRING("STATS"), COMPOUND_STRING("MOVES"), COMPOUND_STRING("ARTEF."),
 };
 static const u8 *const sStats[NUM_STATS] =
 {
-    COMPOUND_STRING("HP"), COMPOUND_STRING("ATTACK"), COMPOUND_STRING("DEFENSE"),
-    COMPOUND_STRING("SPEED"), COMPOUND_STRING("SP. ATK"), COMPOUND_STRING("SP. DEF"),
+    COMPOUND_STRING("PS"), COMPOUND_STRING("ATAQUE"), COMPOUND_STRING("DEFENSA"),
+    COMPOUND_STRING("VELOCIDAD"), COMPOUND_STRING("AT. ESP."), COMPOUND_STRING("DEF. ESP."),
 };
 static const u8 sStatOrder[] = {STAT_HP, STAT_ATK, STAT_DEF, STAT_SPATK, STAT_SPDEF, STAT_SPEED};
 static const enum PokemonBadge sBadges[] =
@@ -102,6 +104,36 @@ static const enum PokemonBadge sBadges[] =
     POKEMON_BADGE_ENRAGED, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_TITAN, POKEMON_BADGE_ASCENDED,
     POKEMON_BADGE_OMEGA,
 };
+
+// These are effects already implemented in pokemon.c / battle_script_commands.c.
+// Alpha and Super currently have no direct stat modifiers. Enraged uses the
+// level-dependent offensive/defensive modifiers implemented in pokemon.c.
+static const u8 *MutationEffectText(enum PokemonBadge badge)
+{
+    switch (badge)
+    {
+    case POKEMON_BADGE_ALPHA:      return COMPOUND_STRING("Sin bonos; captura x0,75");
+    case POKEMON_BADGE_SUPER:      return COMPOUND_STRING("Sin bonos; captura x0,35");
+    case POKEMON_BADGE_ENRAGED:    return COMPOUND_STRING("Ataques +10-60%; Def. -5-35%");
+    case POKEMON_BADGE_HYPER:      return COMPOUND_STRING("6 atributos y Stamina: +25%");
+    case POKEMON_BADGE_OVERLOADED: return COMPOUND_STRING("+25% Vel., At. Esp. y Stamina");
+    case POKEMON_BADGE_ANCESTRAL:  return COMPOUND_STRING("PS +35-40%");
+    case POKEMON_BADGE_TITAN:      return COMPOUND_STRING("PS/Defensas +20-60%; Vel. -50%");
+    case POKEMON_BADGE_ASCENDED:   return COMPOUND_STRING("IV y EV al máximo");
+    case POKEMON_BADGE_OMEGA:      return COMPOUND_STRING("Atrib./Sta +20-50%; IV/EV máx.");
+    default:                      return COMPOUND_STRING("Sin efectos de mutación");
+    }
+}
+
+static u8 ActiveMutationCount(u16 badges)
+{
+    u8 count = 0;
+
+    for (u8 i = 0; i < ARRAY_COUNT(sBadges); i++)
+        if (badges & sBadges[i])
+            count++;
+    return count;
+}
 
 static void Init(void);
 static void Cleanup(void);
@@ -151,6 +183,7 @@ static void ReadMon(void)
         sSummary->mon = ((struct Pokemon *)sSummary->mons)[sSummary->index];
     memset(&sSummary->values, 0, sizeof(sSummary->values));
     UnholyMonSummary_Build(&sSummary->mon, &sSummary->values);
+    sSummary->mutationPage = 0;
 }
 
 static void DestroyPortrait(void)
@@ -208,7 +241,7 @@ static void Info(void)
     }
     Print(85, 57, 132, text);
     Print(85, 72, 132, gNaturesInfo[GetNature(mon)].name);
-    Print(85, 87, 132, gAbilitiesInfo[GetMonAbility(mon)].name);
+    Print(85, 87, 132, GetLocalizedAbilityName(GetMonAbility(mon)));
     StringCopy(text, COMPOUND_STRING("MAX STAMINA "));
     ConvertUIntToDecimalStringN(text + StringLength(text), sSummary->values.staminaMax, STR_CONV_MODE_LEFT_ALIGN, 3);
     Print(85, 103, 132, text);
@@ -250,8 +283,8 @@ static void InfoDetails(void)
     Print(9, 57, 204, text);
 
     u32 ability = GetMonAbility(mon);
-    Print(9, 78, 204, gAbilitiesInfo[ability].name);
-    Paragraph(gAbilitiesInfo[ability].description, 92, 2);
+    Print(9, 78, 204, GetLocalizedAbilityName(ability));
+    Paragraph(GetLocalizedAbilityDescription(ability), 92, 2);
 }
 
 static void Stats(void)
@@ -335,46 +368,80 @@ static void Gear(void)
         UnholyUi_Card(sSummary->window, 7, 41, 210, 29, FALSE);
         UnholyUi_Card(sSummary->window, 7, 73, 210, 29, FALSE);
         u8 fill = UnholyUi_CardFill(FALSE);
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 42, 198, fill, COMPOUND_STRING("HELD ITEM"));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 42, 198, fill,
+            UnholyLocalize(COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("OBJETO EQUIPADO")));
         u16 item = GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
         UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 55, 198, fill, item == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(item));
         bool32 hasGear = values->gearId > GEAR_NONE && values->gearId < GEAR_COUNT;
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill, COMPOUND_STRING("GEAR"));
-        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, hasGear ? gGearsInfo[values->gearId].name : COMPOUND_STRING("NONE"));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 74, 198, fill,
+            UnholyLocalize(COMPOUND_STRING("ARTIFACT"), COMPOUND_STRING("ARTEFACTO")));
+        UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 13, 87, 198, fill, Gear_GetLocalizedName(values->gearId));
         if (hasGear)
-            Paragraph(gGearsInfo[values->gearId].description, 103, 2);
+            Paragraph(Gear_GetLocalizedDescription(values->gearId), 103, 2);
     }
     else if (sSummary->detail == 1)
     {
+        u8 active = 0;
+        u8 shown = 0;
+        u8 count = ActiveMutationCount(values->mutationBadges);
+
         for (u8 i = 0; i < ARRAY_COUNT(sBadges); i++)
         {
             if (values->mutationBadges & sBadges[i])
             {
-                u8 x = 9 + (i % 3) * 70;
-                u8 y = 40 + (i / 3) * 28;
+                u8 y;
                 const u8 *name = HorizonMarketMutationName(sBadges[i]);
-                u16 width = GetStringWidth(FONT_SMALL_NARROW, name, 0);
-                sSummary->mutationIcons[i] = MutationIcon_Create(sBadges[i], x + 42, y + 15, 0);
-                UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, x + (68 - min(width, 68)) / 2, y + 16, 68, name);
+
+                if (active++ < sSummary->mutationPage * 3)
+                    continue;
+                if (shown >= 3)
+                    break;
+
+                y = 41 + shown * 28;
+                sSummary->mutationIcons[i] = MutationIcon_Create(sBadges[i], 22, y + 12, 0);
+                UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 41, y, 168, name);
+                UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 41, y + 12, 168,
+                               MutationEffectText(sBadges[i]));
+                shown++;
             }
         }
-        if (values->mutationBadges == 0)
-            Print(13, 48, 198, COMPOUND_STRING("NO MUTATIONS"));
+        if (count == 0)
+            Print(13, 48, 198, COMPOUND_STRING("SIN MUTACIONES"));
+        else if (count > 3)
+        {
+            u8 pages[12];
+            u8 *end = ConvertUIntToDecimalStringN(pages, sSummary->mutationPage + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
+            end = StringAppend(end, COMPOUND_STRING("/"));
+            ConvertUIntToDecimalStringN(end, (count + 2) / 3, STR_CONV_MODE_LEFT_ALIGN, 1);
+            UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 190, 121, 25, pages);
+        }
     }
     else
     {
-        for (u8 row = 0; row < NUM_STATS; row++)
+        bool8 hasNumericalBonus = FALSE;
+
+        for (u8 row = 0; row <= NUM_STATS; row++)
         {
-            u8 stat = sStatOrder[row];
-            s32 bonus = values->mutationBonusPercent[stat];
+            u8 stat = row < NUM_STATS ? sStatOrder[row] : 0;
+            s32 bonus = row < NUM_STATS ? values->mutationBonusPercent[stat]
+                                         : values->mutationStaminaBonusPercent;
             u8 text[24];
-            StringCopy(text, bonus < 0 ? COMPOUND_STRING("-") : COMPOUND_STRING("+"));
-            ConvertUIntToDecimalStringN(text + StringLength(text), abs(bonus), STR_CONV_MODE_LEFT_ALIGN, 3);
-            StringAppend(text, COMPOUND_STRING("%"));
-            Print(9, 43 + row * 12, 110, sStats[stat]);
-            Print(143, 43 + row * 12, 65, text);
+
+            if (bonus != 0)
+            {
+                hasNumericalBonus = TRUE;
+                StringCopy(text, bonus < 0 ? COMPOUND_STRING("-") : COMPOUND_STRING("+"));
+                ConvertUIntToDecimalStringN(text + StringLength(text), abs(bonus), STR_CONV_MODE_LEFT_ALIGN, 3);
+                StringAppend(text, COMPOUND_STRING("%"));
+            }
+            else
+                StringCopy(text, COMPOUND_STRING("--"));
+
+            Print(9, 40 + row * 11, 110, row < NUM_STATS ? sStats[stat] : COMPOUND_STRING("STAMINA"));
+            Print(143, 40 + row * 11, 65, text);
         }
-        Print(9, 116, 204, COMPOUND_STRING("MUTATION BONUSES"));
+        Print(9, 119, 204, hasNumericalBonus ? COMPOUND_STRING("BONOS NETOS DE MUTACION")
+                                               : COMPOUND_STRING("SIN BONOS NUMERICOS"));
     }
 }
 
@@ -428,7 +495,8 @@ static void Render(void)
         }
     }
     const u8 *help = sSummary->page == PAGE_STATS ? COMPOUND_STRING("<>:TAB L/R:IV/EV START:TOOLS B:BACK")
-                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("<>:TAB L/R:VIEW START:TOOLS B:BACK")
+                   : sSummary->page == PAGE_GEAR && sSummary->detail == 1 ? COMPOUND_STRING("L/R:VISTA A:SIG B:ATRAS")
+                   : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("L/R:VISTA START:TOOLS B:ATRAS")
                    : sSummary->showDetails ? COMPOUND_STRING("A/B:BACK  START:TOOLS")
                    : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 7, 131, 210, help);
@@ -477,6 +545,18 @@ static void Input(u8 taskId)
         SetMainCallback2(callback);
         return;
     }
+    if (JOY_NEW(A_BUTTON) && sSummary->page == PAGE_GEAR && sSummary->detail == 1)
+    {
+        u8 pages = (ActiveMutationCount(sSummary->values.mutationBadges) + 2) / 3;
+
+        if (pages > 1)
+        {
+            sSummary->mutationPage = (sSummary->mutationPage + 1) % pages;
+            PlaySE(SE_SELECT);
+            Render();
+        }
+        return;
+    }
     if (JOY_NEW(A_BUTTON) && (sSummary->page == PAGE_INFO
      || (sSummary->page == PAGE_MOVES && !GetMonData(&sSummary->mon, MON_DATA_IS_EGG))))
     {
@@ -489,6 +569,7 @@ static void Input(u8 taskId)
     {
         sSummary->page = (sSummary->page + (JOY_NEW(DPAD_LEFT) ? PAGE_COUNT - 1 : 1)) % PAGE_COUNT;
         sSummary->detail = 0;
+        sSummary->mutationPage = 0;
         sSummary->showDetails = FALSE;
     }
     else if (JOY_NEW(L_BUTTON | R_BUTTON) && (sSummary->page == PAGE_STATS || sSummary->page == PAGE_GEAR))
@@ -576,27 +657,19 @@ static const u8 *EquipmentResult(u8 result)
     }
 }
 
-static void EquipmentDelta(const u8 *label, u16 old, u16 next, u16 x, u16 y)
-{
-    u8 text[48];
-    u8 *end = StringCopy(text, label);
-    end = ConvertUIntToDecimalStringN(end, old, STR_CONV_MODE_LEFT_ALIGN, 3);
-    end = StringAppend(end, COMPOUND_STRING(" > "));
-    ConvertUIntToDecimalStringN(end, next, STR_CONV_MODE_LEFT_ALIGN, 3);
-    QolText(x, y, 101, text);
-}
-
 static void DrawEquipment(void)
 {
     u8 text[128];
     bool8 gear = sSummary->equipmentGear;
     u16 current = gear ? Gear_ToItem(Gear_GetEquipped(&sSummary->mon)) : GetMonData(&sSummary->mon, MON_DATA_HELD_ITEM);
     u16 next = sSummary->equipmentItems[sSummary->equipmentCursor];
-    UnholyUi_Frame(sSummary->window, gear ? COMPOUND_STRING("GEAR") : COMPOUND_STRING("HELD ITEM"));
+    UnholyUi_Frame(sSummary->window, gear
+        ? UnholyLocalize(COMPOUND_STRING("ARTIFACT"), COMPOUND_STRING("ARTEFACTO"))
+        : UnholyLocalize(COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("OBJETO")));
     if (sSummary->qol == QOL_EQUIPMENT)
     {
-        u8 *end = StringCopy(text, COMPOUND_STRING("NOW: "));
-        StringAppend(end, current == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(current));
+        u8 *end = StringCopy(text, UnholyLocalize(COMPOUND_STRING("NOW: "), COMPOUND_STRING("ACTUAL: ")));
+        StringAppend(end, current == ITEM_NONE ? Gear_GetLocalizedName(GEAR_NONE) : GetItemName(current));
         QolText(8, 24, 207, text);
         u16 count = sSummary->equipmentCount, first = sSummary->equipmentCursor / 3 * 3;
         for (u8 i = 0; i < 3 && first + i < count; i++)
@@ -606,7 +679,7 @@ static void DrawEquipment(void)
             u8 y = 44 + i * 19, fill = UnholyUi_CardFill(selected);
             UnholyUi_Card(sSummary->window, 6, y, 212, 18, selected);
             UnholyUi_PrintOnFill(sSummary->window, FONT_SMALL_NARROW, 11, y + 3, 159, fill,
-                item == ITEM_NONE ? COMPOUND_STRING("REMOVE") : GetItemName(item));
+                item == ITEM_NONE ? UnholyLocalize(COMPOUND_STRING("REMOVE"), COMPOUND_STRING("QUITAR")) : GetItemName(item));
             if (item != ITEM_NONE)
             {
                 ConvertUIntToDecimalStringN(text, CountTotalItemQuantityInBag(item), STR_CONV_MODE_LEFT_ALIGN, 5);
@@ -618,36 +691,23 @@ static void DrawEquipment(void)
         ConvertUIntToDecimalStringN(cursor, count, STR_CONV_MODE_LEFT_ALIGN, 3);
         QolText(8, 104, 205, text);
         QolFooter(sSummary->notice != NULL ? sSummary->notice : COMPOUND_STRING(""),
-            COMPOUND_STRING("A:COMPARE  B:BACK"));
+            UnholyLocalize(COMPOUND_STRING("A:COMPARE  B:BACK"), COMPOUND_STRING("A:COMPARAR  B:VOLVER")));
     }
     else
     {
-        QolText(8, 23, 205, COMPOUND_STRING("CURRENT:"));
-        QolText(8, 36, 205, current == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(current));
-        QolText(8, 50, 205, COMPOUND_STRING("CHANGE TO:"));
-        QolText(8, 63, 205, next == ITEM_NONE ? COMPOUND_STRING("NONE") : GetItemName(next));
-        if (gear)
-        {
-            const struct GearInfo *old = &gGearsInfo[Gear_FromItem(current)], *selected = &gGearsInfo[Gear_FromItem(next)];
-            EquipmentDelta(COMPOUND_STRING("PWR% "), old->overloadPowerPercent ? old->overloadPowerPercent : 100,
-                selected->overloadPowerPercent ? selected->overloadPowerPercent : 100, 8, 79);
-            EquipmentDelta(COMPOUND_STRING("RES% "), old->residualPowerPercent ? old->residualPowerPercent : 100,
-                selected->residualPowerPercent ? selected->residualPowerPercent : 100, 115, 79);
-            EquipmentDelta(COMPOUND_STRING("CD "), old->cooldownTurns, selected->cooldownTurns, 8, 92);
-            EquipmentDelta(COMPOUND_STRING("TURNS "), old->overloadTurns, selected->overloadTurns, 115, 92);
-            StringCopy(text, selected->trigger == GEAR_TRIGGER_TIMED ? COMPOUND_STRING("TIMED ") : COMPOUND_STRING("FIRST HIT "));
-            if (selected->typeMask == 0) StringAppend(text, COMPOUND_STRING("ANY TYPE "));
-            else for (u8 type = 0; type < NUMBER_OF_MON_TYPES; type++)
-                if ((selected->typeMask & GEAR_TYPE(type)) && StringLength(text) + StringLength(gTypesInfo[type].name) < sizeof(text) - 12)
-                { StringAppend(text, gTypesInfo[type].name); StringAppend(text, COMPOUND_STRING(" ")); }
-            StringAppend(text, selected->categoryMask == GEAR_CATEGORY_PHYSICAL ? COMPOUND_STRING("PHY")
-                : selected->categoryMask == GEAR_CATEGORY_SPECIAL ? COMPOUND_STRING("SPC") : COMPOUND_STRING("PHY/SPC"));
-            if (next != ITEM_NONE)
-                QolText(8, 105, 205, text);
-        }
-        else if (next != ITEM_NONE) Paragraph(GetItemDescription(next), 79, 3);
-        QolFooter(current != ITEM_NONE ? COMPOUND_STRING("CURRENT EQUIPMENT RETURNS TO BAG") : COMPOUND_STRING(""),
-            COMPOUND_STRING("A:CONFIRM  B:BACK"));
+        QolText(8, 23, 205, UnholyLocalize(COMPOUND_STRING("CURRENT:"), COMPOUND_STRING("ACTUAL:")));
+        QolText(8, 36, 205, current == ITEM_NONE ? Gear_GetLocalizedName(GEAR_NONE) : GetItemName(current));
+        QolText(8, 50, 205, UnholyLocalize(COMPOUND_STRING("CHANGE TO:"), COMPOUND_STRING("CAMBIAR POR:")));
+        QolText(8, 63, 205, next == ITEM_NONE ? Gear_GetLocalizedName(GEAR_NONE) : GetItemName(next));
+        // Los artefactos de evento no usan los multiplicadores genéricos.
+        // Mostrar el efecto real evita comparar falsos "PWR% 100 > 100".
+        if (next != ITEM_NONE)
+            Paragraph(GetItemDescription(next), 79, 3);
+        QolFooter(current != ITEM_NONE
+            ? UnholyLocalize(COMPOUND_STRING("CURRENT EQUIPMENT RETURNS TO BAG"),
+                             COMPOUND_STRING("EL EQUIPO ACTUAL VUELVE A LA MOCHILA"))
+            : COMPOUND_STRING(""),
+            UnholyLocalize(COMPOUND_STRING("A:CONFIRM  B:BACK"), COMPOUND_STRING("A:CONFIRMAR  B:VOLVER")));
     }
 }
 
@@ -702,7 +762,7 @@ static void DrawQol(void)
     UnholyUi_Frame(sSummary->window, sSummary->qol == QOL_MENU ? COMPOUND_STRING("TRAINER TOOLS") : COMPOUND_STRING("EVOLUTION PATHS"));
     if (sSummary->qol == QOL_MENU)
     {
-        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("GEAR"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
+        static const u8 *const names[] = {COMPOUND_STRING("EVOLUTION PATHS"), COMPOUND_STRING("MOVE MANAGER"), COMPOUND_STRING("HELD ITEM"), COMPOUND_STRING("ARTEFACTO"), COMPOUND_STRING("IV / EV SIMULATOR"), COMPOUND_STRING("CHANGE NICKNAME"), COMPOUND_STRING("RETURN TO SUMMARY")};
         u8 *position = ConvertUIntToDecimalStringN(text, sSummary->tool + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
         position = StringAppend(position, COMPOUND_STRING("/"));
         ConvertUIntToDecimalStringN(position, TOOL_COUNT, STR_CONV_MODE_LEFT_ALIGN, 1);

@@ -9946,8 +9946,8 @@ const struct ItemInfo gItemsInfo[] =
 
     [ITEM_GEAR_VISOR_COSMICO] =
     {
-        .name = ITEM_NAME("Visor Cosmico"),
-        .description = COMPOUND_STRING("Ghost hits Normal,\nPsychic and Fairy\nfor double damage."),
+        .name = ITEM_NAME("Visor Cósmico"),
+        .description = COMPOUND_STRING("Fantasma x2 contra\nNormal, Psíquico\ny Hada."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9960,8 +9960,8 @@ const struct ItemInfo gItemsInfo[] =
 
     [ITEM_GEAR_CORAZON_TITAN] =
     {
-        .name = ITEM_NAME("Corazon Titan"),
-        .description = COMPOUND_STRING("Physical +20%.\nThen +10%."),
+        .name = ITEM_NAME("Corazón Titán"),
+        .description = COMPOUND_STRING("Ataques físicos: +20%\nal activar; +10% en\nrecarga de 3 turnos."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9975,7 +9975,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_SKI_MASK] =
     {
         .name = ITEM_NAME("Ski Mask"),
-        .description = COMPOUND_STRING("Dark moves +30%.\nThen +21%."),
+        .description = COMPOUND_STRING("Siniestro: +30% al\nactivar; +21% durante\nrecarga de 3 turnos."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -9989,7 +9989,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_CETRO_SINIESTRO] =
     {
         .name = ITEM_NAME("Cetro Siniestro"),
-        .description = COMPOUND_STRING("Dark gains new\nsuper matchups."),
+        .description = COMPOUND_STRING("Siniestro x2 contra\nNormal, Lucha,\nPsíquico y Hada."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -10002,8 +10002,8 @@ const struct ItemInfo gItemsInfo[] =
 
     [ITEM_GEAR_IMPULSO_COSMICO] =
     {
-        .name = ITEM_NAME("Impulso Cosmico"),
-        .description = COMPOUND_STRING("Sp. moves +20%.\nThen +10%."),
+        .name = ITEM_NAME("Impulso Cósmico"),
+        .description = COMPOUND_STRING("Especiales: +20%\nal activar; +10% en\nrecarga de 3 turnos."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -10017,7 +10017,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_PERMAFROST_FRAGMENT] =
     {
         .name = ITEM_NAME("Permafrost Frag."),
-        .description = COMPOUND_STRING("Ice boost + freeze.\nIce users heal."),
+        .description = COMPOUND_STRING("Duplica prob. de\ncongelar con Hielo.\nTipo Hielo: +1/16 PS."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
@@ -10032,7 +10032,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_BLOOD_##moveType] = \
     { \
         .name = ITEM_NAME(displayName), \
-        .description = COMPOUND_STRING(moveTypeName " moves:\n+40% once, +12%\nwhile recharging."), \
+        .description = COMPOUND_STRING("Mov. " moveTypeName ":\n+40% al activar;\n+12% en recarga."), \
         .importance = 1, \
         .pocket = POCKET_KEY_ITEMS, \
         .sortType = ITEM_TYPE_RELIC, \
@@ -10047,7 +10047,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_STORM_STAFF] =
     {
         .name = ITEM_NAME("Báculo Tormentoso"),
-        .description = COMPOUND_STRING("Extra Sp. hit: 25%.\nNo secondaries or\ndouble Sp. chains."),
+        .description = COMPOUND_STRING("Repite el especial\nal 25% de daño.\nSin efectos extra."),
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
         .sortType = ITEM_TYPE_RELIC,
@@ -10060,7 +10060,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_SHACKLE] =
     {
         .name = ITEM_NAME("Grillete"),
-        .description = COMPOUND_STRING("A damaging move\nhas a 20% chance\nto block chaining."),
+        .description = COMPOUND_STRING("Cada ataque dañino\ntiene 20% de impedir\nla cadena enemiga."),
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
         .sortType = ITEM_TYPE_RELIC,
@@ -10105,7 +10105,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_ARMADURA_METEORICA] =
     {
         .name = ITEM_NAME("Armadura Meteórica"),
-        .description = COMPOUND_STRING("Survives one lethal\nhit at 30% HP.\nScorching ash burns foes."),
+        .description = COMPOUND_STRING("Evita 1 KO.\nQueda al 30% PS.\nCeniza quema."),
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
         .sortType = ITEM_TYPE_RELIC,

@@ -12,6 +12,7 @@ struct UnholyMonSummary
     u32 ivs[NUM_STATS];   // 0-31; original storage and mechanics unchanged
     u32 evs[NUM_STATS];   // 0-252; Omega/Ascended may total 1512
     s32 mutationBonusPercent[NUM_STATS];
+    s32 mutationStaminaBonusPercent;
     u32 staminaMax;
     u32 mutationBadges;
     u32 gearId;

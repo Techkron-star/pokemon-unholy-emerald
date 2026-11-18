@@ -880,6 +880,8 @@ bool8 IsPokemonStorageFull(void);
 const u8 *GetSpeciesName(enum Species species);
 const u8 *GetSpeciesCategory(enum Species species);
 const u8 *GetSpeciesPokedexDescription(enum Species species);
+const u8 *GetLocalizedAbilityName(enum Ability ability);
+const u8 *GetLocalizedAbilityDescription(enum Ability ability);
 u32 GetSpeciesHeight(enum Species species);
 u32 GetSpeciesWeight(enum Species species);
 enum Type GetSpeciesType(enum Species species, u8 slot);

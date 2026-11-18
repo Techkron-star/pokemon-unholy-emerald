@@ -28,4 +28,12 @@
 #define SPECIAL_BADGE_ENRAGED_CAPTURE_PERCENT 12
 #define SPECIAL_BADGE_OMEGA_CAPTURE_PERCENT 3
 
+// Enraged trades defenses for both offensive stats as the Pokémon levels up.
+// Growth is quadratic (level² / 100²); the four percentages are additive
+// with other mutations, never compounded.
+#define SPECIAL_BADGE_ENRAGED_ATTACK_BASE_PERCENT         10
+#define SPECIAL_BADGE_ENRAGED_ATTACK_GROWTH_PERCENT       50
+#define SPECIAL_BADGE_ENRAGED_DEFENSE_BASE_PENALTY_PERCENT 5
+#define SPECIAL_BADGE_ENRAGED_DEFENSE_GROWTH_PENALTY_PERCENT 30
+
 #endif // GUARD_CONFIG_SPECIAL_BADGES_H

@@ -59,6 +59,7 @@
 #include "text_window.h"
 #include "trainer_see.h"
 #include "tv.h"
+#include "unholy_qol.h"
 #include "window.h"
 #include "list_menu.h"
 #include "malloc.h"
@@ -78,6 +79,7 @@ static EWRAM_DATA u16 sMovingNpcId = 0;
 static EWRAM_DATA u16 sMovingNpcMapGroup = 0;
 static EWRAM_DATA u16 sMovingNpcMapNum = 0;
 static EWRAM_DATA u16 sFieldEffectScriptId = 0;
+static EWRAM_DATA u16 sAutoDialogueWaitFrames = 0;
 
 static u8 sBrailleWindowId;
 static bool8 sIsScriptedWildDouble;
@@ -1755,6 +1757,10 @@ static bool8 WaitForAorBPress(void)
         return TRUE;
     if (JOY_NEW(B_BUTTON))
         return TRUE;
+    // Ordinary conversations can advance without an extra press once their
+    // complete message has been visible briefly. Choice boxes are separate.
+    if (UnholyQolIsEnabled(UQOL_AUTO_DIALOGUE) && ++sAutoDialogueWaitFrames >= 24)
+        return TRUE;
     return FALSE;
 }
 
@@ -1762,6 +1768,7 @@ bool8 ScrCmd_waitbuttonpress(struct ScriptContext *ctx)
 {
     Script_RequestEffects(SCREFF_V1 | SCREFF_HARDWARE);
 
+    sAutoDialogueWaitFrames = 0;
     SetupNativeScript(ctx, WaitForAorBPress);
     return TRUE;
 }
