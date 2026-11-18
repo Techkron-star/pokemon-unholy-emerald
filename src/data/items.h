@@ -10141,7 +10141,7 @@ const struct ItemInfo gItemsInfo[] =
         .iconPic = gItemIcon_##gfx, \
         .iconPalette = gItemIconPalette_##gfx, \
     },
-    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte de guerra", "Control cura al aliado\ny puede limpiarlo.", KingsRock)
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte", "Control cura al aliado\ny puede limpiarlo.", KingsRock)
     EXTRA_ARTIFACT(TORRE_VIGILANCIA, "Torre de vigilancia", "Aumenta Precisión\nperiódicamente.", LightClay)
     EXTRA_ARTIFACT(FARO, "Faro", "Suprime bonificaciones\nclimáticas del rival.", ShinyStone)
     EXTRA_ARTIFACT(ROMPEOLAS, "Rompeolas", "Amortigua ataques Agua;\nmás los ataques de área.", MysticWater)

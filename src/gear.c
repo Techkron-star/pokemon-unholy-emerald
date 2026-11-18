@@ -394,7 +394,8 @@ u8 Gear_TryStartExtraStrikes(enum BattlerId battler, enum Move move, enum Battle
 
     gBattleStruct->artifactReplicaTotal[battler] = 0;
     gBattleStruct->artifactReplicaKind[battler] = 0;
-    if (!singleTarget || cycle == NULL || IsBattleMoveStatus(move) || GetMovePower(move) == 0
+    if (!singleTarget || cycle == NULL || target >= gBattlersCount || IsBattlerAlly(battler, target)
+     || IsBattleMoveStatus(move) || GetMovePower(move) == 0
      || IsMultiHitMove(move) || GetMoveStrikeCount(move) > 1 || IsMoveParentalBondBanned(move)
      || IsZMove(move) || IsMaxMove(move) || gBattleMoveEffects[effect].twoTurnEffect)
         return 0;
