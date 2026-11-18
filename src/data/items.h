@@ -10105,7 +10105,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_ARMADURA_METEORICA] =
     {
         .name = ITEM_NAME("Armadura Meteórica"),
-        .description = COMPOUND_STRING("Aguanta 1 golpe letal\ncon 30% PS; pierde\nDefensas y quema rival."),
+        .description = COMPOUND_STRING("Evita 1 KO.\nQueda al 30% PS.\nCeniza quema."),
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,
         .sortType = ITEM_TYPE_RELIC,
