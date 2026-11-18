@@ -355,7 +355,7 @@
 #define B_SHOW_CATEGORY_ICON                TRUE       // If set to TRUE, an icon in the summary and move relearner will show a move's category.
 #define B_HIDE_HEALTHBOX_IN_ANIMS           TRUE       // If set to TRUE, healthboxes will be hidden during move animations.
 #define B_WAIT_TIME_MULTIPLIER              16         // This determines how long text pauses for in battle. Vanilla is 16. Lower values result in faster battles.
-#define B_QUICK_MOVE_CURSOR_TO_RUN          TRUE       // First B highlights Run in a wild battle; a second B confirms it.
+#define B_QUICK_MOVE_CURSOR_TO_RUN          TRUE       // In wild battles B immediately attempts to flee from the main menu.
 #define B_RUN_TRAINER_BATTLE                TRUE       // If set to TRUE, players can run from Trainer battles as in Gen9+. This is treated as a white out.
 #define B_CHAIN_SELECT_BUTTON               L_BUTTON   // Unholy: marks or cancels a move chain in FIGHT.
 #define B_GIMMICK_SELECT_BUTTON             START_BUTTON // Mega Evolution, Z-Moves, Dynamax, etc. in FIGHT.
