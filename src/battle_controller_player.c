@@ -394,11 +394,20 @@ static void HandleInputChooseAction(enum BattlerId battler)
         {
             if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER) && JOY_NEW(B_BUTTON))
             {
-                // A single B attempts to flee immediately in wild battles.
                 PlaySE(SE_SELECT);
-                TryHideLastUsedBall();
-                BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_RUN, 0);
-                BtlController_Complete(battler);
+                if (gActionSelectionCursor[battler] == 3)
+                {
+                    // First B highlights Run; the next B confirms it.
+                    TryHideLastUsedBall();
+                    BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_RUN, 0);
+                    BtlController_Complete(battler);
+                }
+                else
+                {
+                    ActionSelectionDestroyCursorAt(gActionSelectionCursor[battler]);
+                    gActionSelectionCursor[battler] = 3;
+                    ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
+                }
             }
         }
     }
