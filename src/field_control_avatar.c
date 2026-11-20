@@ -27,6 +27,7 @@
 #include "match_call.h"
 #include "metatile_behavior.h"
 #include "overworld.h"
+#include "party_menu.h"
 #include "pokemon.h"
 #include "safari_zone.h"
 #include "script.h"
@@ -338,7 +339,7 @@ static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
 
     for (i = 0; i < PARTY_SIZE; i++)
     {
-        struct Pokemon *mon = &gPlayerParty[i];
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
 
         if (GetMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
             break;
