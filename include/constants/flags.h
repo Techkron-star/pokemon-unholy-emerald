@@ -1566,6 +1566,15 @@
 #define FLAG_UNUSED_0x91D                           (SYSTEM_FLAGS + 0xBD) // Unused Flag
 #define FLAG_UNUSED_0x91E                           (SYSTEM_FLAGS + 0xBE) // Unused Flag
 #define FLAG_UNUSED_0x91F                           (SYSTEM_FLAGS + 0xBF) // Unused Flag
+// Unholy World Update (permanent flags, never daily): keep event visibility
+// separate from having claimed a reward, so a future map refresh cannot
+// resurrect a collected Poké Ball.
+#define FLAG_UNHOLY_WORLD_ROUTE102_BALL_HIDE         FLAG_UNUSED_0x918
+#define FLAG_UNHOLY_WORLD_ROUTE102_BALL_CLAIMED      FLAG_UNUSED_0x919
+#define FLAG_UNHOLY_WORLD_ROUTE102_NPC_HIDE          FLAG_UNUSED_0x91A
+#define FLAG_UNHOLY_WORLD_ROUTE104_BALL_HIDE         FLAG_UNUSED_0x91B
+#define FLAG_UNHOLY_WORLD_ROUTE104_BALL_CLAIMED      FLAG_UNUSED_0x91C
+#define FLAG_UNHOLY_WORLD_ROUTE110_NPC_HIDE          FLAG_UNUSED_0x91D
 
 // Daily Flags
 // These flags are cleared once per day
