@@ -331,6 +331,7 @@ static void RenderResult(void)
 static void Render(void)
 {
     UnholyUi_Frame(sMutator.window, sMutator.screen == MUTATOR_CONFIRM ? COMPOUND_STRING("CONFIRM MUTATION") : COMPOUND_STRING("MUTATOR"));
+    UnholyUi_Icon(sMutator.window, GetWindowAttribute(sMutator.window, WINDOW_WIDTH) * TILE_WIDTH - 18, 6, UNHOLY_UI_ICON_MUTATOR, UnholyUi_AccentColor());
     switch (sMutator.screen)
     {
     case MUTATOR_PARTY:

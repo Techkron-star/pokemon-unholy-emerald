@@ -275,20 +275,24 @@ static const u8 *const sHorizonEggCardNames[HORIZON_EGG_TIER_COUNT] =
 
 static const u8 sHorizonTextColors[] = {1, 2, 3};
 
+// Concept palette "Pokewatch UI": violet night with a cyan accent (Eclipse) and
+// pale green paper with a forest accent (Daylight). Slot roles are shared by every
+// native Unholy screen, so only the colours change: 1 panel, 2 text, 3 line,
+// 4/9 selected fill, 5/7 accent, 11 dim text (Eclipse), 13 warning.
 static const u16 sHorizonPaletteEclipse[] =
 {
-    RGB(0, 0, 0), RGB(2, 5, 12), RGB(29, 30, 31), RGB(7, 19, 26),
-    RGB(4, 13, 22), RGB(0, 20, 25), RGB(11, 11, 23), RGB(19, 25, 29),
-    RGB(1, 3, 7), RGB(6, 16, 20), RGB(24, 30, 31), RGB(14, 21, 26),
-    RGB(12, 8, 21), RGB(31, 4, 4), RGB(25, 28, 31), RGB(0, 0, 0)
+    RGB(0, 0, 0), RGB(3, 2, 7), RGB(29, 28, 31), RGB(10, 8, 19),
+    RGB(2, 9, 12), RGB(11, 30, 28), RGB(12, 8, 22), RGB(11, 30, 28),
+    RGB(1, 0, 3), RGB(6, 10, 18), RGB(28, 27, 31), RGB(21, 19, 26),
+    RGB(13, 8, 22), RGB(31, 6, 6), RGB(24, 23, 31), RGB(0, 0, 0)
 };
 
 static const u16 sHorizonPaletteDaylight[] =
 {
-    RGB(0, 0, 0), RGB(31, 30, 26), RGB(3, 6, 9), RGB(20, 22, 18),
-    RGB(30, 29, 25), RGB(23, 27, 23), RGB(31, 25, 15), RGB(12, 20, 19),
-    RGB(31, 31, 29), RGB(28, 27, 22), RGB(13, 17, 18), RGB(26, 25, 21),
-    RGB(19, 26, 24), RGB(25, 3, 3), RGB(4, 7, 8), RGB(0, 0, 0)
+    RGB(0, 0, 0), RGB(31, 31, 30), RGB(4, 5, 3), RGB(20, 22, 18),
+    RGB(29, 30, 27), RGB(22, 27, 21), RGB(6, 16, 10), RGB(5, 14, 9),
+    RGB(31, 31, 29), RGB(23, 29, 22), RGB(12, 16, 13), RGB(27, 28, 24),
+    RGB(19, 26, 24), RGB(22, 4, 3), RGB(4, 6, 4), RGB(0, 0, 0)
 };
 
 // Shared GBA palette used by crafting and Horizon. Theme preference lives in save flags.
@@ -307,18 +311,24 @@ const u16 *GetUnholyUiPaletteForTheme(bool8 daylight)
 void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY)
 {
     const bool8 daylight = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT);
-    const u8 accent = daylight ? 6 : 7;       // soft gold / cool silver
-    const u8 edge = daylight ? 7 : 5;         // turquoise / deep cyan
+    const u8 accent = daylight ? 6 : 7;       // forest green / cyan
+    const u8 glow = UnholyUi_CardFill(TRUE);  // soft halo under the header
 
     if (width < 12 || height < 24 || dividerY >= height - 19)
         return;
 
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, 0, width, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(accent), 0, height - 2, width, 2);
-    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 0, 2, 2, height - 4);
-    FillWindowPixelRect(windowId, PIXEL_FILL(edge), width - 2, 2, 2, height - 4);
+    // Concept frame: line-coloured border, accent header rule with a one-pixel
+    // halo, quiet footer rule and accent corner studs. Same geometry as before.
+    FillWindowPixelRect(windowId, PIXEL_FILL(3), 0, 0, width, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(3), 0, height - 2, width, 2);
+    FillWindowPixelRect(windowId, PIXEL_FILL(3), 0, 2, 2, height - 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(3), width - 2, 2, 2, height - 4);
+    FillWindowPixelRect(windowId, PIXEL_FILL(glow), 5, dividerY + 1, width - 10, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), 5, dividerY, width - 10, 1);
-    FillWindowPixelRect(windowId, PIXEL_FILL(edge), 5, height - 19, width - 10, 1);
+    // Checkerboard fade below the halo: a soft glow without extra colours.
+    for (u16 x = 6; x < width - 6; x += 2)
+        FillWindowPixelRect(windowId, PIXEL_FILL(glow), x, dividerY + 2, 1, 1);
+    FillWindowPixelRect(windowId, PIXEL_FILL(3), 5, height - 19, width - 10, 1);
     // Three-pixel corner highlights keep the motif crisp at 240x160.
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, 2, 3, 2);
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), width - 5, 2, 3, 2);
@@ -757,6 +767,8 @@ static void HorizonPrintFitStyle(u8 panel, const u8 *source,
     }
     text[len] = EOS;
 
+    // Shrink to a narrower font before trimming characters.
+    fontId = GetFontIdToFit(text, fontId, 0, width);
     while (len > 0 && GetStringWidth(fontId, text, 0) > width)
         text[--len] = EOS;
 
@@ -871,6 +883,7 @@ static void HorizonDrawInfo(void)
     u8 money[24];
     u8 *amount = StringCopy(money, COMPOUND_STRING("MONEY "));
     ConvertUIntToDecimalStringN(amount, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, 7);
+    UnholyUi_Icon(panel, 124, 7, UNHOLY_UI_ICON_COIN, UnholyUi_AccentColor());
     HorizonPrintSmall(panel, money, 134, 6, 75);
 
     if (sHorizonPokemonBrowsing)

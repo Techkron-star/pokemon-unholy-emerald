@@ -413,7 +413,7 @@ static void Gear(void)
             u8 *end = ConvertUIntToDecimalStringN(pages, sSummary->mutationPage + 1, STR_CONV_MODE_LEFT_ALIGN, 1);
             end = StringAppend(end, COMPOUND_STRING("/"));
             ConvertUIntToDecimalStringN(end, (count + 2) / 3, STR_CONV_MODE_LEFT_ALIGN, 1);
-            UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 190, 121, 25, pages);
+            UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 190, 131, 25, pages);
         }
     }
     else
@@ -437,10 +437,10 @@ static void Gear(void)
             else
                 StringCopy(text, COMPOUND_STRING("--"));
 
-            Print(9, 40 + row * 11, 110, row < NUM_STATS ? sStats[stat] : COMPOUND_STRING("STAMINA"));
-            Print(143, 40 + row * 11, 65, text);
+            Print(9, 40 + row * 10, 110, row < NUM_STATS ? sStats[stat] : COMPOUND_STRING("STAMINA"));
+            Print(143, 40 + row * 10, 65, text);
         }
-        Print(9, 119, 204, hasNumericalBonus ? COMPOUND_STRING("BONOS NETOS DE MUTACION")
+        Print(9, 112, 204, hasNumericalBonus ? COMPOUND_STRING("BONOS NETOS DE MUTACION")
                                                : COMPOUND_STRING("SIN BONOS NUMERICOS"));
     }
 }

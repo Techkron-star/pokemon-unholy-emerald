@@ -264,6 +264,7 @@ static void DrawHeader(void)
     if (sUi.mode == MODE_SIGNAL || sUi.mode == MODE_SIGNAL_CONFIRM) title = COMPOUND_STRING("MUTANT SIGNAL");
     if (sUi.mode == MODE_SEARCH) title = COMPOUND_STRING("SEARCH");
     UnholyUi_Frame(sUi.windowId, title);
+    UnholyUi_Icon(sUi.windowId, 101, 6, UNHOLY_UI_ICON_LOCATOR, UnholyUi_AccentColor());
     // The native narrow font draws 12 pixels despite its 8-pixel metric.
     // Reserve two full lines and move the shared footer separator above them.
     FillWindowPixelRect(sUi.windowId, PIXEL_FILL(1), 5, WIN_HEIGHT - 19, WIN_WIDTH - 10, 1);

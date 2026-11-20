@@ -258,6 +258,7 @@ static void Render(void)
     if (sSimulator.mode != SIMULATOR_PARTY && sSimulator.notice != NULL)
         title = sSimulator.notice;
     UnholyUi_Frame(sSimulator.window, title);
+    UnholyUi_Icon(sSimulator.window, GetWindowAttribute(sSimulator.window, WINDOW_WIDTH) * TILE_WIDTH - 18, 6, UNHOLY_UI_ICON_SIMULATOR, UnholyUi_AccentColor());
     if (sSimulator.mode == SIMULATOR_PARTY)
         RenderParty();
     else

@@ -123,6 +123,7 @@ static void Render(void)
 {
     u8 text[32];
     UnholyUi_Frame(sSearch->window, COMPOUND_STRING("PC SEARCH"));
+    UnholyUi_Icon(sSearch->window, GetWindowAttribute(sSearch->window, WINDOW_WIDTH) * TILE_WIDTH - 18, 6, UNHOLY_UI_ICON_BOXES, UnholyUi_AccentColor());
     for (u8 row = 0; row < SEARCH_ROWS; row++)
     {
         bool8 selected = row == sSearch->row;

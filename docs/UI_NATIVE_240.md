@@ -72,3 +72,29 @@ El menú de movimientos reserva el panel inferior para dos posiciones de cadena 
 Resumen distingue ranuras de objeto/Gear y muestra una tarjeta explicativa cuando no hay mutaciones. La cuadrícula de mutaciones separa iconos y nombres. La mochila usa franjas suaves según Eclipse/Daylight, diez etiquetas visibles (incluidas Gears, Correo y Miscelánea) y un selector con 14 píxeles por fila; su paleta se conserva entre aperturas del selector. El icono original de Exp. Share ya tiene aspecto de casco/máquina: no era un sprite de Pokémon cargado por error.
 
 El HUD reserva ahora el espacio entre nombre y nivel para la mutación compacta. El Gear se presenta en vertical frente a la tarjeta, con icono arriba y fase/recarga debajo; la columna cabe en los 25 píxeles de separación de los dobles. Véase [Iconos de mutación](MUTATION_ICONS.md).
+
+## Paleta y marco del concept
+
+Las 16 entradas de la paleta compartida (`sHorizonPaletteEclipse` / `sHorizonPaletteDaylight` en `shop.c`) siguen los colores del concept «Pokewatch UI»: violeta nocturno con acento cian en Eclipse y papel verde claro con acento verde bosque en Daylight. Los roles de cada índice no cambian, de modo que todas las pantallas nativas, la mochila, los diálogos y el PokéNav heredan el aspecto sin tocar su geometría.
+
+| Índice | Rol | Eclipse | Daylight |
+| --- | --- | --- | --- |
+| 1 | Panel / fondo de ventana | `#181039` | `#fffff7` |
+| 2 | Texto principal | `#efe7ff` | `#212918` |
+| 3 | Línea y pista de barras | `#42317b` | `#a5b594` |
+| 4 / 9 | Relleno de selección (Eclipse / Daylight) | `#104a63` | `#bdefb5` |
+| 5 / 7 | Borde de selección y acento | `#5af7e7` | `#29734a` |
+| 6 | Acento de cabecera (Daylight) | — | `#318452` |
+| 11 | Texto atenuado (Eclipse) | `#ad9cd6` | — |
+| 13 | Advertencia | `#ff3131` | `#b52118` |
+
+`DrawUnholyUiPanelAccents` dibuja ahora el marco con la línea del tema, una regla de acento bajo la cabecera con un píxel de halo, una regla discreta sobre el pie y tachuelas de acento en las esquinas. La geometría (2 px de borde, cabecera de 19 px, pie de 19 px) es la misma que antes.
+
+Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sobre selección ≥ 8:1 en Eclipse y ≥ 11:1 en Daylight; acento sobre panel ≥ 5,7:1. No verificado en mGBA: ver la lista de QA anterior.
+
+## Iconos y detalles vivos
+
+- `UnholyUi_Icon` dibuja iconos de 8×8 píxeles (un bit por píxel) con rectángulos de ventana: sin sprites, tiles ni paletas nuevas. El Poké Watch muestra un icono por servicio (tienda, mapa, crafteo, mira, cajas, señal, incursión, archivo, mutador, simulador) en el color de acento, atenuado y con un candado cuando el servicio está bloqueado.
+- `UnholyUi_Footer` convierte los pares `TECLA:acción` en teclas con esquinas redondeadas (chip de acento con el nombre del botón y la acción al lado). Si el pie no tiene esa forma o no cabe, se imprime como antes, así que ninguna instrucción se pierde.
+- `DrawUnholyUiPanelAccents` añade bajo la cabecera una trama de ajedrez de un píxel que degrada el halo hacia el panel.
+- Las cabeceras de los paneles del reloj, Mutator, Simulador y búsqueda de PC llevan su icono a la derecha; el Pokélocator muestra la mira junto al nombre del mapa y Horizon una moneda junto al saldo.
