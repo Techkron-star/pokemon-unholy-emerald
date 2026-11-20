@@ -245,6 +245,9 @@ jobs:
       - name: Mutation badge asset validation
         run: python3 tools/unholy/validate_mutation_badges.py
 
+      - name: Validate all visible item-ball scripts and Gear pickups
+        run: python3 tools/validate_unholy_pickups.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04

@@ -59,7 +59,7 @@ static u16 GetPlayerCurMetatileBehavior(int);
 static bool8 TryStartInteractionScript(struct MapPosition *, u16, enum Direction);
 static bool8 TryAutoFieldMove(struct MapPosition *, u16, enum Direction);
 static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove);
-static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction);
+static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction, bool8 *);
 static const u8 *GetInteractedObjectEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedBackgroundEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedMetatileScript(struct MapPosition *, u8, enum Direction);
@@ -307,10 +307,12 @@ static u16 GetPlayerCurMetatileBehavior(int runningState)
 
 static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
 {
-    const u8 *script = GetInteractionScript(position, metatileBehavior, direction);
-    // The native item-ball script always has an interaction effect. Never
-    // discard a pickup while preflighting the script for no-op interactions.
-    if (script == NULL || (script != Common_EventScript_FindItem && Script_HasNoEffect(script)))
+    bool8 isItemBall;
+    const u8 *script = GetInteractionScript(position, metatileBehavior, direction, &isItemBall);
+    // Native pickups, scripted gifts and disguised wild encounters all use the
+    // item-ball sprite. Their scripts must run even if effect preflight misses
+    // an effect behind a conditional or a special command.
+    if (script == NULL || (!isItemBall && script != Common_EventScript_FindItem && Script_HasNoEffect(script)))
         return FALSE;
 
     // Don't play interaction sound for certain scripts.
@@ -383,11 +385,18 @@ static bool8 TryAutoFieldMove(struct MapPosition *position, u16 metatileBehavior
     return TRUE;
 }
 
-static const u8 *GetInteractionScript(struct MapPosition *position, u8 metatileBehavior, enum Direction direction)
+static const u8 *GetInteractionScript(struct MapPosition *position, u8 metatileBehavior, enum Direction direction, bool8 *isItemBall)
 {
     const u8 *script = GetInteractedObjectEventScript(position, metatileBehavior, direction);
+    *isItemBall = FALSE;
     if (script != NULL)
+    {
+        // Only an actual interacted object can identify a pickup. Background
+        // events must not inherit a stale gSelectedObjectEvent from earlier.
+        *isItemBall = gSelectedObjectEvent < OBJECT_EVENTS_COUNT
+                   && gObjectEvents[gSelectedObjectEvent].graphicsId == OBJ_EVENT_GFX_ITEM_BALL;
         return script;
+    }
 
     script = GetInteractedBackgroundEventScript(position, metatileBehavior, direction);
     if (script != NULL)

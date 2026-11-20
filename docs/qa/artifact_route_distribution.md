@@ -27,6 +27,32 @@ banderas, colisiones y accesos se verifican con:
 python tools/validate_unholy_pickups.py
 ```
 
+## Auditoría de todas las Poké Balls visibles
+
+El validador también recorre los mapas de Emerald y FRLG: hay **409 objetos**
+con sprite de Poké Ball. De ellos, **171** son recogidas nativas con
+`Common_EventScript_FindItem` y **238** utilizan scripts propios (regalos,
+encuentros especiales y Battle Pyramid incluidos). Comprueba que ninguno
+carezca de script y que las recogidas nativas tengan un ID de objeto y una
+bandera definidos. Las 12 ubicaciones de Gears se comprueban además por
+coordenadas, colisión y recompensa.
+
+En `field_control_avatar.c`, los objetos con sprite de Poké Ball pueden ejecutar
+su script sin depender del detector anticipado `Script_HasNoEffect`, que podría
+descartar una recompensa o un encuentro detrás de condiciones. La excepción se
+aplica **solo** al objeto seleccionado, no a carteles ni otros eventos.
+
+La auditoría de archivos no sustituye estas pruebas en mGBA/Pizza Boy:
+
+1. Una Poké Ball nativa: recoger, guardar, recargar y verificar que no reaparece.
+2. Una Poké Ball de evento (Voltorb/Foongus o regalo): pulsar A y comprobar que
+   inicia la interacción especial y respeta su bandera de finalización.
+3. Una Poké Ball de Gear: comprobar artículo recibido, mochila llena y guardado.
+4. Interactuar frente a un objeto distinto: confirmar que no se dispara ningún
+   evento de Poké Ball ni se altera la interacción de carteles o NPC.
+
+**Estado:** verificaciones estáticas superadas; pruebas de emulador pendientes.
+
 ## Próximas recompensas, aún no colocadas
 
 - **Rompeolas:** Jefe Salvaje opcional en la Ruta 126, antes del gimnasio de
