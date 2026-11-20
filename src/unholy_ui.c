@@ -147,7 +147,7 @@ void UnholyUi_Icon(u8 window, u16 x, u16 y, u8 icon, u8 color)
 }
 
 #define FOOTER_MAX_KEYS 6
-#define FOOTER_TEXT_LENGTH 48
+#define FOOTER_TEXT_LENGTH 32
 
 struct FooterKey
 {
