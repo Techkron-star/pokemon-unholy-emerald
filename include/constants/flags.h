@@ -2436,6 +2436,21 @@
 
 #endif
 
+// Debug cheats need dedicated persistent flags in both supported map formats.
+// Emerald's unused 0x918-0x91B slots cannot be used in FRLG, whose system
+// flags end at 0x8FF. FRLG's unused 0x8F0-0x8F3 slots are reserved instead.
+#if IS_FRLG
+#define FLAG_UNHOLY_DEBUG_NO_COLLISION  FLAG_0x8F0
+#define FLAG_UNHOLY_DEBUG_NO_ENCOUNTERS FLAG_0x8F1
+#define FLAG_UNHOLY_DEBUG_NO_TRAINER_SEE FLAG_0x8F2
+#define FLAG_UNHOLY_DEBUG_NO_CATCHING   FLAG_0x8F3
+#else
+#define FLAG_UNHOLY_DEBUG_NO_COLLISION  FLAG_UNUSED_0x918
+#define FLAG_UNHOLY_DEBUG_NO_ENCOUNTERS FLAG_UNUSED_0x919
+#define FLAG_UNHOLY_DEBUG_NO_TRAINER_SEE FLAG_UNUSED_0x91A
+#define FLAG_UNHOLY_DEBUG_NO_CATCHING   FLAG_UNUSED_0x91B
+#endif
+
 #if TESTING
 #define TESTING_FLAGS_START                     0x5000
 #define TESTING_FLAG_SLEEP_CLAUSE               (TESTING_FLAGS_START + 0x0)
