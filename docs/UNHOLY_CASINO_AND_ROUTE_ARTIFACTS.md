@@ -1,64 +1,105 @@
-# Unholy Emerald — Artifacts del casino, rutas y crafteo (lote propuesto)
+# Unholy Emerald — 12 Artifacts: diseño definido por Camilo
 
-**Estado (19 de noviembre de 2026, RD): diseño preliminar.** Son 12 nombres solicitados por Camilo; sus efectos, cifras, precios y ubicaciones de esta ficha son **propuestas**, no decisiones finales ni contenido jugable. **No se han añadido IDs, sprites, scripts de recogida ni hooks de combate.**
+**Estado:** efectos especificados directamente por Camilo durante el 19 de noviembre de 2026 (RD). **Diseño; no implementado en la ROM.** No hay IDs nuevos, sprites, scripts de recogida, precios ni efectos de combate confirmados por QA. Las propuestas de balance y ubicaciones anteriores del PR #71 quedan **sustituidas** por esta ficha.
 
-## Regla de distribución
+## 1. Eclipse Umbrella
 
-- **Casino de Malvalona:** canje por fichas en un mostrador separado de MT y adornos; sus premios no deben sustituir el catálogo original. Mantener los límites de fichas de la ROM.
-- **Poké Balls del mapa:** priorizar objetos visibles que de verdad estén vacíos o mal conectados, tras un censo de `object_events` y pruebas con A. No reemplazar Poké Balls válidas, regalos, recompensas de Wild Boss ni otras colocaciones reservadas de Artifact.
-- **Crafteo:** dos Artifacts hechos con materiales originales obtenidos explorando; los materiales se registran como ítems reales y no deben crear Poké Balls mudas.
-- Cada Artifact es un **Gear permanente de la ranura independiente**, no una poción consumible. Sus efectos se aplican al portador y respetan las reglas de encadenamiento, Stamina, dobles y cooldown por **turno completo**.
-- Preservar IDs persistidos: agregar nuevos enums al final de `include/constants/gears.h` (antes de `GEAR_COUNT`) y de `include/constants/items.h`; nunca reordenar los anteriores. Localización ES/EN.
+- **Activación:** los movimientos de tipo **Siniestro** del portador tienen **10 %** de probabilidad de imponer atrapamiento al enemigo afectado.
+- **Persistencia:** el bloqueo de cambio dura mientras el **portador del Artifact permanezca en combate**; no tiene duración fija por turnos. Al salir el portador, termina el atrapamiento creado exclusivamente por este Gear.
+- **Sinergia:** contra objetivos que ya estén atrapados por cualquier fuente válida —por ejemplo Trampa Arena, un movimiento de atrapamiento u otro efecto— los movimientos **Siniestro y Fantasma** del portador infligen daño adicional.
+- **Pendiente:** cuantía del daño adicional; compatibilidad con excepciones nativas de cambio, inmunidades y movimientos Siniestro sin objetivo enemigo; evaluar si el golpe que causa atrapamiento recibe el daño extra o solo ataques posteriores.
 
-## Los 12 candidatos
+## 2. Moon Sword
 
-| Nombre solicitado | Nombre provisional ES | Procedencia sugerida | Efecto propuesto, pendiente de balance |
-|---|---|---|---|
-| Eclipse Umbrella | Sombrilla Eclipse | Casino, **6800 fichas** | Si hay clima, reduce **25 %** del **primer daño directo** recibido en una activación; **3 turnos** de enfriamiento. No cancela el clima ni sus efectos sobre terceros, a diferencia del Faro. |
-| Moon Sword | Espada Lunar | Casino, **8200 fichas** | El primer movimiento **cortante** de una activación gana **18 %** de daño final (**25 %** de noche); recarga **2 turnos**. No eleva etapas y es distinta de Piedra de Afilar. |
-| Runic Arch | Arco Rúnico | **Crafteo**: dos Fragmentos Rúnicos en exploración | Al completar un movimiento de **apoyo** dirigido a sí mismo o a un aliado, el siguiente daño directo recibido por el beneficiario se reduce **20 %**; recarga **3 turnos**. No permite encadenar movimientos de apoyo. **Confirmar:** «arch» aquí significa arco/portal mágico, no un arma de arquería. |
-| Vital Tablet | Tableta Vital | **Crafteo**: Tableta Agrietada y otro material | Una vez por combate, si sobrevive a una acción con **35 % de PS o menos**, recupera **15 % de PS máximos** y **10 % de Stamina máxima**. No revive ni evita un KO. |
-| Nosferatu Tooth | Colmillo Nosferatu (nombre temporal) | Poké Ball en **Monte Pírico** | El **primer golpe de contacto** que cause daño por turno cura al portador **12 % del daño efectivamente infligido**, limitado a **8 % de sus PS máximos** por turno; respeta anticuración, Sustituto y múltiples impactos. |
-| Portal Gun | Pistola Portal | Casino, **9900 fichas** | **Una vez por combate**, al hacer un cambio voluntario, el Pokémon entrante ignora **ese ingreso** las trampas y recupera **20 % de Stamina máxima**; no elimina las trampas ni crea una acción extra. |
-| White Candle | Vela Blanca | Poké Ball en **Cueva Granito** | Niega el **siguiente estado principal** nuevo recibido durante una activación, con **4 turnos** de enfriamiento; no cura estados existentes. |
-| Black Candle | Vela Negra | Casino, **2500 fichas** | Tras el primer golpe dañino del ciclo, el blanco recibe **30 % menos curación** durante los **dos turnos siguientes**; recarga **3 turnos**. Menos severa que Muramasa. |
-| Blue Candle | Vela Azul | Poké Ball en **Ruta 124** (tras Surf) | Reduce **20 %** del primer daño directo **especial** recibido en su ciclo; **3 turnos** de recarga. |
-| Yellow Candle | Vela Amarilla | Poké Ball en **Ruta 110** | Cuando falla su propio movimiento dañino, devuelve **50 % del coste de Stamina** (no PP) y gana **+10 % de precisión** en el siguiente ataque; recarga **3 turnos**, no aplicable a movimientos OHKO. |
-| Green Candle | Vela Verde | Poké Ball en **Bosque Petalia** | Tras un movimiento de apoyo propio que realmente mejore o cure al usuario o a su aliado, restaura **6 % de PS máximos al beneficiario**, recarga **3 turnos**; una sola instancia aunque haya múltiples objetivos. |
-| Red Candle | Vela Roja | Poké Ball en **Senda Ígnea** | Tras recibir daño directo, el siguiente movimiento ofensivo de cualquier categoría gana **15 %** de daño; **3 turnos** de recarga y una aplicación por movimiento, no por golpe. |
+- Los movimientos de tipo **Psíquico, Siniestro y Hada** del portador se consideran **movimientos de corte** aunque originalmente no sean cortantes.
+- Además, tienen **alta probabilidad de crítico**.
+- **Cuentan como movimientos de contacto**, **incluso si son especiales**: el contacto es real y activa las interacciones nativas correspondientes, como Piel Tosca y Casco Dentado.
+- **Pendiente:** aumento exacto de probabilidad de crítico y especificar si la conversión incluye movimientos de estado o solo movimientos que golpean objetivos.
 
-### Materiales para los dos de crafteo
+## 3. Runic Arch
 
-1. **Fragmento Rúnico** (dos unidades): repartir en dos Poké Balls auténticas de la **Ruta 114** y **Monte Pírico**, o reasignar dos Poké Balls vacías que el censo identifique en lugares similares.
-2. **Tableta Agrietada**: una Poké Ball de la **Ruta 117** o zona de progresión equivalente; la segunda pieza de receta será un material ya existente, **a decidir después de balancear**. No exigir incursiones para estos dos Artifacts.
+- El portador gana **+1 de Ataque Especial por cada evento** que cumpla uno de estos disparadores **independientes**:
+  1. **Anular** un movimiento.
+  2. Aplicar **control (CC)** al enemigo.
+  3. **Proteger** a un aliado.
+- Pueden producirse **varios eventos en el mismo turno** y conceder varias subidas.
+- **Pendiente:** catálogo exacto de qué cuenta como anulación/CC/protección y cómo evitar contar dos veces un mismo evento. No se ha autorizado un límite nuevo distinto del límite nativo de etapas.
 
-Estas ubicaciones son zonas objetivo, **no coordenadas aprobadas**: requieren comprobar accesibilidad, objetos previos, flags y ritmo de medallas.
+## 4. Vital Tablet
 
-## Auditoría obligatoria de Poké Balls vacías
+- Cada **3 turnos completos** emite un **pulso curativo**.
+- En **individuales**, el portador recupera **15 % de sus PS actuales** (no de sus PS máximos).
+- En **dobles**, el pulso cura a **ambos Pokémon aliados**; aplicar la regla de **15 % de los PS actuales de cada uno** como interpretación de la cifra indicada, sujeta a confirmación si Camilo desea otra base.
+- **Pendiente:** si el contador avanza estando el portador fuera de campo y redondeos a PS mínimos.
 
-**Error comunicado por Camilo:** siguen existiendo muchas Poké Balls visibles que no entregan nada al pulsar A, además de las reservadas para futuros Artifacts. Esto es un bug independiente de las nuevas recompensas.
+## 5. Nosferatu Tooth (nombre provisional)
 
-1. Inventariar todas las `OBJ_EVENT_GFX_ITEM_BALL` de los mapas Emerald realmente jugables: **mapa, coordenadas, item, script, bandera, situación actual**, y distinguir las de FRLG y las que ya se recogieron.
-2. Identificar `ITEM_NONE`, IDs que no existan, scripts sin comando de entrega, objetos con flag incorrecta/duplicada y problemas de activación. Revisar también el caso de objetos que parecen Poké Balls pero no son eventos de tipo item.
-3. Clasificar cada una como **pickup original válido**, **Artifact existente**, **recompensa reservada**, **nuevo material**, o **bug sin asignación**. Dejar de usar objetos vacíos como promesas implícitas.
-4. Reparar en una tanda separada los pickups **no reservados**: restaurar su objeto original si se perdió, o asignar un consumible/material útil escalado a la ruta. No inventar sustituciones de recompensas especiales.
-5. Probar con A antes y después de recoger, con mochila llena, guardado/carga y partida previa. Verificar que flags nuevas no oculten/dupliquen objetos antiguos. Documentar un censo de ubicaciones y registrar al menos una prueba por tipo.
+- Los ataques de **contacto** curan al portador por el **10 % del daño efectivo causado**.
+- Si ese daño es **crítico**, la curación se **duplica al 20 %**.
+- **Pendiente:** aplicación en multigolpes, ataques de área, Sustituto, inmunidades y bloqueo de curación.
 
-**Reservas preexistentes que deben respetarse:** Botón de Pánico/Ruta 119; Casco Hoplita o Torre de Vigilancia/Ruta 120 según cierre de diseño; Túnica Rúnica/Ruta 123; Rompeolas/Ruta 126; Escudo Aegis de Registeel/Calle Victoria B2F; futuras recompensas de Wild Bosses. Evitar duplicar el premio de un jefe con una Poké Ball salvo autorización expresa.
+## 6. Portal Gun
 
-## Reglas de implementación y verificación
+- **Cada 2 turnos** permite al portador **o a su aliado** cambiar de Pokémon **aunque el cambio esté restringido** por un efecto de atrapamiento o bloqueo.
+- **Pendiente:** momento exacto de activación, si es cambio normal que consume acción, qué pasa en dobles y excepciones técnicas que deben preservarse para evitar cambiar Pokémon fuera de combate.
 
-- Convertir cada propuesta ratificada en: ID de Item + Gear, sprite 24×24 y HUD 16×32 con paleta, nombres/descripciones ES/EN, inventario/EQUIP, lógica y pruebas específicas.
-- Casino: reutilizar la mecánica real de `MauvilleCity_GameCorner/scripts.inc`; verificar `checkcoins`, `checkitemspace`, `removecoins`, confirmación, cancelación y límites de fichas. Evitar descuentos de fichas si la mochila está llena.
-- Evitar doble activación por multigolpe, dobles, cambio o cadena; las seis velas comparten convenciones de enfriamiento y se diferencian por condiciones de activación.
-- Los objetos exclusivos de casino no deben aparecer a la vez en Poké Balls; los materiales de crafteo pueden ser explorables sin depender de raids.
-- **No colocar una Poké Ball con un nuevo ID sin que ese ítem tenga su definición, imagen, flujo de obtención y flag funcionales.**
-- Primero obtener CI verde de Emerald, pruebas dirigidas y QA de mGBA/Pizza Boy; después integración con el PR de Wild Bosses, no directo a `master`.
+## 7. White Candle
 
-## Referencias del propio repositorio
+- **Al salir al combate**, el portador cura **un estado alterado**.
+- Si está en un **combate doble**, cura en cambio **un estado alterado del compañero**.
+- **Pendiente:** si se puede activar cada vez que entra o una vez por combate; qué ocurre si el compañero no tiene estado, o hay dos aliados con más de un estado.
 
-- [Gears: reglas de slot, persistencia y ciclos](GEARS.md)
-- [MASKARA y arsenal pendiente](GEARS_MASKARA_ARSENAL.md)
-- [Rebalance de Gears y recompensas existentes](GEARS_BATCH8_REBALANCE.md)
-- [Wild Bosses V2 y reservas de recompensa](UNHOLY_WILD_BOSSES_V2_DESIGN.md)
-- [Código original del casino](../data/maps/MauvilleCity_GameCorner/scripts.inc)
+## 8. Black Candle
+
+- Diseño **inverso** a White Candle: al entrar en combate perjudica a un enemigo.
+- El efecto elegido será **solo uno** de estas tres categorías, **nunca las tres a la vez**:
+  1. Imponer un **estado alterado aleatorio**.
+  2. Aplicar una **reducción de estadísticas**.
+  3. Provocar **retroceso (flinch)**.
+- **Pendiente:** probabilidades de las categorías, objetivo en dobles, intensidad de bajada, inmunidades y duración/viabilidad del flinch según momento de entrada.
+
+## 9. Blue Candle
+
+- Aumenta **pasivamente un 8 %** la regeneración de **Stamina** del portador **y del aliado**.
+- **Pendiente:** precisar si el +8 % son ocho puntos porcentuales de Stamina máxima por turno (p. ej., 18 % → 26 %) o un incremento relativo de la regeneración base.
+
+## 10. Yellow Candle
+
+- Aumenta en **12 % todos los efectos del clima soleado y sus variantes similares** que reciben los Pokémon.
+- **Pendiente:** clasificar qué climas y efectos cubre (sol normal, climas primordiales, cambios a poderes de movimientos, curación, velocidad, daño, habilidades, etc.) y si beneficia a ambos bandos. No crear clima por sí misma sin instrucción.
+
+## 11. Green Candle
+
+- En **Campo de Hierba**, las estadísticas de **todos los Pokémon de tipo Planta o Bicho** reciben una bonificación de **6 %**.
+- **Pendiente:** qué estadísticas incluye (en particular PS y Stamina, que tienen tratamiento distinto de las estadísticas efectivas de combate) y alcance sobre ambos bandos.
+
+## 12. Red Candle
+
+- Cada **ataque de contacto que acierte y cause daño** recupera **6 % de PS y 6 % de Stamina** del portador.
+- Si el ataque de contacto es **supereficaz**, recupera **10 % de PS y 10 % de Stamina**.
+- **Pendiente:** precisar si los porcentajes se calculan sobre máximos o actuales y si se aplica una vez por ejecución o por golpe de multigolpe.
+
+## Distribución: todavía sin decidir
+
+Camilo quiere obtener parte de este lote en el **casino**, otra parte en **Poké Balls de mapas**, o mediante **materiales de crafteo recogidos en ellas**. **No se han aprobado precios, ubicaciones concretas, materiales, recetas ni asignaciones a estos tres canales.** No conservar como oficiales los precios y mapas que se propusieron antes.
+
+No usar estos IDs en objetos del mapa hasta que existan los Item/Gear, sprites, nombres/descripciones ES/EN, scripts de recogida, flags y efectos reales. Mantener ranuras independientes (Artifact + objeto ordinario), sin reordenar IDs persistidos y respetando el sistema de cooldown por turnos completos.
+
+## P0 — Poké Balls vacías reportadas
+
+Camilo confirma que **siguen existiendo Poké Balls visibles sin contenido funcional**, incluso descontando las reservadas para Artifacts futuros. Es un defecto **independiente** de este nuevo catálogo.
+
+1. Auditar los `OBJ_EVENT_GFX_ITEM_BALL` de Hoenn, con mapa/coordenadas/ítem/script/flag y diferenciar los de FRLG.
+2. Identificar ítems `ITEM_NONE`, IDs faltantes, scripts que no entregan ítems, flags duplicadas o incorrectas y objetos decorativos que aparentan ser recogibles.
+3. Preservar recompensas ya asignadas o reservadas de Artifacts y Wild Bosses: no reemplazarlas por un material genérico.
+4. Reparar Poké Balls **no reservadas** con su objeto original o un contenido apropiado para la ruta; registrar el censo final.
+5. Validar pulsando A antes/después de recoger, mochila llena, guardar/cargar y revisitar el mapa, en mGBA y Pizza Boy Pro.
+
+## Referencias técnicas
+
+- [Ranura de Gear, ciclos y guardado](GEARS.md).
+- [Recompensas asignadas previamente](GEARS_BATCH8_REBALANCE.md).
+- [Wild Bosses y exclusividad de recompensas](UNHOLY_WILD_BOSSES_V2_DESIGN.md).
+- [Casino real de Malvalona](../data/maps/MauvilleCity_GameCorner/scripts.inc).
+
+**QA pendiente:** implementar y probar en ROM solo después de cerrar las dudas marcadas. Esta ficha no implica que el PR esté compilado o sus efectos sean jugables.
