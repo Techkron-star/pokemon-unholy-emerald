@@ -2496,6 +2496,16 @@ void ShowScrollableMultichoice(void)
         task->tScrollOffset = sElevatorScroll;
         task->tSelectedRow = sElevatorCursorPos;
         break;
+    case SCROLL_MULTI_UNHOLY_STARTER_TYPES:
+        task->tMaxItemsOnScreen = MAX_SCROLL_MULTI_ON_SCREEN;
+        task->tNumItems = 18;
+        task->tLeft = 9;
+        task->tTop = 1;
+        task->tWidth = 12;
+        task->tHeight = 12;
+        task->tKeepOpenAfterSelect = FALSE;
+        task->tTaskId = taskId;
+        break;
     default:
         gSpecialVar_Result = MULTI_B_PRESSED;
         DestroyTask(taskId);
@@ -2683,6 +2693,29 @@ static const u8 *const sScrollableMultichoiceOptions[][MAX_SCROLL_MULTI_LENGTH] 
         gText_2F,
         gText_1F,
         gText_Exit,
+    },
+    // These 18 labels share their order with sStarterTypes and sStarterPools
+    // in unholy_starters.c. The built-in scrolling UI shows six at a time.
+    [SCROLL_MULTI_UNHOLY_STARTER_TYPES] =
+    {
+        COMPOUND_STRING("NORMAL"),
+        COMPOUND_STRING("FUEGO"),
+        COMPOUND_STRING("AGUA"),
+        COMPOUND_STRING("ELÉCTRICO"),
+        COMPOUND_STRING("PLANTA"),
+        COMPOUND_STRING("HIELO"),
+        COMPOUND_STRING("LUCHA"),
+        COMPOUND_STRING("VENENO"),
+        COMPOUND_STRING("TIERRA"),
+        COMPOUND_STRING("VOLADOR"),
+        COMPOUND_STRING("PSÍQUICO"),
+        COMPOUND_STRING("BICHO"),
+        COMPOUND_STRING("ROCA"),
+        COMPOUND_STRING("FANTASMA"),
+        COMPOUND_STRING("DRAGÓN"),
+        COMPOUND_STRING("SINIESTRO"),
+        COMPOUND_STRING("ACERO"),
+        COMPOUND_STRING("HADA"),
     }
 };
 

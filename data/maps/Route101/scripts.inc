@@ -218,6 +218,12 @@ Route101_EventScript_RouteSign::
 Route101_EventScript_BirchsBag::
 	lock
 	faceplayer
+	// Skip-intro and old-save fallback: never show an uninitialized trio.
+	special UnholyStarterOptionsReady
+	goto_if_eq VAR_RESULT, TRUE, Route101_EventScript_BirchsBagReady
+	msgbox Route101_Text_PickFavoriteTypeFallback, MSGBOX_DEFAULT
+	call UnholyStarters_EventScript_SelectFavoriteType
+Route101_EventScript_BirchsBagReady::
 	setflag FLAG_SYS_POKEMON_GET
 	setflag FLAG_RESCUED_BIRCH
 	fadescreen FADE_TO_BLACK
@@ -243,6 +249,10 @@ Route101_EventScript_BirchsBag::
 	waitstate
 	release
 	end
+
+Route101_Text_PickFavoriteTypeFallback:
+	.string "Antes de escoger un POKéMON,\n"
+	.string "elige tu tipo favorito.$"
 
 Route101_EventScript_HideMayInBedroom::
 	setflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_RIVAL_BEDROOM
