@@ -30,6 +30,12 @@ PICKUPS = [
     ("VictoryRoad_B1F", "ITEM_GEAR_NIHIL_ENGINE", "FLAG_UNHOLY_VICTORY_ROAD_NIHIL_ENGINE", (35, 10), (32, 3)),
 ]
 
+# Regression cases reported in actual play. Keep these independent of the Gear
+# reward audit so a vanilla item ball cannot silently become decoration.
+REPORTED_PICKUPS = [
+    ("Route102", "ITEM_POTION", "FLAG_ITEM_ROUTE_102_POTION", (11, 15), (11, 14)),
+]
+
 
 def audit_all_item_balls():
     """Catch inert/misconfigured visible Poké Balls on every game map.
@@ -53,8 +59,23 @@ def audit_all_item_balls():
 
     errors = []
     total = native = scripted = 0
+    used_native_flags = {}
     for path in sorted((ROOT / "data/maps").glob("*/map.json")):
         map_data = json.loads(path.read_text())
+        layout = LAYOUTS.get(map_data.get("layout"))
+        if layout is not None:
+            width, height = layout["width"], layout["height"]
+            raw_tiles = (ROOT / layout["blockdata_filepath"]).read_bytes()
+            map_tiles = struct.unpack(f"<{width * height}H", raw_tiles)
+        else:
+            width = height = 0
+            map_tiles = ()
+
+        def tile_at(x, y):
+            if 0 <= x < width and 0 <= y < height:
+                return map_tiles[y * width + x]
+            return None
+
         for obj in map_data.get("object_events", []):
             if obj.get("graphics_id") != "OBJ_EVENT_GFX_ITEM_BALL":
                 continue
@@ -77,6 +98,27 @@ def audit_all_item_balls():
                 errors.append(f"{location}: missing/undefined native pickup item {item}")
             if flag not in flag_names or flag == "0":
                 errors.append(f"{location}: missing/undefined native pickup flag {flag}")
+            if flag in used_native_flags:
+                errors.append(f"{location}: pickup flag {flag} reused by {used_native_flags[flag]}")
+            used_native_flags[flag] = location
+
+            x, y, elevation = obj["x"], obj["y"], obj["elevation"]
+            tile = tile_at(x, y)
+            if tile is None:
+                errors.append(f"{location}: item ball is outside its map's walkable layout")
+                continue
+            tile_elevation = (tile >> 12) & 0xF
+            if (tile >> 10) & 3:
+                errors.append(f"{location}: item ball sits on an impassable tile")
+            if elevation and tile_elevation and elevation != tile_elevation:
+                errors.append(f"{location}: object elevation {elevation} mismatches tile elevation {tile_elevation}")
+
+            neighbors = (tile_at(x + dx, y + dy) for dx, dy in ((0, 1), (0, -1), (1, 0), (-1, 0)))
+            if not any(neighbor is not None
+                       and (neighbor >> 10) & 3 == 0
+                       and (elevation == 0 or (neighbor >> 12) & 0xF in (0, elevation))
+                       for neighbor in neighbors):
+                errors.append(f"{location}: no adjacent passable tile at matching elevation for pressing A")
 
     if total == 0:
         errors.append("no visible item-ball events found; check map search path")
@@ -159,7 +201,7 @@ def main():
     flags = (ROOT / "include/constants/flags.h").read_text()
     errors = []
     seen = set()
-    for entry in PICKUPS:
+    for entry in PICKUPS + REPORTED_PICKUPS:
         if entry[2] in seen:
             errors.append(f"duplicate pickup flag: {entry[2]}")
         seen.add(entry[2])
@@ -173,6 +215,7 @@ def main():
             print(f"ERROR: {error}")
         raise SystemExit(1)
     print(f"OK: {len(PICKUPS)} unique Gear pickups have valid scripts, rewards, tiles, and flags")
+    print(f"OK: {len(REPORTED_PICKUPS)} reported inert pickup locations have valid map templates")
     print(f"OK: {counts[0]} visible item balls audited ({counts[1]} native pickups, {counts[2]} scripted encounters/gifts)")
 
 
