@@ -307,6 +307,15 @@
 #define VAR_HORIZON_GOODS_SEED_A                       VAR_UNUSED_0x40B8 // rotated item/TM stock, low seed
 #define VAR_HORIZON_GOODS_SEED_B                       VAR_UNUSED_0x40BB // rotated item/TM stock, high seed
 
+// Persistent Debug "No Bag" setting (0 normal, 1 trainers, 2 all battles).
+// These slots are unused in their respective games; the Horizon slots above
+// and FRLG's National Dex variable (0x404E) must not be overwritten.
+#if IS_FRLG
+#define VAR_UNHOLY_DEBUG_NO_BAG_USE                    VAR_0x408C
+#else
+#define VAR_UNHOLY_DEBUG_NO_BAG_USE                    VAR_UNUSED_0x404E
+#endif
+
 // Registered locator target: species (11 bits), method (3), format marker (2).
 // These slots have no native story consumers in their respective games.
 #if GAME_VERSION == VERSION_EMERALD

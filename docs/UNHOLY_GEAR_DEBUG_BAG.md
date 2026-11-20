@@ -27,3 +27,30 @@
 - [ ] Probar en dobles y PC, huevos, mochila vacía y alternar rápido 10 pestañas sin bloqueos.
 
 La rama es experimental y apilada sobre el PR #23 y el backend #22. **No fusionar a main** sin ROM compilada, pruebas, QA visual y guardado en Pizza Boy.
+
+## Cheats configurados (rama de depuración de noviembre de 2026)
+
+El menú **Debug** ya se abre desde el menú START, incluso en la compilación
+`release` (`DEBUG_OVERWORLD_MENU` y `DEBUG_OVERWORLD_IN_MENU` están en `TRUE`).
+En **Debug → Flags & Vars** ahora se pueden activar/desactivar sin mostrar el
+error de flag o variable sin configurar:
+
+| Opción | Efecto cuando está activada | Emerald | FireRed/LeafGreen |
+| --- | --- | --- | --- |
+| Collision OFF | Ignora las colisiones de los tiles | flag `0x918` | flag `0x8F0` |
+| Encounter OFF | Desactiva encuentros salvajes aleatorios | flag `0x919` | flag `0x8F1` |
+| Trainer See OFF | Evita que los entrenadores inicien combate al verte | flag `0x91A` | flag `0x8F2` |
+| Catching OFF | Bloquea capturas de Pokémon salvajes | flag `0x91B` | flag `0x8F3` |
+| Bag Use OFF | Alterna normal → sin mochila ante entrenadores → sin mochila en todos los combates | var `0x404E` | var `0x408C` |
+
+Los IDs son exclusivos de cada variante: por ejemplo, los flags `0x264`–`0x267`
+de Emerald no se pueden compartir porque contienen eventos de historia en FRLG.
+No se tocan los slots de Horizon, ni se modifica el tamaño de los SaveBlocks.
+Las opciones quedan desactivadas de forma predeterminada para una partida nueva;
+se guardan cuando cambias sus flags/var. Algunas restricciones de batalla se
+reinician al desmayarse según `B_RESET_FLAGS_VARS_AFTER_WHITEOUT`.
+
+**QA pendiente:** activar y desactivar las cinco opciones, cambiar de mapa,
+guardar/cargar y probar los casos de captura, visión de entrenadores y mochila
+en ambos tipos de combate. La prueba de compilación debe incluir `release` y
+FRLG antes de integrar el PR.
