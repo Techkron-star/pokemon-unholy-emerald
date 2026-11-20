@@ -1,5 +1,7 @@
 # Pokémon Unholy Emerald — Documento de diseño
 
+**Nuevos Artifacts para casino y exploración (propuesta, no implementados):** [12 piezas, seis velas y auditoría de Poké Balls vacías](docs/UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md). No registrar objetos del mapa sin item, script, bandera y prueba de recogida funcionales.
+
 **Catálogo nuevo de Gears (diseño, no implementado):** [familia MASKARA (11) y otros 19 Gears](docs/GEARS_MASKARA_ARSENAL.md). Incluye efectos, enfriamientos, compatibilidades, pendientes y cautelas de propiedad intelectual.
 
 **UI nativa.** El [estándar de organización a 240 × 160](docs/UI_NATIVE_240.md#estándar-de-organización) define la jerarquía, la selección y los controles de los menús. La guía también documenta el Poké Watch, Resumen y los componentes Eclipse y Daylight.
@@ -493,6 +495,8 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 ## Faltantes por prioridad
 
 ### P0 — Indispensable antes de una versión jugable
+
+- Auditar y reparar las Poké Balls visibles sin contenido no reservado (además de las futuras recompensas de Artifacts): censo de mapa/coordenadas/ítem/script/flag, prueba con A, mochila llena, guardado/carga. Reglas y nuevos destinos tentativos en [Artifacts casino/rutas](docs/UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md).
 
 - Correr automáticamente, correr en interiores y opción de movimiento acelerado. Implementado con `OW_AUTO_RUN`; mantener A permite caminar despacio.
 - Repelente automático/renovable implementado; falta decidir y balancear el modo de repelente infinito.
