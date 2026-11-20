@@ -8,7 +8,7 @@ La imagen de la mochila y sus indicadores originales fueron diseñados para cinc
 
 ## Solución
 
-- **Cinta persistente de diez categorías** arriba de la lista de objetos. Etiquetas de dos letras con posición fija por el enum original: `IT` (Objetos), `PB` (Poké Balls), `TM` (MT/MO), `BR` (Bayas), `KY` (Clave), `BT` (Combate), `MD` (Medicina), `GR` (Gears), `ML` (Correo) y `MX` (Miscelánea).
+- **Cinta persistente de diez categorías** arriba de la lista de objetos. Etiquetas de dos letras con posición fija por el enum original: `IT` (Objetos), `PB` (Poké Balls), `TM` (MT/MO), `BR` (Bayas), `KY` (Clave), `BT` (Combate), `MD` (Medicina), `AR` (Artefactos), `ML` (Correo) y `MX` (Miscelánea).
 - El bolsillo activo usa **subrayado completo y estilo diferenciado**; los demás muestran una marca si contienen objetos. No se confunde vacío con bloqueado.
 - **L/R sigue funcionando como antes**, con su animación.
 - **L+R juntos abre un selector rápido desplazable de siete filas visibles para las diez categorías**: se muestran nombres completos y cantidad de pilas por bolsillo (sin contar la fila «Cerrar mochila»). Arriba/abajo o izquierda/derecha mueve el foco, **A salta directamente** al bolsillo seleccionado **sin recorrer animaciones intermedias** y **B vuelve** sin cambiar nada.

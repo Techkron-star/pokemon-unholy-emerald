@@ -440,14 +440,15 @@ void Gear_OnDamaged(enum BattlerId battler, u32 damage)
         gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gearActivations[battler]++;
     }
-    else if (cycle->gear == GEAR_NUCLEO_HYDRA && cycle->activations < 2
+    else if (cycle->gear == GEAR_NUCLEO_HYDRA && cycle->activations == 0
           && cycle->phase == GEAR_PHASE_ARMED
           && gBattleMons[battler].hp * 2 < gBattleMons[battler].maxHP)
     {
         cycle->activations++;
         cycle->phase = GEAR_PHASE_OVERLOAD;
-        // Triggering turn does not heal. The following three turns do.
-        cycle->turns = 4;
+        // Heals at each end-turn check; stays active for the entire
+        // battle, including if the bearer switches out and returns.
+        cycle->turns = 0;
         gBattleStruct->gearActivations[battler]++;
     }
 }
@@ -535,7 +536,7 @@ u32 Gear_GetEndTurnHeal(enum BattlerId battler)
     struct GearCycle *cycle = Prepare(battler);
 
     if (cycle == NULL || cycle->gear != GEAR_NUCLEO_HYDRA
-     || cycle->phase != GEAR_PHASE_OVERLOAD || cycle->turns > 3
+     || cycle->phase != GEAR_PHASE_OVERLOAD
      || !IsBattlerAlive(battler) || IsBattlerAtMaxHp(battler))
         return 0;
     return max(1, gBattleMons[battler].maxHP * 8 / 100);
@@ -576,6 +577,10 @@ void Gear_EndOfTurn(enum BattlerId battler)
         }
         return;
     }
+
+    // Hydra no longer expires or recharges after a fixed number of turns.
+    if (cycle->gear == GEAR_NUCLEO_HYDRA && cycle->phase == GEAR_PHASE_OVERLOAD)
+        return;
 
     const struct GearInfo *info = &gGearsInfo[cycle->gear];
     switch (cycle->phase)

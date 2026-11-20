@@ -2601,16 +2601,16 @@ static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 col
 
 static void DisplayPartyPokemonGear(struct Pokemon *mon, struct PartyMenuBox *menuBox)
 {
-    // An 8x8 "G" badge using the party window's dark and light text colors.
+    // An 8x8 "A" badge for Artefacto, matching the summary and Bag.
     static const u32 sBadge[] =
     {
         0x00222220,
         0x02222222,
         0x02233322,
-        0x02222232,
-        0x02233232,
         0x02232232,
-        0x02233322,
+        0x02233332,
+        0x02232232,
+        0x02232232,
         0x00222220,
     };
     bool32 largeSlot = menuBox->infoRects == &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];

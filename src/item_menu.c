@@ -1718,7 +1718,7 @@ static void DrawPocketIndicatorBar(u8 currentPocket)
     static const u8 *const labels[] = {
         COMPOUND_STRING("IT"), COMPOUND_STRING("PB"), COMPOUND_STRING("TM"), COMPOUND_STRING("BR"),
         COMPOUND_STRING("KY"), COMPOUND_STRING("BT"), COMPOUND_STRING("MD"),
-        COMPOUND_STRING("GR"), COMPOUND_STRING("ML"), COMPOUND_STRING("MX"),
+        COMPOUND_STRING("AR"), COMPOUND_STRING("ML"), COMPOUND_STRING("MX"),
     };
     FillWindowPixelBuffer(WIN_POCKET_TABS, PIXEL_FILL(1));
     for (u8 pocket = 0; pocket < POCKETS_COUNT; pocket++)

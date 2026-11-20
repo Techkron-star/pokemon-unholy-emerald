@@ -352,7 +352,7 @@ u16 GetStarterPokemon(u16 chosenStarterId)
 {
     if (chosenStarterId >= STARTER_MON_COUNT)
         chosenStarterId = 0;
-#if GAME_VERSION == VERSION_EMERALD
+#if !IS_FRLG
     {
         u16 candidate = UnholyGetStarterOption(chosenStarterId);
         if (candidate != SPECIES_NONE)

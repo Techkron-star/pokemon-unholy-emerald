@@ -3241,7 +3241,7 @@ static void PrintNotEggInfo(void)
     StringAppend(gStringVar1, gStringVar2);
     PrintTextOnWindow(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, gStringVar1, 24, 17, 0, 1);
     if (summary->gear != GEAR_NONE)
-        PrintTextOnWindowWithFont(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, COMPOUND_STRING("G"),
+        PrintTextOnWindowWithFont(PSS_LABEL_WINDOW_PORTRAIT_SPECIES, COMPOUND_STRING("A"),
                                   17, 17, 0, 1, FONT_SMALL);
     GetMonNickname(mon, gStringVar1);
     PrintTextOnWindowToFitPx(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME, gStringVar1, 0, 1, 0, 1, WindowWidthPx(PSS_LABEL_WINDOW_PORTRAIT_NICKNAME) - 9);

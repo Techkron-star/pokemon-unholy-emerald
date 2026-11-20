@@ -75,6 +75,8 @@ El HUD reserva ahora el espacio entre nombre y nivel para la mutación compacta.
 
 ## Paleta y marco del concept
 
+El distintivo de Artefacto en el equipo y el resumen es ahora **A** (antes «G»); el bolsillo correspondiente de la mochila utiliza **AR**. No cambia el equipo ni el inventario.
+
 Las 16 entradas de la paleta compartida (`sHorizonPaletteEclipse` / `sHorizonPaletteDaylight` en `shop.c`) siguen los colores del concept «Pokewatch UI»: violeta nocturno con acento cian en Eclipse y papel verde claro con acento verde bosque en Daylight. Los roles de cada índice no cambian, de modo que todas las pantallas nativas, la mochila, los diálogos y el PokéNav heredan el aspecto sin tocar su geometría.
 
 | Índice | Rol | Eclipse | Daylight |

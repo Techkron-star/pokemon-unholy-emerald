@@ -22,14 +22,18 @@ Route102_EventScript_WorldUpdateBagFull::
 	end
 
 Route102_EventScript_WorldUpdateResearcher::
-	msgbox Route102_Text_WorldUpdateResearcher, MSGBOX_NPC
+	lock
+	faceplayer
+	msgbox Route102_Text_WorldUpdateResearcher, MSGBOX_DEFAULT
+	special OpenUnholyInjectorMenu
 	end
 
 Route102_Text_WorldUpdateResearcher:
-	.string "INVESTIGADORA: Hoenn cambia\n"
-	.string "con cada medalla que consigues.\p"
-	.string "Hasta las rutas conocidas pueden\n"
-	.string "guardar nuevas sorpresas.$"
+	.string "INVESTIGADORA: Tengo los 18\n"
+	.string "inyectores de tipo disponibles.\p"
+	.string "Cada uno cuesta 3.000, un\n"
+	.string "Polvoestelar y una gema del tipo.\p"
+	.string "¿Cuál te interesa?$"
 
 Route102_EventScript_RouteSignOldale::
 	msgbox Route102_Text_RouteSignOldale, MSGBOX_SIGN

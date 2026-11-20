@@ -20,8 +20,8 @@ struct GearLocalizedText
 
 #define GEAR_BLOOD_LOCALE(id, esName, enName, esType, enType) \
     GEAR_LOCALE(BLOOD_##id, esName, enName, \
-                "Mov. " esType ": +40%;\n+12% extra por 3 turnos.", \
-                enType " moves: +40%;\n+12% extra for 3 turns.")
+                "1.er golpe: +40%;\nrecarga: +12% x3.", \
+                "First hit: +40%;\nrecharge: +12% x3.")
 
 static const struct GearLocalizedText sGearLocalizedText[GEAR_COUNT] =
 {
@@ -41,8 +41,8 @@ static const struct GearLocalizedText sGearLocalizedText[GEAR_COUNT] =
         "Daño especial: +20%;\n+10% por 3 turnos.",
         "Special damage: +20%;\n+10% for 3 turns.")
     GEAR_LOCALE(PERMAFROST_FRAGMENT, "Fragmento Glacial", "Permafrost Shard",
-        "Hielo: x2 al congelar.\nTipo Hielo: cura 1/16 PS.",
-        "Ice: double freeze odds.\nIce type: heals 1/16 HP.")
+        "Ataques Hielo: x2 cong.\nTipo Hielo: +1/16 PS.",
+        "Ice attacks: x2 freeze.\nIce type: heals 1/16 HP.")
 
     // 18 tipos: el porcentaje es por ataque compatible; la recarga dura 3 turnos.
     GEAR_BLOOD_LOCALE(NORMAL, "Inyector Normal", "Normal Injector", "Normal", "Normal")
@@ -119,14 +119,14 @@ static const struct GearLocalizedText sGearLocalizedText[GEAR_COUNT] =
         "Sonido: +25% daño;\n+10% gasto Stamina.",
         "Sound: +25% damage;\n+10% Stamina cost.")
     GEAR_LOCALE(HEADPHONES, "Audífonos", "Headphones",
-        "Reduce sonido 40%;\nanula efectos extra.",
-        "Cuts sound damage 40%;\nblocks added effects.")
+        "Recibe -40% daño sonoro;\nsin efectos extra.",
+        "Takes 40% less sound\ndamage; no added effects.")
     GEAR_LOCALE(BOTON_PANICO, "Botón de Pánico", "Panic Button",
-        "PS <30%: Vel. +1, Sta. +18%;\ncancela cadena restante.",
-        "HP <30%: Speed +1, Sta. +18%;\ncancels remaining chain.")
+        "Golpe <30% PS: Vel.+1,\nSta.+18%; corta cadena.",
+        "Hit below 30%: Spd+1,\nSta+18%; stops chain.")
     GEAR_LOCALE(NUCLEO_HYDRA, "Núcleo Hydra", "Hydra Core",
-        "PS <50%: cura 8% x3;\nmáximo 2 activaciones.",
-        "HP below 50%: heals 8%\nfor 3 turns; twice max.")
+        "Tras daño bajo 50% PS:\ncura 8% cada turno.",
+        "After damage below 50% HP:\nheals 8% each turn.")
     GEAR_LOCALE(CASCO_HOPLITA, "Casco Hoplita", "Hoplite Helm",
         "Dobles: aliado -12% daño.\nProtección: +12% Sta.",
         "Doubles: ally -12% dmg.\nProtect: +12% Stamina.")
