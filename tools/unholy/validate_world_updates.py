@@ -32,6 +32,8 @@ flags = (ROOT / "include/constants/flags.h").read_text(encoding="utf-8")
 vars_header = (ROOT / "include/constants/vars.h").read_text(encoding="utf-8")
 world_source = (ROOT / "src/unholy_world_update.c").read_text(encoding="utf-8")
 overworld = (ROOT / "src/overworld.c").read_text(encoding="utf-8")
+qol_script = (ROOT / "data/scripts/unholy_qol.inc").read_text(encoding="utf-8")
+qol_source = (ROOT / "src/unholy_qol.c").read_text(encoding="utf-8")
 
 if not re.search(r"#define VAR_UNHOLY_WORLD_VERSION\s+VAR_ROUTE109_STATE", vars_header):
     fail("World version must occupy previously unused persistent Route109 variable")
@@ -43,6 +45,11 @@ if overworld.count("LoadCurrentMapData();\n    UnholyWorldUpdate_Reconcile();") 
     fail("Reconciliation must run before map object spawning on both warp and camera transitions")
 if "!FlagGet(claimedFlag)" not in world_source or re.search(r"FlagClear\(\s*claimedFlag\s*\)", world_source):
     fail("Collected world-update rewards must never be re-enabled")
+if ("UnholyWorldUpdate_RefreshCurrentMap" not in world_source
+    or "TrySpawnObjectEvents(0, 0)" not in world_source
+    or "callnative UnholyWorldUpdate_RefreshCurrentMap" not in qol_script
+    or "Actualizar mundo" not in qol_source):
+    fail("Manual world refresh must be present in the L-button QoL settings and re-spawn visible objects")
 
 flag_aliases = {}
 for line in flags.splitlines():
@@ -110,4 +117,4 @@ for map_name, original_count, ordinal, hide_flag, position, item, claimed in EVE
     elif f"ReconcileWorldEvent({hide_flag}" not in world_source:
         fail(f"{map_name}: NPC visibility is not updated by progression")
 
-print("World Update V1: save version, 6 permanent flags, 4 progressive events on 3 maps, 2 non-respawning rewards; warp/camera reload and safe positions verified")
+print("World Update V1: save version, 6 permanent flags, 4 progressive events on 3 maps, 2 non-respawning rewards; automatic and manual refresh verified")

@@ -17,6 +17,10 @@ objetos anteriores nunca se limpian**. No se altera la estructura de SaveBlocks.
   **antes** de cargar las plantillas de objetos del mapa.
 - Las actualizaciones de progreso aparecen al volver a entrar al mapa; no es
   necesario iniciar una partida nueva.
+- Para forzar la comprobación sin abandonar la ruta, pulsa **L en el mapa**
+  (Ajustes rápidos), elige **Actualizar mundo** y espera el fundido de pantalla.
+  La sincronización actualiza la versión guardada y los eventos visibles del
+  mapa; no reinicia la historia, medallas ni recompensas recogidas.
 
 ## Contenido demostrativo de V1
 
@@ -58,3 +62,8 @@ recogidos continúan ocultos, ganar cada medalla, visitar las tres rutas y
 verificar que las nuevas recompensas no reaparecen después de guardado/carga.
 La migración no descarga contenido por internet ni convierte estados rápidos
 del emulador en guardados compatibles.
+
+Además, comprobar **L → Actualizar mundo** dos veces en Ruta 102 y Ruta 104:
+el segundo uso no debe duplicar objetos, y una Poké Ball recogida debe seguir
+oculta tras guardar/cargar. Las Poké Balls nativas anteriores al tercer gimnasio
+siguen su propia lógica de recogida y no son reseteadas por este botón.

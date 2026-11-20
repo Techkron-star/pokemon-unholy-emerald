@@ -1,5 +1,6 @@
 #include "global.h"
 #include "event_data.h"
+#include "event_object_movement.h"
 #include "unholy_world_update.h"
 #include "constants/flags.h"
 #include "constants/vars.h"
@@ -42,5 +43,44 @@ void UnholyWorldUpdate_Reconcile(void)
                                 FLAG_UNHOLY_WORLD_ROUTE104_BALL_CLAIMED,
                                 FlagGet(FLAG_BADGE03_GET));
     ReconcileWorldEvent(FLAG_UNHOLY_WORLD_ROUTE110_NPC_HIDE, FlagGet(FLAG_SYS_GAME_CLEAR));
+#endif
+}
+
+void UnholyWorldUpdate_RefreshCurrentMap(struct ScriptContext *ctx)
+{
+    UnholyWorldUpdate_Reconcile();
+#if !IS_FRLG
+    // Scripted refresh happens while the field is faded out and locked.
+    // The normal map-load hooks already handle every future map transition.
+    // Only reconcile objects owned by World Update, leaving story objects,
+    // followers, native pickup flags and all unrelated events untouched.
+    const u16 worldHideFlags[] =
+    {
+        FLAG_UNHOLY_WORLD_ROUTE102_BALL_HIDE,
+        FLAG_UNHOLY_WORLD_ROUTE102_NPC_HIDE,
+        FLAG_UNHOLY_WORLD_ROUTE104_BALL_HIDE,
+        FLAG_UNHOLY_WORLD_ROUTE110_NPC_HIDE,
+    };
+
+    if (gMapHeader.events == NULL)
+        return;
+
+    for (u8 i = 0; i < gMapHeader.events->objectEventCount; i++)
+    {
+        const struct ObjectEventTemplate *object = &gSaveBlock1Ptr->objectEventTemplates[i];
+
+        for (u8 j = 0; j < ARRAY_COUNT(worldHideFlags); j++)
+        {
+            if (object->flagId == worldHideFlags[j] && FlagGet(object->flagId))
+            {
+                RemoveObjectEventByLocalIdAndMap(object->localId,
+                    gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
+                break;
+            }
+        }
+    }
+    // The spawner checks for already-active local IDs, so this does not
+    // duplicate NPCs or Poké Balls when the button is pressed repeatedly.
+    TrySpawnObjectEvents(0, 0);
 #endif
 }

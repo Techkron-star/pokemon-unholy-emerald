@@ -110,6 +110,9 @@ EWRAM_DATA static u8 sUnholyCraftMode = 0; // 0 = fabricate, 1 = equip
 EWRAM_DATA static bool8 sUnholyInjectorShop = FALSE;
 EWRAM_DATA static u8 sUnholyCraftStatus = 0;
 EWRAM_DATA static bool8 sUnholyCraftConfirm = FALSE;
+EWRAM_DATA static bool8 sUnholyCraftDetailView = FALSE;
+EWRAM_DATA static bool8 sUnholyCraftMoreDetail = FALSE;
+EWRAM_DATA static u8 sUnholyCraftDetailOffset = 0;
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
 EWRAM_DATA static u8 sNumStartMenuActions = 0;
 EWRAM_DATA static u8 sCurrentStartMenuActions[11] = {0};
@@ -238,11 +241,12 @@ static const u8 *const sStartMenuSpanishNames[] =
 #define TAG_UNHOLY_CRAFT_ICON 9190
 #define UNHOLY_CRAFT_MATERIAL_LIMIT 3
 #define UNHOLY_CRAFT_RECIPES_PER_PAGE 4
-#define UNHOLY_CRAFT_DETAIL_X 103
-#define UNHOLY_CRAFT_DETAIL_WIDTH 100
-#define UNHOLY_CRAFT_MATERIAL_Y 88
-#define UNHOLY_CRAFT_MATERIAL_STEP 10
-#define UNHOLY_CRAFT_DESC_LINES 3
+#define UNHOLY_CRAFT_DETAIL_X 108
+#define UNHOLY_CRAFT_DETAIL_WIDTH 108
+#define UNHOLY_CRAFT_MATERIAL_Y 94
+#define UNHOLY_CRAFT_MATERIAL_STEP 11
+#define UNHOLY_CRAFT_DESC_LINES 2
+#define UNHOLY_CRAFT_FULL_DESC_LINES 7
 #define UNHOLY_INJECTOR_PRICE 3000
 
 enum UnholyCraftStatus
@@ -282,8 +286,9 @@ static const u8 sUnholyCraftTitle[] = _("FABRICACIÓN");
 static const u8 sUnholyInjectorTitle[] = _("INYECTORES");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
-static const u8 sUnholyCraftControls[] = _("L/R PAG.  A CREAR  SEL EQUIP.  B SALIR");
-static const u8 sUnholyInjectorControls[] = _("L/R:PAG  A:COMPRAR  B:SALIR");
+static const u8 sUnholyCraftControls[] = _("L/R PAG  A CREAR  START INFO  SEL EQUIP  B SALIR");
+static const u8 sUnholyInjectorControls[] = _("L/R PAG  A COMPRAR  START INFO  B SALIR");
+static const u8 sUnholyCraftDetailControls[] = _("A OTRA PAG.  START/B VOLVER");
 static const u8 sUnholyEquipControls[] = _("A CAMBIAR  SEL CREAR  B SALIR");
 
 static const u8 sUnholyRecipeExp[] = _("Reparte el 100% de\nEXP al equipo apto.");
@@ -405,8 +410,8 @@ static u8 UnholyCraftActiveRecipeCount(void)
 
 static const struct WindowTemplate sUnholyCraftWindow =
 {
-    .bg = 0, .tilemapLeft = 2, .tilemapTop = 1,
-    .width = 26, .height = 17, .paletteNum = 14, .baseBlock = 0x20,
+    .bg = 0, .tilemapLeft = 1, .tilemapTop = 1,
+    .width = 28, .height = 18, .paletteNum = 14, .baseBlock = 0x20,
 };
 
 static const struct MenuAction sStartMenuItems[] =
@@ -558,7 +563,7 @@ static void UnholyCraftRefreshIcon(enum Item itemId)
         struct Sprite *icon = &gSprites[sUnholyCraftIconSpriteId];
         // Item icons contain 24x24 artwork in a 32x32 OAM slot. Keep the
         // artwork at native resolution inside the dedicated preview area.
-        icon->x = sUnholyCraftMode == 0 ? 140 : 202;
+        icon->x = sUnholyCraftMode != 0 ? 202 : sUnholyCraftDetailView ? 35 : 133;
         icon->y = 48;
         icon->oam.priority = 0;
     }
@@ -601,45 +606,54 @@ static void UnholyCraftPrintName(u8 x, u8 y, u8 width, u8 fill, const u8 *name)
         x, y + (split == NULL ? 6 : 11), width, fill, name);
 }
 
-// Wrap at word boundaries and use the same legible font for every description.
-static void UnholyCraftPrintDescription(u8 fill, const u8 *source)
+// Return the next complete line; never print across the description/material
+// boundary. The same wrapper powers the short preview and full-page reader.
+static const u8 *UnholyCraftNextDescriptionLine(const u8 *source, u8 *text, u8 width)
 {
-    for (u8 line = 0; line < UNHOLY_CRAFT_DESC_LINES && *source != EOS; line++)
+    u8 length = 0;
+    u8 lastSpace = 0xFF;
+    const u8 *end = source;
+
+    while (*end != EOS && *end != CHAR_NEWLINE && length < 63)
+    {
+        text[length] = *end;
+        text[length + 1] = EOS;
+        if (GetStringWidth(FONT_SMALL_NARROW, text, 0) > width)
+            break;
+        if (*end == CHAR_SPACE)
+            lastSpace = length;
+        end++;
+        length++;
+    }
+    if (*end != EOS && *end != CHAR_NEWLINE && lastSpace != 0xFF)
+    {
+        length = lastSpace;
+        end = source + lastSpace + 1;
+    }
+    if (length == 0 && *end != EOS && *end != CHAR_NEWLINE)
+        text[length++] = *end++;
+    text[length] = EOS;
+    source = end;
+    if (*source == CHAR_NEWLINE)
+        source++;
+    while (*source == CHAR_SPACE)
+        source++;
+    return source;
+}
+
+static bool8 UnholyCraftPrintDescription(u8 fill, const u8 *source, u8 x, u8 y,
+                                         u8 width, u8 step, u8 skip, u8 lines)
+{
+    for (u8 line = 0; line < skip + lines && *source != EOS; line++)
     {
         u8 text[64];
-        u8 length = 0;
-        u8 lastSpace = 0xFF;
-        const u8 *end = source;
-
-        while (*end != EOS && *end != CHAR_NEWLINE && length < sizeof(text) - 1)
-        {
-            text[length] = *end;
-            text[length + 1] = EOS;
-            if (GetStringWidth(FONT_SMALL_NARROW, text, 0) > 90)
-                break;
-            if (*end == CHAR_SPACE)
-                lastSpace = length;
-            end++;
-            length++;
-        }
-        if (*end != EOS && *end != CHAR_NEWLINE && lastSpace != 0xFF)
-        {
-            length = lastSpace;
-            end = source + lastSpace + 1;
-        }
-        if (length == 0 && *end != EOS && *end != CHAR_NEWLINE)
-        {
-            text[length++] = *end++;
-        }
-        text[length] = EOS;
+        source = UnholyCraftNextDescriptionLine(source, text, width);
+        if (line < skip)
+            continue;
         UnholyUi_PrintOnFill(sUnholyCraftWindowId, FONT_SMALL_NARROW,
-            108, 50 + line * 9, 90, fill, text);
-        source = end;
-        if (*source == CHAR_NEWLINE)
-            source++;
-        while (*source == CHAR_SPACE)
-            source++;
+            x, y + (line - skip) * step, width, fill, text);
     }
+    return *source != EOS;
 }
 
 static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *ingredient)
@@ -654,13 +668,13 @@ static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *i
 
     const u8 *name = GetItemName(ingredient->itemId);
     u8 amountFont = GetFontIdToFit(amounts, FONT_SMALL_NARROW, 0, 37);
-    u8 amountX = 200 - GetStringWidth(amountFont, amounts, 0);
-    u8 nameWidth = amountX - 111;
+    u8 amountX = 213 - GetStringWidth(amountFont, amounts, 0);
+    u8 nameWidth = amountX - 116;
     u8 nameFont = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, nameWidth);
-    UnholyUi_Print(window, nameFont, 108, y, nameWidth, name);
+    UnholyUi_Print(window, nameFont, 113, y, nameWidth, name);
     UnholyUi_Print(window, amountFont, amountX, y, 37, amounts);
     if (owned < ingredient->quantity)
-        FillWindowPixelRect(window, PIXEL_FILL(13), 103, y + 5, 3, 3);
+        FillWindowPixelRect(window, PIXEL_FILL(13), 109, y + 3, 3, 3);
 }
 
 static void UnholyCraftDrawRecipeList(void)
@@ -674,7 +688,7 @@ static void UnholyCraftDrawRecipeList(void)
     u8 *end = ConvertUIntToDecimalStringN(position, sUnholyCraftRecipeCursor + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
     end = StringCopy(end, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(end, count, STR_CONV_MODE_LEFT_ALIGN, 2);
-    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 175, 5, 27, position);
+    UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 190, 5, 27, position);
 
     for (u8 row = 0; row < visible; row++)
     {
@@ -682,8 +696,8 @@ static void UnholyCraftDrawRecipeList(void)
         u8 y = 23 + row * 23;
         bool8 selected = index == sUnholyCraftRecipeCursor;
         const u8 *name = GetItemName(recipes[index].result);
-        UnholyUi_Card(sUnholyCraftWindowId, 5, y, 94, 22, selected);
-        UnholyCraftPrintName(10, y + 1, 85, UnholyUi_CardFill(selected), name);
+        UnholyUi_Card(sUnholyCraftWindowId, 5, y, 99, 22, selected);
+        UnholyCraftPrintName(10, y + 1, 90, UnholyUi_CardFill(selected), name);
     }
 }
 
@@ -692,11 +706,11 @@ static void UnholyCraftDrawRecipeDetail(const struct UnholyCraftRecipe *recipe)
     u8 window = sUnholyCraftWindowId;
     u8 fill = UnholyUi_CardFill(FALSE);
     const u8 *name = GetItemName(recipe->result);
-    UnholyUi_Card(window, UNHOLY_CRAFT_DETAIL_X, 23, UNHOLY_CRAFT_DETAIL_WIDTH, 54, FALSE);
-    // 24x24 item art occupies x=108..131 and y=24..47 in window pixels.
+    UnholyUi_Card(window, UNHOLY_CRAFT_DETAIL_X, 23, UNHOLY_CRAFT_DETAIL_WIDTH, 56, FALSE);
+    // Leave the name and art their own rows; full descriptions have a page.
     // Title starts after the art; description starts beneath both.
-    UnholyUi_Card(window, 105, 23, 29, 26, FALSE);
-    UnholyCraftPrintName(135, 24, 64, fill, name);
+    UnholyUi_Card(window, 111, 23, 29, 26, FALSE);
+    UnholyCraftPrintName(142, 24, 70, fill, name);
 
     // Los artefactos comparten descripción con la mochila y los resúmenes,
     // evitando copias antiguas en inglés o con valores desactualizados.
@@ -704,23 +718,39 @@ static void UnholyCraftDrawRecipeDetail(const struct UnholyCraftRecipe *recipe)
                           : sUnholyCraftStatus != CRAFT_STATUS_READY ? sUnholyCraftStatuses[sUnholyCraftStatus]
                           : Gear_FromItem(recipe->result) != GEAR_NONE ? GetItemDescription(recipe->result)
                           : recipe->description;
-    UnholyCraftPrintDescription(fill, description);
+    UnholyCraftPrintDescription(fill, description, 113, 51, 98, 11, 0, UNHOLY_CRAFT_DESC_LINES);
 
     if (sUnholyInjectorShop)
     {
         u8 price[24];
         u8 *end = StringCopy(price, COMPOUND_STRING("PRECIO $"));
         ConvertUIntToDecimalStringN(end, UNHOLY_INJECTOR_PRICE, STR_CONV_MODE_LEFT_ALIGN, 4);
-        UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 85, price);
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 109, 83, 94, price);
     }
     else
-        UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 68, COMPOUND_STRING("MATERIALES"));
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 180, 78, 21, COMPOUND_STRING("T/N"));
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 109, 83, 77, COMPOUND_STRING("MATERIALES"));
+    UnholyUi_Print(window, FONT_SMALL_NARROW, 193, 83, 24, COMPOUND_STRING("T/N"));
     for (u8 i = 0; i < recipe->materialCount; i++)
         UnholyCraftPrintMaterial(i, &recipe->materials[i]);
     if (recipe->badgeFlag && recipe->materialCount < UNHOLY_CRAFT_MATERIAL_LIMIT)
-        UnholyUi_Print(window, FONT_SMALL_NARROW, 108, UNHOLY_CRAFT_MATERIAL_Y + recipe->materialCount * UNHOLY_CRAFT_MATERIAL_STEP, 93,
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 113, UNHOLY_CRAFT_MATERIAL_Y + recipe->materialCount * UNHOLY_CRAFT_MATERIAL_STEP, 99,
             FlagGet(recipe->badgeFlag) ? COMPOUND_STRING("Medalla obtenida") : COMPOUND_STRING("Falta medalla"));
+}
+
+static void UnholyCraftDrawFullDescription(const struct UnholyCraftRecipe *recipe)
+{
+    u8 fill = UnholyUi_CardFill(FALSE);
+    const u8 *name = GetItemName(recipe->result);
+    const u8 *description = Gear_FromItem(recipe->result) != GEAR_NONE
+        ? GetItemDescription(recipe->result) : recipe->description;
+
+    UnholyUi_Card(sUnholyCraftWindowId, 5, 23, 212, 105, FALSE);
+    UnholyUi_Card(sUnholyCraftWindowId, 8, 24, 30, 27, FALSE);
+    UnholyCraftPrintName(45, 26, 162, fill, name);
+    sUnholyCraftMoreDetail = UnholyCraftPrintDescription(fill, description,
+        12, 49, 196, 11, sUnholyCraftDetailOffset, UNHOLY_CRAFT_FULL_DESC_LINES);
+    if (sUnholyCraftMoreDetail)
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 192, 117, 16, COMPOUND_STRING("+"));
 }
 
 static void UnholyCraftRenderMenu(void)
@@ -743,11 +773,19 @@ static void UnholyCraftRenderMenu(void)
     {
         const struct UnholyCraftRecipe *recipe = &UnholyCraftActiveRecipes()[sUnholyCraftRecipeCursor];
 
-        UnholyCraftDrawRecipeList();
-        UnholyCraftDrawRecipeDetail(recipe);
-        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? (sUnholyInjectorShop
+        if (sUnholyCraftDetailView)
+        {
+            UnholyCraftDrawFullDescription(recipe);
+            UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftDetailControls);
+        }
+        else
+        {
+            UnholyCraftDrawRecipeList();
+            UnholyCraftDrawRecipeDetail(recipe);
+            UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? (sUnholyInjectorShop
                             ? COMPOUND_STRING("A:CONFIRMAR  B:CANCELAR") : COMPOUND_STRING("A CONFIRMAR  B CANCELAR"))
                             : sUnholyInjectorShop ? sUnholyInjectorControls : sUnholyCraftControls);
+        }
         iconItem = recipe->result;
     }
     else
@@ -924,6 +962,9 @@ static void OpenUnholyCraftingMenuInternal(MainCallback onClose, bool8 injectorS
     sUnholyCraftGearCursor = GEAR_VISOR_COSMICO;
     sUnholyCraftStatus = CRAFT_STATUS_READY;
     sUnholyCraftConfirm = FALSE;
+    sUnholyCraftDetailView = FALSE;
+    sUnholyCraftMoreDetail = FALSE;
+    sUnholyCraftDetailOffset = 0;
     sUnholyCraftIconSpriteId = MAX_SPRITES;
 
     CpuCopy16(&gPlttBufferUnfaded[BG_PLTT_ID(14)], sUnholyCraftSavedPalette, sizeof(sUnholyCraftSavedPalette));
@@ -975,6 +1016,27 @@ static void Task_UnholyCraftingMenu(u8 taskId)
     if (gPaletteFade.active)
         return;
 
+    if (sUnholyCraftDetailView)
+    {
+        if (JOY_NEW(B_BUTTON | START_BUTTON))
+        {
+            sUnholyCraftDetailView = FALSE;
+            sUnholyCraftDetailOffset = 0;
+        }
+        else if (JOY_NEW(A_BUTTON))
+        {
+            // Keep long gear descriptions legible, with no hidden or
+            // overlapped lines. A cycles back to the first page at the end.
+            sUnholyCraftDetailOffset = sUnholyCraftMoreDetail
+                ? sUnholyCraftDetailOffset + UNHOLY_CRAFT_FULL_DESC_LINES : 0;
+        }
+        else
+            return;
+        PlaySE(SE_SELECT);
+        UnholyCraftRenderMenu();
+        return;
+    }
+
     if (JOY_NEW(B_BUTTON))
     {
         if (sUnholyCraftConfirm)
@@ -987,6 +1049,17 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         CloseUnholyCraftingMenu();
         DestroyTask(taskId);
         ReturnFromUnholyCrafting();
+        return;
+    }
+
+    if (!sUnholyCraftMode && JOY_NEW(START_BUTTON))
+    {
+        sUnholyCraftDetailView = TRUE;
+        sUnholyCraftDetailOffset = 0;
+        sUnholyCraftConfirm = FALSE;
+        sUnholyCraftStatus = CRAFT_STATUS_READY;
+        PlaySE(SE_SELECT);
+        UnholyCraftRenderMenu();
         return;
     }
 

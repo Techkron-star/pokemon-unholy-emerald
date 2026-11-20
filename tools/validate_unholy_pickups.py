@@ -36,6 +36,16 @@ REPORTED_PICKUPS = [
     ("Route102", "ITEM_POTION", "FLAG_ITEM_ROUTE_102_POTION", (11, 15), (11, 14)),
 ]
 
+# From Littleroot through Wattson, verify the ordinary pickups as a group,
+# not just the Route 102 screenshot. The two later badge-gated additions use
+# their own scripts and are audited by validate_world_updates.py.
+EARLY_GAME_NATIVE_MINIMUMS = {
+    "Route102": 1, "Route103": 2, "Route104": 4,
+    "Route105": 1, "Route106": 1, "Route108": 1,
+    "Route109": 2, "Route110": 4, "Route116": 5,
+    "PetalburgWoods": 4, "RusturfTunnel": 2, "GraniteCave_1F": 1,
+}
+
 
 def audit_all_item_balls():
     """Catch inert/misconfigured visible Poké Balls on every game map.
@@ -60,6 +70,7 @@ def audit_all_item_balls():
     errors = []
     total = native = scripted = 0
     used_native_flags = {}
+    early_native_counts = {name: 0 for name in EARLY_GAME_NATIVE_MINIMUMS}
     for path in sorted((ROOT / "data/maps").glob("*/map.json")):
         map_data = json.loads(path.read_text())
         layout = LAYOUTS.get(map_data.get("layout"))
@@ -92,6 +103,8 @@ def audit_all_item_balls():
                 continue
 
             native += 1
+            if path.parent.name in early_native_counts:
+                early_native_counts[path.parent.name] += 1
             item = obj.get("trainer_sight_or_berry_tree_id")
             flag = obj.get("flag")
             if item not in item_names or item == "ITEM_NONE":
@@ -122,6 +135,9 @@ def audit_all_item_balls():
 
     if total == 0:
         errors.append("no visible item-ball events found; check map search path")
+    for map_name, minimum in EARLY_GAME_NATIVE_MINIMUMS.items():
+        if early_native_counts[map_name] < minimum:
+            errors.append(f"{map_name}: only {early_native_counts[map_name]} native balls (expected at least {minimum})")
     return errors, (total, native, scripted)
 
 
@@ -210,6 +226,17 @@ def main():
     all_ball_errors, counts = audit_all_item_balls()
     errors.extend(all_ball_errors)
 
+    # Regression: ordinary item balls must be resolved before the effect
+    # preflight, which used to silently discard their A-button interaction.
+    interaction = (ROOT / "src/field_control_avatar.c").read_text()
+    start = interaction.index("static bool8 TryStartInteractionScript(struct MapPosition *position")
+    end = interaction.index("static const u8 *GetVisibleItemBallScript(struct MapPosition *position", start)
+    flow = interaction[start:end]
+    if flow.find("GetVisibleItemBallScript(position, direction)") < 0 or (
+        flow.find("GetVisibleItemBallScript(position, direction)") > flow.find("GetInteractionScript(position, metatileBehavior")
+    ):
+        errors.append("visible Poké Balls no longer bypass the generic interaction-effect preflight")
+
     if errors:
         for error in errors:
             print(f"ERROR: {error}")
@@ -217,6 +244,7 @@ def main():
     print(f"OK: {len(PICKUPS)} unique Gear pickups have valid scripts, rewards, tiles, and flags")
     print(f"OK: {len(REPORTED_PICKUPS)} reported inert pickup locations have valid map templates")
     print(f"OK: {counts[0]} visible item balls audited ({counts[1]} native pickups, {counts[2]} scripted encounters/gifts)")
+    print(f"OK: {sum(EARLY_GAME_NATIVE_MINIMUMS.values())} early-game native pickups covered through badge three")
 
 
 if __name__ == "__main__":
