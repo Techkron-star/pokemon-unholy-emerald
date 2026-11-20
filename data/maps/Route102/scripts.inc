@@ -11,7 +11,9 @@ Route102_EventScript_WorldUpdateGreatBall::
 	lock
 	giveitem ITEM_GREAT_BALL
 	goto_if_eq VAR_RESULT, FALSE, Route102_EventScript_WorldUpdateBagFull
+#if !IS_FRLG
 	setflag FLAG_UNHOLY_WORLD_ROUTE102_BALL_CLAIMED
+#endif
 	removeobject VAR_LAST_TALKED
 	release
 	end

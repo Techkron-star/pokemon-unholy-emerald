@@ -6,7 +6,7 @@
 
 #define UNHOLY_WORLD_VERSION_LATEST 1
 
-#if GAME_VERSION == VERSION_EMERALD
+#if !IS_FRLG
 static void ReconcileWorldEvent(u16 hideFlag, bool8 shouldAppear)
 {
     if (shouldAppear)
@@ -24,7 +24,7 @@ static void ReconcileClaimableWorldEvent(u16 hideFlag, u16 claimedFlag, bool8 un
 
 void UnholyWorldUpdate_Reconcile(void)
 {
-#if GAME_VERSION == VERSION_EMERALD
+#if !IS_FRLG
     u16 version = VarGet(VAR_UNHOLY_WORLD_VERSION);
 
     // Future migrations go here in ascending version order. Upgrading from a
