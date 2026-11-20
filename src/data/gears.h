@@ -159,7 +159,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     [GEAR_BLOOD_##type] = \
     { \
         .name = COMPOUND_STRING(displayName), \
-        .description = COMPOUND_STRING("Mov. " moveTypeName ": +40% al\nactivar; +12% en recarga."), \
+        .description = COMPOUND_STRING(moveTypeName ": primer golpe\n+40%; luego +12% x3."), \
         .iconGfx = sBloodGearIcon, \
         .iconPal = gItemIconPalette_Blood_##type, \
         .trigger = GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE, \
@@ -213,7 +213,7 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
         .iconGfx = sNewGearIcon_##gfx, \
         .iconPal = sNewGearPalette_##gfx, \
         .trigger = GEAR_TRIGGER_EVENT, \
-        .cooldownTurns = GEAR_##id == GEAR_NUCLEO_HYDRA ? 4 : 3, \
+        .cooldownTurns = GEAR_##id == GEAR_NUCLEO_HYDRA ? 0 : 3, \
     },
 #include "constants/gear_batch8.h"
 #undef NEW_GEAR

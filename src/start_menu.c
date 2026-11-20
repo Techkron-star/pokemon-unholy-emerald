@@ -29,6 +29,7 @@
 #include "load_save.h"
 #include "main.h"
 #include "menu.h"
+#include "money.h"
 #include "new_game.h"
 #include "option_menu.h"
 #include "overworld.h"
@@ -106,6 +107,7 @@ EWRAM_DATA static u8 sUnholyCraftRecipeCursor = 0;
 EWRAM_DATA static u8 sUnholyCraftGearCursor = 0;
 EWRAM_DATA static u8 sUnholyCraftPartyCursor = 0;
 EWRAM_DATA static u8 sUnholyCraftMode = 0; // 0 = fabricate, 1 = equip
+EWRAM_DATA static bool8 sUnholyInjectorShop = FALSE;
 EWRAM_DATA static u8 sUnholyCraftStatus = 0;
 EWRAM_DATA static bool8 sUnholyCraftConfirm = FALSE;
 EWRAM_DATA static u8 sStartMenuCursorPos = 0;
@@ -241,12 +243,14 @@ static const u8 *const sStartMenuSpanishNames[] =
 #define UNHOLY_CRAFT_MATERIAL_Y 88
 #define UNHOLY_CRAFT_MATERIAL_STEP 10
 #define UNHOLY_CRAFT_DESC_LINES 3
+#define UNHOLY_INJECTOR_PRICE 3000
 
 enum UnholyCraftStatus
 {
     CRAFT_STATUS_READY,
     CRAFT_STATUS_CONFIRM,
     CRAFT_STATUS_MATERIALS,
+    CRAFT_STATUS_MONEY,
     CRAFT_STATUS_BADGE,
     CRAFT_STATUS_SPACE,
     CRAFT_STATUS_COMPLETED,
@@ -275,9 +279,11 @@ struct UnholyCraftRecipe
 };
 
 static const u8 sUnholyCraftTitle[] = _("FABRICACIÓN");
+static const u8 sUnholyInjectorTitle[] = _("INYECTORES");
 static const u8 sUnholyCraftSkinEclipse[] = _("ECLIPSE");
 static const u8 sUnholyCraftSkinDaylight[] = _("DAYLIGHT");
 static const u8 sUnholyCraftControls[] = _("L/R PAG.  A CREAR  SEL EQUIP.  B SALIR");
+static const u8 sUnholyInjectorControls[] = _("L/R:PAG  A:COMPRAR  B:SALIR");
 static const u8 sUnholyEquipControls[] = _("A CAMBIAR  SEL CREAR  B SALIR");
 
 static const u8 sUnholyRecipeExp[] = _("Reparte el 100% de\nEXP al equipo apto.");
@@ -290,7 +296,9 @@ static const u8 sUnholyRecipeImpulse[] = _("Especiales: +20% al\nactivar; +10% l
 static const u8 sUnholyRecipeIce[] = _("Hielo: x2 prob.\nde congelación.\nHielo cura 1/16 PS.");
 static const u8 sUnholyCraftReady[] = _("Elige una receta.");
 static const u8 sUnholyCraftConfirmText[] = _("¿Crear este objeto?");
+static const u8 sUnholyInjectorConfirmText[] = _("¿Comprar este inyector?");
 static const u8 sUnholyCraftNeedMats[] = _("Faltan materiales.");
+static const u8 sUnholyCraftNeedMoney[] = _("No tienes suficiente dinero.");
 static const u8 sUnholyCraftNeedBadge[] = _("Falta una medalla.");
 static const u8 sUnholyCraftNoSpace[] = _("Mochila llena.");
 static const u8 sUnholyCraftDone[] = _("Guardado en mochila.");
@@ -305,6 +313,7 @@ static const u8 *const sUnholyCraftStatuses[] =
     [CRAFT_STATUS_READY] = sUnholyCraftReady,
     [CRAFT_STATUS_CONFIRM] = sUnholyCraftConfirmText,
     [CRAFT_STATUS_MATERIALS] = sUnholyCraftNeedMats,
+    [CRAFT_STATUS_MONEY] = sUnholyCraftNeedMoney,
     [CRAFT_STATUS_BADGE] = sUnholyCraftNeedBadge,
     [CRAFT_STATUS_SPACE] = sUnholyCraftNoSpace,
     [CRAFT_STATUS_COMPLETED] = sUnholyCraftDone,
@@ -338,11 +347,6 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
       {{ ITEM_WISE_GLASSES, 1 }, { ITEM_STAR_PIECE, 2 }, { ITEM_MOON_STONE, 1 }} },
     { ITEM_GEAR_PERMAFROST_FRAGMENT, sUnholyRecipeIce, 0, 3,
       {{ ITEM_ICE_STONE, 2 }, { ITEM_NEVER_MELT_ICE, 1 }, { ITEM_MYSTIC_WATER, 1 }} },
-#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) \
-    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING("Mov. " moveTypeName ":\n+40% al activar;\n+12% en recarga."), \
-      0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
-#include "constants/blood_gears.h"
-#undef GEAR_BLOOD_VARIANT
     { ITEM_GEAR_STORM_STAFF, COMPOUND_STRING("Repite el especial\nal 25% de potencia;\nsin efecto extra."), 0, 3,
       {{ ITEM_THUNDER_STONE, 1 }, { ITEM_MAGNET, 1 }, { ITEM_STAR_PIECE, 1 }} },
     { ITEM_GEAR_SHACKLE, COMPOUND_STRING("Golpe dañino: 20%\nde cortar la cadena\ndel rival."), 0, 2,
@@ -376,6 +380,28 @@ static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
     { ITEM_GEAR_ARMADURA_METEORICA, COMPOUND_STRING("Letal: sobrevive\ncon 30% PS; baja\nDef. y quema rival."), 0, 2,
       {{ ITEM_METAL_COAT, 1 }, { ITEM_METEORITE, 1 }} },
 };
+
+// La investigadora de Ruta 102 ofrece los 18 inyectores a cambio de
+// Polvoestelar, una gema del tipo correspondiente y 3.000 pokédólares.
+// Se mantienen los mismos ingredientes que las recetas anteriores.
+static const struct UnholyCraftRecipe sUnholyInjectorRecipes[] =
+{
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) \
+    { ITEM_GEAR_BLOOD_##type, COMPOUND_STRING("Mov. " moveTypeName ":\n+40% al activar;\n+12% en recarga."), \
+      0, 2, {{ ITEM_STARDUST, 1 }, { ITEM_##type##_GEM, 1 }} },
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+};
+
+static const struct UnholyCraftRecipe *UnholyCraftActiveRecipes(void)
+{
+    return sUnholyInjectorShop ? sUnholyInjectorRecipes : sUnholyCraftRecipes;
+}
+
+static u8 UnholyCraftActiveRecipeCount(void)
+{
+    return sUnholyInjectorShop ? ARRAY_COUNT(sUnholyInjectorRecipes) : ARRAY_COUNT(sUnholyCraftRecipes);
+}
 
 static const struct WindowTemplate sUnholyCraftWindow =
 {
@@ -639,7 +665,8 @@ static void UnholyCraftPrintMaterial(u8 row, const struct UnholyCraftMaterial *i
 
 static void UnholyCraftDrawRecipeList(void)
 {
-    const u8 count = ARRAY_COUNT(sUnholyCraftRecipes);
+    const struct UnholyCraftRecipe *recipes = UnholyCraftActiveRecipes();
+    const u8 count = UnholyCraftActiveRecipeCount();
     const u8 visible = min(count, UNHOLY_CRAFT_RECIPES_PER_PAGE);
     const u8 firstOnPage = sUnholyCraftRecipeCursor / UNHOLY_CRAFT_RECIPES_PER_PAGE * UNHOLY_CRAFT_RECIPES_PER_PAGE;
     const u8 first = min(firstOnPage, count - visible);
@@ -654,7 +681,7 @@ static void UnholyCraftDrawRecipeList(void)
         u8 index = first + row;
         u8 y = 23 + row * 23;
         bool8 selected = index == sUnholyCraftRecipeCursor;
-        const u8 *name = GetItemName(sUnholyCraftRecipes[index].result);
+        const u8 *name = GetItemName(recipes[index].result);
         UnholyUi_Card(sUnholyCraftWindowId, 5, y, 94, 22, selected);
         UnholyCraftPrintName(10, y + 1, 85, UnholyUi_CardFill(selected), name);
     }
@@ -673,12 +700,21 @@ static void UnholyCraftDrawRecipeDetail(const struct UnholyCraftRecipe *recipe)
 
     // Los artefactos comparten descripción con la mochila y los resúmenes,
     // evitando copias antiguas en inglés o con valores desactualizados.
-    const u8 *description = sUnholyCraftStatus != CRAFT_STATUS_READY ? sUnholyCraftStatuses[sUnholyCraftStatus]
+    const u8 *description = sUnholyCraftStatus == CRAFT_STATUS_CONFIRM && sUnholyInjectorShop ? sUnholyInjectorConfirmText
+                          : sUnholyCraftStatus != CRAFT_STATUS_READY ? sUnholyCraftStatuses[sUnholyCraftStatus]
                           : Gear_FromItem(recipe->result) != GEAR_NONE ? GetItemDescription(recipe->result)
                           : recipe->description;
     UnholyCraftPrintDescription(fill, description);
 
-    UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 68, COMPOUND_STRING("MATERIALES"));
+    if (sUnholyInjectorShop)
+    {
+        u8 price[24];
+        u8 *end = StringCopy(price, COMPOUND_STRING("PRECIO $"));
+        ConvertUIntToDecimalStringN(end, UNHOLY_INJECTOR_PRICE, STR_CONV_MODE_LEFT_ALIGN, 4);
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 85, price);
+    }
+    else
+        UnholyUi_Print(window, FONT_SMALL_NARROW, 103, 78, 68, COMPOUND_STRING("MATERIALES"));
     UnholyUi_Print(window, FONT_SMALL_NARROW, 180, 78, 21, COMPOUND_STRING("T/N"));
     for (u8 i = 0; i < recipe->materialCount; i++)
         UnholyCraftPrintMaterial(i, &recipe->materials[i]);
@@ -692,16 +728,26 @@ static void UnholyCraftRenderMenu(void)
     const u8 *skin = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? sUnholyCraftSkinDaylight : sUnholyCraftSkinEclipse;
     enum Item iconItem;
 
-    UnholyUi_Frame(sUnholyCraftWindowId, sUnholyCraftTitle);
-    UnholyCraftPrint(137, 3, skin);
+    UnholyUi_Frame(sUnholyCraftWindowId, sUnholyInjectorShop ? sUnholyInjectorTitle : sUnholyCraftTitle);
+    if (sUnholyInjectorShop)
+    {
+        u8 money[24];
+        u8 *end = StringCopy(money, COMPOUND_STRING("$"));
+        ConvertUIntToDecimalStringN(end, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, 6);
+        UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 145, 3, 56, money);
+    }
+    else
+        UnholyCraftPrint(137, 3, skin);
 
     if (sUnholyCraftMode == 0)
     {
-        const struct UnholyCraftRecipe *recipe = &sUnholyCraftRecipes[sUnholyCraftRecipeCursor];
+        const struct UnholyCraftRecipe *recipe = &UnholyCraftActiveRecipes()[sUnholyCraftRecipeCursor];
 
         UnholyCraftDrawRecipeList();
         UnholyCraftDrawRecipeDetail(recipe);
-        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? COMPOUND_STRING("A CONFIRMAR  B CANCELAR") : sUnholyCraftControls);
+        UnholyUi_Footer(sUnholyCraftWindowId, sUnholyCraftConfirm ? (sUnholyInjectorShop
+                            ? COMPOUND_STRING("A:CONFIRMAR  B:CANCELAR") : COMPOUND_STRING("A CONFIRMAR  B CANCELAR"))
+                            : sUnholyInjectorShop ? sUnholyInjectorControls : sUnholyCraftControls);
         iconItem = recipe->result;
     }
     else
@@ -768,6 +814,9 @@ static u8 UnholyCraftCheckRecipe(const struct UnholyCraftRecipe *recipe)
             return CRAFT_STATUS_MATERIALS;
     }
 
+    if (sUnholyInjectorShop && !IsEnoughMoney(&gSaveBlock1Ptr->money, UNHOLY_INJECTOR_PRICE))
+        return CRAFT_STATUS_MONEY;
+
     if (!CheckBagHasSpace(recipe->result, 1)
      && !(recipe->result == ITEM_OVERLOADED_EXP_SHARE && CountTotalItemQuantityInBag(ITEM_SUPER_EXP_SHARE) == 1))
         return CRAFT_STATUS_SPACE;
@@ -801,6 +850,10 @@ static u8 UnholyCraftFabricate(const struct UnholyCraftRecipe *recipe)
             AddBagItem(recipe->materials[i].itemId, recipe->materials[i].quantity);
         return CRAFT_STATUS_SPACE;
     }
+
+    // Money is charged only once all items have been exchanged successfully.
+    if (sUnholyInjectorShop)
+        RemoveMoney(&gSaveBlock1Ptr->money, UNHOLY_INJECTOR_PRICE);
 
     if (recipe->result == ITEM_OVERLOADED_EXP_SHARE)
     {
@@ -862,9 +915,11 @@ static void ReturnFromUnholyCrafting(void)
     }
 }
 
-void OpenUnholyCraftingMenu(MainCallback onClose)
+static void OpenUnholyCraftingMenuInternal(MainCallback onClose, bool8 injectorShop)
 {
     sUnholyCraftOnClose = onClose;
+    sUnholyInjectorShop = injectorShop;
+    sUnholyCraftRecipeCursor = 0;
     sUnholyCraftMode = 0;
     sUnholyCraftGearCursor = GEAR_VISOR_COSMICO;
     sUnholyCraftStatus = CRAFT_STATUS_READY;
@@ -886,6 +941,17 @@ void OpenUnholyCraftingMenu(MainCallback onClose)
     UnholyCraftRenderMenu();
     CreateTask(Task_UnholyCraftingMenu, 8);
     FadeScreen(FADE_FROM_BLACK, 0);
+}
+
+void OpenUnholyCraftingMenu(MainCallback onClose)
+{
+    OpenUnholyCraftingMenuInternal(onClose, FALSE);
+}
+
+// Called by the Route 102 researcher's field script, not by the START menu.
+void OpenUnholyInjectorMenu(void)
+{
+    OpenUnholyCraftingMenuInternal(NULL, TRUE);
 }
 
 static void CloseUnholyCraftingMenu(void)
@@ -924,14 +990,14 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         return;
     }
 
-    if (JOY_NEW(SELECT_BUTTON))
+    if (!sUnholyInjectorShop && JOY_NEW(SELECT_BUTTON))
     {
         sUnholyCraftMode ^= 1;
         changed = TRUE;
     }
     else if (!sUnholyCraftMode && (JOY_REPEAT(DPAD_ANY) || JOY_NEW(L_BUTTON | R_BUTTON)))
     {
-        const u8 last = ARRAY_COUNT(sUnholyCraftRecipes) - 1;
+        const u8 last = UnholyCraftActiveRecipeCount() - 1;
         u8 step = JOY_NEW(L_BUTTON | R_BUTTON) ? UNHOLY_CRAFT_RECIPES_PER_PAGE : 1;
         bool32 previous = JOY_NEW(L_BUTTON) || (!JOY_NEW(R_BUTTON) && JOY_REPEAT(DPAD_UP | DPAD_LEFT));
         u8 next = previous ? max(0, (s16)sUnholyCraftRecipeCursor - step)
@@ -961,7 +1027,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
             UnholyCraftRenderMenu();
             return;
         }
-        else if (sUnholyCraftRecipeCursor == 0)
+        else if (!sUnholyInjectorShop && sUnholyCraftRecipeCursor == 0)
         {
             CloseUnholyCraftingMenu();
             DestroyTask(taskId);
@@ -973,7 +1039,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         }
         else if (!sUnholyCraftConfirm)
         {
-            sUnholyCraftStatus = UnholyCraftCheckRecipe(&sUnholyCraftRecipes[sUnholyCraftRecipeCursor]);
+            sUnholyCraftStatus = UnholyCraftCheckRecipe(&UnholyCraftActiveRecipes()[sUnholyCraftRecipeCursor]);
             if (sUnholyCraftStatus == CRAFT_STATUS_READY)
             {
                 sUnholyCraftConfirm = TRUE;
@@ -986,7 +1052,7 @@ static void Task_UnholyCraftingMenu(u8 taskId)
         }
         else
         {
-            sUnholyCraftStatus = UnholyCraftFabricate(&sUnholyCraftRecipes[sUnholyCraftRecipeCursor]);
+            sUnholyCraftStatus = UnholyCraftFabricate(&UnholyCraftActiveRecipes()[sUnholyCraftRecipeCursor]);
             sUnholyCraftConfirm = FALSE;
             PlaySE(sUnholyCraftStatus == CRAFT_STATUS_COMPLETED || sUnholyCraftStatus == CRAFT_STATUS_SHARE_UPGRADED
                 ? SE_SUCCESS : SE_FAILURE);

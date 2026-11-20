@@ -9,7 +9,7 @@ Estado: implementación apilada sobre el PR #62. Valores sujetos a QA de combate
 | Amplificador | Primer ataque sonoro de daño cargado: +25 % de potencia y +10 % de coste de stamina. Recarga de 3 turnos. | Crafteo desde medalla 3. |
 | Headphones | -40 % de daño sonoro recibido; bloquea efectos secundarios de esos movimientos dirigidos al portador. | Crafteo desde medalla 3. |
 | Botón de Pánico | Una vez por combate: tras sobrevivir a un golpe que deja menos del 30 % de PS, restaura 18 % de stamina máxima, gana una etapa de Velocidad y cancela el segundo ataque encadenado pendiente. No evita el KO. | Poké Ball de Ruta 119. |
-| Núcleo Hydra | Hasta dos veces por combate: tras un golpe que lo deja por debajo de 50 % de PS, sana 8 % de PS máximos al final de cada uno de los siguientes 3 turnos, sin revivir ni evitar KO. Recarga 4 turnos. | Incursión Maestro (rotación diaria). |
+| Núcleo Hydra | Tras recibir daño y quedar por debajo del 50 % de PS, sana el 8 % de sus PS máximos al final de cada turno mientras siga en combate. Sin límite de turnos ni recarga; conserva la activación al cambiar de Pokémon. No evita KO ni revive. | Incursión Maestro (rotación diaria). |
 | Casco Hoplita | En dobles, el compañero recibe 12 % menos daño directo; en individuales, usar con éxito Protección restaura 12 % de stamina máxima, una vez cada 3 turnos. | Poké Ball de Ruta 120. |
 
 El crafteo no ofrece Pánico, Hydra ni Hoplita para conservar el valor de explorar/pelear incursiones.

@@ -10032,7 +10032,7 @@ const struct ItemInfo gItemsInfo[] =
     [ITEM_GEAR_BLOOD_##moveType] = \
     { \
         .name = ITEM_NAME(displayName), \
-        .description = COMPOUND_STRING("Mov. " moveTypeName ":\n+40% al activar;\n+12% en recarga."), \
+        .description = COMPOUND_STRING(moveTypeName ": 1.er golpe\n+40%; luego +12% x3."), \
         .importance = 1, \
         .pocket = POCKET_KEY_ITEMS, \
         .sortType = ITEM_TYPE_RELIC, \

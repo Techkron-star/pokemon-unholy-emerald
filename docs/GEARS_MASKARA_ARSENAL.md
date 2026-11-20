@@ -2,6 +2,8 @@
 
 **Estado:** especificación de diseño del 16-11-2026. **No implica que estos 30 Gears estén programados, tengan sprites, recetas o pruebas.**
 
+**Actualización de balance:** la propuesta antigua de Núcleo Hydra (3 turnos, 2 activaciones) de la tabla de abajo fue sustituida por su curación continua tras activarse; el comportamiento implementado y vigente está en [`GEARS_BATCH8_REBALANCE.md`](GEARS_BATCH8_REBALANCE.md).
+
 **Alcance:** once Gears de MASKARA cuyos efectos conceptuales aprobó Camilo, y diecinueve propuestas nuevas pendientes de ajustar/aceptar. Este documento complementa `DISENO.md`, `docs/GEARS.md` y los Gears implementados; no reemplaza sus IDs ni su sistema de guardado.
 
 ## Principios comunes

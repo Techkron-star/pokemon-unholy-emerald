@@ -4,7 +4,7 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 
 **Nuevas familias en diseño:** [MASKARA (11 máscaras/cascos) y otros 19 Gears](GEARS_MASKARA_ARSENAL.md). Se trata de especificaciones conceptuales, no de funcionalidades implementadas.
 
-**Estado:** los seis Gears originales, los 18 Inyectores, el Báculo Tormentoso y Grillete tienen recetas, equipamiento desde la mochila y Crafting, efectos de combate e iconos de HUD de 16×32.
+**Estado:** los seis Gears originales, los 18 Inyectores, el Báculo Tormentoso y Grillete tienen equipamiento desde la mochila, efectos de combate e iconos de HUD de 16×32. Los Inyectores se consiguen mediante la investigadora de Ruta 102, en lugar de ocupar 18 recetas de Crafting.
 
 ## Cómo funciona
 
@@ -155,7 +155,7 @@ El sistema actual cubre bonificaciones de potencia con filtros. Para un efecto d
 
 Uno por cada tipo clásico. En la tanda de balance inicial, el Inyector da **+40 % de potencia** al primer movimiento dañino de su tipo. Después da **+12 %** durante tres finales de turno, contando el de activación. Si dos ataques compatibles se encadenan, el primero recibe el +40 % y el segundo el +12 %. La recarga se conserva al cambiar de Pokémon. Cuando además se activa una gema, tabla u otro objeto equipado que refuerza ese mismo tipo, se promedian los bonos y la gema conserva su consumo normal.
 
-Cada receta usa **1 Polvo Estelar y 1 gema del tipo correspondiente**. Horizon vende una gema por rotación en Objetos. Los cuatro Inyectores con arte propio en la mochila conservan sus iconos y los demás usan el vial con una paleta por tipo. El catálogo con nombres y tipos está en [`include/constants/blood_gears.h`](../include/constants/blood_gears.h).
+La investigadora de **Ruta 102**, visible a partir de la segunda medalla, intercambia cualquiera de los 18 Inyectores por **1 Polvo Estelar, 1 gema del tipo correspondiente y 3.000 pokédólares**. Muestra existencias, coste, saldo y pide confirmación antes de entregar cada uno. No se cobran materiales ni dinero si la mochila no admite el objeto. Horizon vende una gema por rotación en Objetos. Los cuatro Inyectores con arte propio en la mochila conservan sus iconos y los demás usan el vial con una paleta por tipo. El catálogo está en [`include/constants/blood_gears.h`](../include/constants/blood_gears.h).
 
 ### Báculo Tormentoso
 

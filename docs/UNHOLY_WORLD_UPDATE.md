@@ -23,7 +23,7 @@ objetos anteriores nunca se limpian**. No se altera la estructura de SaveBlocks.
 | Desbloqueo | Mapa | Contenido nuevo |
 | --- | --- | --- |
 | Primera medalla | Ruta 102 (22,9) | Great Ball, recogida una sola vez |
-| Segunda medalla | Ruta 102 (30,12) | Investigadora y diálogo |
+| Segunda medalla | Ruta 102 (30,12) | Investigadora: intercambio de los 18 Inyectores por gema, Polvo Estelar y 3.000 pokédólares |
 | Tercera medalla | Ruta 104 (27,7) | Ultra Ball, recogida una sola vez |
 | Liga superada | Ruta 110 (15,8) | Veterano y diálogo posterior a la Liga |
 
