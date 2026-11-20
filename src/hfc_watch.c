@@ -377,6 +377,7 @@ static void RenderPanel(u8 feature)
     if (feature == HFC_WATCH_FEATURE_RAID && HfcWatch_GetRaidState() == HFC_RAID_CHOOSE_REWARD)
         title = COMPOUND_STRING("RAID REWARD");
     UnholyUi_Frame(sWatchWindowId, title);
+    UnholyUi_Icon(sWatchWindowId, GetWindowAttribute(sWatchWindowId, WINDOW_WIDTH) * TILE_WIDTH - 18, 6, sFeatureIcons[feature], UnholyUi_AccentColor());
 
     switch (feature)
     {

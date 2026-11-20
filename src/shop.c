@@ -883,6 +883,7 @@ static void HorizonDrawInfo(void)
     u8 money[24];
     u8 *amount = StringCopy(money, COMPOUND_STRING("MONEY "));
     ConvertUIntToDecimalStringN(amount, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, 7);
+    UnholyUi_Icon(panel, 124, 7, UNHOLY_UI_ICON_COIN, UnholyUi_AccentColor());
     HorizonPrintSmall(panel, money, 134, 6, 75);
 
     if (sHorizonPokemonBrowsing)

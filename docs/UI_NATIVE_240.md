@@ -97,4 +97,4 @@ Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sob
 - `UnholyUi_Icon` dibuja iconos de 8×8 píxeles (un bit por píxel) con rectángulos de ventana: sin sprites, tiles ni paletas nuevas. El Poké Watch muestra un icono por servicio (tienda, mapa, crafteo, mira, cajas, señal, incursión, archivo, mutador, simulador) en el color de acento, atenuado y con un candado cuando el servicio está bloqueado.
 - `UnholyUi_Footer` convierte los pares `TECLA:acción` en teclas con esquinas redondeadas (chip de acento con el nombre del botón y la acción al lado). Si el pie no tiene esa forma o no cabe, se imprime como antes, así que ninguna instrucción se pierde.
 - `DrawUnholyUiPanelAccents` añade bajo la cabecera una trama de ajedrez de un píxel que degrada el halo hacia el panel.
-
+- Las cabeceras de los paneles del reloj, Mutator, Simulador y búsqueda de PC llevan su icono a la derecha; el Pokélocator muestra la mira junto al nombre del mapa y Horizon una moneda junto al saldo.
