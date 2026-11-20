@@ -18,6 +18,7 @@
 - [Unholy Emerald · Jefes Salvajes V1](./qa/wild_bosses_v1.md)
 - [Unholy Emerald · Jefes Salvajes V2: cinco encuentros aprobados](./UNHOLY_WILD_BOSSES_V2_DESIGN.md)
 - [Unholy Emerald · Reliquias e iconos del lote 02](./UNHOLY_RELICS_ART_02.md)
+- [Unholy Emerald · 12 Artifacts de casino, rutas y crafteo (propuestas)](./UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md)
 - [Unholy Emerald · Sistema de Gears](./GEARS.md)
 - [Unholy Emerald · Implementación de los 15 Gears recientes](./GEARS_RECENT_15.md)
 - [Unholy Emerald · MASKARA y arsenal de Gears propuestos](./GEARS_MASKARA_ARSENAL.md)
