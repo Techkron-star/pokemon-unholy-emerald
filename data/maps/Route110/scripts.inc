@@ -987,3 +987,14 @@ Route110_Text_KeepAnEyeOutForRival:
 	.string "Well, I had better get going.\n"
 	.string "See you again, {PLAYER}{KUN}!$"
 
+// World Update V1: post-League NPC without replacing native route residents.
+Route110_EventScript_WorldUpdateVeteran::
+	msgbox Route110_Text_WorldUpdateVeteran, MSGBOX_NPC
+	end
+
+Route110_Text_WorldUpdateVeteran:
+	.string "VETERANO: La Liga ya conoce tu\n"
+	.string "nombre, {PLAYER}.\p"
+	.string "Pero Hoenn sigue cambiando.\n"
+	.string "Regresa a las rutas antiguas.$"
+

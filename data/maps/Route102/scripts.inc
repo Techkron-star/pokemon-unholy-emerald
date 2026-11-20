@@ -5,6 +5,32 @@ Route102_EventScript_LittleBoy::
 	msgbox Route102_Text_ImNotVeryTall, MSGBOX_NPC
 	end
 
+// Added by World Update V1. Claim is separate from the event hide flag, so
+// revisiting the route or updating the ROM cannot respawn a taken reward.
+Route102_EventScript_WorldUpdateGreatBall::
+	lock
+	giveitem ITEM_GREAT_BALL
+	goto_if_eq VAR_RESULT, FALSE, Route102_EventScript_WorldUpdateBagFull
+	setflag FLAG_UNHOLY_WORLD_ROUTE102_BALL_CLAIMED
+	removeobject VAR_LAST_TALKED
+	release
+	end
+
+Route102_EventScript_WorldUpdateBagFull::
+	msgbox gText_TooBadBagIsFull, MSGBOX_DEFAULT
+	release
+	end
+
+Route102_EventScript_WorldUpdateResearcher::
+	msgbox Route102_Text_WorldUpdateResearcher, MSGBOX_NPC
+	end
+
+Route102_Text_WorldUpdateResearcher:
+	.string "INVESTIGADORA: Hoenn cambia\n"
+	.string "con cada medalla que consigues.\p"
+	.string "Hasta las rutas conocidas pueden\n"
+	.string "guardar nuevas sorpresas.$"
+
 Route102_EventScript_RouteSignOldale::
 	msgbox Route102_Text_RouteSignOldale, MSGBOX_SIGN
 	end

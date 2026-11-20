@@ -1166,3 +1166,18 @@ Route104_Text_BrendanPostBattle:
 	.string "making POKéMON battle.\p"
 	.string "Like MR. BRINEY, it's important to\n"
 	.string "become friends with your POKéMON.$"
+
+// World Update V1: a new reward unlocks after the third Hoenn badge.
+Route104_EventScript_WorldUpdateUltraBall::
+	lock
+	giveitem ITEM_ULTRA_BALL
+	goto_if_eq VAR_RESULT, FALSE, Route104_EventScript_WorldUpdateBagFull
+	setflag FLAG_UNHOLY_WORLD_ROUTE104_BALL_CLAIMED
+	removeobject VAR_LAST_TALKED
+	release
+	end
+
+Route104_EventScript_WorldUpdateBagFull::
+	msgbox gText_TooBadBagIsFull, MSGBOX_DEFAULT
+	release
+	end

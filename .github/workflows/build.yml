@@ -266,6 +266,9 @@ jobs:
       - name: Validate Better Starter pools and introduction flow
         run: python3 tools/unholy/validate_better_starters.py
 
+      - name: Validate World Update versioning and progressive map events
+        run: python3 tools/unholy/validate_world_updates.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04

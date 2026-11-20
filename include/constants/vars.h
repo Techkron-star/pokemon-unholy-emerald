@@ -131,6 +131,9 @@
 #define VAR_UNHOLY_STARTER_OFFER_1                       VAR_ROUTE107_STATE
 #define VAR_UNHOLY_STARTER_OFFER_2                       VAR_ROUTE108_STATE
 #define VAR_ROUTE109_STATE                               0x4068 // Unused Var
+// Version of the Unholy world-event manifest last reconciled with this save.
+// Old saves read zero, and existing map pickup flags are never reset.
+#define VAR_UNHOLY_WORLD_VERSION                          VAR_ROUTE109_STATE
 #define VAR_ROUTE110_STATE                               0x4069
 #define VAR_ROUTE111_STATE                               0x406A // Unused Var
 #define VAR_ROUTE112_STATE                               0x406B // Unused Var
