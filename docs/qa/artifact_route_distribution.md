@@ -34,17 +34,26 @@ con sprite de Poké Ball. De ellos, **171** son recogidas nativas con
 `Common_EventScript_FindItem` y **238** utilizan scripts propios (regalos,
 encuentros especiales y Battle Pyramid incluidos). Comprueba que ninguno
 carezca de script y que las recogidas nativas tengan un ID de objeto y una
-bandera definidos. Las 12 ubicaciones de Gears se comprueban además por
-coordenadas, colisión y recompensa.
+bandera definidos y no repetidos, posición en el mapa, elevación correcta y
+una casilla adyacente transitable. Las 12 ubicaciones de Gears se comprueban
+además por coordenadas, colisión y recompensa.
 
-En `field_control_avatar.c`, los objetos con sprite de Poké Ball pueden ejecutar
-su script sin depender del detector anticipado `Script_HasNoEffect`, que podría
-descartar una recompensa o un encuentro detrás de condiciones. La excepción se
-aplica **solo** al objeto seleccionado, no a carteles ni otros eventos.
+**Regresión reportada:** la Poción de Ruta 102 (11,15) tenía una Poké Ball
+visible que no respondía a A. Ahora queda fijada como caso de prueba explícito.
+
+En `field_control_avatar.c`, la pulsación A intenta resolver primero la Poké
+Ball visible **en la casilla frontal** usando el objeto activo y el script de
+su plantilla. Esto evita descartarla por una diferencia inesperada de
+elevación en tiempo de ejecución o por el detector `Script_HasNoEffect`.
+La ruta conserva scripts especiales y sustituciones temporales de scripts;
+no permite recoger objetos de otros pisos ni vuelve a ejecutar recompensas
+que ya tengan su bandera de recogida. Si no hay Poké Ball, el flujo habitual
+de NPC, señales y puertas permanece sin cambios.
 
 La auditoría de archivos no sustituye estas pruebas en mGBA/Pizza Boy:
 
-1. Una Poké Ball nativa: recoger, guardar, recargar y verificar que no reaparece.
+1. **Ruta 102, Poción (11,15):** acercarse desde el norte, pulsar A, recibir
+   la Poción, guardar, recargar y verificar que no reaparece.
 2. Una Poké Ball de evento (Voltorb/Foongus o regalo): pulsar A y comprobar que
    inicia la interacción especial y respeta su bandera de finalización.
 3. Una Poké Ball de Gear: comprobar artículo recibido, mochila llena y guardado.

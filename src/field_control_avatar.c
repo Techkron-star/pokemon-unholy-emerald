@@ -57,6 +57,7 @@ COMMON_DATA u8 gSelectedObjectEvent = 0;
 static void GetInFrontOfPlayerPosition(struct MapPosition *);
 static u16 GetPlayerCurMetatileBehavior(int);
 static bool8 TryStartInteractionScript(struct MapPosition *, u16, enum Direction);
+static const u8 *GetVisibleItemBallScript(struct MapPosition *, enum Direction);
 static bool8 TryAutoFieldMove(struct MapPosition *, u16, enum Direction);
 static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove);
 static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction, bool8 *);
@@ -307,8 +308,15 @@ static u16 GetPlayerCurMetatileBehavior(int runningState)
 
 static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
 {
-    bool8 isItemBall;
-    const u8 *script = GetInteractionScript(position, metatileBehavior, direction, &isItemBall);
+    bool8 isItemBall = FALSE;
+    // Item balls are ordinary overworld objects, not background signs. Resolve
+    // them directly before the optional script-effect preflight; it must not
+    // prevent a visible pickup from responding to A.
+    const u8 *script = GetVisibleItemBallScript(position, direction);
+    if (script != NULL)
+        isItemBall = TRUE;
+    else
+        script = GetInteractionScript(position, metatileBehavior, direction, &isItemBall);
     // Native pickups, scripted gifts and disguised wild encounters all use the
     // item-ball sprite. Their scripts must run even if effect preflight misses
     // an effect behind a conditional or a special command.
@@ -328,6 +336,56 @@ static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatil
 
     ScriptContext_SetupScript(script);
     return TRUE;
+}
+
+static const u8 *GetVisibleItemBallScript(struct MapPosition *position, enum Direction direction)
+{
+    u8 i;
+    u8 tileElevation = MapGridGetElevationAt(position->x, position->y);
+
+    // The normal object lookup requires a matching runtime elevation. A ball
+    // accidentally assigned the wrong template elevation can still be drawn,
+    // while A silently ignores it. Use the ground tile's elevation instead,
+    // never an object on a different bridge/floor.
+    if (tileElevation != ELEVATION_TRANSITION
+     && position->elevation != ELEVATION_TRANSITION
+     && tileElevation != position->elevation)
+        return NULL;
+
+    for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
+    {
+        const struct ObjectEvent *objectEvent = &gObjectEvents[i];
+        const struct ObjectEventTemplate *template;
+        const u8 *script;
+
+        if (!objectEvent->active
+         || objectEvent->graphicsId != OBJ_EVENT_GFX_ITEM_BALL
+         || objectEvent->currentCoords.x != position->x
+         || objectEvent->currentCoords.y != position->y
+         || IsOverworldWildEncounter(&gObjectEvents[i], OWE_ANY))
+            continue;
+
+        template = GetObjectEventTemplateByLocalIdAndMap(
+            objectEvent->localId, objectEvent->mapNum, objectEvent->mapGroup);
+        if (template == NULL || (template->flagId != 0 && FlagGet(template->flagId)))
+            continue;
+
+        script = template->script;
+        if (script == NULL
+         && template->trainerRange_berryTreeId > ITEM_NONE
+         && template->trainerRange_berryTreeId < ITEMS_COUNT)
+            script = Common_EventScript_FindItem;
+        if (script == NULL)
+            continue;
+
+        gSelectedObjectEvent = i;
+        gSpecialVar_LastTalked = objectEvent->localId;
+        gSpecialVar_Facing = direction;
+        // Preserve the same map-local RAM script overrides as the ordinary
+        // interaction path (e.g. generated item balls on special floors).
+        return GetRamScript(gSpecialVar_LastTalked, script);
+    }
+    return NULL;
 }
 
 static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
