@@ -764,6 +764,8 @@ static void HorizonPrintFitStyle(u8 panel, const u8 *source,
     }
     text[len] = EOS;
 
+    // Shrink to a narrower font before trimming characters.
+    fontId = GetFontIdToFit(text, fontId, 0, width);
     while (len > 0 && GetStringWidth(fontId, text, 0) > width)
         text[--len] = EOS;
 

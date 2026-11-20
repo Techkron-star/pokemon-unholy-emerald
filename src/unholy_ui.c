@@ -39,6 +39,9 @@ void UnholyUi_PrintOnFill(u8 window, u8 font, u16 x, u16 y, u16 width, u8 fill, 
         return;
     width = min(width, windowWidth - x);
     text[0] = EOS;
+    // Prefer a narrower font of the same family over cutting the text short;
+    // the clipping loop below is only the last resort.
+    font = GetFontIdToFit(source, font, 0, width);
     // Copy whole control sequences so clipping never leaves an incomplete font code.
     while (*source != EOS && *source != CHAR_NEWLINE)
     {
