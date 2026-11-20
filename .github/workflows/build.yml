@@ -251,6 +251,12 @@ jobs:
       - name: Validate the first Hoenn encounter expansion
         run: python3 tools/unholy/hoenn_ecology_wave1.py
 
+      - name: Validate encounters on the remaining Hoenn routes
+        run: python3 tools/unholy/hoenn_ecology_remaining.py
+
+      - name: Validate Hoenn cave biome encounters
+        run: python3 tools/unholy/hoenn_ecology_caves.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04
