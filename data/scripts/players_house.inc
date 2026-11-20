@@ -185,8 +185,33 @@ PlayersHouse_2F_Movement_MomExitsFemale:
 
 PlayersHouse_1F_EventScript_SetWatchedBroadcast::
 	setvar VAR_LITTLEROOT_INTRO_STATE, 7
+	msgbox UnholyStarters_Text_MomFavoriteType, MSGBOX_DEFAULT
+	call UnholyStarters_EventScript_SelectFavoriteType
+	msgbox UnholyStarters_Text_MomAfterFavoriteType, MSGBOX_DEFAULT
 	releaseall
 	end
+
+// Shared selection for both genders. If a player bypasses the home intro,
+// Route 101 calls the same menu before Birch's bag opens.
+UnholyStarters_EventScript_SelectFavoriteType::
+	closemessage
+UnholyStarters_EventScript_ShowTypeMenu::
+	setvar VAR_0x8004, SCROLL_MULTI_UNHOLY_STARTER_TYPES
+	special ShowScrollableMultichoice
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, UnholyStarters_EventScript_ShowTypeMenu
+	special UnholySetFavoriteStarterType
+	goto_if_eq VAR_RESULT, FALSE, UnholyStarters_EventScript_ShowTypeMenu
+	return
+
+UnholyStarters_Text_MomFavoriteType:
+	.string "MAMÁ: Oye, {PLAYER}...\p"
+	.string "¿Cuál es tu tipo de POKéMON\n"
+	.string "favorito?$"
+
+UnholyStarters_Text_MomAfterFavoriteType:
+	.string "MAMÁ: ¡Excelente elección!\p"
+	.string "Un buen compañero puede aparecer\n"
+	.string "cuando menos lo esperas.$"
 
 PlayersHouse_1F_EventScript_PetalburgGymReportMale::
 	applymovement VAR_0x8005, Common_Movement_WalkInPlaceFasterRight

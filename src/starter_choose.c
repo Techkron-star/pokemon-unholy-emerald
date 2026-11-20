@@ -20,6 +20,7 @@
 #include "text_window.h"
 #include "trainer_pokemon_sprites.h"
 #include "trig.h"
+#include "unholy_starters.h"
 #include "window.h"
 #include "constants/songs.h"
 #include "constants/rgb.h"
@@ -349,8 +350,15 @@ static const struct SpriteTemplate sSpriteTemplate_StarterCircle =
 // .text
 u16 GetStarterPokemon(u16 chosenStarterId)
 {
-    if (chosenStarterId > STARTER_MON_COUNT)
+    if (chosenStarterId >= STARTER_MON_COUNT)
         chosenStarterId = 0;
+#if GAME_VERSION == VERSION_EMERALD
+    {
+        u16 candidate = UnholyGetStarterOption(chosenStarterId);
+        if (candidate != SPECIES_NONE)
+            return candidate;
+    }
+#endif
     return sStarterMon[chosenStarterId];
 }
 

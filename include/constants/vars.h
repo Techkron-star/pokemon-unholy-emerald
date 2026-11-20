@@ -123,6 +123,13 @@
 #define VAR_ROUTE106_STATE                               0x4065 // Unused Var
 #define VAR_ROUTE107_STATE                               0x4066 // Unused Var
 #define VAR_ROUTE108_STATE                               0x4067 // Unused Var
+// Unholy Better Starter: four unused Hoenn route-state vars hold the selected
+// type (+1 sentinel) and three persisted species. No SaveBlock format change.
+// These vars have no native script users; FRLG never activates this feature.
+#define VAR_UNHOLY_STARTER_TYPE                          VAR_ROUTE105_STATE
+#define VAR_UNHOLY_STARTER_OFFER_0                       VAR_ROUTE106_STATE
+#define VAR_UNHOLY_STARTER_OFFER_1                       VAR_ROUTE107_STATE
+#define VAR_UNHOLY_STARTER_OFFER_2                       VAR_ROUTE108_STATE
 #define VAR_ROUTE109_STATE                               0x4068 // Unused Var
 #define VAR_ROUTE110_STATE                               0x4069
 #define VAR_ROUTE111_STATE                               0x406A // Unused Var

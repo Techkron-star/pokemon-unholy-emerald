@@ -263,6 +263,9 @@ jobs:
       - name: Validate New Mauville and other secondary habitats
         run: python3 tools/unholy/hoenn_ecology_side_areas.py
 
+      - name: Validate Better Starter pools and introduction flow
+        run: python3 tools/unholy/validate_better_starters.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04

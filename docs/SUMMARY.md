@@ -11,6 +11,7 @@
 - [Unholy Emerald · Pokélocator: búsqueda y captura](./POKELOCATOR_SEARCH.md)
 - [Unholy Emerald · Pokédex+: variantes de la colección](./POKEDEX_VARIANTS.md)
 - [Unholy Emerald · Ecosistemas y encuentros ampliados de Hoenn](./UNHOLY_HOENN_ECOLOGY.md)
+- [Unholy Emerald · Better Starter por tipo favorito](./UNHOLY_BETTER_STARTERS.md)
 - [Unholy Emerald · Horizon Market y alertas mutantes](./HORIZON_MARKET.md)
 - [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)
