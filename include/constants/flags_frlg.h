@@ -2653,6 +2653,7 @@
 #define FLAG_UNUSED_0x915                           0
 #define FLAG_UNUSED_0x916                           0
 #define FLAG_UNUSED_0x917                           0
+#define FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED          0 // Emerald-only map event; never allocate an FRLG save flag.
 #define FLAG_UNUSED_0x918                           0
 #define FLAG_UNUSED_0x919                           0
 #define FLAG_UNUSED_0x91A                           0
