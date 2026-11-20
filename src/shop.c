@@ -325,6 +325,9 @@ void DrawUnholyUiPanelAccents(u8 windowId, u16 width, u16 height, u8 dividerY)
     FillWindowPixelRect(windowId, PIXEL_FILL(3), width - 2, 2, 2, height - 4);
     FillWindowPixelRect(windowId, PIXEL_FILL(glow), 5, dividerY + 1, width - 10, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), 5, dividerY, width - 10, 1);
+    // Checkerboard fade below the halo: a soft glow without extra colours.
+    for (u16 x = 6; x < width - 6; x += 2)
+        FillWindowPixelRect(windowId, PIXEL_FILL(glow), x, dividerY + 2, 1, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(3), 5, height - 19, width - 10, 1);
     // Three-pixel corner highlights keep the motif crisp at 240x160.
     FillWindowPixelRect(windowId, PIXEL_FILL(accent), 2, 2, 3, 2);

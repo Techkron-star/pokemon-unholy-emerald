@@ -91,3 +91,10 @@ Las 16 entradas de la paleta compartida (`sHorizonPaletteEclipse` / `sHorizonPal
 `DrawUnholyUiPanelAccents` dibuja ahora el marco con la línea del tema, una regla de acento bajo la cabecera con un píxel de halo, una regla discreta sobre el pie y tachuelas de acento en las esquinas. La geometría (2 px de borde, cabecera de 19 px, pie de 19 px) es la misma que antes.
 
 Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sobre selección ≥ 8:1 en Eclipse y ≥ 11:1 en Daylight; acento sobre panel ≥ 5,7:1. No verificado en mGBA: ver la lista de QA anterior.
+
+## Iconos y detalles vivos
+
+- `UnholyUi_Icon` dibuja iconos de 8×8 píxeles (un bit por píxel) con rectángulos de ventana: sin sprites, tiles ni paletas nuevas. El Poké Watch muestra un icono por servicio (tienda, mapa, crafteo, mira, cajas, señal, incursión, archivo, mutador, simulador) en el color de acento, atenuado y con un candado cuando el servicio está bloqueado.
+- `UnholyUi_Footer` convierte los pares `TECLA:acción` en teclas con esquinas redondeadas (chip de acento con el nombre del botón y la acción al lado). Si el pie no tiene esa forma o no cabe, se imprime como antes, así que ninguna instrucción se pierde.
+- `DrawUnholyUiPanelAccents` añade bajo la cabecera una trama de ajedrez de un píxel que degrada el halo hacia el panel.
+

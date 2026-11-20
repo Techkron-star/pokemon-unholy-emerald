@@ -37,6 +37,20 @@
 #define HUB_ROWS 3
 #define HUB_PAGE_SIZE (HUB_COLUMNS * HUB_ROWS)
 
+static const u8 sFeatureIcons[HFC_WATCH_FEATURE_COUNT] =
+{
+    [HFC_WATCH_FEATURE_HORIZON_SHOP] = UNHOLY_UI_ICON_SHOP,
+    [HFC_WATCH_FEATURE_POKENAV] = UNHOLY_UI_ICON_NAV,
+    [HFC_WATCH_FEATURE_CRAFTING] = UNHOLY_UI_ICON_CRAFT,
+    [HFC_WATCH_FEATURE_POKELOCATOR] = UNHOLY_UI_ICON_LOCATOR,
+    [HFC_WATCH_FEATURE_STORAGE] = UNHOLY_UI_ICON_BOXES,
+    [HFC_WATCH_FEATURE_FREQUENCY] = UNHOLY_UI_ICON_SIGNAL,
+    [HFC_WATCH_FEATURE_RAID] = UNHOLY_UI_ICON_RAID,
+    [HFC_WATCH_FEATURE_ARCHIVE] = UNHOLY_UI_ICON_ARCHIVE,
+    [HFC_WATCH_FEATURE_MUTATOR] = UNHOLY_UI_ICON_MUTATOR,
+    [HFC_WATCH_FEATURE_SIMULATOR] = UNHOLY_UI_ICON_SIMULATOR,
+};
+
 static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
 {
     [HFC_WATCH_FEATURE_HORIZON_SHOP] = COMPOUND_STRING("HORIZON"),
@@ -556,9 +570,15 @@ static void RenderHub(void)
         bool8 ready = HfcWatch_GetAccess(tier, feature, progress) == HFC_WATCH_READY;
         u8 fill = UnholyUi_CardFill(selected);
         UnholyUi_Card(sWatchWindowId, x, y, 97, 23, selected);
-        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + (ready ? 5 : 1), 87, fill, sFeatureNames[feature]);
+        // Eight-pixel service icon; dimmed while the service is locked.
+        UnholyUi_Icon(sWatchWindowId, x + 5, y + 7, sFeatureIcons[feature],
+                      ready ? UnholyUi_AccentColor() : (FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 3 : 11));
+        UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 17, y + (ready ? 5 : 1), 70, fill, sFeatureNames[feature]);
         if (!ready)
-            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 5, y + 11, 86, fill, COMPOUND_STRING("LOCKED"));
+        {
+            UnholyUi_Icon(sWatchWindowId, x + 85, y + 13, UNHOLY_UI_ICON_LOCK, FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 3 : 11);
+            UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL_NARROW, x + 17, y + 11, 66, fill, COMPOUND_STRING("LOCKED"));
+        }
         if (feature == HFC_WATCH_FEATURE_HORIZON_SHOP && ready && hasRareStock)
             FillWindowPixelRect(sWatchWindowId, PIXEL_FILL(13), x + 87, y + 9, 3, 3);
     }
