@@ -125,11 +125,42 @@ los Pokémon nativos por método y categoría de caña. **Acumulado de las cuatr
 tandas: 555 casillas curadas en 141 tablas**, que abarcan las 34 rutas
 numeradas, Bosque Petalia y 42 mapas de cuevas y mazmorras.
 
-## Zonas secundarias por revisar
+## Tanda 5 — zonas secundarias y generador de Nueva Malvalona
 
-Nueva Malvalona, Torre Espejismo, Paso Desértico, Cueva Taller, Guarida Magma y
-los mapas submarinos tienen ecosistemas propios; no se han incluido en esta
-selección de rutas y mazmorras principales.
+**19 mapas, 19 tablas y 107 casillas adicionales**, incluidos los dos mapas
+submarinos con encuentros originales de Hoenn.
+
+| Zona | Incorporaciones ecológicas | Hallazgo especial |
+| --- | --- | --- |
+| Nueva Malvalona: entrada | Elekid, Joltik, Tynamo, Klink, Toxel y Charjabug | Las dos especies eléctricas originales permanecen |
+| **Nueva Malvalona: generador** | Joltik, Klink, Elekid, Tynamo y Toxel | **Rotom al 1 %** dentro de la central |
+| Torre Espejismo (4 plantas) | Sandile, Baltoy, Dwebble, Yamask, Helioptile y Golett | Sigilyph y Unown al 1 %, Tyrunt al 1 % solo arriba |
+| Paso Desértico | Drilbur, Roggenrola, Diglett, Dwebble y Noibat | Zorua al 1 % entre los Ditto originales |
+| Cueva Taller (2 plantas) | Smeargle original sigue siendo dominante; Shroodle, Grafaiai, Unown y Klefki | Sudowoodo al 1 % y Ditto/Zorua raros según la planta |
+| Guarida Magma (8 mapas) | Rolycoly, Slugma, Numel, Houndour, Salandit, Koffing y Charcadet | Larvesta al 1 % en las salas profundas |
+| Bajo las Rutas 124 y 126 | Fauna marina: Skrelp, Mareanie, Clauncher y Tynamo | Relicanth original conservado por Surf |
+
+En el generador de Nueva Malvalona se desplaza Magneton desde su casilla
+original del 1 % a una casilla del 4 % ocupada por Magnemite. **Así siguen
+disponibles Voltorb, Magnemite, Electrode y Magneton**, mientras Rotom entra
+en la casilla excepcional del 1 %. Los interruptores, el generador apagable,
+la misión de Wattson y los tres Voltorb de combate fijo **no se modifican**:
+Rotom es un encuentro salvaje dentro del mapa, no un nuevo evento sobre el
+objeto del generador.
+
+`tools/unholy/hoenn_ecology_side_areas.py` verifica las 19 tablas originales,
+la presencia de todas las especies nativas, Rotom en el espacio de baja
+probabilidad y las etiquetas de los eventos del generador.
+
+**Total de las cinco tandas: 662 casillas curadas en 160 tablas de 96 mapas**,
+incluidas las 34 rutas numeradas y los biomas principales y secundarios.
+
+## Zonas sin tabla de encuentros o por revisar
+
+Quedan por estudiar la Zona Safari y otros interiores especiales. La zona
+`MAP_SCORCHED_SLAB`, por ejemplo, no tiene una tabla silvestre en este archivo:
+crear encuentros allí exige revisar primero su mapa, sus eventos y las
+condiciones de acceso; no se ha añadido una tabla artificialmente.
 
 ## Validación de juego pendiente
 
