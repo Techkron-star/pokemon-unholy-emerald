@@ -10,6 +10,7 @@
 ## Equilibrio y compatibilidad
 
 - Cada tipo tiene ocho candidatos de bajo poder inicial, con **400 puntos base de estadísticas como máximo**. No hay legendarios, singulares ni evoluciones finales. Algunos Pokémon de tipo Dragón son primeras etapas con evoluciones fuertes, pero necesitan entrenarse para alcanzarlas.
+- **Frigibax** (Dragón/Hielo, 320 puntos base), la primera fase de Baxcalibur, puede aparecer en el sorteo de Dragón. Noibat permanece disponible mediante el tipo Volador.
 - Los **tres resultados no se repiten** entre sí. En una partida nueva, quedan fijados desde la elección con la madre: cerrar y volver a abrir la mochila no los vuelve a sortear.
 - Cuatro variables de evento de Hoenn que estaban sin utilizar guardan el tipo (índice + 1) y las tres especies. **No se modifica el formato del guardado**.
 - Si una partida omite la conversación inicial (por ejemplo, un guardado anterior), la mochila pregunta el tipo favorito antes de abrir el selector de tres Pokémon.
