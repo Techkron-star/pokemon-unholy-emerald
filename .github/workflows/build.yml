@@ -257,6 +257,9 @@ jobs:
       - name: Validate Hoenn cave biome encounters
         run: python3 tools/unholy/hoenn_ecology_caves.py
 
+      - name: Validate advanced Hoenn dungeon encounters
+        run: python3 tools/unholy/hoenn_ecology_endgame.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04

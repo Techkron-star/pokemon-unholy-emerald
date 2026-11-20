@@ -98,14 +98,38 @@ Golpe Roca, Surf y cada categoría de caña se conservan.
 
 `tools/unholy/hoenn_ecology_caves.py` contiene el manifiesto determinista y
 valida cada casilla frente a su especie original, los métodos de captura y la
-exclusividad de Bagon. Junto con las otras dos tandas, son **342 casillas
-curadas en 99 tablas**.
+exclusividad de Bagon. Al cerrar esta tercera tanda se alcanzaron **342
+casillas curadas en 99 tablas**.
 
-## Siguientes zonas pendientes
+## Tanda 4 — mazmorras avanzadas, leyendas y descubrimientos
 
-Monte Pírico, Cueva Cardumen, Calle Victoria, Caverna Abisal, Cueva Ancestral,
-Pilar Celeste y los mapas submarinos necesitan su propia selección por piso y
-progresión. Son independientes de las 34 rutas de superficie, ya cubiertas.
+**30 mapas adicionales, 42 tablas y 213 casillas**, adaptados a cada planta:
+
+| Zona | Características del hábitat | Encuentros especiales |
+| --- | --- | --- |
+| Monte Pírico (8 mapas) | Shuppet y Duskull nativos; Gastly, Litwick, Yamask, Sinistea, Golett, Phantump, Murkrow y Misdreavus | Mimikyu al 1 % en pisos altos y Spiritomb al 1 % en el sexto piso |
+| Cueva Cardumen (5 mapas) | Spheal, Snorunt, Zubat y Golbat conservados; Seel, Bergmite, Snom, Cryogonal, Shellder y Woobat | Amaura al 1 % en la sala de hielo; **Lapras al 1 % con Supercaña** en la cámara interior |
+| Calle Victoria (3 mapas) | Drilbur, Rockruff, Riolu, Durant, Noibat, Axew; Surf y pesca subterránea diversificados | Gible y Deino al 1 % en los sótanos; Dratini al 1 % por Surf o Supercaña en B2F |
+| Caverna Abisal (9 mapas) | Woobat, Binacle, Dwebble, Wimpod, Carbink, Ferroseed y Sableye; pesca de Chinchou, Skrelp y Clauncher | Dhelmise, Minior y Relicanth en casillas raras específicas |
+| Cueva Ancestral (2 mapas jugables) | Woobat, Carbink, Glimmet, Noibat y Roggenrola | Minior y Gible en las casillas más escasas; pisos obsoletos de Rubí/Zafiro intactos |
+| Pilar Celeste (3 mapas) | Noibat, Lunatone, Minior, Carbink y dragones por profundidad | Deino y Gible al 1 %; se conserva el Altaria original del quinto piso |
+
+Estas especies permiten opciones potentes sin regalarlas al principio de la
+aventura. **No se añade ningún legendario ni mítico a encuentros aleatorios**:
+Groudon, Kyogre y Rayquaza mantienen sus eventos especiales de historia.
+Las formas originales de los encuentros y la separación por cañas permanecen
+intactas; tampoco se han alterado los niveles, las tasas ni los pesos.
+
+`tools/unholy/hoenn_ecology_endgame.py` comprueba los 30 mapas, sus tablas y
+los Pokémon nativos por método y categoría de caña. **Acumulado de las cuatro
+tandas: 555 casillas curadas en 141 tablas**, que abarcan las 34 rutas
+numeradas, Bosque Petalia y 42 mapas de cuevas y mazmorras.
+
+## Zonas secundarias por revisar
+
+Nueva Malvalona, Torre Espejismo, Paso Desértico, Cueva Taller, Guarida Magma y
+los mapas submarinos tienen ecosistemas propios; no se han incluido en esta
+selección de rutas y mazmorras principales.
 
 ## Validación de juego pendiente
 
