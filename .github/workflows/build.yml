@@ -248,6 +248,21 @@ jobs:
       - name: Validate all visible item-ball scripts and Gear pickups
         run: python3 tools/validate_unholy_pickups.py
 
+      - name: Validate the first Hoenn encounter expansion
+        run: python3 tools/unholy/hoenn_ecology_wave1.py
+
+      - name: Validate encounters on the remaining Hoenn routes
+        run: python3 tools/unholy/hoenn_ecology_remaining.py
+
+      - name: Validate Hoenn cave biome encounters
+        run: python3 tools/unholy/hoenn_ecology_caves.py
+
+      - name: Validate advanced Hoenn dungeon encounters
+        run: python3 tools/unholy/hoenn_ecology_endgame.py
+
+      - name: Validate New Mauville and other secondary habitats
+        run: python3 tools/unholy/hoenn_ecology_side_areas.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
     runs-on: ubuntu-24.04
