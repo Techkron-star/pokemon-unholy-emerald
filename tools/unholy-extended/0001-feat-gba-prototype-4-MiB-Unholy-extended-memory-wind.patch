@@ -1,0 +1,425 @@
+From 36d13e1e2044ee8b712678f7234bdf0494379b66 Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Sat, 21 Nov 2026 17:58:06 -0400
+Subject: [PATCH] feat(gba): prototype 4 MiB Unholy extended memory window
+
+---
+ include/mgba/internal/gba/memory.h |  6 ++
+ src/gba/core.c                     | 19 ++++++-
+ src/gba/memory.c                   | 83 +++++++++++++++++++++++++++-
+ tests/unholy-ext-memory-smoke.c    | 88 ++++++++++++++++++++++++++++++
+ 4 files changed, 192 insertions(+), 4 deletions(-)
+ create mode 100644 tests/unholy-ext-memory-smoke.c
+
+diff --git a/include/mgba/internal/gba/memory.h b/include/mgba/internal/gba/memory.h
+index 0aad912..9c8c9f1 100644
+--- a/include/mgba/internal/gba/memory.h
++++ b/include/mgba/internal/gba/memory.h
+@@ -22,6 +22,7 @@ CXX_GUARD_START
+ 
+ enum GBAMemoryRegion {
+ 	GBA_REGION_BIOS = 0x0,
++	GBA_REGION_UNHOLY_RAM = 0x1,
+ 	GBA_REGION_EWRAM = 0x2,
+ 	GBA_REGION_IWRAM = 0x3,
+ 	GBA_REGION_IO = 0x4,
+@@ -40,6 +41,7 @@ enum GBAMemoryRegion {
+ 
+ enum GBAMemoryBase {
+ 	GBA_BASE_BIOS = 0x00000000,
++	GBA_BASE_UNHOLY_RAM = 0x01000000,
+ 	GBA_BASE_EWRAM = 0x02000000,
+ 	GBA_BASE_IWRAM = 0x03000000,
+ 	GBA_BASE_IO = 0x04000000,
+@@ -58,6 +60,9 @@ enum GBAMemoryBase {
+ 
+ enum {
+ 	GBA_SIZE_BIOS = 0x00004000,
++	GBA_SIZE_UNHOLY_RAM = 0x00400000,
++	GBA_UNHOLY_RAM_DATA_OFFSET = 0x00001000,
++	GBA_UNHOLY_RAM_MAGIC = 0x58454855, /* "UHEX", little-endian */
+ 	GBA_SIZE_EWRAM = 0x00040000,
+ 	GBA_SIZE_IWRAM = 0x00008000,
+ 	GBA_SIZE_IO = 0x00000400,
+@@ -101,6 +106,7 @@ struct GBAPrintContext {
+ 
+ struct GBAMemory {
+ 	uint32_t* bios;
++	uint32_t* unholyRam;
+ 	uint32_t* wram;
+ 	uint32_t* iwram;
+ 	uint32_t* rom;
+diff --git a/src/gba/core.c b/src/gba/core.c
+index 6bfc518..c56fe48 100644
+--- a/src/gba/core.c
++++ b/src/gba/core.c
+@@ -876,15 +876,28 @@ static void _GBACoreStep(struct mCore* core) {
+ 
+ static size_t _GBACoreStateSize(struct mCore* core) {
+ 	UNUSED(core);
+-	return sizeof(struct GBASerializedState);
++	// Unholy Extended savestates append the host-backed RAM to the stock
++	// snapshot. This build uses its own state format; stock mGBA states are
++	// intentionally not interchangeable with extended-core states.
++	return sizeof(struct GBASerializedState) + GBA_SIZE_UNHOLY_RAM;
+ }
+ 
+ static bool _GBACoreLoadState(struct mCore* core, const void* state) {
+-	return GBADeserialize(core->board, state);
++	struct GBA* gba = core->board;
++	if (!GBADeserialize(gba, state)) {
++		return false;
++	}
++	memcpy(gba->memory.unholyRam,
++	       (const uint8_t*) state + sizeof(struct GBASerializedState),
++	       GBA_SIZE_UNHOLY_RAM);
++	return true;
+ }
+ 
+ static bool _GBACoreSaveState(struct mCore* core, void* state) {
+-	GBASerialize(core->board, state);
++	struct GBA* gba = core->board;
++	GBASerialize(gba, state);
++	memcpy((uint8_t*) state + sizeof(struct GBASerializedState),
++	       gba->memory.unholyRam, GBA_SIZE_UNHOLY_RAM);
+ 	return true;
+ }
+ 
+diff --git a/src/gba/memory.c b/src/gba/memory.c
+index aa01fdc..bb7829d 100644
+--- a/src/gba/memory.c
++++ b/src/gba/memory.c
+@@ -53,6 +53,7 @@ void GBAMemoryInit(struct GBA* gba) {
+ 
+ 	gba->memory.bios = (uint32_t*) hleBios;
+ 	gba->memory.fullBios = 0;
++	gba->memory.unholyRam = 0;
+ 	gba->memory.wram = 0;
+ 	gba->memory.iwram = 0;
+ 	gba->memory.rom = 0;
+@@ -92,6 +93,9 @@ void GBAMemoryInit(struct GBA* gba) {
+ 
+ 	gba->memory.wram = anonymousMemoryMap(GBA_SIZE_EWRAM + GBA_SIZE_IWRAM);
+ 	gba->memory.iwram = &gba->memory.wram[GBA_SIZE_EWRAM >> 2];
++	// Experimental Unholy Extended mode: a separate 4 MiB window in region 0x01.
++	// Do not enlarge standard GBA EWRAM; games and save states depend on its size.
++	gba->memory.unholyRam = anonymousMemoryMap(GBA_SIZE_UNHOLY_RAM);
+ 
+ 	GBADMAInit(gba);
+ 	GBAUnlCartInit(gba);
+@@ -103,6 +107,9 @@ void GBAMemoryInit(struct GBA* gba) {
+ 
+ void GBAMemoryDeinit(struct GBA* gba) {
+ 	mappedMemoryFree(gba->memory.wram, GBA_SIZE_EWRAM + GBA_SIZE_IWRAM);
++	if (gba->memory.unholyRam) {
++		mappedMemoryFree(gba->memory.unholyRam, GBA_SIZE_UNHOLY_RAM);
++	}
+ 	if (gba->memory.rom) {
+ 		mappedMemoryFree(gba->memory.rom, gba->memory.romSize);
+ 	}
+@@ -117,6 +124,12 @@ void GBAMemoryDeinit(struct GBA* gba) {
+ }
+ 
+ void GBAMemoryReset(struct GBA* gba) {
++	if (gba->memory.unholyRam) {
++		memset(gba->memory.unholyRam, 0, GBA_SIZE_UNHOLY_RAM);
++		gba->memory.unholyRam[0] = GBA_UNHOLY_RAM_MAGIC;
++		gba->memory.unholyRam[1] = 1; // Protocol version
++		gba->memory.unholyRam[2] = GBA_SIZE_UNHOLY_RAM - GBA_UNHOLY_RAM_DATA_OFFSET;
++	}
+ 	if (gba->memory.wram && gba->memory.rom) {
+ 		memset(gba->memory.wram, 0, GBA_SIZE_EWRAM);
+ 	}
+@@ -135,7 +148,7 @@ void GBAMemoryReset(struct GBA* gba) {
+ 	gba->memory.lastPrefetchedPc = 0;
+ 	gba->cpu->memory.accessSource = mACCESS_UNKNOWN;
+ 
+-	if (!gba->memory.wram || !gba->memory.iwram) {
++	if (!gba->memory.wram || !gba->memory.iwram || !gba->memory.unholyRam) {
+ 		GBAMemoryDeinit(gba);
+ 		mLOG(GBA_MEM, FATAL, "Could not map memory");
+ 	}
+@@ -305,6 +318,11 @@ static void GBASetActiveRegion(struct ARMCore* cpu, uint32_t address) {
+ 		cpu->memory.activeRegion = memory->bios;
+ 		cpu->memory.activeMask = GBA_SIZE_BIOS - 1;
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
++		cpu->memory.accessSource = mACCESS_PROGRAM;
++		cpu->memory.activeRegion = memory->unholyRam;
++		cpu->memory.activeMask = GBA_SIZE_UNHOLY_RAM - 1;
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		cpu->memory.accessSource = mACCESS_PROGRAM;
+ 		cpu->memory.activeRegion = memory->wram;
+@@ -397,6 +415,10 @@ static void GBASetActiveRegion(struct ARMCore* cpu, uint32_t address) {
+ 	LOAD_32(value, address & (GBA_SIZE_EWRAM - 4), memory->wram); \
+ 	wait += waitstatesRegion[GBA_REGION_EWRAM];
+ 
++#define LOAD_UNHOLY_RAM \
++	LOAD_32(value, address & (GBA_SIZE_UNHOLY_RAM - 4), memory->unholyRam); \
++	wait += waitstatesRegion[GBA_REGION_UNHOLY_RAM];
++
+ #define LOAD_IWRAM LOAD_32(value, address & (GBA_SIZE_IWRAM - 4), memory->iwram);
+ #define LOAD_IO value = GBAIORead(gba, address & OFFSET_MASK & ~3) | (GBAIORead(gba, (address & OFFSET_MASK & ~1) | 2) << 16);
+ 
+@@ -484,6 +506,9 @@ uint32_t GBALoad32(struct ARMCore* cpu, uint32_t address, int* cycleCounter) {
+ 	case GBA_REGION_BIOS:
+ 		LOAD_BIOS;
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
++		LOAD_UNHOLY_RAM;
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		LOAD_EWRAM;
+ 		break;
+@@ -552,6 +577,10 @@ uint32_t GBALoad16(struct ARMCore* cpu, uint32_t address, int* cycleCounter) {
+ 			value = (GBALoadBad(cpu) >> ((address & 2) * 8)) & 0xFFFF;
+ 		}
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
++		LOAD_16(value, address & (GBA_SIZE_UNHOLY_RAM - 2), memory->unholyRam);
++		wait = memory->waitstatesNonseq16[GBA_REGION_UNHOLY_RAM];
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		LOAD_16(value, address & (GBA_SIZE_EWRAM - 2), memory->wram);
+ 		wait = memory->waitstatesNonseq16[GBA_REGION_EWRAM];
+@@ -667,6 +696,10 @@ uint32_t GBALoad8(struct ARMCore* cpu, uint32_t address, int* cycleCounter) {
+ 			value = (GBALoadBad(cpu) >> ((address & 3) * 8)) & 0xFF;
+ 		}
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
++		value = ((uint8_t*) memory->unholyRam)[address & (GBA_SIZE_UNHOLY_RAM - 1)];
++		wait = memory->waitstatesNonseq16[GBA_REGION_UNHOLY_RAM];
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		value = ((uint8_t*) memory->wram)[address & (GBA_SIZE_EWRAM - 1)];
+ 		wait = memory->waitstatesNonseq16[GBA_REGION_EWRAM];
+@@ -760,6 +793,12 @@ uint32_t GBALoad8(struct ARMCore* cpu, uint32_t address, int* cycleCounter) {
+ 	STORE_32(value, address & (GBA_SIZE_EWRAM - 4), memory->wram); \
+ 	wait += waitstatesRegion[GBA_REGION_EWRAM];
+ 
++#define STORE_UNHOLY_RAM \
++	if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) { \
++		STORE_32(value, address & (GBA_SIZE_UNHOLY_RAM - 4), memory->unholyRam); \
++	} \
++	wait += waitstatesRegion[GBA_REGION_UNHOLY_RAM];
++
+ #define STORE_IWRAM \
+ 	STORE_32(value, address & (GBA_SIZE_IWRAM - 4), memory->iwram);
+ 
+@@ -830,6 +869,9 @@ void GBAStore32(struct ARMCore* cpu, uint32_t address, int32_t value, int* cycle
+ 	char* waitstatesRegion = memory->waitstatesNonseq32;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		STORE_UNHOLY_RAM;
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		STORE_EWRAM;
+ 		break;
+@@ -881,6 +923,12 @@ void GBAStore16(struct ARMCore* cpu, uint32_t address, int16_t value, int* cycle
+ 	int16_t oldValue;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) {
++			STORE_16(value, address & (GBA_SIZE_UNHOLY_RAM - 2), memory->unholyRam);
++		}
++		wait = memory->waitstatesNonseq16[GBA_REGION_UNHOLY_RAM];
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		STORE_16(value, address & (GBA_SIZE_EWRAM - 2), memory->wram);
+ 		wait = memory->waitstatesNonseq16[GBA_REGION_EWRAM];
+@@ -1026,6 +1074,12 @@ void GBAStore8(struct ARMCore* cpu, uint32_t address, int8_t value, int* cycleCo
+ 	uint16_t oldValue;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) {
++			((int8_t*) memory->unholyRam)[address & (GBA_SIZE_UNHOLY_RAM - 1)] = value;
++		}
++		wait = memory->waitstatesNonseq16[GBA_REGION_UNHOLY_RAM];
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		((int8_t*) memory->wram)[address & (GBA_SIZE_EWRAM - 1)] = value;
+ 		wait = memory->waitstatesNonseq16[GBA_REGION_EWRAM];
+@@ -1115,6 +1169,7 @@ uint32_t GBAView32(struct ARMCore* cpu, uint32_t address) {
+ 			LOAD_32(value, address, gba->memory.bios);
+ 		}
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
+ 	case GBA_REGION_EWRAM:
+ 	case GBA_REGION_IWRAM:
+ 	case GBA_REGION_PALETTE_RAM:
+@@ -1154,6 +1209,7 @@ uint16_t GBAView16(struct ARMCore* cpu, uint32_t address) {
+ 			LOAD_16(value, address, gba->memory.bios);
+ 		}
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
+ 	case GBA_REGION_EWRAM:
+ 	case GBA_REGION_IWRAM:
+ 	case GBA_REGION_PALETTE_RAM:
+@@ -1194,6 +1250,7 @@ uint8_t GBAView8(struct ARMCore* cpu, uint32_t address) {
+ 			value = ((uint8_t*) gba->memory.bios)[address];
+ 		}
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
+ 	case GBA_REGION_EWRAM:
+ 	case GBA_REGION_IWRAM:
+ 	case GBA_REGION_ROM0:
+@@ -1223,6 +1280,12 @@ void GBAPatch32(struct ARMCore* cpu, uint32_t address, int32_t value, int32_t* o
+ 	int32_t oldValue = -1;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		LOAD_32(oldValue, address & (GBA_SIZE_UNHOLY_RAM - 4), memory->unholyRam);
++		if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) {
++			STORE_32(value, address & (GBA_SIZE_UNHOLY_RAM - 4), memory->unholyRam);
++		}
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		LOAD_32(oldValue, address & (GBA_SIZE_EWRAM - 4), memory->wram);
+ 		STORE_32(value, address & (GBA_SIZE_EWRAM - 4), memory->wram);
+@@ -1297,6 +1360,12 @@ void GBAPatch16(struct ARMCore* cpu, uint32_t address, int16_t value, int16_t* o
+ 	int16_t oldValue = -1;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		LOAD_16(oldValue, address & (GBA_SIZE_UNHOLY_RAM - 2), memory->unholyRam);
++		if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) {
++			STORE_16(value, address & (GBA_SIZE_UNHOLY_RAM - 2), memory->unholyRam);
++		}
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		LOAD_16(oldValue, address & (GBA_SIZE_EWRAM - 2), memory->wram);
+ 		STORE_16(value, address & (GBA_SIZE_EWRAM - 2), memory->wram);
+@@ -1379,6 +1448,12 @@ void GBAPatch8(struct ARMCore* cpu, uint32_t address, int8_t value, int8_t* old)
+ 	int16_t alignedValue;
+ 
+ 	switch (address >> BASE_OFFSET) {
++	case GBA_REGION_UNHOLY_RAM:
++		oldValue = ((int8_t*) memory->unholyRam)[address & (GBA_SIZE_UNHOLY_RAM - 1)];
++		if ((address & (GBA_SIZE_UNHOLY_RAM - 1)) >= GBA_UNHOLY_RAM_DATA_OFFSET) {
++			((int8_t*) memory->unholyRam)[address & (GBA_SIZE_UNHOLY_RAM - 1)] = value;
++		}
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		oldValue = ((int8_t*) memory->wram)[address & (GBA_SIZE_EWRAM - 1)];
+ 		((int8_t*) memory->wram)[address & (GBA_SIZE_EWRAM - 1)] = value;
+@@ -1511,6 +1586,9 @@ uint32_t GBALoadMultiple(struct ARMCore* cpu, uint32_t address, int mask, enum L
+ 	case GBA_REGION_BIOS:
+ 		LDM_LOOP(LOAD_BIOS);
+ 		break;
++	case GBA_REGION_UNHOLY_RAM:
++		LDM_LOOP(LOAD_UNHOLY_RAM);
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		LDM_LOOP(LOAD_EWRAM);
+ 		break;
+@@ -1630,6 +1708,9 @@ uint32_t GBAStoreMultiple(struct ARMCore* cpu, uint32_t address, int mask, enum
+ 	int wait = memory->waitstatesSeq32[region] - memory->waitstatesNonseq32[region];
+ 
+ 	switch (region) {
++	case GBA_REGION_UNHOLY_RAM:
++		STM_LOOP(STORE_UNHOLY_RAM);
++		break;
+ 	case GBA_REGION_EWRAM:
+ 		STM_LOOP(STORE_EWRAM);
+ 		break;
+diff --git a/tests/unholy-ext-memory-smoke.c b/tests/unholy-ext-memory-smoke.c
+new file mode 100644
+index 0000000..687a6f7
+--- /dev/null
++++ b/tests/unholy-ext-memory-smoke.c
+@@ -0,0 +1,88 @@
++/* Unholy Extended memory probe (experimental mGBA fork, MPL-2.0). */
++#include <mgba/core/core.h>
++#include <mgba/internal/gba/gba.h>
++#include <mgba/internal/gba/memory.h>
++
++#include <stdio.h>
++#include <stdlib.h>
++
++int main(int argc, char **argv)
++{
++    struct mCore *core;
++    struct GBA *gba;
++    struct ARMCore *cpu;
++    const uint32_t base = GBA_BASE_UNHOLY_RAM;
++    const uint32_t address = base + GBA_UNHOLY_RAM_DATA_OFFSET;
++    uint8_t *savedState = NULL;
++    int status = 1;
++
++    if (argc != 2)
++        return fprintf(stderr, "usage: %s <rom.gba>\n", argv[0]), 2;
++
++    core = mCoreFind(argv[1]);
++    if (core == NULL)
++        return fprintf(stderr, "Could not identify ROM\n"), 2;
++    core->init(core);
++    mCoreInitConfig(core, "unholy-ext-probe");
++    mCoreLoadConfig(core);
++    if (!mCoreLoadFile(core, argv[1]))
++    {
++        fprintf(stderr, "Could not load ROM\n");
++        goto done;
++    }
++    core->reset(core);
++    gba = (struct GBA *)core->board;
++    cpu = gba->cpu;
++
++    if (GBALoad32(cpu, base, NULL) != GBA_UNHOLY_RAM_MAGIC
++     || GBALoad32(cpu, base + 4, NULL) != 1
++     || GBALoad32(cpu, base + 8, NULL) != GBA_SIZE_UNHOLY_RAM - GBA_UNHOLY_RAM_DATA_OFFSET)
++        goto done;
++
++    GBAStore32(cpu, base, 0, NULL);  /* Control header must be read-only. */
++    if (GBALoad32(cpu, base, NULL) != GBA_UNHOLY_RAM_MAGIC)
++        goto done;
++
++    GBAStore32(cpu, address, 0xA1B2C3D4, NULL);
++    if (GBALoad32(cpu, address, NULL) != 0xA1B2C3D4
++     || GBALoad16(cpu, address + 2, NULL) != 0xA1B2
++     || GBALoad8(cpu, address + 1, NULL) != 0xC3)
++        goto done;
++
++    GBAStore8(cpu, address + 1, 0xEF, NULL);
++    GBAStore16(cpu, address + 2, 0x1234, NULL);
++    if (GBALoad32(cpu, address, NULL) != 0x1234EFD4)
++        goto done;
++
++    GBAStore32(cpu, GBA_BASE_EWRAM + 0x100, 0xCAFEBABE, NULL);
++    if (GBALoad32(cpu, GBA_BASE_EWRAM + 0x100, NULL) != 0xCAFEBABE
++     || GBALoad32(cpu, address, NULL) != 0x1234EFD4)
++        goto done;
++
++    GBAStore32(cpu, base + GBA_SIZE_UNHOLY_RAM - 4, 0x12345678, NULL);
++    if (GBALoad32(cpu, base + GBA_SIZE_UNHOLY_RAM - 4, NULL) != 0x12345678)
++        goto done;
++
++    savedState = malloc(core->stateSize(core));
++    if (savedState == NULL || !core->saveState(core, savedState))
++        goto done;
++    GBAStore32(cpu, address, 0x77777777, NULL);
++    if (!core->loadState(core, savedState)
++     || GBALoad32(cpu, address, NULL) != 0x1234EFD4
++     || GBALoad32(cpu, base + GBA_SIZE_UNHOLY_RAM - 4, NULL) != 0x12345678)
++        goto done;
++
++    core->reset(core);
++    if (GBALoad32(cpu, address, NULL) != 0
++     || GBALoad32(cpu, base, NULL) != GBA_UNHOLY_RAM_MAGIC)
++        goto done;
++
++    puts("PASS: 4 MiB extended RAM, read/write/boundary/savestate/reset/ROM loading");
++    status = 0;
++done:
++    free(savedState);
++    if (status)
++        fprintf(stderr, "FAIL: Unholy Extended memory probe\n");
++    core->deinit(core);
++    return status;
++}
+-- 
+2.56.1
+

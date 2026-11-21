@@ -30,6 +30,7 @@
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
 #include "hf_pc_groups.h"
+#include "unholy_ext_ram.h"
 #include "script.h"
 #include "sound.h"
 #include "string_util.h"
@@ -2357,8 +2358,34 @@ EWRAM_DATA static u16 sHfPcMemberPage;
 EWRAM_DATA static u32 sHfPcSelectedKey;
 EWRAM_DATA static u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
 EWRAM_DATA static struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
+EWRAM_DATA static u32 *sHfPcFolderKeysActive;
+EWRAM_DATA static struct HfPcMonRef *sHfPcMembersActive;
+EWRAM_DATA static bool8 sHfPcExtBuffersChecked;
 EWRAM_DATA static u8 sHfPcFolderLabels[5][32];
 EWRAM_DATA static u8 sHfPcMemberLabels[5][32];
+
+// On the extended emulator, virtual folder indexes use the host-backed 4 MiB
+// window. Standard GBA and Pizza Boy keep the existing EWRAM fallback.
+static void HfPc_SelectFolderBuffers(void)
+{
+    if (sHfPcExtBuffersChecked)
+        return;
+
+    sHfPcFolderKeysActive = sHfPcFolderKeys;
+    sHfPcMembersActive = sHfPcMembers;
+    sHfPcExtBuffersChecked = TRUE;
+
+    if (UnholyExtRam_IsAvailable())
+    {
+        u32 *keys = UnholyExtRam_Alloc(sizeof(sHfPcFolderKeys), 4);
+        struct HfPcMonRef *members = UnholyExtRam_Alloc(sizeof(sHfPcMembers), 4);
+        if (keys != NULL && members != NULL)
+        {
+            sHfPcFolderKeysActive = keys;
+            sHfPcMembersActive = members;
+        }
+    }
+}
 
 
 static void HfPc_AddFolderRow(const u8 *label, u8 id)
@@ -2384,10 +2411,10 @@ static void HfPc_OpenFolderPage(void)
     {
         index = sHfPcFolderPage * 5 + i;
         if (sHfPcGroupMode == HF_PC_GROUP_SPECIES)
-            StringCopy(sHfPcFolderLabels[i], GetSpeciesName(sHfPcFolderKeys[index]));
+            StringCopy(sHfPcFolderLabels[i], GetSpeciesName(sHfPcFolderKeysActive[index]));
         else
         {
-            sHfPcFolderLabels[i][0] = sHfPcFolderKeys[index];
+            sHfPcFolderLabels[i][0] = sHfPcFolderKeysActive[index];
             sHfPcFolderLabels[i][1] = EOS;
         }
         HfPc_AddFolderRow(sHfPcFolderLabels[i], i);
@@ -2401,14 +2428,14 @@ static void HfPc_OpenFolderPage(void)
 static void HfPc_OpenMemberPage(void)
 {
     u16 i, index, count = HfPcGroup_List(sHfPcGroupMode, sHfPcSelectedKey,
-                                         sHfPcMembers, ARRAY_COUNT(sHfPcMembers));
+                                         sHfPcMembersActive, HF_PC_GROUP_COUNT);
     InitMenu();
     for (i = 0; i < 5 && sHfPcMemberPage * 5 + i < count; i++)
     {
         index = sHfPcMemberPage * 5 + i;
         StringCopy(sHfPcMemberLabels[i],
-                   GetSpeciesName(GetBoxMonDataAt(sHfPcMembers[index].box,
-                                                  sHfPcMembers[index].slot, MON_DATA_SPECIES)));
+                   GetSpeciesName(GetBoxMonDataAt(sHfPcMembersActive[index].box,
+                                                  sHfPcMembersActive[index].slot, MON_DATA_SPECIES)));
         HfPc_AddFolderRow(sHfPcMemberLabels[i], i);
     }
     SetMenuText(MENU_HF_PAGE_NEXT);
@@ -2419,8 +2446,9 @@ static void HfPc_OpenMemberPage(void)
 
 static void HfPc_BrowseFolders(void)
 {
-    sHfPcFolderCount = HfPcGroup_CollectKeys(sHfPcGroupMode, sHfPcFolderKeys,
-                                              ARRAY_COUNT(sHfPcFolderKeys));
+    HfPc_SelectFolderBuffers();
+    sHfPcFolderCount = HfPcGroup_CollectKeys(sHfPcGroupMode, sHfPcFolderKeysActive,
+                                              HF_PC_GROUP_COUNT);
     sHfPcFolderPage = 0;
     HfPc_OpenFolderPage();
 }
@@ -2439,7 +2467,7 @@ static void HfPc_HandleFolderMenu(void)
     }
     else if (choice >= 0 && choice < 5)
     {
-        sHfPcSelectedKey = sHfPcFolderKeys[sHfPcFolderPage * 5 + choice];
+        sHfPcSelectedKey = sHfPcFolderKeysActive[sHfPcFolderPage * 5 + choice];
         sHfPcMemberPage = 0;
         HfPc_OpenMemberPage();
     }

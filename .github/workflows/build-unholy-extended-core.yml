@@ -1,0 +1,56 @@
+name: Build Unholy Extended Android core (experimental)
+
+on:
+  push:
+    branches:
+      - feat/unholy-extended-ram-4mib
+    paths:
+      - .github/workflows/build-unholy-extended-core.yml
+      - tools/unholy-extended/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  libretro-android-arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch pinned mGBA and apply Unholy patch
+        run: |
+          git init mgba-src
+          git -C mgba-src remote add origin https://github.com/mgba-emu/mgba.git
+          git -C mgba-src fetch --depth 1 origin 4a390e470a1c90e3b91721a247e5a5e836c31b8e
+          git -C mgba-src checkout --detach FETCH_HEAD
+          git -C mgba-src apply ../tools/unholy-extended/0001-feat-gba-prototype-4-MiB-Unholy-extended-memory-wind.patch
+
+      - name: Configure Android arm64 core
+        run: |
+          cmake -S mgba-src -B mgba-android-arm64 \
+            -DCMAKE_TOOLCHAIN_FILE="${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-23 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_QT=OFF \
+            -DBUILD_SDL=OFF \
+            -DBUILD_LIBRETRO=ON \
+            -DUSE_FFMPEG=OFF \
+            -DUSE_PNG=OFF \
+            -DUSE_MINIZIP=OFF \
+            -DUSE_SQLITE3=OFF
+
+      - name: Compile Android core
+        run: |
+          cmake --build mgba-android-arm64 --target mgba_libretro --parallel 4
+          file mgba-android-arm64/mgba_libretro.so
+          sha256sum mgba-android-arm64/mgba_libretro.so
+
+      - name: Upload experimental core
+        uses: actions/upload-artifact@v4
+        with:
+          name: unholy-extended-libretro-android-arm64-experimental
+          path: mgba-android-arm64/mgba_libretro.so
+          retention-days: 3
