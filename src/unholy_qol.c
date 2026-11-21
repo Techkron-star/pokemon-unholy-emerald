@@ -5,6 +5,8 @@
 #include "unholy_qol.h"
 #include "hfc_watch.h"
 #include "item.h"
+#include "pokemon.h"
+#include "config/item.h"
 #include "constants/flags.h"
 #include "constants/items.h"
 #include "constants/vars.h"
@@ -32,6 +34,8 @@ static const u8 sText_QolInfinityOn[] = _("Infinity Repel: ON");
 static const u8 sText_QolInfinityOff[] = _("Infinity Repel: OFF");
 static const u8 sText_QolFlashOn[] = _("Flasher: ON");
 static const u8 sText_QolFlashOff[] = _("Flasher: OFF");
+static const u8 sText_QolHealOn[] = _("Auto Heal: ON");
+static const u8 sText_QolHealOff[] = _("Auto Heal: OFF");
 
 static const u8 *const sQolLabels[UQOL_OPTION_COUNT][2] =
 {
@@ -44,6 +48,7 @@ static const u8 *const sQolLabels[UQOL_OPTION_COUNT][2] =
     [UQOL_AUTO_DIALOGUE]   = {sText_QolTextOff, sText_QolTextOn},
     [UQOL_INFINITE_REPEL] = {sText_QolInfinityOff, sText_QolInfinityOn},
     [UQOL_AUTO_FLASH]     = {sText_QolFlashOff, sText_QolFlashOn},
+    [UQOL_AUTO_HEAL]      = {sText_QolHealOff, sText_QolHealOn},
 };
 
 static EWRAM_DATA u8 sQolMenuCursor = 0;
@@ -70,6 +75,9 @@ bool32 UnholyQolIsEnabled(enum UnholyQolOption option)
      && (HfcWatch_GetTier() < HFC_WATCH_TIER_SUPER
       || !FlagGet(IS_FRLG ? FLAG_BADGE01_GET : FLAG_BADGE02_GET)
       || !CheckBagHasItem(ITEM_HM_FLASH, 1)))
+        return FALSE;
+
+    if (option == UQOL_AUTO_HEAL && HfcWatch_GetTier() < HFC_WATCH_TIER_POKE)
         return FALSE;
 
     return (GetQolFlags() & (1 << option)) != 0;
@@ -116,4 +124,77 @@ void UnholyQolToggleSelection(struct ScriptContext *ctx)
 u32 UnholyQolGetScriptSetting(void)
 {
     return UnholyQolIsEnabled(gSpecialVar_0x8000);
+}
+
+// No free healing and no revives: use ordinary medicine after successful,
+// non-facility battles. Prefer the smallest potion that finishes the job;
+// otherwise use the strongest stocked one, then re-evaluate the remaining HP.
+static enum Item AutoHealChoosePotion(u16 missingHp)
+{
+    static const struct
+    {
+        enum Item item;
+        u16 healing;
+    } sPotions[] =
+    {
+        {ITEM_POTION, 20},
+        {ITEM_SUPER_POTION, I_HEALTH_RECOVERY >= GEN_7 ? 60 : 50},
+        {ITEM_HYPER_POTION, I_HEALTH_RECOVERY >= GEN_7 ? 120 : 200},
+        {ITEM_MAX_POTION, 0xFFFF},
+    };
+    enum Item selected = ITEM_NONE;
+    u16 selectedHeal = 0;
+
+    for (u8 i = 0; i < ARRAY_COUNT(sPotions); i++)
+    {
+        u16 healing = sPotions[i].healing;
+        if (!CheckBagHasItem(sPotions[i].item, 1))
+            continue;
+        // Spare Max Potions for larger wounds when cheaper medicine exists.
+        if (sPotions[i].item == ITEM_MAX_POTION && missingHp <= 200
+         && (CheckBagHasItem(ITEM_POTION, 1)
+          || CheckBagHasItem(ITEM_SUPER_POTION, 1)
+          || CheckBagHasItem(ITEM_HYPER_POTION, 1)))
+            continue;
+        if (selected == ITEM_NONE
+         || (healing >= missingHp && selectedHeal < missingHp)
+         || (healing >= missingHp && selectedHeal >= missingHp && healing < selectedHeal)
+         || (healing < missingHp && selectedHeal < missingHp && healing > selectedHeal))
+        {
+            selected = sPotions[i].item;
+            selectedHeal = healing;
+        }
+    }
+    return selected;
+}
+
+void UnholyQolAutoHealAfterBattle(void)
+{
+    if (!UnholyQolIsEnabled(UQOL_AUTO_HEAL))
+        return;
+
+    for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
+        u16 currentHp, maxHp;
+        if (GetMonData(mon, MON_DATA_IS_EGG))
+            continue;
+        currentHp = GetMonData(mon, MON_DATA_HP);
+        maxHp = GetMonData(mon, MON_DATA_MAX_HP);
+        if (currentHp == 0 || currentHp >= maxHp)
+            continue;
+
+        while (currentHp < maxHp)
+        {
+            enum Item potion = AutoHealChoosePotion(maxHp - currentHp);
+            u16 heal;
+            if (potion == ITEM_NONE || !RemoveBagItem(potion, 1))
+                break;
+            heal = potion == ITEM_MAX_POTION ? maxHp :
+                potion == ITEM_HYPER_POTION ? (I_HEALTH_RECOVERY >= GEN_7 ? 120 : 200) :
+                potion == ITEM_SUPER_POTION ? (I_HEALTH_RECOVERY >= GEN_7 ? 60 : 50) : 20;
+            currentHp = min(maxHp, currentHp + heal);
+            SetMonData(mon, MON_DATA_HP, &currentHp);
+        }
+    }
 }

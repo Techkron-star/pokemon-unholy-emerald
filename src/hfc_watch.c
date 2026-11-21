@@ -338,7 +338,7 @@ static void RenderTools(void)
         COMPOUND_STRING("REPEL AUTO"),
         COMPOUND_STRING("CAMPO AUTO"),
         COMPOUND_STRING("HUEVOS"),
-        COMPOUND_STRING("EQUIPO"),
+        COMPOUND_STRING("AUTO HEAL"),
         COMPOUND_STRING("FLASHER"),
         COMPOUND_STRING("INFINITY REPEL"),
     };
@@ -358,6 +358,8 @@ static void RenderTools(void)
             detail = UnholyQolIsEnabled(UQOL_AUTO_FLASH) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
         else if (tool == HFC_WATCH_TOOL_INFINITY_REPEL)
             detail = UnholyQolIsEnabled(UQOL_INFINITE_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_AUTO_HEAL)
+            detail = UnholyQolIsEnabled(UQOL_AUTO_HEAL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
         else if (tool == HFC_WATCH_TOOL_EGG_TRACKER)
         {
             u8 eggs = 0, cycles = 255;
@@ -372,19 +374,6 @@ static void RenderTools(void)
             ConvertUIntToDecimalStringN(end, eggs ? cycles : 0, STR_CONV_MODE_LEFT_ALIGN, 3);
             detail = text;
         }
-        else if (tool == HFC_WATCH_TOOL_PARTY_STATUS)
-        {
-            u8 ready = 0;
-            for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
-                if (!GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_IS_EGG)
-                 && GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_HP))
-                    ready++;
-            u8 *end = ConvertUIntToDecimalStringN(text, ready, STR_CONV_MODE_LEFT_ALIGN, 1);
-            end = StringCopy(end, COMPOUND_STRING("/"));
-            end = ConvertUIntToDecimalStringN(end, gPartiesCount[B_TRAINER_PLAYER], STR_CONV_MODE_LEFT_ALIGN, 1);
-            StringCopy(end, COMPOUND_STRING(" LISTOS"));
-            detail = text;
-        }
         UnholyUi_ChoiceRow(sWatchWindowId, 22 + 15 * tool, names[tool], detail, tool == sToolCursor);
     }
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 113, 195,
@@ -393,7 +382,7 @@ static void RenderTools(void)
       : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin gasto; respeta niveles")
       : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Requiere MO y medalla")
       : sToolCursor == HFC_WATCH_TOOL_FLASHER ? COMPOUND_STRING("Alumbra cuevas con MO y medalla")
-      : COMPOUND_STRING("Consulta PS sin curar al equipo"));
+      : COMPOUND_STRING("Pociones tras cada combate"));
     UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:SEL  A:USAR  B:ATRAS"));
 }
 
@@ -614,6 +603,9 @@ static void HandleToolsInput(u8 taskId)
             break;
         case HFC_WATCH_TOOL_INFINITY_REPEL:
             UnholyQolToggleOption(UQOL_INFINITE_REPEL);
+            break;
+        case HFC_WATCH_TOOL_AUTO_HEAL:
+            UnholyQolToggleOption(UQOL_AUTO_HEAL);
             break;
         default:
             break; // Read-only trackers never change the save.

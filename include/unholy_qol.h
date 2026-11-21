@@ -17,6 +17,7 @@ enum UnholyQolOption
     UQOL_GENERAL_OPTION_COUNT,
     UQOL_INFINITE_REPEL = UQOL_GENERAL_OPTION_COUNT,
     UQOL_AUTO_FLASH,
+    UQOL_AUTO_HEAL,
     UQOL_OPTION_COUNT,
 };
 
@@ -25,5 +26,6 @@ void UnholyQolToggleOption(enum UnholyQolOption option);
 void UnholyQolDrawMenu(struct ScriptContext *ctx);
 void UnholyQolToggleSelection(struct ScriptContext *ctx);
 u32 UnholyQolGetScriptSetting(void);
+void UnholyQolAutoHealAfterBattle(void);
 
 #endif // GUARD_UNHOLY_QOL_H

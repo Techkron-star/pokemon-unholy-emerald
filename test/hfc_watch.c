@@ -3,6 +3,7 @@
 #include "hfc_watch_services.h"
 #include "horizon_market.h"
 #include "horizon_goods.h"
+#include "unholy_qol.h"
 #include "event_data.h"
 #include "item.h"
 #include "string_util.h"
@@ -154,10 +155,44 @@ TEST("Watch tools offer read-only trackers early and gate Flash and Infinity by 
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_AUTO_REPEL), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FIELD_ASSIST), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_EGG_TRACKER), HFC_WATCH_TIER_POKE);
-    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_PARTY_STATUS), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_AUTO_HEAL), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FLASHER), HFC_WATCH_TIER_SUPER);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_INFINITY_REPEL), HFC_WATCH_TIER_HF);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_COUNT), HFC_WATCH_TIER_COUNT);
+}
+
+TEST("Auto Heal consumes real medicine without reviving a fainted teammate")
+{
+    u16 oldFlags = VarGet(VAR_UNHOLY_QOL_FLAGS);
+    u16 hp, maxHp;
+    struct Pokemon *party = gParties[B_TRAINER_PLAYER];
+
+    SetBagItemsPointers();
+    ClearBag();
+    CreateMonWithIVs(&party[0], SPECIES_WOBBUFFET, 30, 0, OTID_STRUCT_PRESET(0), 10);
+    CreateMonWithIVs(&party[1], SPECIES_WOBBUFFET, 30, 0, OTID_STRUCT_PRESET(0), 10);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+    maxHp = GetMonData(&party[0], MON_DATA_MAX_HP);
+    hp = maxHp - 70;
+    SetMonData(&party[0], MON_DATA_HP, &hp);
+    hp = 0;
+    SetMonData(&party[1], MON_DATA_HP, &hp);
+    VarSet(VAR_UNHOLY_QOL_FLAGS, (1 << 15) | (1 << UQOL_AUTO_HEAL));
+    EXPECT(AddBagItem(ITEM_POTION, 1));
+    EXPECT(AddBagItem(ITEM_SUPER_POTION, 1));
+    EXPECT(AddBagItem(ITEM_MAX_POTION, 1));
+
+    // Even a saved ON preference does nothing until the basic Watch is owned.
+    UnholyQolAutoHealAfterBattle();
+    EXPECT_EQ(GetMonData(&party[0], MON_DATA_HP), maxHp - 70);
+    EXPECT(AddBagItem(ITEM_POKE_WATCH, 1));
+    UnholyQolAutoHealAfterBattle();
+    EXPECT_EQ(GetMonData(&party[0], MON_DATA_HP), maxHp);
+    EXPECT_EQ(GetMonData(&party[1], MON_DATA_HP), 0);
+    EXPECT(!CheckBagHasItem(ITEM_POTION, 1));
+    EXPECT(!CheckBagHasItem(ITEM_SUPER_POTION, 1));
+    EXPECT(CheckBagHasItem(ITEM_MAX_POTION, 1));
+    VarSet(VAR_UNHOLY_QOL_FLAGS, oldFlags);
 }
 
 TEST("Horizon offers and mutation grades grow with Watch hardware, never above Ancestral")
