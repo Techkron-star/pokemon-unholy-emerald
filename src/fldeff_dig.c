@@ -4,6 +4,7 @@
 #include "field_effect.h"
 #include "field_player_avatar.h"
 #include "fldeff.h"
+#include "follower_npc.h"
 #include "item_use.h"
 #include "overworld.h"
 #include "party_menu.h"
@@ -18,16 +19,18 @@ static void StartDigFieldEffect(void);
 // text
 bool32 SetUpFieldMove_Dig(void)
 {
-    if (CanUseDigOrEscapeRopeOnCurMap() == TRUE)
+    if (ShouldDoBrailleDigEffect())
     {
         gFieldCallback2 = FieldCallback_PrepareFadeInFromMenu;
         gPostMenuFieldCallback = FieldCallback_Dig;
         return TRUE;
     }
-    else
-    {
+    // Outside the puzzle, Dig opens the visited-destinations map just like Fly.
+    // Caves that traditionally allowed Escape Rope are also valid origins.
+    if (!CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE))
         return FALSE;
-    }
+    return Overworld_MapTypeAllowsTeleportAndFly(gMapHeader.mapType)
+        || CanUseDigOrEscapeRopeOnCurMap();
 }
 
 static void FieldCallback_Dig(void)

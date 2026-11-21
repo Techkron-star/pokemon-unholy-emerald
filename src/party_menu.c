@@ -10,6 +10,7 @@
 #include "battle_pike.h"
 #include "battle_pyramid.h"
 #include "battle_pyramid_bag.h"
+#include "braille_puzzles.h"
 #include "bg.h"
 #include "contest.h"
 #include "data.h"
@@ -4171,20 +4172,23 @@ static void CursorCb_FieldMove(u8 taskId)
         case FIELD_MOVE_SOFT_BOILED:
             ChooseMonForSoftboiled(taskId);
             break;
-        case FIELD_MOVE_TELEPORT:
-            mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->lastHealLocation.mapGroup, gSaveBlock1Ptr->lastHealLocation.mapNum);
-            GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
-            StringExpandPlaceholders(gStringVar4, gText_ReturnToHealingSpot);
-            DisplayFieldMoveExitAreaMessage(taskId);
-            sPartyMenuInternal->data[0] = fieldMove;
-            break;
         case FIELD_MOVE_DIG:
-            mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->escapeWarp.mapGroup, gSaveBlock1Ptr->escapeWarp.mapNum);
-            GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
-            StringExpandPlaceholders(gStringVar4, gText_EscapeFromHere);
-            DisplayFieldMoveExitAreaMessage(taskId);
-            sPartyMenuInternal->data[0] = fieldMove;
+            if (ShouldDoBrailleDigEffect())
+            {
+                // The sealed-chamber Dig puzzle must still open its door.
+                mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->escapeWarp.mapGroup, gSaveBlock1Ptr->escapeWarp.mapNum);
+                GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
+                StringExpandPlaceholders(gStringVar4, gText_EscapeFromHere);
+                DisplayFieldMoveExitAreaMessage(taskId);
+                sPartyMenuInternal->data[0] = fieldMove;
+            }
+            else
+            {
+                gPartyMenu.exitCallback = CB2_OpenFlyMap;
+                Task_ClosePartyMenu(taskId);
+            }
             break;
+        case FIELD_MOVE_TELEPORT:
         case FIELD_MOVE_FLY:
             gPartyMenu.exitCallback = CB2_OpenFlyMap;
             Task_ClosePartyMenu(taskId);

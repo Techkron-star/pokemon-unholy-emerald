@@ -159,11 +159,7 @@
 [MOVE_QUICK_ATTACK] = { COMPOUND_STRING("Ataque Rápido"), COMPOUND_STRING("Golpe veloz con\nprioridad alta.") },
 [MOVE_RAGE] = { COMPOUND_STRING("Furia"), COMPOUND_STRING("Sube el Ataque cuando\nrecibe daño.") },
 [MOVE_TELEPORT] = { COMPOUND_STRING("Teletransporte"),
-#if B_TELEPORT_BEHAVIOR >= GEN_8
-    COMPOUND_STRING("Cambia de puesto con otro\nPokémon del equipo.") },
-#else
-    COMPOUND_STRING("Permite escapar al instante\nde un combate salvaje.") },
-#endif
+    COMPOUND_STRING("Pasa cambios de stats\nal Pokémon entrante.") },
 [MOVE_NIGHT_SHADE] = { COMPOUND_STRING("Tinieblas"), COMPOUND_STRING("Causa daño igual al\nnivel del usuario.") },
 [MOVE_MIMIC] = { COMPOUND_STRING("Mimético"), COMPOUND_STRING("Copia el último ataque\nrival durante el combate.") },
 [MOVE_SCREECH] = { COMPOUND_STRING("Chirrido"), COMPOUND_STRING("Ruido agudo que reduce\nmucho la Defensa rival.") },
