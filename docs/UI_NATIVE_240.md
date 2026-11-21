@@ -113,3 +113,10 @@ Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sob
 - `UnholyUi_Footer` convierte los pares `TECLA:acción` en teclas con esquinas redondeadas (chip de acento con el nombre del botón y la acción al lado). Si el pie no tiene esa forma o no cabe, se imprime como antes, así que ninguna instrucción se pierde.
 - `DrawUnholyUiPanelAccents` añade bajo la cabecera una trama de ajedrez de un píxel que degrada el halo hacia el panel.
 - Las cabeceras de los paneles del reloj, Mutator, Simulador y búsqueda de PC llevan su icono a la derecha; el Pokélocator muestra la mira junto al nombre del mapa y Horizon una moneda junto al saldo.
+
+## Crafteo (rediseño)
+
+- Lista: cada receta lleva un icono de estado (● lista, ◐ faltan materiales, ○ sin materiales, candado rojo si falta medalla). La cabecera muestra el chip `LISTAS n` con las recetas que ya se pueden crear.
+- Detalle: tarjeta con arte, nombre y descripción; debajo, una única barra de acción (`UnholyUi_Button`) que dice qué hará A (CREAR OBJETO / COMPRAR INYECTOR), pide confirmación, confirma el resultado o explica por qué no se puede (faltan materiales, medalla, dinero, mochila llena). Los materiales muestran ● o ○ rojo y `tienes/necesitas`; en Inyectores hay una fila de precio con moneda. Las filas terminan antes de la línea del pie (antes cruzaban la línea del pie). 
+- Pies con teclas (`A:CREAR  START:INFO  SEL:EQUIP  B:SALIR`); el modo equipar usa el chip `EQUIPAR`.
+- Neón: `UnholyUi_PulseAccent` hace respirar los dos colores de acento (5/7 Eclipse, 6/7 Daylight) hacia el blanco con ciclo de ~1 s, solo en paleta; se restaura al cerrar. No verificado en mGBA.
