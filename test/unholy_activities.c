@@ -30,18 +30,23 @@ TEST("Unholy activities: badges increase raid variety without changing difficult
     EXPECT_EQ(HfcWatch_GetRaidOfferCount(255, FALSE), 18);
 }
 
-TEST("Unholy activities: resource bonuses match the fifth badge eighth badge and League milestones")
+TEST("Unholy activities: resource bonuses grow every badge from raid access through the League")
 {
-    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(4, FALSE), 0);
-    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(5, FALSE), 20);
-    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(7, FALSE), 20);
-    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(8, FALSE), 28);
+    static const u8 bonuses[] = {0, 0, 0, 0, 0, 20, 23, 26, 28};
+    for (u8 badges = 0; badges < ARRAY_COUNT(bonuses); badges++)
+    {
+        EXPECT_EQ(HfcWatch_GetRaidResourceBonus(badges, FALSE), bonuses[badges]);
+        if (badges > 5)
+            EXPECT(HfcWatch_GetRaidResourceBonus(badges, FALSE) > HfcWatch_GetRaidResourceBonus(badges - 1, FALSE));
+    }
     EXPECT_EQ(HfcWatch_GetRaidResourceBonus(8, TRUE), 35);
+    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(255, FALSE), 28);
+    EXPECT_EQ(HfcWatch_GetRaidResourceBonus(255, TRUE), 35);
 }
 
 TEST("Unholy activities: small raid rewards accumulate the exact percentage over repeated claims")
 {
-    static const u8 bonuses[] = {20, 28, 35};
+    static const u8 bonuses[] = {20, 23, 26, 28, 35};
     for (u8 b = 0; b < ARRAY_COUNT(bonuses); b++)
     {
         for (u8 base = 1; base <= 5; base++)

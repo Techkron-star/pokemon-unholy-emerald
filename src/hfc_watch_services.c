@@ -268,7 +268,9 @@ u8 HfcWatch_GetRaidOfferCount(u8 badges, bool32 champion)
 
 u8 HfcWatch_GetRaidResourceBonus(u8 badges, bool32 champion)
 {
-    return champion ? 35 : badges >= 8 ? 28 : badges >= 5 ? 20 : 0;
+    // Progress one badge at a time after the HF Watch unlocks raids.
+    static const u8 bonuses[] = {0, 0, 0, 0, 0, 20, 23, 26, 28};
+    return champion ? 35 : bonuses[min(badges, ARRAY_COUNT(bonuses) - 1)];
 }
 
 u8 HfcWatch_ScaleRaidResource(u8 quantity, u8 bonus, u8 *remainder)

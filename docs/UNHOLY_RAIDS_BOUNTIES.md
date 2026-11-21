@@ -12,12 +12,12 @@ Implementación del 21 de noviembre de 2026. Esta revisión sustituye el límite
 | Progreso | Jefes por dificultad | Bonificación de recursos |
 | --- | ---: | ---: |
 | Cinco medallas | 12 | +20% |
-| Seis medallas | 14 | +20% |
-| Siete medallas | 16 | +20% |
+| Seis medallas | 14 | +23% |
+| Siete medallas | 16 | +26% |
 | Ocho medallas | 18 | +28% |
 | Liga completada | 20 | +35% |
 
-Los bonos afectan a los recursos consumibles del botín, no multiplican artefactos ni alteran la captura. Las fracciones se conservan por dificultad y ranura de premio: cien recompensas de un recurso base con +20% entregan 120 unidades en total. El premio mostrado coincide con el cobrado. Si falta espacio, se revierten las entregas parciales y no se consume el saldo fraccionario.
+Cada medalla desde el desbloqueo aumenta el bono: los valores iniciales son referencias de balance, no tres escalones fijos. Los bonos afectan a los recursos consumibles del botín, no multiplican artefactos ni alteran la captura. Las fracciones se conservan por dificultad y ranura de premio: cien recompensas de un recurso base con +20% entregan 120 unidades en total. El premio mostrado coincide con el cobrado. Si falta espacio, se revierten las entregas parciales y no se consume el saldo fraccionario.
 
 Los cooldowns y los saldos se guardan en el bloque lógico 4 ya existente, dentro del `.sav` estándar de 128 KiB. Un ajuste del reloj hacia atrás conserva como máximo los cinco minutos pendientes. Las versiones desconocidas del registro se rechazan sin borrar datos. El antiguo `FLAG_DAILY_HFC_RAID` ya no bloquea el acceso.
 

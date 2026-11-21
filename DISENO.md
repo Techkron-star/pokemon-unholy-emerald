@@ -1,6 +1,6 @@
 # Pokémon Unholy Emerald — Documento de diseño
 
-**Raids P0 y bounty hunting (implementados, QA visual pendiente):** [cooldown individual visible, variedad por medallas, bonos +20/+28/+35% y contratos vendidos junto a los Poké Mart](docs/UNHOLY_RAIDS_BOUNTIES.md).
+**Raids P0 y bounty hunting (implementados, QA visual pendiente):** [cooldown individual visible, variedad por medallas, bonos progresivos por medalla y contratos vendidos junto a los Poké Mart](docs/UNHOLY_RAIDS_BOUNTIES.md).
 
 **Nuevos Artifacts para casino y exploración (propuesta, no implementados):** [12 piezas, seis velas y auditoría de Poké Balls vacías](docs/UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md). No registrar objetos del mapa sin item, script, bandera y prueba de recogida funcionales.
 
@@ -377,8 +377,8 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 
 **Incursiones y señal, balance inicial.**
 
-- Una incursión por día, desde una ruta al aire libre. Tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar. Se conservan PS y PP entre rondas. El intento se consume al iniciar.
-- Cada dificultad tiene 20 jefes propios, para un total de 80 especies distintas con movimientos y equipo definidos. La rotación diaria de cada entrenador recorre los 20 jefes de su dificultad antes de repetir. Los dos dobles eligen cuatro especies diferentes de ese grupo y excluyen al jefe del día.
+- Incursiones repetibles desde una ruta al aire libre, con cinco minutos de cooldown visible por jefe y dificultad. Se puede elegir otra mientras espera. Cada incursión tiene tres rondas: dos combates dobles y un jefe individual. Cada doble requiere dos Pokémon capaces de luchar; se conservan PS y PP entre rondas.
+- Las cuatro dificultades se eligen manualmente desde cinco medallas. Cada catálogo dispone de 12/14/16/18 jefes con cinco/seis/siete/ocho medallas y 20 tras la Liga. Las medallas amplían la variedad y el botín, sin elevar automáticamente la dificultad. Los dos dobles eligen cuatro especies diferentes del grupo y excluyen al jefe seleccionado.
 - El jefe tiene una mutación aleatoria de la tabla de dificultad, con tiers C–S y exclusión de Omega. Recibe al entrar Ataque, Defensa, Ataque Especial y Defensa Especial +1 en Estándar y Avanzada, y +2 en Experta y Maestra. Experta y Maestra también dan +1 de Velocidad.
 - Al ganar se elige el lote de tres tipos de objetos o un intento de capturar al jefe. Una tirada fallida consume esa elección. La probabilidad varía cada día por dificultad, se muestra con dos decimales y se fija para las tres rondas. Si falta espacio, se puede liberar espacio y volver al panel durante la misma sesión.
 
@@ -394,9 +394,11 @@ Cada combate admite una megaevolución rival. La megapiedra ocupa la ranura de o
 | Dificultad | Medallas | Niveles por ronda | Probabilidad de captura | Lote |
 |---|---:|---|---:|---|
 | Estándar | 5 | 34, 36, 40 | 20.00–35.00 % | 3 Super Balls, 2 Hiperpociones, 1 Caramelo Raro |
-| Avanzada | 6 | 40, 42, 46 | 35.01–50.00 % | 3 Ultra Balls, 2 Pociones Máximas, 1 Caramelo Raro |
-| Experta | 7 | 47, 49, 53 | 50.01–65.00 % | 4 Ultra Balls, 2 Restaurar Todo, 2 Caramelos Raros |
-| Maestra | 8 | 54, 56, 60 | 65.01–80.00 % | 5 Ultra Balls, 3 Restaurar Todo, 3 Caramelos Raros |
+| Avanzada | 5 | 40, 42, 46 | 35.01–50.00 % | 3 Ultra Balls, 2 Pociones Máximas, 1 Caramelo Raro |
+| Experta | 5 | 47, 49, 53 | 50.01–65.00 % | 4 Ultra Balls, 2 Restaurar Todo, 1 artefacto experto |
+| Maestra | 5 | 54, 56, 60 | 65.01–80.00 % | 5 Ultra Balls, 3 Restaurar Todo, 1 artefacto raro |
+
+Los lotes anteriores son la base. Los recursos reciben +20%/+23%/+26%/+28% con cinco/seis/siete/ocho medallas y +35% tras la Liga. Las fracciones se conservan entre cobros; los artefactos siguen siendo singulares. [Balance y persistencia de raids](docs/UNHOLY_RAIDS_BOUNTIES.md).
 
 - La señal se activa una vez al día desde el Super (tercera medalla). Aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez encuentros normales de esa zona. Conserva usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
 - El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
