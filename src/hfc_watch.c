@@ -388,13 +388,13 @@ static void RenderTools(void)
         UnholyUi_ChoiceRow(sWatchWindowId, 22 + 15 * tool, names[tool], detail, tool == sToolCursor);
     }
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 113, 195,
-        sToolCursor == HFC_WATCH_TOOL_EGG_TRACKER ? COMPOUND_STRING("C = ciclos restantes del proximo huevo")
-      : sToolCursor == HFC_WATCH_TOOL_AUTO_REPEL ? COMPOUND_STRING("Reutiliza repelentes de la mochila")
-      : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin consumo; respeta niveles salvajes")
-      : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Solo MO y medallas desbloqueadas")
+        sToolCursor == HFC_WATCH_TOOL_EGG_TRACKER ? COMPOUND_STRING("C = ciclos para eclosion")
+      : sToolCursor == HFC_WATCH_TOOL_AUTO_REPEL ? COMPOUND_STRING("Reutiliza repelentes existentes")
+      : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin gasto; respeta niveles")
+      : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Requiere MO y medalla")
       : sToolCursor == HFC_WATCH_TOOL_FLASHER ? COMPOUND_STRING("Alumbra cuevas con MO y medalla")
       : COMPOUND_STRING("Consulta PS sin curar al equipo"));
-    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:ELEGIR  A:USAR  B:VOLVER"));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:SEL  A:USAR  B:ATRAS"));
 }
 
 static void RenderLaboratory(void)
@@ -407,7 +407,7 @@ static void RenderLaboratory(void)
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 83, 192,
         sLabCursor == 0 ? COMPOUND_STRING("Entrena EV e IV pagando el coste")
                         : COMPOUND_STRING("Modifica mutaciones pagando el coste"));
-    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:ELEGIR  A:ENTRAR  B:VOLVER"));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:SEL  A:ABRIR  B:ATRAS"));
 }
 
 static void RenderFrequency(void)
