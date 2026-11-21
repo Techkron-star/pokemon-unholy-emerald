@@ -45,6 +45,11 @@ void OpenPokemonStorageFromField(void (*returnCallback)(void));
 void ResetPokemonStorageSystem(void);
 s16 CompactPartySlots(void);
 u8 StorageGetCurrentBox(void);
+#define BOX_SORT_SPECIES 0
+#define BOX_SORT_LEVEL 1
+#define BOX_SORT_IV_TOTAL 2
+
+void SortCurrentBox(u8 mode);
 void SortCurrentBoxBySpecies(void);
 u32 GetBoxMonDataAt(u8 boxId, u8 boxPosition, s32 request);
 void SetBoxMonDataAt(u8 boxId, u8 boxPosition, s32 request, const void *value);
