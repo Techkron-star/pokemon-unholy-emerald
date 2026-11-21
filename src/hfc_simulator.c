@@ -397,6 +397,7 @@ static void Task_Simulator(u8 taskId)
 
     if (gPaletteFade.active)
         return;
+    UnholyUi_Tick(14);
     if (sSimulator.mode == SIMULATOR_PARTY)
         redraw = HandlePartyInput(taskId);
     else if (sSimulator.mode == SIMULATOR_EDIT)

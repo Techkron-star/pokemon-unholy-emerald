@@ -380,6 +380,7 @@ static void Task_Mutator(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
+    UnholyUi_Tick(14);
 
     if (JOY_NEW(B_BUTTON))
     {

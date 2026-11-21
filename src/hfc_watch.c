@@ -18,6 +18,7 @@
 #include "mutation_tiers.h"
 #include "overworld.h"
 #include "palette.h"
+#include "rtc.h"
 #include "pokemon.h"
 #include "pokelocator.h"
 #include "pokenav.h"
@@ -380,20 +381,21 @@ static void RenderTools(void)
     for (u8 tool = pageStart; tool < min(pageStart + TOOL_PAGE_SIZE, HFC_WATCH_TOOL_COUNT); tool++)
     {
         const u8 *detail = NULL;
+        s8 toggle = -1;
         bool8 available = IsToolAvailable(tool);
         if (!available)
             detail = HfcWatch_GetTier() < HfcWatch_ToolMinTier(tool)
                 ? COMPOUND_STRING("OTRO RELOJ") : COMPOUND_STRING("HM + MEDALLA");
         else if (tool == HFC_WATCH_TOOL_AUTO_REPEL)
-            detail = UnholyQolIsEnabled(UQOL_AUTO_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+            toggle = (UnholyQolIsEnabled(UQOL_AUTO_REPEL)) ? 1 : 0;
         else if (tool == HFC_WATCH_TOOL_FIELD_ASSIST)
-            detail = IsFieldAssistEnabled() ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+            toggle = (IsFieldAssistEnabled()) ? 1 : 0;
         else if (tool == HFC_WATCH_TOOL_FLASHER)
-            detail = UnholyQolIsEnabled(UQOL_AUTO_FLASH) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+            toggle = (UnholyQolIsEnabled(UQOL_AUTO_FLASH)) ? 1 : 0;
         else if (tool == HFC_WATCH_TOOL_INFINITY_REPEL)
-            detail = UnholyQolIsEnabled(UQOL_INFINITE_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+            toggle = (UnholyQolIsEnabled(UQOL_INFINITE_REPEL)) ? 1 : 0;
         else if (tool == HFC_WATCH_TOOL_AUTO_HEAL)
-            detail = UnholyQolIsEnabled(UQOL_AUTO_HEAL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+            toggle = (UnholyQolIsEnabled(UQOL_AUTO_HEAL)) ? 1 : 0;
         else if (tool == HFC_WATCH_TOOL_SORT_BAG)
             detail = sBagSortCompleted ? COMPOUND_STRING("ORDENADA") : COMPOUND_STRING("A:USAR");
         else if (tool == HFC_WATCH_TOOL_MAP_PICKUPS)
@@ -421,6 +423,8 @@ static void RenderTools(void)
             detail = text;
         }
         UnholyUi_ChoiceRow(sWatchWindowId, 22 + 17 * (tool - pageStart), names[tool], detail, tool == sToolCursor);
+        if (toggle >= 0)
+            UnholyUi_Switch(sWatchWindowId, 182, 25 + 17 * (tool - pageStart), toggle);
     }
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 145, 5, 37,
         pageStart == 0 ? COMPOUND_STRING("1/2") : COMPOUND_STRING("2/2"));
@@ -475,6 +479,8 @@ static void RenderFrequency(void)
     }
     UnholyUi_PrintOnFill(sWatchWindowId, FONT_SMALL, 11, 28, 170, UnholyUi_CardFill(remaining != 0), text);
     if (remaining != 0)
+        UnholyUi_Bar(sWatchWindowId, 11, 41, 170, remaining, 10, UnholyUi_AccentColor());
+    if (remaining != 0)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 49, 175, COMPOUND_STRING("Active for wild encounters."));
     else if (canActivate)
         UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 49, 175, COMPOUND_STRING("10 wild encounters, once per day."));
@@ -502,6 +508,8 @@ static void RenderArchive(void)
         const u8 *name = HorizonMarketMutationName(order[i]);
         u8 font = GetFontIdToFit(name, FONT_SMALL_NARROW, 0, 52);
         UnholyUi_Card(sWatchWindowId, x, y, 59, 29, found);
+        if (found)
+            UnholyUi_Halo(sWatchWindowId, x, y, 59, 29, UnholyUi_AccentColor());
         UnholyUi_PrintOnFill(sWatchWindowId, font, x + 4, y + 1, 52, fill, name);
 
         u8 status[18];
@@ -713,6 +721,7 @@ static void Task_HfcWatchPanel(u8 taskId)
     u8 feature = gTasks[taskId].data[0];
     if (gPaletteFade.active)
         return;
+    UnholyUi_Tick(14);
 
     if (feature == HFC_WATCH_FEATURE_RAID)
         HandleRaidPanelInput(taskId);
@@ -814,6 +823,17 @@ static void RenderHub(void)
     u8 pageStart = (sHubCursor / HUB_PAGE_SIZE) * HUB_PAGE_SIZE;
     struct HfcWatchProgress progress = HubProgress();
     UnholyUi_Frame(sWatchWindowId, COMPOUND_STRING("POKé WATCH"));
+    {
+        u8 clock[8];
+        u8 *end;
+
+        RtcCalcLocalTime();
+        end = ConvertUIntToDecimalStringN(clock, gLocalTime.hours, STR_CONV_MODE_LEADING_ZEROS, 2);
+        *end++ = CHAR_COLON;
+        ConvertUIntToDecimalStringN(end, gLocalTime.minutes, STR_CONV_MODE_LEADING_ZEROS, 2);
+        UnholyUi_Icon(sWatchWindowId, 84, 6, UNHOLY_UI_ICON_DOT, UnholyUi_AccentColor());
+        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 95, 6, 32, clock);
+    }
     UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 130, 6, 48,
         tier == HFC_WATCH_TIER_HF ? COMPOUND_STRING("HF")
       : tier == HFC_WATCH_TIER_SUPER ? COMPOUND_STRING("SUPER") : COMPOUND_STRING("BASIC"));
@@ -829,6 +849,8 @@ static void RenderHub(void)
         bool8 ready = HfcWatch_GetAccess(tier, feature, progress) == HFC_WATCH_READY;
         u8 fill = UnholyUi_CardFill(selected);
         UnholyUi_Card(sWatchWindowId, x, y, 97, 23, selected);
+        if (selected)
+            UnholyUi_Halo(sWatchWindowId, x, y, 97, 23, UnholyUi_AccentColor());
         // Eight-pixel service icon; dimmed while the service is locked.
         UnholyUi_Icon(sWatchWindowId, x + 5, y + 7, sFeatureIcons[feature],
                       ready ? UnholyUi_AccentColor() : (FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 3 : 11));
@@ -876,6 +898,13 @@ static void Task_HfcWatchHub(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
+    UnholyUi_Tick(14);
+    // Keep the header clock current without waiting for input.
+    if (++gTasks[taskId].data[1] >= 600)
+    {
+        gTasks[taskId].data[1] = 0;
+        RenderHub();
+    }
     if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);

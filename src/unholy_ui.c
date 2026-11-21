@@ -1,6 +1,7 @@
 #include "global.h"
 #include "unholy_ui.h"
 #include "event_data.h"
+#include "main.h"
 #include "menu.h"
 #include "palette.h"
 #include "shop.h"
@@ -388,4 +389,38 @@ bool8 UnholyUi_PrintWrapped(u8 window, u16 x, u16 y, u16 width, u8 step, u8 maxL
         lines++;
     }
     return *source != EOS;
+}
+
+// One call per frame from a screen's task: breathes the accent colours using
+// the global frame counter, so screens need no state of their own.
+void UnholyUi_Tick(u8 paletteSlot)
+{
+    UnholyUi_PulseAccent(paletteSlot, (gMain.vblankCounter1 >> 2) & 15);
+}
+
+// Dotted one-pixel glow just outside a rectangle (needs a gap of 1+ pixel).
+void UnholyUi_Halo(u8 window, u16 x, u16 y, u16 width, u16 height, u8 color)
+{
+    u16 right = GetWindowAttribute(window, WINDOW_WIDTH) * TILE_WIDTH;
+    u16 bottom = GetWindowAttribute(window, WINDOW_HEIGHT) * TILE_HEIGHT;
+
+    if (x < 1 || y < 1 || x + width + 1 > right || y + height + 1 > bottom)
+        return;
+    for (u16 i = 0; i < width + 2; i += 2)
+    {
+        FillWindowPixelRect(window, PIXEL_FILL(color), x - 1 + i, y - 1, 1, 1);
+        FillWindowPixelRect(window, PIXEL_FILL(color), x - 1 + i, y + height, 1, 1);
+    }
+    for (u16 i = 1; i < height + 1; i += 2)
+    {
+        FillWindowPixelRect(window, PIXEL_FILL(color), x - 1, y + i - 1, 1, 1);
+        FillWindowPixelRect(window, PIXEL_FILL(color), x + width, y + i - 1, 1, 1);
+    }
+}
+
+// 16x8 toggle: lit accent track with a dark knob when on, dim track when off.
+void UnholyUi_Switch(u8 window, u16 x, u16 y, bool8 on)
+{
+    FillWindowPixelRect(window, PIXEL_FILL(on ? UnholyUi_AccentColor() : 3), x, y, 16, 8);
+    FillWindowPixelRect(window, PIXEL_FILL(on ? 1 : 11), on ? x + 9 : x + 1, y + 1, 6, 6);
 }

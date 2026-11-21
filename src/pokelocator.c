@@ -657,6 +657,7 @@ static void Task_Locator(u8 taskId)
 {
     if (gPaletteFade.active)
         return;
+    UnholyUi_Tick(14);
     if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);

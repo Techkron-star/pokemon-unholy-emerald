@@ -802,13 +802,12 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
 // Neon breathing for the two grade colours: gold for RADIANT, a slow rainbow
 // for PRISMATIC. Only palette entries move; the caller guards that the panel
 // owns palette 14.
-static void HorizonEggPulse(void)
+static void HorizonEggPulse(u8 frame)
 {
     static const u8 rainbow[][3] =
     {
         {31, 8, 8}, {31, 22, 6}, {26, 31, 8}, {8, 31, 20}, {8, 20, 31}, {24, 10, 31},
     };
-    u8 frame = sHorizonGlowFrame++;
     u8 level = ((frame >> 2) & 15) < 8 ? (frame >> 2) & 15 : 15 - ((frame >> 2) & 15);
     u8 step = (frame >> 3) % ARRAY_COUNT(rainbow);
     u8 next = (step + 1) % ARRAY_COUNT(rainbow);
@@ -984,6 +983,8 @@ static void HorizonDrawInfo(void)
             bool8 sold = HorizonMarketOfferSold(slot);
 
             HorizonDrawCard(panel, x, y, 66, 26, slot == sHorizonPokemonSelection);
+            if (slot == sHorizonPokemonSelection)
+                UnholyUi_Halo(panel, x, y, 66, 26, UnholyUi_AccentColor());
             if (sold)
                 HorizonPrintCardText(panel, sHorizonTextSold, x + 5, y + 3, 54,
                                      slot == sHorizonPokemonSelection, FONT_SMALL);
@@ -1148,9 +1149,13 @@ static void Task_ShopMenu(u8 taskId)
     if (sHorizonActive && gPaletteFade.active)
         return;
 
-    if (sHorizonActive && sHorizonPaletteSaved && sHorizonInfoWindowId != 0xFF
-     && (sHorizonEggBrowsing || sHorizonSelectedTab == 3))
-        HorizonEggPulse();
+    if (sHorizonActive && sHorizonPaletteSaved && sHorizonInfoWindowId != 0xFF)
+    {
+        // Accent neon everywhere in Horizon; the egg grades add their own.
+        UnholyUi_Tick(14);
+        if (sHorizonEggBrowsing || sHorizonSelectedTab == 3)
+            HorizonEggPulse(sHorizonGlowFrame++);
+    }
 
     // SELECT returns from a catalogue to the five-store directory. It must
     // not silently activate Pokémon (tab zero) when the directory opens.

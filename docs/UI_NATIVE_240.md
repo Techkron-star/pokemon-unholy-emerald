@@ -128,3 +128,11 @@ Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sob
 - Presupuesto de tiles BG0: los bloques de ventana deben quedar por debajo de 0x300 (ahí empiezan los tilemaps); el último es el Sí/No en 0x2D2.
 - El flujo de compra (cantidad, confirmación, dinero, bonus de Premier Ball) no cambia. Los Pokémarts normales conservan su pantalla clásica.
 - Controles: arriba/abajo ±1, izquierda/derecha ±7, L/R cambia de pestaña. No verificado en mGBA.
+
+## Reloj: neón común
+
+- `UnholyUi_Tick(slot)` (una llamada por frame desde la tarea de cada pantalla) hace respirar los colores de acento con el contador global de frames; lo usan el hub, los paneles del reloj, Mutator, Simulador, Pokélocator, búsqueda de PC y la Horizon Shop. Las tareas lo llaman solo mientras poseen la paleta 14.
+- `UnholyUi_Halo` dibuja un brillo punteado de 1 px fuera de un rectángulo (necesita 1+ px de hueco): tarjeta seleccionada del hub, tarjeta de Pokémon de la Horizon Shop y anomalías ya vistas en el Archivo.
+- `UnholyUi_Switch` dibuja interruptores 16×8 para los ajustes ON/OFF de Tools.
+- Hub: reloj (hora local, se refresca cada ~10 s) junto al título. Señal mutante: barra de encuentros restantes.
+- No verificado en mGBA.
