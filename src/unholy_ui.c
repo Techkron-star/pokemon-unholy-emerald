@@ -8,6 +8,7 @@
 #include "text.h"
 #include "window.h"
 #include "constants/flags.h"
+#include "constants/rgb.h"
 
 void UnholyUi_AcquirePalette(struct UnholyUiPalette *lease, u8 slot)
 {
@@ -113,6 +114,9 @@ static const u8 sIcons[UNHOLY_UI_ICON_COUNT][8] =
     [UNHOLY_UI_ICON_TOOLS]     = {0xC3, 0xE7, 0x7E, 0x3C, 0x3C, 0x76, 0xE3, 0xC1},
     [UNHOLY_UI_ICON_LOCK]      = {0x3C, 0x42, 0x42, 0xFF, 0xFF, 0xF7, 0xF7, 0xFF},
     [UNHOLY_UI_ICON_COIN]      = {0x3C, 0x7E, 0xE7, 0xE7, 0xE7, 0xE7, 0x7E, 0x3C},
+    [UNHOLY_UI_ICON_DOT]       = {0x00, 0x3C, 0x7E, 0x7E, 0x7E, 0x7E, 0x3C, 0x00},
+    [UNHOLY_UI_ICON_HALF]      = {0x3C, 0x72, 0xF1, 0xF1, 0xF1, 0xF1, 0x72, 0x3C},
+    [UNHOLY_UI_ICON_RING]      = {0x3C, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3C},
 };
 
 u8 UnholyUi_AccentColor(void)
@@ -272,4 +276,73 @@ void UnholyUi_Bar(u8 window, u16 x, u16 y, u16 width, u32 value, u32 maximum, u8
     FillWindowPixelRect(window, PIXEL_FILL(3), x, y, width, 3);
     if (maximum != 0 && value != 0)
         FillWindowPixelRect(window, PIXEL_FILL(color), x, y, max(1, min(value, maximum) * width / maximum), 3);
+}
+
+// Small accent-filled tag with dark text and cut corners. Returns its width.
+u16 UnholyUi_Chip(u8 window, u16 x, u16 y, const u8 *text)
+{
+    u8 accent = UnholyUi_AccentColor();
+    const u8 colors[] = {accent, 1, accent};
+    u16 width = GetStringWidth(FONT_SMALL_NARROW, text, 0) + 6;
+
+    FillWindowPixelRect(window, PIXEL_FILL(accent), x, y, width, 12);
+    AddTextPrinterParameterized4(window, FONT_SMALL_NARROW, x + 3, y, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    FillWindowPixelRect(window, PIXEL_FILL(1), x, y, 1, 1);
+    FillWindowPixelRect(window, PIXEL_FILL(1), x + width - 1, y, 1, 1);
+    FillWindowPixelRect(window, PIXEL_FILL(1), x, y + 11, 1, 1);
+    FillWindowPixelRect(window, PIXEL_FILL(1), x + width - 1, y + 11, 1, 1);
+    return width;
+}
+
+// 13-pixel action bar. Active: solid accent with dark text (the thing A will
+// do). Inactive: quiet card carrying the reason with a red icon.
+void UnholyUi_Button(u8 window, u16 x, u16 y, u16 width, const u8 *text, u8 icon, bool8 active)
+{
+    u8 accent = UnholyUi_AccentColor();
+    u16 textX = x + (icon < UNHOLY_UI_ICON_COUNT ? 14 : 5);
+    u16 textWidth = width - (textX - x) - 3;
+
+    if (active)
+    {
+        const u8 colors[] = {accent, 1, accent};
+
+        FillWindowPixelRect(window, PIXEL_FILL(accent), x, y, width, 13);
+        FillWindowPixelRect(window, PIXEL_FILL(1), x, y, 1, 1);
+        FillWindowPixelRect(window, PIXEL_FILL(1), x + width - 1, y, 1, 1);
+        FillWindowPixelRect(window, PIXEL_FILL(1), x, y + 12, 1, 1);
+        FillWindowPixelRect(window, PIXEL_FILL(1), x + width - 1, y + 12, 1, 1);
+        if (icon < UNHOLY_UI_ICON_COUNT)
+            UnholyUi_Icon(window, x + 4, y + 2, icon, 1);
+        if (GetStringWidth(FONT_SMALL_NARROW, text, 0) <= textWidth)
+            AddTextPrinterParameterized4(window, FONT_SMALL_NARROW, textX, y + 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    }
+    else
+    {
+        UnholyUi_Card(window, x, y, width, 13, FALSE);
+        if (icon < UNHOLY_UI_ICON_COUNT)
+            UnholyUi_Icon(window, x + 4, y + 2, icon, 13);
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, textX, y + 1, textWidth, UnholyUi_CardFill(FALSE), text);
+    }
+}
+
+// Neon breathing: the two accent slots drift toward white and back. Phase is
+// 0-15; the caller advances it. Both buffers are written, so it also works
+// when no fade is running (the crafting task skips frames while one is).
+void UnholyUi_PulseAccent(u8 paletteSlot, u8 phase)
+{
+    const u16 *base = GetUnholyUiPalette();
+    u8 level = phase < 8 ? phase : 15 - phase;
+    u8 slots[2] = {UnholyUi_AccentColor(), FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 7 : 5};
+
+    for (u8 i = 0; i < 2; i++)
+    {
+        u16 color = base[slots[i]];
+        u16 r = GET_R(color), g = GET_G(color), b = GET_B(color);
+
+        r += (31 - r) * level / 12;
+        g += (31 - g) * level / 12;
+        b += (31 - b) * level / 12;
+        gPlttBufferUnfaded[BG_PLTT_ID(paletteSlot) + slots[i]] = RGB(r, g, b);
+        gPlttBufferFaded[BG_PLTT_ID(paletteSlot) + slots[i]] = RGB(r, g, b);
+    }
 }
