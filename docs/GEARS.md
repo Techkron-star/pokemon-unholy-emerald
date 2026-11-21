@@ -58,6 +58,11 @@ Garra Brutal, Double Shock y Bramido Dragón que el motor antiguo reservaba
 para `GEN_CHAMPIONS` y que, de otro modo, no se activaban en la configuración
 `GEN_9` de este proyecto.
 
+Como ajuste general de Unholy, **cada ataque de corte ofensivo tiene al menos
++1 en probabilidad de crítico**, incluso Sacro Espada, aunque de base no lo
+tuviera. Los movimientos con mayor nivel de crítico lo conservan. Doble Filo
+(`MOVE_DOUBLE_EDGE`) no es un corte: es una embestida con daño de retroceso.
+
 ### Cambios de estadísticas y habilidades
 
 Los Gears no ignoran las habilidades que modifican cambios de etapas:

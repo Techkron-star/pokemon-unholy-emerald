@@ -2310,6 +2310,15 @@ bool8 ScrCmd_checkfieldmove(struct ScriptContext *ctx)
     if (doUnlockedCheck && !IsFieldMoveUnlocked(fieldMove))
         return FALSE;
 
+    // Auto MO uses the trainer's owned HM; no party member has to waste a
+    // move slot. Slot zero is a harmless sentinel for existing event scripts:
+    // their automatic paths skip mon-name text and the mon animation.
+    if (UnholyQolAutoFieldMoveAvailable(fieldMove))
+    {
+        gSpecialVar_Result = 0;
+        return FALSE;
+    }
+
     move = FieldMove_GetMoveId(fieldMove);
     for (u32 i = 0; i < PARTY_SIZE; i++)
     {

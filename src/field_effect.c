@@ -31,6 +31,7 @@
 #include "task.h"
 #include "trainer.h"
 #include "trainer_pokemon_sprites.h"
+#include "unholy_qol.h"
 #include "trig.h"
 #include "util.h"
 #include "constants/event_objects.h"
@@ -3367,7 +3368,9 @@ static void SurfFieldEffect_Init(struct Task *task)
     SetPlayerAvatarStateMask(PLAYER_AVATAR_FLAG_SURFING);
     PlayerGetDestCoords(&task->tDestX, &task->tDestY);
     MoveCoords(gObjectEvents[gPlayerAvatar.objectEventId].movementDirection, &task->tDestX, &task->tDestY);
-    task->tState++;
+    // The trainer already owns Auto Surf. Skip the field-move pose and the
+    // Pokemon splash, but keep the jump and surf blob that move the player.
+    task->tState = UnholyQolAutoFieldMoveAvailable(FIELD_MOVE_SURF) ? 3 : 1;
 }
 
 static void SurfFieldEffect_FieldMovePose(struct Task *task)

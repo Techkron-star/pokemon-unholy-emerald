@@ -2,6 +2,7 @@
 #define GUARD_UNHOLY_QOL_H
 
 #include "global.h"
+#include "constants/field_move.h"
 
 struct ScriptContext;
 
@@ -22,6 +23,7 @@ enum UnholyQolOption
 };
 
 bool32 UnholyQolIsEnabled(enum UnholyQolOption option);
+bool32 UnholyQolAutoFieldMoveAvailable(enum FieldMove fieldMove);
 void UnholyQolToggleOption(enum UnholyQolOption option);
 void UnholyQolDrawMenu(struct ScriptContext *ctx);
 void UnholyQolToggleSelection(struct ScriptContext *ctx);

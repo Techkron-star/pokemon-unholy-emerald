@@ -340,7 +340,10 @@ static inline u32 IsExplosionMove(enum Move move)
 
 static inline u32 GetMoveCriticalHitStage(enum Move moveId)
 {
-    return gMovesInfo[SanitizeMoveId(moveId)].criticalHitStage;
+    // Unholy: each blade/cut gets at least +1 critical-hit stage. This
+    // includes Sacred Sword and Cut, but not the tackle Double-Edge.
+    const struct MoveInfo *info = &gMovesInfo[SanitizeMoveId(moveId)];
+    return max(info->criticalHitStage, info->slicingMove ? 1 : 0);
 }
 
 static inline bool32 MoveAlwaysCrits(enum Move moveId)
