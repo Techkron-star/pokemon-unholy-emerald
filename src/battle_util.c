@@ -550,9 +550,6 @@ void HandleAction_UseMove(void)
     SetTypeBeforeUsingMove(gChosenMove, gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker));
     gBattleStruct->baseMove = gCurrentMove;
 
-    // Snapshot and activate move-triggered artifacts once per action, before
-    // the battle script calculates damage. Chain actions enter here separately.
-    // Use the resolved move below after Z/Max conversion instead (see call).
 
     // check Z-Move used
     if (GetActiveGimmick(gBattlerAttacker) == GIMMICK_Z_MOVE
