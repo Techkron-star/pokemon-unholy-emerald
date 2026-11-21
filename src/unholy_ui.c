@@ -346,3 +346,46 @@ void UnholyUi_PulseAccent(u8 paletteSlot, u8 phase)
         gPlttBufferFaded[BG_PLTT_ID(paletteSlot) + slots[i]] = RGB(r, g, b);
     }
 }
+
+// Word-wraps source into at most maxLines lines of FONT_SMALL_NARROW. Newlines
+// act as line breaks. Returns TRUE when text was left over (caller may mark it).
+bool8 UnholyUi_PrintWrapped(u8 window, u16 x, u16 y, u16 width, u8 step, u8 maxLines, u8 fill, const u8 *source)
+{
+    u8 lines = 0;
+
+    while (*source != EOS && lines < maxLines)
+    {
+        u8 text[64];
+        u8 length = 0;
+        u8 lastSpace = 0xFF;
+        const u8 *end = source;
+
+        while (*end != EOS && *end != CHAR_NEWLINE && length < 62)
+        {
+            text[length] = *end;
+            text[length + 1] = EOS;
+            if (GetStringWidth(FONT_SMALL_NARROW, text, 0) > width)
+                break;
+            if (*end == CHAR_SPACE)
+                lastSpace = length;
+            end++;
+            length++;
+        }
+        if (*end != EOS && *end != CHAR_NEWLINE && lastSpace != 0xFF)
+        {
+            length = lastSpace;
+            end = source + lastSpace + 1;
+        }
+        else if (length == 0 && *end != EOS && *end != CHAR_NEWLINE)
+            text[length++] = *end++;
+        text[length] = EOS;
+        UnholyUi_PrintOnFill(window, FONT_SMALL_NARROW, x, y + lines * step, width, fill, text);
+        source = end;
+        if (*source == CHAR_NEWLINE)
+            source++;
+        while (*source == CHAR_SPACE)
+            source++;
+        lines++;
+    }
+    return *source != EOS;
+}

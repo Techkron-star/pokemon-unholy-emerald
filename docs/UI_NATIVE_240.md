@@ -120,3 +120,11 @@ Contraste calculado (WCAG): texto sobre panel ≥ 14:1 en ambos temas; texto sob
 - Detalle: tarjeta con arte, nombre y descripción; debajo, una única barra de acción (`UnholyUi_Button`) que dice qué hará A (CREAR OBJETO / COMPRAR INYECTOR), pide confirmación, confirma el resultado o explica por qué no se puede (faltan materiales, medalla, dinero, mochila llena). Los materiales muestran ● o ○ rojo y `tienes/necesitas`; en Inyectores hay una fila de precio con moneda. Las filas terminan antes de la línea del pie (antes cruzaban la línea del pie). 
 - Pies con teclas (`A:CREAR  START:INFO  SEL:EQUIP  B:SALIR`); el modo equipar usa el chip `EQUIPAR`.
 - Neón: `UnholyUi_PulseAccent` hace respirar los dos colores de acento (5/7 Eclipse, 6/7 Daylight) hacia el blanco con ciclo de ~1 s, solo en paleta; se restaura al cerrar. No verificado en mGBA.
+
+## Horizon Shop: huevos y tienda de ítems/discos
+
+- Huevos: las calidades RADIANT y PRISMATIC llevan halo punteado y la tarjeta seleccionada se enmarca con su color. `HorizonEggPulse` anima los slots 15 (dorado respirando) y 12 (arcoíris lento) solo mientras el panel posee la paleta 14.
+- Ítems y Discos (pantalla de compra): ya no usa la imagen de fondo ni el mapa de la tienda cuando Horizon está activo. Ventanas propias (`sHorizonBuyWindowTemplates`): cabecera de 2 filas con pestañas y dinero, lista de 7 filas (punto ● asequible / ○ sin dinero / candado agotado, nombre, precio, carril de scroll), panel de detalle (arte, nombre, descripción, y para MTs tipo, POW, ACC, PP; además `IN BAG`) y pie con teclas. Las paletas 13/14 (marco y diálogo) cargan la paleta del tema, y el color de fondo coincide con el panel.
+- Presupuesto de tiles BG0: los bloques de ventana deben quedar por debajo de 0x300 (ahí empiezan los tilemaps); el último es el Sí/No en 0x2D2.
+- El flujo de compra (cantidad, confirmación, dinero, bonus de Premier Ball) no cambia. Los Pokémarts normales conservan su pantalla clásica.
+- Controles: arriba/abajo ±1, izquierda/derecha ±7, L/R cambia de pestaña. No verificado en mGBA.
