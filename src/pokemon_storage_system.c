@@ -2361,7 +2361,12 @@ static u8 sHfPcMemberLabels[5][32];
 
 static void HfPc_AddFolderRow(const u8 *label, u8 id)
 {
-    u8 length = StringLength(label);
+    u8 length;
+    // Never write past the seven-entry PC menu; malformed labels must not
+    // create an invalid window or corrupt the menu's backing storage.
+    if (label == NULL || sStorage->menuItemsCount >= ARRAY_COUNT(sStorage->menuItems))
+        return;
+    length = StringLength(label);
     struct StorageMenu *item = &sStorage->menuItems[sStorage->menuItemsCount++];
     item->text = label;
     item->textId = id;
