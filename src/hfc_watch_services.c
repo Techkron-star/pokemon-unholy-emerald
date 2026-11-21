@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_activities.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
 #include "battle_setup.h"
@@ -29,19 +30,19 @@ static const struct HfcRaidDifficultyInfo sRaidDifficulties[HFC_RAID_DIFFICULTY_
         .loot = {{ITEM_GREAT_BALL, 3}, {ITEM_HYPER_POTION, 2}, {ITEM_RARE_CANDY, 1}},
     },
     [HFC_RAID_ADVANCED] = {
-        .name = COMPOUND_STRING("ADVANCED"), .minBadges = 6, .level = 40, .bossBoost = 1,
+        .name = COMPOUND_STRING("ADVANCED"), .minBadges = 5, .level = 40, .bossBoost = 1,
         .minCaptureChance = 3501, .maxCaptureChance = 5000,
         .doubleItemChance = 50,
         .loot = {{ITEM_ULTRA_BALL, 3}, {ITEM_MAX_POTION, 2}, {ITEM_RARE_CANDY, 1}},
     },
     [HFC_RAID_EXPERT] = {
-        .name = COMPOUND_STRING("EXPERT"), .minBadges = 7, .level = 47, .bossBoost = 2,
+        .name = COMPOUND_STRING("EXPERT"), .minBadges = 5, .level = 47, .bossBoost = 2,
         .minCaptureChance = 5001, .maxCaptureChance = 6500,
         .doubleItemChance = 100, .doubleGearChance = 50, .doubleMegaChance = 30, .bossMegaChance = 55,
         .loot = {{ITEM_ULTRA_BALL, 4}, {ITEM_FULL_RESTORE, 2}, {ITEM_RARE_CANDY, 2}},
     },
     [HFC_RAID_MASTER] = {
-        .name = COMPOUND_STRING("MASTER"), .minBadges = 8, .level = 54, .bossBoost = 2,
+        .name = COMPOUND_STRING("MASTER"), .minBadges = 5, .level = 54, .bossBoost = 2,
         .minCaptureChance = 6501, .maxCaptureChance = 8000,
         .doubleItemChance = 100, .doubleGearChance = 80, .doubleMegaChance = 65, .bossMegaChance = 100,
         .loot = {{ITEM_ULTRA_BALL, 5}, {ITEM_FULL_RESTORE, 3}, {ITEM_RARE_CANDY, 3}},
@@ -78,6 +79,10 @@ static EWRAM_DATA struct
     enum HfcRaidDifficulty difficulty;
     u16 day;
     u16 captureChance;
+    u8 offer;
+    u8 poolCount;
+    u8 remainder[HFC_RAID_LOOT_COUNT];
+    struct HfcRaidLoot loot[HFC_RAID_LOOT_COUNT];
     struct Pokemon boss;
 } sRaid;
 
@@ -90,7 +95,7 @@ const struct HfcRaidDifficultyInfo *HfcWatch_GetRaidDifficultyInfo(enum HfcRaidD
     return &sRaidDifficulties[difficulty];
 }
 
-struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index)
+static struct HfcRaidLoot GetBaseRaidLoot(u8 index)
 {
     const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(sRaid.difficulty);
 
@@ -102,7 +107,7 @@ struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index)
         static const enum Item expertGears[] = {
             ITEM_GEAR_GUANTES_COHETE, ITEM_GEAR_PIEDRA_AFILAR,
         };
-        u32 roll = DailyRaidSeed(sRaid.day, GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(expertGears);
+        u32 roll = DailyRaidSeed(sRaid.day ^ (sRaid.offer << 8), GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(expertGears);
         return (struct HfcRaidLoot){expertGears[roll], 1};
     }
     if (sRaid.difficulty == HFC_RAID_MASTER && index == HFC_RAID_LOOT_COUNT - 1)
@@ -111,7 +116,7 @@ struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index)
         static const enum Item rareGears[] = {
             ITEM_GEAR_NUCLEO_HYDRA, ITEM_GEAR_ESCUDO_AEGIS, ITEM_GEAR_NIHIL_ENGINE,
         };
-        u32 roll = DailyRaidSeed(sRaid.day, GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(rareGears);
+        u32 roll = DailyRaidSeed(sRaid.day ^ (sRaid.offer << 8), GetTrainerId(gSaveBlock2Ptr->playerTrainerId)) % ARRAY_COUNT(rareGears);
         return (struct HfcRaidLoot){rareGears[roll], 1};
     }
     return info->loot[index];
@@ -201,19 +206,12 @@ static bool32 HasCompatibleMegaStone(const struct HfcRaidSpecies *entry)
     return FALSE;
 }
 
-struct HfcRaidOpponent HfcWatch_GetRaidOpponent(u16 day, u32 trainerId, enum HfcRaidDifficulty difficulty,
-                                               enum HfcRaidStage stage, u8 slot)
+static struct HfcRaidOpponent MakeRaidOpponent(u16 day, u32 trainerId, enum HfcRaidDifficulty difficulty,
+                                               enum HfcRaidStage stage, u8 slot, const u8 *roster)
 {
     const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(difficulty);
     bool32 isBoss = stage == HFC_RAID_BOSS;
     u8 slots = isBoss ? 1 : 2;
-    u8 roster[HFC_RAID_OPPONENT_COUNT];
-
-    if (info == NULL || (u32)stage > HFC_RAID_BOSS || slot >= slots)
-        return (struct HfcRaidOpponent){0};
-
-    if (!BuildRaidRoster(day, trainerId, difficulty, roster))
-        return (struct HfcRaidOpponent){0};
 
     const struct HfcRaidSpecies *pool = sRaidOpponents[difficulty];
     const u8 *stageRoster = &roster[2 * stage];
@@ -250,6 +248,111 @@ struct HfcRaidOpponent HfcWatch_GetRaidOpponent(u16 day, u32 trainerId, enum Hfc
     return opponent;
 }
 
+struct HfcRaidOpponent HfcWatch_GetRaidOpponent(u16 day, u32 trainerId, enum HfcRaidDifficulty difficulty,
+                                               enum HfcRaidStage stage, u8 slot)
+{
+    u8 roster[HFC_RAID_OPPONENT_COUNT];
+    if (HfcWatch_GetRaidDifficultyInfo(difficulty) == NULL || (u32)stage > HFC_RAID_BOSS
+     || slot >= (stage == HFC_RAID_BOSS ? 1 : 2)
+     || !BuildRaidRoster(day, trainerId, difficulty, roster))
+        return (struct HfcRaidOpponent){0};
+    return MakeRaidOpponent(day, trainerId, difficulty, stage, slot, roster);
+}
+
+u8 HfcWatch_GetRaidOfferCount(u8 badges, bool32 champion)
+{
+    if (badges < 5)
+        return 0;
+    return champion ? HFC_RAID_POOL_SIZE : min(18, 12 + 2 * (badges - 5));
+}
+
+u8 HfcWatch_GetRaidResourceBonus(u8 badges, bool32 champion)
+{
+    return champion ? 35 : badges >= 8 ? 28 : badges >= 5 ? 20 : 0;
+}
+
+u8 HfcWatch_ScaleRaidResource(u8 quantity, u8 bonus, u8 *remainder)
+{
+    u32 scaled = quantity * (100 + bonus) + *remainder;
+    *remainder = scaled % 100;
+    return scaled / 100;
+}
+
+static struct HfcRaidOpponent GetOfferOpponent(u16 day, enum HfcRaidDifficulty difficulty, u8 offer,
+                                               u8 count, enum HfcRaidStage stage, u8 slot)
+{
+    u8 roster[HFC_RAID_OPPONENT_COUNT];
+    u8 eligible[HFC_RAID_POOL_SIZE];
+    u8 available = 0;
+    u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
+    u32 seed = RaidRosterSeed(day ^ (offer << 8), trainerId, difficulty);
+    if (HfcWatch_GetRaidDifficultyInfo(difficulty) == NULL || count > HFC_RAID_POOL_SIZE
+     || offer >= count || (u32)stage > HFC_RAID_BOSS || slot >= (stage == HFC_RAID_BOSS ? 1 : 2)
+     || !IsSpeciesEnabled(sRaidOpponents[difficulty][offer].species))
+        return (struct HfcRaidOpponent){0};
+    for (u8 i = 0; i < count; i++)
+        if (i != offer && IsSpeciesEnabled(sRaidOpponents[difficulty][i].species))
+            eligible[available++] = i;
+    if (available < HFC_RAID_OPPONENT_COUNT - 1)
+        return (struct HfcRaidOpponent){0};
+    roster[HFC_RAID_OPPONENT_COUNT - 1] = offer;
+    for (u8 i = 0; i < HFC_RAID_OPPONENT_COUNT - 1; i++)
+    {
+        u8 chosen = NextRaidRoll(&seed, available);
+        roster[i] = eligible[chosen];
+        eligible[chosen] = eligible[--available];
+    }
+    return MakeRaidOpponent(day ^ (offer << 8), trainerId, difficulty, stage, slot, roster);
+}
+
+struct HfcRaidOpponent HfcWatch_GetRaidOfferOpponent(enum HfcRaidDifficulty difficulty, u8 offer,
+                                                    enum HfcRaidStage stage, u8 slot)
+{
+    return GetOfferOpponent(VarGet(VAR_DAYS), difficulty, offer,
+        HfcWatch_GetRaidOfferCount(HfcWatch_CountBadges(), FlagGet(FLAG_IS_CHAMPION)), stage, slot);
+}
+
+u16 HfcWatch_GetRaidOfferCaptureChance(enum HfcRaidDifficulty difficulty, u8 offer)
+{
+    return HfcWatch_GetRaidCaptureChance(VarGet(VAR_DAYS) ^ (offer << 8),
+        GetTrainerId(gSaveBlock2Ptr->playerTrainerId), difficulty);
+}
+
+u32 HfcWatch_GetRaidCooldown(enum HfcRaidDifficulty difficulty, u8 offer)
+{
+    struct UnholyActivitySave *save;
+    u32 now;
+    if ((u32)difficulty >= HFC_RAID_DIFFICULTY_COUNT || offer >= HFC_RAID_POOL_SIZE)
+        return UNHOLY_RAID_COOLDOWN_SECONDS;
+    save = UnholyActivities_Get();
+    if (save == NULL)
+        return UNHOLY_RAID_COOLDOWN_SECONDS;
+    now = UnholyActivities_Now();
+    if (save->lastClock != now)
+    {
+        UnholyActivities_RebaseClock(save, now);
+        UnholyActivities_Commit();
+    }
+    return UnholyActivities_Remaining(save->raidReadyAt[difficulty][offer], now);
+}
+
+static void SetRaidCooldown(void)
+{
+    struct UnholyActivitySave *save = UnholyActivities_Get();
+    if (save != NULL)
+    {
+        u32 now = UnholyActivities_Now();
+        UnholyActivities_RebaseClock(save, now);
+        save->raidReadyAt[sRaid.difficulty][sRaid.offer] = now + UNHOLY_RAID_COOLDOWN_SECONDS;
+        UnholyActivities_Commit();
+    }
+}
+
+struct HfcRaidLoot HfcWatch_GetActiveRaidLoot(u8 index)
+{
+    return index < HFC_RAID_LOOT_COUNT ? sRaid.loot[index] : (struct HfcRaidLoot){ITEM_NONE, 0};
+}
+
 u16 HfcWatch_GetRaidMutation(enum HfcRaidDifficulty difficulty, u32 roll)
 {
     static const u8 sPoolSizes[HFC_RAID_DIFFICULTY_COUNT] = {4, 6, 7, 8};
@@ -268,8 +371,6 @@ enum HfcWatchRaidStatus HfcWatch_GetRaidStatus(void)
         return HFC_RAID_UNAVAILABLE;
     if (mapType != MAP_TYPE_ROUTE && mapType != MAP_TYPE_OCEAN_ROUTE)
         return HFC_RAID_NOT_ON_ROUTE;
-    if (FlagGet(FLAG_DAILY_HFC_RAID))
-        return HFC_RAID_USED_TODAY;
     if (CountPartyAliveNonEggMonsExcept(PARTY_SIZE) < 2)
         return HFC_RAID_NEEDS_PARTY;
     u16 day = VarGet(VAR_DAYS);
@@ -307,12 +408,11 @@ static void StartRaidStage(void)
 {
     bool32 isBoss = sRaid.stage == HFC_RAID_BOSS;
     u8 bossBoost = 0;
-    u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
 
     ZeroEnemyPartyMons();
     for (u8 slot = 0; slot < (isBoss ? 1 : 2); slot++)
     {
-        struct HfcRaidOpponent entry = HfcWatch_GetRaidOpponent(sRaid.day, trainerId, sRaid.difficulty, sRaid.stage, slot);
+        struct HfcRaidOpponent entry = GetOfferOpponent(sRaid.day, sRaid.difficulty, sRaid.offer, sRaid.poolCount, sRaid.stage, slot);
         struct Pokemon *opponent = &gParties[B_TRAINER_OPPONENT_A][slot];
 
         CreateRandomMonWithIVs(opponent, entry.species, entry.level, isBoss ? 25 : 18 + 2 * sRaid.difficulty);
@@ -335,24 +435,41 @@ static void StartRaidStage(void)
     BattleSetup_StartHfcRaid(!isBoss, bossBoost);
 }
 
-bool32 HfcWatch_StartDailyRaid(enum HfcRaidDifficulty difficulty)
+bool32 HfcWatch_StartRaid(enum HfcRaidDifficulty difficulty, u8 offer)
 {
+    struct UnholyActivitySave *save;
+    u8 badges = HfcWatch_CountBadges();
+    u8 bonus = HfcWatch_GetRaidResourceBonus(badges, FlagGet(FLAG_IS_CHAMPION));
     if (sRaid.state != HFC_RAID_IDLE || HfcWatch_GetRaidStatus() != HFC_RAID_READY
-     || !HfcWatch_IsRaidDifficultyUnlocked(difficulty, HfcWatch_CountBadges()))
+     || !HfcWatch_IsRaidDifficultyUnlocked(difficulty, badges)
+     || HfcWatch_GetRaidCooldown(difficulty, offer) != 0
+     || HfcWatch_GetRaidOfferOpponent(difficulty, offer, HFC_RAID_BOSS, 0).species == SPECIES_NONE)
         return FALSE;
-
-    u16 day = VarGet(VAR_DAYS);
-    u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
-    if (HfcWatch_GetRaidOpponent(day, trainerId, difficulty, HFC_RAID_BOSS, 0).species == SPECIES_NONE)
+    save = UnholyActivities_Get();
+    if (save == NULL)
         return FALSE;
-
     sRaid.difficulty = difficulty;
+    sRaid.offer = offer;
+    sRaid.poolCount = HfcWatch_GetRaidOfferCount(badges, FlagGet(FLAG_IS_CHAMPION));
     sRaid.stage = HFC_RAID_FIRST_DOUBLE;
-    sRaid.day = day;
-    sRaid.captureChance = HfcWatch_GetRaidCaptureChance(day, trainerId, difficulty);
-    FlagSet(FLAG_DAILY_HFC_RAID);
+    sRaid.day = VarGet(VAR_DAYS);
+    sRaid.captureChance = HfcWatch_GetRaidOfferCaptureChance(difficulty, offer);
+    for (u8 i = 0; i < HFC_RAID_LOOT_COUNT; i++)
+    {
+        sRaid.loot[i] = GetBaseRaidLoot(i);
+        sRaid.remainder[i] = save->raidRemainder[difficulty][i];
+        // Artifacts remain singular. Only consumable resources receive the badge bonus.
+        if (!(i == HFC_RAID_LOOT_COUNT - 1 && difficulty >= HFC_RAID_EXPERT))
+            sRaid.loot[i].quantity = HfcWatch_ScaleRaidResource(sRaid.loot[i].quantity, bonus, &sRaid.remainder[i]);
+    }
+    SetRaidCooldown();
     StartRaidStage();
     return TRUE;
+}
+
+bool32 HfcWatch_StartDailyRaid(enum HfcRaidDifficulty difficulty)
+{
+    return HfcWatch_StartRaid(difficulty, 0);
 }
 
 bool32 HfcWatch_ContinueRaid(void)
@@ -376,6 +493,7 @@ void HfcWatch_OnRaidBattleEnd(u8 outcome)
     if (sRaid.state != HFC_RAID_FIGHTING)
         return;
 
+    SetRaidCooldown();
     if (outcome != B_OUTCOME_WON)
         sRaid.state = HFC_RAID_ENDED;
     else if (sRaid.stage == HFC_RAID_BOSS)
@@ -428,6 +546,12 @@ enum HfcRaidRewardError HfcWatch_ClaimRaidReward(bool32 capture)
                 }
                 return HFC_RAID_REWARD_BAG_FULL;
             }
+        }
+        struct UnholyActivitySave *save = UnholyActivities_Get();
+        if (save != NULL)
+        {
+            memcpy(save->raidRemainder[sRaid.difficulty], sRaid.remainder, sizeof(sRaid.remainder));
+            UnholyActivities_Commit();
         }
         sRaid.state = HFC_RAID_LOOT_RECEIVED;
     }

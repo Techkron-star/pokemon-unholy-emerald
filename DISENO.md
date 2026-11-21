@@ -1,5 +1,7 @@
 # Pokémon Unholy Emerald — Documento de diseño
 
+**Raids P0 y bounty hunting (implementados, QA visual pendiente):** [cooldown individual visible, variedad por medallas, bonos +20/+28/+35% y contratos vendidos junto a los Poké Mart](docs/UNHOLY_RAIDS_BOUNTIES.md).
+
 **Nuevos Artifacts para casino y exploración (propuesta, no implementados):** [12 piezas, seis velas y auditoría de Poké Balls vacías](docs/UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md). No registrar objetos del mapa sin item, script, bandera y prueba de recogida funcionales.
 
 **Catálogo nuevo de Gears (diseño, no implementado):** [familia MASKARA (11) y otros 19 Gears](docs/GEARS_MASKARA_ARSENAL.md). Incluye efectos, enfriamientos, compatibilidades, pendientes y cautelas de propiedad intelectual.

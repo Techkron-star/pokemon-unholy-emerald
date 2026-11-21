@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_bounty.h"
 #include "malloc.h"
 #include "battle_anim.h"
 #include "battle_pyramid.h"
@@ -2880,6 +2881,8 @@ void TrySpawnObjectEvents(s16 cameraX, s16 cameraY)
     u8 i;
     u8 objectCount;
 
+    UnholyBounty_TrySpawn(cameraX, cameraY);
+
     if (gMapHeader.events != NULL)
     {
         s16 left = gSaveBlock1Ptr->pos.x - 2;
@@ -3703,6 +3706,8 @@ const struct ObjectEventTemplate *GetObjectEventTemplateByLocalIdAndMap(u8 local
     const struct ObjectEventTemplate *savedTemplate;
     const struct MapHeader *mapHeader;
     u8 count;
+    if (localId == LOCALID_BOUNTY_TARGET)
+        return UnholyBounty_GetTemplate();
 
     if (gSaveBlock1Ptr->location.mapNum == mapNum && gSaveBlock1Ptr->location.mapGroup == mapGroup)
     {

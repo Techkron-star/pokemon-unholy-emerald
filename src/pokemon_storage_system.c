@@ -2353,10 +2353,11 @@ static u16 sHfPcFolderCount;
 static u16 sHfPcFolderPage;
 static u16 sHfPcMemberPage;
 static u32 sHfPcSelectedKey;
-static u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
-static struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
-static u8 sHfPcFolderLabels[5][32];
-static u8 sHfPcMemberLabels[5][32];
+// These 3.6 KiB buffers must not consume the IWRAM stack used by field menus.
+static EWRAM_DATA u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
+static EWRAM_DATA struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
+static EWRAM_DATA u8 sHfPcFolderLabels[5][32];
+static EWRAM_DATA u8 sHfPcMemberLabels[5][32];
 
 
 static void HfPc_AddFolderRow(const u8 *label, u8 id)

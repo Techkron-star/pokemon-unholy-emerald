@@ -234,7 +234,7 @@ TEST("HFC Watch Raid unlocks four difficulties and varies capture odds to hundre
     for (enum HfcRaidDifficulty difficulty = 0; difficulty < HFC_RAID_DIFFICULTY_COUNT; difficulty++)
     {
         const struct HfcRaidDifficultyInfo *info = HfcWatch_GetRaidDifficultyInfo(difficulty);
-        EXPECT_EQ(info->minBadges, 5 + difficulty);
+        EXPECT_EQ(info->minBadges, 5);
         EXPECT(!HfcWatch_IsRaidDifficultyUnlocked(difficulty, info->minBadges - 1));
         EXPECT(HfcWatch_IsRaidDifficultyUnlocked(difficulty, info->minBadges));
         if (difficulty != HFC_RAID_STANDARD)

@@ -16882,3 +16882,99 @@ Double Battle: No
 Kyogre
 Level: 5
 IVs: 0 HP / 0 Atk / 0 Def / 0 SpA / 0 SpD / 0 Spe
+
+=== TRAINER_UNHOLY_BOUNTY_BRONZE ===
+Name: ROOK
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer
+
+Poochyena
+Level: 12
+
+Zigzagoon
+Level: 12
+
+=== TRAINER_UNHOLY_BOUNTY_SILVER ===
+Name: SABLE
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer
+
+Mightyena
+Level: 24
+
+Golbat
+Level: 24
+
+Sableye
+Level: 24
+
+=== TRAINER_UNHOLY_BOUNTY_GOLD ===
+Name: RAVEN
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer
+
+Cacturne
+Level: 36
+
+Sharpedo
+Level: 36
+
+Banette
+Level: 36
+
+=== TRAINER_UNHOLY_BOUNTY_PLATINUM ===
+Name: ONYX
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer
+
+Absol
+Level: 48
+
+Aggron
+Level: 48
+
+Dusclops
+Level: 48
+
+Crobat
+Level: 48
+
+=== TRAINER_UNHOLY_BOUNTY_LEGENDARY ===
+Name: NOCTIS
+Class: Cooltrainer
+Pic: Cooltrainer M
+Gender: Male
+Music: Intense
+Double Battle: No
+AI: Basic Trainer
+
+Tyranitar
+Level: 60
+
+Metagross
+Level: 60
+
+Salamence
+Level: 60
+
+Gengar
+Level: 60
+
+Milotic
+Level: 60
