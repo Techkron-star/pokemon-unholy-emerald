@@ -2326,6 +2326,9 @@ enum {
 
 // Two START presses within 20 frames cycle the HF Watch sort modes.
 // Do not rearrange boxes while a Pokémon or multi-selection is being moved.
+static void InitBoxMonSprites(u8 boxId);
+static void DestroyBoxMonIconAtPosition(u8 boxPosition);
+
 static u8 sHfSortStartTimer;
 static u8 sHfSortMode;
 
