@@ -5184,7 +5184,7 @@ void ItemUseCB_AbilityPatch(u8 taskId, TaskFunc task)
     currentAbilityNum = GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_ABILITY_NUM);
     firstHidden = GetSpeciesAbility(tSpecies, 2) != ABILITY_NONE;
     secondHidden = GetSpeciesAbility(tSpecies, 3) != ABILITY_NONE;
-    if (currentAbilityNum == 2 && secondHidden)
+    if (currentAbilityNum == 2 && firstHidden && secondHidden)
     {
         // First hidden -> second hidden, without gambling on a random Patch.
         tAbilityNum = 3;

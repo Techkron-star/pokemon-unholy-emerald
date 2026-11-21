@@ -10,6 +10,7 @@ Se distribuyen las **37 habilidades** entre **403 especies y formas** que encaja
 - El campo de guardado `abilityNum` ya tiene **2 bits**, suficientes para los slots 0, 1, 2 y 3. No se cambia el formato de la partida guardada. Un Pokémon existente no obtiene automáticamente la nueva habilidad: conserva la que ya tenía.
 - El **Parche de Habilidad** avanza de una normal a la primera oculta disponible, de la primera oculta a la segunda (si existe) y de la última oculta de vuelta a la normal. La **Cápsula** sigue alternando las dos normales. No hay selección aleatoria ni consumo del Parche si el cambio no existe.
 - En **DexNav**, al salir la oportunidad de habilidad oculta para una especie ya capturada, puede aparecer **cualquiera de las dos**. El panel resumido de DexNav todavía muestra una sola habilidad oculta; esta limitación de visualización debe revisarse.
+- En la **crianza**, ambas habilidades ocultas usan la misma probabilidad de herencia definida por la generación (60 % a partir de Gen 6), sin convertir la segunda en herencia garantizada.
 - El editor de Pokémon de depuración y la asignación de equipos de entrenadores reconocen las cuatro opciones. Los cambios no activan **dos habilidades simultáneas**: cada Pokémon sigue usando una sola.
 
 ## Reparto temático
