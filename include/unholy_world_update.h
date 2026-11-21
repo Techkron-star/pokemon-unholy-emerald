@@ -7,6 +7,9 @@ void UnholyWorldUpdate_Reconcile(void);
 // Invoked from the in-game QoL settings. Refresh only versioned additions;
 // never clear a reward's permanent CLAIMED flag or native pickup flags.
 struct ScriptContext;
+void UnholyWorldUpdate_BeginAudit(struct ScriptContext *ctx);
+void UnholyWorldUpdate_ProcessChunk(struct ScriptContext *ctx);
 void UnholyWorldUpdate_RefreshCurrentMap(struct ScriptContext *ctx);
+void UnholyWorldUpdate_FinishAudit(struct ScriptContext *ctx);
 
 #endif // GUARD_UNHOLY_WORLD_UPDATE_H
