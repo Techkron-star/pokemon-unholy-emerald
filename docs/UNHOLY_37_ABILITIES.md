@@ -1,8 +1,8 @@
 # Unholy Emerald — catálogo de 37 habilidades nuevas y revisadas
 
-**Estado:** integración del motor en curso. Hay reglas de combate programadas para las **37 entradas**, incluida la bonificación de Banshee de **+20 puntos porcentuales**. La distribución por especies todavía es una fase separada. Ver los límites restantes al final. Última revisión: 21 de noviembre de 2026.
+**Estado:** integración del motor en curso. Hay reglas de combate programadas para las **37 entradas**, incluida la bonificación de Banshee de **+20 puntos porcentuales**. Hay un reparto propuesto como **segunda habilidad oculta** por especies, pendiente de compilar y probar: [distribución de habilidades](./UNHOLY_ABILITY_DISTRIBUTION.md). Última revisión: 21 de noviembre de 2026.
 
-Este documento conserva las **37 habilidades** definidas por tandas. Las cifras confirmadas se distinguen de los detalles que todavía requieren una decisión antes de programar. No asignar habilidades a especies ni modificar las originales de los iniciales hasta completar la fase de distribución y reequilibrio.
+Este documento conserva las **37 habilidades** definidas por tandas. Las cifras confirmadas se distinguen de los detalles que todavía requieren una decisión antes de programar. El reparto por especies mantiene intactas las habilidades originales de los iniciales y no adelanta el reequilibrio de Torrente/Mar Llamas/Espesura.
 
 ## Reglas compartidas
 
@@ -157,7 +157,7 @@ La implementación vive en `src/battle_unholy_abilities.c`, conectada al cálcul
 1. **Antithesis:** no se inventaron inversiones para incapacidades, pantallas, inmunidades u otros beneficios sin transformación numérica definida. No reinterpreta retroactivamente boosts antiguos. Los objetos de la mochila que modifican directamente los datos del equipo requieren una integración específica; las pruebas actuales cubren curación mediante canales de combate y bayas equipadas.
 2. **Bélico:** Aterrado no existe como estado ejecutable en este árbol; la inmunidad a Intimidación está conectada, pero una futura implementación de Aterrado deberá consultar Bélico.
 3. **Time Realm:** no acelera mecánicas todavía inexistentes en el motor, incluido un Réquiem propio distinto del Canto Mortal nativo. No modifica por separado cada efecto imaginado o pendiente de implementación. El registro de cronómetros soportados es explícito.
-4. **Distribución:** no se asignaron nuevas habilidades a especies/formas ni se cambiaron los iniciales. La distribución y los reworks de Torrente/Mar Llamas/Espesura siguen siendo una fase separada. Cuerpo Magma y Gula sí cambian donde ya se usaban sus IDs existentes.
+4. **Distribución:** el reparto por especies/formas está preparado en una **segunda oculta**, sin reemplazar las habilidades previas ni cambiar las originales de los iniciales. Ver [catálogo de distribución](./UNHOLY_ABILITY_DISTRIBUTION.md). Los reworks de Torrente/Mar Llamas/Espesura siguen pendientes. Cuerpo Magma y Gula también cambian donde ya se usaban sus IDs existentes.
 5. Los porcentajes propuestos de 35/10/25/20/20 y el 150 % de regeneración se usan como balance inicial en `include/config/unholy_abilities.h`; no se presentan como cifras confirmadas definitivamente por el autor.
 
 ### Validación

@@ -448,7 +448,7 @@ struct SpeciesInfo /*0xC4*/
     u8 friendship;
     u8 growthRate;
     enum EggGroup eggGroups[EGG_GROUPS_PER_MON];
-    enum Ability abilities[NUM_ABILITY_SLOTS]; // 3 abilities, no longer u8 because we have over 255 abilities now.
+    enum Ability abilities[NUM_ABILITY_SLOTS]; // 2 normal + 2 hidden; enum needed for more than 255 abilities.
     u8 safariZoneFleeRate;
 
     // Pokédex data

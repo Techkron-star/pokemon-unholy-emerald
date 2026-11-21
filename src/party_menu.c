@@ -5175,14 +5175,30 @@ void Task_AbilityPatch(u8 taskId)
 void ItemUseCB_AbilityPatch(u8 taskId, TaskFunc task)
 {
     s16 *data = gTasks[taskId].data;
+    u8 currentAbilityNum;
+    bool32 firstHidden, secondHidden;
 
     tState = 0;
     tMonId = gPartyMenu.slotId;
     tSpecies = GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_SPECIES);
-    if (GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_ABILITY_NUM) == 2)
+    currentAbilityNum = GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_ABILITY_NUM);
+    firstHidden = GetSpeciesAbility(tSpecies, 2) != ABILITY_NONE;
+    secondHidden = GetSpeciesAbility(tSpecies, 3) != ABILITY_NONE;
+    if (currentAbilityNum == 2 && secondHidden)
+    {
+        // First hidden -> second hidden, without gambling on a random Patch.
+        tAbilityNum = 3;
+    }
+    else if (currentAbilityNum >= NUM_NORMAL_ABILITY_SLOTS)
+    {
+        // Last hidden -> normal; Ability Capsule still changes normal slots.
         tAbilityNum = 0;
+    }
     else
-        tAbilityNum = 2;
+    {
+        // Normal -> first available hidden. Another Patch accesses slot 3.
+        tAbilityNum = firstHidden ? 2 : (secondHidden ? 3 : 2);
+    }
     SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
     gTasks[taskId].func = Task_AbilityPatch;
 }

@@ -3044,9 +3044,10 @@ bool32 TryFieldEffects(enum FieldEffectCases caseId)
 
 static bool32 IsRestrictedAbility(enum BattlerId battler, enum Ability ability)
 {
-    return GetSpeciesAbility(gBattleMons[battler].species, 0) == ability
-        || GetSpeciesAbility(gBattleMons[battler].species, 1) == ability
-        || GetSpeciesAbility(gBattleMons[battler].species, 2) == ability;
+    for (u8 slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+        if (GetSpeciesAbility(gBattleMons[battler].species, slot) == ability)
+            return TRUE;
+    return FALSE;
 }
 
 static bool32 TryDancer(void)
