@@ -1,13 +1,14 @@
-From 157694fadecaed75a95a2081966701195a29618b Mon Sep 17 00:00:00 2001
+From 36d13e1e2044ee8b712678f7234bdf0494379b66 Mon Sep 17 00:00:00 2001
 From: Codex <codex@openai.com>
 Date: Sat, 21 Nov 2026 17:58:06 -0400
 Subject: [PATCH] feat(gba): prototype 4 MiB Unholy extended memory window
 
 ---
- include/mgba/internal/gba/memory.h |  6 +++
- src/gba/memory.c                   | 83 +++++++++++++++++++++++++++++-
- tests/unholy-ext-memory-smoke.c    | 76 +++++++++++++++++++++++++++
- 3 files changed, 164 insertions(+), 1 deletion(-)
+ include/mgba/internal/gba/memory.h |  6 ++
+ src/gba/core.c                     | 19 ++++++-
+ src/gba/memory.c                   | 83 +++++++++++++++++++++++++++-
+ tests/unholy-ext-memory-smoke.c    | 88 ++++++++++++++++++++++++++++++
+ 4 files changed, 192 insertions(+), 4 deletions(-)
  create mode 100644 tests/unholy-ext-memory-smoke.c
 
 diff --git a/include/mgba/internal/gba/memory.h b/include/mgba/internal/gba/memory.h
@@ -48,6 +49,42 @@ index 0aad912..9c8c9f1 100644
  	uint32_t* wram;
  	uint32_t* iwram;
  	uint32_t* rom;
+diff --git a/src/gba/core.c b/src/gba/core.c
+index 6bfc518..c56fe48 100644
+--- a/src/gba/core.c
++++ b/src/gba/core.c
+@@ -876,15 +876,28 @@ static void _GBACoreStep(struct mCore* core) {
+ 
+ static size_t _GBACoreStateSize(struct mCore* core) {
+ 	UNUSED(core);
+-	return sizeof(struct GBASerializedState);
++	// Unholy Extended savestates append the host-backed RAM to the stock
++	// snapshot. This build uses its own state format; stock mGBA states are
++	// intentionally not interchangeable with extended-core states.
++	return sizeof(struct GBASerializedState) + GBA_SIZE_UNHOLY_RAM;
+ }
+ 
+ static bool _GBACoreLoadState(struct mCore* core, const void* state) {
+-	return GBADeserialize(core->board, state);
++	struct GBA* gba = core->board;
++	if (!GBADeserialize(gba, state)) {
++		return false;
++	}
++	memcpy(gba->memory.unholyRam,
++	       (const uint8_t*) state + sizeof(struct GBASerializedState),
++	       GBA_SIZE_UNHOLY_RAM);
++	return true;
+ }
+ 
+ static bool _GBACoreSaveState(struct mCore* core, void* state) {
+-	GBASerialize(core->board, state);
++	struct GBA* gba = core->board;
++	GBASerialize(gba, state);
++	memcpy((uint8_t*) state + sizeof(struct GBASerializedState),
++	       gba->memory.unholyRam, GBA_SIZE_UNHOLY_RAM);
+ 	return true;
+ }
+ 
 diff --git a/src/gba/memory.c b/src/gba/memory.c
 index aa01fdc..bb7829d 100644
 --- a/src/gba/memory.c
@@ -291,16 +328,17 @@ index aa01fdc..bb7829d 100644
  		break;
 diff --git a/tests/unholy-ext-memory-smoke.c b/tests/unholy-ext-memory-smoke.c
 new file mode 100644
-index 0000000..c2c938a
+index 0000000..687a6f7
 --- /dev/null
 +++ b/tests/unholy-ext-memory-smoke.c
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,88 @@
 +/* Unholy Extended memory probe (experimental mGBA fork, MPL-2.0). */
 +#include <mgba/core/core.h>
 +#include <mgba/internal/gba/gba.h>
 +#include <mgba/internal/gba/memory.h>
 +
 +#include <stdio.h>
++#include <stdlib.h>
 +
 +int main(int argc, char **argv)
 +{
@@ -309,6 +347,7 @@ index 0000000..c2c938a
 +    struct ARMCore *cpu;
 +    const uint32_t base = GBA_BASE_UNHOLY_RAM;
 +    const uint32_t address = base + GBA_UNHOLY_RAM_DATA_OFFSET;
++    uint8_t *savedState = NULL;
 +    int status = 1;
 +
 +    if (argc != 2)
@@ -358,14 +397,24 @@ index 0000000..c2c938a
 +    if (GBALoad32(cpu, base + GBA_SIZE_UNHOLY_RAM - 4, NULL) != 0x12345678)
 +        goto done;
 +
++    savedState = malloc(core->stateSize(core));
++    if (savedState == NULL || !core->saveState(core, savedState))
++        goto done;
++    GBAStore32(cpu, address, 0x77777777, NULL);
++    if (!core->loadState(core, savedState)
++     || GBALoad32(cpu, address, NULL) != 0x1234EFD4
++     || GBALoad32(cpu, base + GBA_SIZE_UNHOLY_RAM - 4, NULL) != 0x12345678)
++        goto done;
++
 +    core->reset(core);
 +    if (GBALoad32(cpu, address, NULL) != 0
 +     || GBALoad32(cpu, base, NULL) != GBA_UNHOLY_RAM_MAGIC)
 +        goto done;
 +
-+    puts("PASS: 4 MiB extended RAM, read/write/boundary/reset/ROM loading");
++    puts("PASS: 4 MiB extended RAM, read/write/boundary/savestate/reset/ROM loading");
 +    status = 0;
 +done:
++    free(savedState);
 +    if (status)
 +        fprintf(stderr, "FAIL: Unholy Extended memory probe\n");
 +    core->deinit(core);
