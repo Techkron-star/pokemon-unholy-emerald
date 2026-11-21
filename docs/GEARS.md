@@ -35,6 +35,29 @@ Un **Gear** es equipamiento de un slot propio, distinto del objeto equipado ordi
 - La bonificación del movimiento en ejecución se fija al empezar, así que los golpes múltiples y los objetivos múltiples reciben el mismo valor.
 - La IA ve la bonificación al estimar daño sin gastar nada (`Gear_GetPowerModifier` no tiene efectos secundarios).
 
+### Familias de movimientos para los Gears
+
+Un tipo elemental (Acero, Dragón, etc.) **no** determina si un ataque es de
+corte, puño o sonido. Tampoco basta con que sea físico o haga contacto. Cada
+movimiento declara sus familias en `src/data/moves_info.h`; los Gears consultan
+estas mismas etiquetas a través de `include/move.h`.
+
+| Familia | Consumidor actual | Incluidos | No incluidos |
+| --- | --- | --- | --- |
+| **Corte** (`slicingMove`) | Piedra de Afilar: +1 Ataque al usar un corte de daño | Corte, Cuchillada, Garra Metal, Garra Dragón, Garra Umbría, Hoja Afilada, Tajo Aéreo, Psicocorte, Garra Nociva, Bomba Población | Placaje, Hiperrayo, Danza Espada |
+| **Puño** (`punchingMove`) | Guantes Cohete | Ultrapuño, Puño Hielo, Electropalmas (Double Shock) | Demolición, Cuchillada |
+| **Sonido** (`soundMove`) | Amplificador (daño) y Auriculares (protección) | Estruendo, Aullido, Bramido Dragón | Hiperrayo |
+| **Proyectil** (`ballisticMove`) | Inmunidad nativa Antibalas; familia reservada para futuros artefactos | Recurrente, Bola Sombra, Pedrada (Rock Blast) | Hiperrayo, Hidropulso, Tajo Aéreo |
+
+**Criterio:** la etiqueta describe la **mecánica del movimiento**, no su
+animación superficial. Bomba Población pertenece oficialmente a la familia de
+corte pese a su nombre; no es un proyectil. Los movimientos de corte especiales
+también cumplen Piedra de Afilar, aunque el Gear eleve Ataque físico. Se han
+activado etiquetas de Garra Metal, Garra Umbría, Garra Dragón, Garra Nociva,
+Garra Brutal, Double Shock y Bramido Dragón que el motor antiguo reservaba
+para `GEN_CHAMPIONS` y que, de otro modo, no se activaban en la configuración
+`GEN_9` de este proyecto.
+
 ### Cambios de estadísticas y habilidades
 
 Los Gears no ignoran las habilidades que modifican cambios de etapas:
