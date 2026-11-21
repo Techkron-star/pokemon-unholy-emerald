@@ -34,8 +34,8 @@ TEST("Unholy native item balls recover script item and flag from current ROM map
 
     found = GetObjectEventTemplateByLocalIdAndMap(1,
         gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
-    EXPECT_EQ(found, &romBall);
-    EXPECT_EQ(found->script, Common_EventScript_FindItem);
+    EXPECT(found == &romBall);
+    EXPECT(found->script == Common_EventScript_FindItem);
     EXPECT_EQ(found->trainerRange_berryTreeId, ITEM_BURN_HEAL);
     EXPECT_EQ(found->flagId, FLAG_ITEM_JAGGED_PASS_BURN_HEAL);
 
@@ -44,7 +44,7 @@ TEST("Unholy native item balls recover script item and flag from current ROM map
     savedBall->script = Common_EventScript_FindItem + 1;
     found = GetObjectEventTemplateByLocalIdAndMap(1,
         gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
-    EXPECT_EQ(found, &romBall);
+    EXPECT(found == &romBall);
 
     // A complete saved template remains authoritative: random/dynamic item
     // locations must not be reset just because a ROM template exists.
@@ -52,7 +52,7 @@ TEST("Unholy native item balls recover script item and flag from current ROM map
     savedBall->trainerRange_berryTreeId = ITEM_POTION;
     found = GetObjectEventTemplateByLocalIdAndMap(1,
         gSaveBlock1Ptr->location.mapNum, gSaveBlock1Ptr->location.mapGroup);
-    EXPECT_EQ(found, savedBall);
+    EXPECT(found == savedBall);
     EXPECT_EQ(found->trainerRange_berryTreeId, ITEM_POTION);
 
     *savedBall = originalTemplate;
