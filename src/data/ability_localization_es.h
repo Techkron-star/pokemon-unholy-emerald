@@ -407,7 +407,7 @@
 [ABILITY_FALLEN_ANGEL] = { COMPOUND_STRING("Fallen Angel"), COMPOUND_STRING("Reparte daño Hada y Siniestro a partes iguales.") },
 [ABILITY_SAMURAI] = { COMPOUND_STRING("Samurai"), COMPOUND_STRING("Sus cortes pueden devolver daño de contacto.") },
 [ABILITY_GELIDO] = { COMPOUND_STRING("Gélido"), COMPOUND_STRING("Agua pasa a Hielo; contacto puede dar Frostbite.") },
-[ABILITY_BANSHEE] = { COMPOUND_STRING("Banshee"), COMPOUND_STRING("Escala de prob. Fantasma por definir.") },
+[ABILITY_BANSHEE] = { COMPOUND_STRING("Banshee"), COMPOUND_STRING("Ataques Fantasma: +20% efectos secundarios.") },
 [ABILITY_ONI] = { COMPOUND_STRING("Oni"), COMPOUND_STRING("Siniestro físico reparte daño físico y especial.") },
 [ABILITY_DRAKE] = { COMPOUND_STRING("Drake"), COMPOUND_STRING("Dragón ignora parte de las defensas rivales.") },
 [ABILITY_MONJE] = { COMPOUND_STRING("Monje"), COMPOUND_STRING("Daño Psíquico mixto; no bajan estadísticas.") },

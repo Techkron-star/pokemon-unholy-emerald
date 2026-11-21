@@ -9,8 +9,8 @@
 #define U_MALVADO_PRIORITY_CHANCE 20
 #define U_BATTERY_REGEN_PERCENT   150
 
-// No numeric definition was agreed for Banshee's "+1 probability level".
-// Zero deliberately leaves original odds alone until that scale is specified.
-#define U_BANSHEE_CHANCE_LEVELS_DEFINED FALSE
+// Banshee gives damaging Ghost moves +20 percentage points to each secondary
+// effect's activation chance, without creating extra effect rolls.
+#define U_BANSHEE_SECONDARY_BONUS 20
 
 #endif
