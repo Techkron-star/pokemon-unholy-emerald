@@ -99,7 +99,7 @@ bool8 HfPcManual_Create(const u8 *name, u8 color, u8 *outId)
 {
     struct HfPcManualData *data = HfPcManual_Data();
     struct HfPcManualFolder *folder;
-    if (data == NULL || name == NULL || name[0] == EOS
+    if (data == NULL || name == NULL || name[0] == 0xFF
      || color >= HF_PC_FOLDER_COLORS || data->count >= HF_PC_MANUAL_FOLDERS)
         return FALSE;
     if (StringLength(name) > HF_PC_FOLDER_NAME_LENGTH)
@@ -116,7 +116,7 @@ bool8 HfPcManual_Create(const u8 *name, u8 color, u8 *outId)
 bool8 HfPcManual_Rename(u8 id, const u8 *name)
 {
     struct HfPcManualData *data = HfPcManual_Data();
-    if (data == NULL || id >= data->count || name == NULL || name[0] == EOS
+    if (data == NULL || id >= data->count || name == NULL || name[0] == 0xFF
      || StringLength(name) > HF_PC_FOLDER_NAME_LENGTH)
         return FALSE;
     StringCopy(data->folders[id].name, name);
