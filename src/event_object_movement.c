@@ -3700,6 +3700,7 @@ u8 GetObjectEventBerryTreeId(u8 objectEventId)
 const struct ObjectEventTemplate *GetObjectEventTemplateByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroup)
 {
     const struct ObjectEventTemplate *templates;
+    const struct ObjectEventTemplate *savedTemplate;
     const struct MapHeader *mapHeader;
     u8 count;
 
@@ -3707,6 +3708,31 @@ const struct ObjectEventTemplate *GetObjectEventTemplateByLocalIdAndMap(u8 local
     {
         templates = gSaveBlock1Ptr->objectEventTemplates;
         count = gMapHeader.events->objectEventCount;
+
+        savedTemplate = FindObjectEventTemplateByLocalId(localId, templates, count);
+        // Older saves can retain a copy of a map's object templates from a
+        // previous ROM. Its script may still be non-NULL but point into the
+        // *old* ROM's script table. A visible ball would then do nothing,
+        // even after the World Update command.
+        // Repair *only* broken item-ball templates from the current ROM;
+        // never replace valid saved/dynamic objects or story event scripts.
+        if (savedTemplate == NULL || savedTemplate->graphicsId == OBJ_EVENT_GFX_ITEM_BALL)
+        {
+            const struct ObjectEventTemplate *romTemplate = FindObjectEventTemplateByLocalId(
+                localId, gMapHeader.events->objectEvents, count);
+
+            if (romTemplate != NULL && romTemplate->graphicsId == OBJ_EVENT_GFX_ITEM_BALL
+             && romTemplate->script != NULL
+             && (savedTemplate == NULL || savedTemplate->script == NULL
+              || (romTemplate->script == Common_EventScript_FindItem
+               && savedTemplate->script != romTemplate->script)
+              || (savedTemplate->script == Common_EventScript_FindItem
+               && (savedTemplate->trainerRange_berryTreeId == ITEM_NONE
+                || savedTemplate->trainerRange_berryTreeId >= ITEMS_COUNT
+                || savedTemplate->flagId == 0))))
+                return romTemplate;
+        }
+        return savedTemplate;
     }
     else
     {

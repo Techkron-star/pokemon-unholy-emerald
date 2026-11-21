@@ -24,6 +24,9 @@ enum UnholyUiIcon
     UNHOLY_UI_ICON_TOOLS,
     UNHOLY_UI_ICON_LOCK,
     UNHOLY_UI_ICON_COIN,
+    UNHOLY_UI_ICON_DOT,
+    UNHOLY_UI_ICON_HALF,
+    UNHOLY_UI_ICON_RING,
     UNHOLY_UI_ICON_COUNT
 };
 
@@ -39,5 +42,8 @@ void UnholyUi_Bar(u8 window, u16 x, u16 y, u16 width, u32 value, u32 maximum, u8
 u8 UnholyUi_CardFill(bool8 selected);
 u8 UnholyUi_AccentColor(void);
 void UnholyUi_Icon(u8 window, u16 x, u16 y, u8 icon, u8 color);
+u16 UnholyUi_Chip(u8 window, u16 x, u16 y, const u8 *text);
+void UnholyUi_Button(u8 window, u16 x, u16 y, u16 width, const u8 *text, u8 icon, bool8 active);
+void UnholyUi_PulseAccent(u8 paletteSlot, u8 phase);
 
 #endif

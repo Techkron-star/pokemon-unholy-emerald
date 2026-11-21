@@ -34,6 +34,11 @@ PICKUPS = [
 # reward audit so a vanilla item ball cannot silently become decoration.
 REPORTED_PICKUPS = [
     ("Route102", "ITEM_POTION", "FLAG_ITEM_ROUTE_102_POTION", (11, 15), (11, 14)),
+    # Mountain-path report: player faces right towards this ball.
+    ("JaggedPass", "ITEM_BURN_HEAL", "FLAG_ITEM_JAGGED_PASS_BURN_HEAL", (23, 24), (22, 24)),
+    # Additional route regression: these map templates must remain interactive
+    # on saves created before a ROM update.
+    ("Route116", "ITEM_REPEL", "FLAG_ITEM_ROUTE_116_REPEL", (10, 17), (10, 16)),
 ]
 
 # From Littleroot through Wattson, verify the ordinary pickups as a group,

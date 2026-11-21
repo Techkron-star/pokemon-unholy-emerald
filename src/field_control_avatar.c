@@ -343,15 +343,6 @@ static const u8 *GetVisibleItemBallScript(struct MapPosition *position, enum Dir
     u8 i;
     u8 tileElevation = MapGridGetElevationAt(position->x, position->y);
 
-    // The normal object lookup requires a matching runtime elevation. A ball
-    // accidentally assigned the wrong template elevation can still be drawn,
-    // while A silently ignores it. Use the ground tile's elevation instead,
-    // never an object on a different bridge/floor.
-    if (tileElevation != ELEVATION_TRANSITION
-     && position->elevation != ELEVATION_TRANSITION
-     && tileElevation != position->elevation)
-        return NULL;
-
     for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
     {
         const struct ObjectEvent *objectEvent = &gObjectEvents[i];
@@ -363,6 +354,16 @@ static const u8 *GetVisibleItemBallScript(struct MapPosition *position, enum Dir
          || objectEvent->currentCoords.x != position->x
          || objectEvent->currentCoords.y != position->y
          || IsOverworldWildEncounter(&gObjectEvents[i], OWE_ANY))
+            continue;
+
+        // Bridges and slopes can report a ground elevation different from the
+        // sprite's elevation. Accept either matching surface; never reach an
+        // item visible on another floor across a bridge.
+        if (position->elevation != ELEVATION_TRANSITION
+         && tileElevation != ELEVATION_TRANSITION
+         && objectEvent->currentElevation != ELEVATION_TRANSITION
+         && tileElevation != position->elevation
+         && objectEvent->currentElevation != position->elevation)
             continue;
 
         template = GetObjectEventTemplateByLocalIdAndMap(
