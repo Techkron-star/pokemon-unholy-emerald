@@ -39,6 +39,9 @@ static struct HfWalletData *HfWallet_GetData(void)
     }
     if (wallet->unlocked == 0 || wallet->unlocked > HF_WALLET_MAX_SLOTS)
         return NULL;
+    for (u8 i = 0; i < wallet->unlocked; i++)
+        if (wallet->balances[i] > HF_WALLET_SLOT_CAP)
+            return NULL;
     return wallet;
 }
 
@@ -103,4 +106,32 @@ bool32 HfWallet_Withdraw(u8 slot, u32 amount)
     wallet->balances[slot] -= amount;
     AddMoney(&gSaveBlock1Ptr->money, amount);
     return UnholySave5_Commit();
+}
+
+// Transfers between unlocked vaults never touch the player's carried money.
+bool32 HfWallet_Transfer(u8 from, u8 to, u32 amount)
+{
+    struct HfWalletData *wallet = HfWallet_GetData();
+
+    if (wallet == NULL || from >= wallet->unlocked || to >= wallet->unlocked
+     || from == to || amount == 0 || wallet->balances[from] < amount
+     || amount > HF_WALLET_SLOT_CAP - wallet->balances[to])
+        return FALSE;
+    wallet->balances[from] -= amount;
+    wallet->balances[to] += amount;
+    return UnholySave5_Commit();
+}
+
+// A 64-bit accumulator prevents overflow when several vaults are full.
+u64 HfWallet_GetTotalBalance(void)
+{
+    struct HfWalletData *wallet = HfWallet_GetData();
+    u64 total = 0;
+    u8 i;
+
+    if (wallet == NULL)
+        return 0;
+    for (i = 0; i < wallet->unlocked; i++)
+        total += wallet->balances[i];
+    return total;
 }
