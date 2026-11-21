@@ -2,6 +2,7 @@
 #include "event_data.h"
 #include "event_object_movement.h"
 #include "unholy_world_update.h"
+#include "constants/event_objects.h"
 #include "constants/flags.h"
 #include "constants/vars.h"
 
@@ -64,6 +65,36 @@ void UnholyWorldUpdate_RefreshCurrentMap(struct ScriptContext *ctx)
 
     if (gMapHeader.events == NULL)
         return;
+
+    // Legacy saves may have cached obsolete object templates inside New
+    // Mauville. Restore just its eight fixed Poké Ball / Voltorb templates
+    // before respawning: never reset collection or defeated-Voltorb flags.
+    if (gSaveBlock1Ptr->location.mapNum == MAP_NUM(MAP_NEW_MAUVILLE_INSIDE)
+     && gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(MAP_NEW_MAUVILLE_INSIDE))
+    {
+        for (u8 i = 0; i < gMapHeader.events->objectEventCount; i++)
+        {
+            const struct ObjectEventTemplate *romTemplate = &gMapHeader.events->objectEvents[i];
+
+            if (romTemplate->graphicsId == OBJ_EVENT_GFX_ITEM_BALL)
+            {
+                // Three pickups have moved off the generator's switches.
+                // Despawn their old sprites without setting their pickup
+                // flags; TrySpawnObjectEvents restores unclaimed ones below.
+                for (u8 j = 0; j < OBJECT_EVENTS_COUNT; j++)
+                {
+                    struct ObjectEvent *objectEvent = &gObjectEvents[j];
+
+                    if (objectEvent->active
+                     && objectEvent->localId == romTemplate->localId
+                     && objectEvent->mapNum == gSaveBlock1Ptr->location.mapNum
+                     && objectEvent->mapGroup == gSaveBlock1Ptr->location.mapGroup)
+                        RemoveObjectEvent(objectEvent);
+                }
+                gSaveBlock1Ptr->objectEventTemplates[i] = *romTemplate;
+            }
+        }
+    }
 
     for (u8 i = 0; i < gMapHeader.events->objectEventCount; i++)
     {

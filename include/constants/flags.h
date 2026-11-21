@@ -1522,6 +1522,11 @@
 #define FLAG_UNUSED_0x8F1                           (SYSTEM_FLAGS + 0x91) // Unused Flag
 #define FLAG_UNUSED_0x8F2                           (SYSTEM_FLAGS + 0x92) // Unused Flag
 #define FLAG_UNUSED_0x8F3                           (SYSTEM_FLAGS + 0x93) // Unused Flag
+// Persistent debug toggles. Keep their IDs distinct from story and pickup flags.
+#define FLAG_UNHOLY_DEBUG_NO_COLLISION               FLAG_UNUSED_0x8F0
+#define FLAG_UNHOLY_DEBUG_NO_ENCOUNTER               FLAG_UNUSED_0x8F1
+#define FLAG_UNHOLY_DEBUG_NO_TRAINER_SEE             FLAG_UNUSED_0x8F2
+#define FLAG_UNHOLY_DEBUG_NO_CATCHING                FLAG_UNUSED_0x8F3
 #define FLAG_UNUSED_0x8F4                           (SYSTEM_FLAGS + 0x94) // Unused Flag
 #define FLAG_UNUSED_0x8F5                           (SYSTEM_FLAGS + 0x95) // Unused Flag
 #define FLAG_UNUSED_0x8F6                           (SYSTEM_FLAGS + 0x96) // Unused Flag

@@ -39,6 +39,13 @@ REPORTED_PICKUPS = [
     # Additional route regression: these map templates must remain interactive
     # on saves created before a ROM update.
     ("Route116", "ITEM_REPEL", "FLAG_ITEM_ROUTE_116_REPEL", (10, 17), (10, 16)),
+    # New Mauville's native balls must not overlap floor switches. Those
+    # switches are coordinate events, so an overlapping ball can be inert.
+    ("NewMauville_Inside", "ITEM_ULTRA_BALL", "FLAG_ITEM_NEW_MAUVILLE_ULTRA_BALL", (32, 25), None),
+    ("NewMauville_Inside", "ITEM_ESCAPE_ROPE", "FLAG_ITEM_NEW_MAUVILLE_ESCAPE_ROPE", (17, 22), None),
+    ("NewMauville_Inside", "ITEM_THUNDER_STONE", "FLAG_ITEM_NEW_MAUVILLE_THUNDER_STONE", (39, 4), None),
+    ("NewMauville_Inside", "ITEM_FULL_HEAL", "FLAG_ITEM_NEW_MAUVILLE_FULL_HEAL", (18, 10), None),
+    ("NewMauville_Inside", "ITEM_PARALYZE_HEAL", "FLAG_ITEM_NEW_MAUVILLE_PARALYZE_HEAL", (3, 11), None),
 ]
 
 # From Littleroot through Wattson, verify the ordinary pickups as a group,
@@ -230,6 +237,13 @@ def main():
 
     all_ball_errors, counts = audit_all_item_balls()
     errors.extend(all_ball_errors)
+
+    # Keep the three apparent Poké Balls that are actually Voltorb encounters.
+    # Unlike regular loot they deliberately guard the generator's switches.
+    mauville = json.loads((ROOT / "data/maps/NewMauville_Inside/map.json").read_text())
+    voltorb_scripts = {f"NewMauville_Inside_EventScript_Voltorb{i}" for i in range(1, 4)}
+    if {obj["script"] for obj in mauville["object_events"] if obj["script"] in voltorb_scripts} != voltorb_scripts:
+        errors.append("New Mauville: one or more disguised Voltorb encounters are missing")
 
     # Regression: ordinary item balls must be resolved before the effect
     # preflight, which used to silently discard their A-button interaction.

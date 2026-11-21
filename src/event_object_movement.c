@@ -3710,6 +3710,24 @@ const struct ObjectEventTemplate *GetObjectEventTemplateByLocalIdAndMap(u8 local
         count = gMapHeader.events->objectEventCount;
 
         savedTemplate = FindObjectEventTemplateByLocalId(localId, templates, count);
+        #if !IS_FRLG
+        // New Mauville's generator room contains five regular pickups and
+        // three Voltorb disguised as balls. Older saves may keep valid-looking
+        // but stale script, item or hide-flag data for any of the eight. Use
+        // the current ROM definition for these fixed objects; the actual
+        // collected/defeated flags still live in the save and are untouched.
+        if (mapNum == MAP_NUM(MAP_NEW_MAUVILLE_INSIDE)
+         && mapGroup == MAP_GROUP(MAP_NEW_MAUVILLE_INSIDE))
+        {
+            const struct ObjectEventTemplate *romTemplate = FindObjectEventTemplateByLocalId(
+                localId, gMapHeader.events->objectEvents, count);
+
+            if (romTemplate != NULL && romTemplate->graphicsId == OBJ_EVENT_GFX_ITEM_BALL
+             && romTemplate->script != NULL)
+                return romTemplate;
+        }
+        #endif
+
         // Older saves can retain a copy of a map's object templates from a
         // previous ROM. Its script may still be non-NULL but point into the
         // *old* ROM's script table. A visible ball would then do nothing,
