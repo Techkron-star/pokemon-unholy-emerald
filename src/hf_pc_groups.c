@@ -91,3 +91,9 @@ u16 HfPcGroup_CollectKeys(u8 mode, u32 *keys, u16 capacity)
     }
     return count;
 }
+
+// Resolve membership without copying or relocating boxed Pokémon.
+bool8 HfPcGroup_IsMember(u8 mode, u32 key, u8 box, u8 slot)
+{
+    return key != 0 && HfPcGroup_GetKey(mode, box, slot) == key;
+}
