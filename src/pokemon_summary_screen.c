@@ -4718,11 +4718,18 @@ static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
         (*state)++;
         return 0xFF;
     case 1:
-        LoadSpritePaletteWithTag(GetMonSpritePalFromSpeciesAndPersonalityIsEgg(summary->species, summary->isShiny, summary->pid, summary->isEgg), summary->species2);
         {
-            u32 palSlot = IndexOfSpritePaletteTag(summary->species2);
+            const u16 *basePalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(summary->species, summary->isShiny, summary->pid, summary->isEgg);
+            u32 palSlot = LoadSpritePaletteWithTag(basePalette, summary->species2);
+
+            // A tag can be reused when switching between individuals of the
+            // same species. Restore the original palette before applying any
+            // tint, or the small tonal shifts would compound on each view.
             if (palSlot != 0xFF)
+            {
+                LoadPalette(basePalette, OBJ_PLTT_ID(palSlot), PLTT_SIZE_4BPP);
                 NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palSlot), summary->pid, summary->isShiny, summary->isEgg);
+            }
         }
         SetMultiuseSpriteTemplateToPokemon(summary->species2, B_POSITION_OPPONENT_LEFT);
         (*state)++;
