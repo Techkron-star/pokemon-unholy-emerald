@@ -323,14 +323,9 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
 
     [ABILITY_MAGMA_ARMOR] =
     {
-        .name = _("Magma Armor"),
-        .description = COMPOUND_STRING(
-        #if B_USE_FROSTBITE
-            "Prevents frostbite."),
-        #else
-            "Prevents freezing."),
-        #endif
-        .aiRating = 1,
+        .name = _("Magma Body"),
+        .description = COMPOUND_STRING("Evaporates Water; may burn contact."),
+        .aiRating = 8,
         .breakable = TRUE,
     },
 
@@ -658,7 +653,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
     [ABILITY_GLUTTONY] =
     {
         .name = _("Gluttony"),
-        .description = COMPOUND_STRING("Eats Berries at half HP."),
+        .description = COMPOUND_STRING("Doubles numerical Berry effects."),
         .aiRating = 3,
     },
 
@@ -2556,4 +2551,41 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
         .name = _("Aura Guard"),
         .description = COMPOUND_STRING("Unimplemented."),
     },
+
+    // Unholy battle catalogue.
+    [ABILITY_DRAGONBORN] = { .name = _("Dragonborn"), .description = COMPOUND_STRING("Normal to Dragon; Dragon may paralyze."), .aiRating = 8 },
+    [ABILITY_REAPER] = { .name = _("Reaper"), .description = COMPOUND_STRING("Enemy KOs restore HP and Stamina."), .aiRating = 8 },
+    [ABILITY_DUAL_WIELD] = { .name = _("Dual Wield"), .description = COMPOUND_STRING("Projectiles also strike the other foe."), .aiRating = 8 },
+    [ABILITY_MARATONISTA] = { .name = _("Marathoner"), .description = COMPOUND_STRING("Speed boosts reduce Stamina costs."), .aiRating = 8 },
+    [ABILITY_REACTOR] = { .name = _("Reactor"), .description = COMPOUND_STRING("Raises Sp. Atk; at max restores Stamina."), .aiRating = 8 },
+    [ABILITY_WORLD_TREE] = { .name = _("World Tree"), .description = COMPOUND_STRING("Grass attacks plant Leech Seed."), .aiRating = 8 },
+    [ABILITY_ABISAL] = { .name = _("Abyssal"), .description = COMPOUND_STRING("Normal to Water; Water may freeze."), .aiRating = 8 },
+    [ABILITY_SUPER_BATTERY] = { .name = _("Super Battery"), .description = COMPOUND_STRING("Skips Electric charge; restores Stamina."), .aiRating = 8 },
+    [ABILITY_BELICO] = { .name = _("Warlike"), .description = COMPOUND_STRING("Steel may set spikes; blocks Intimidate."), .aiRating = 8 },
+    [ABILITY_SLAYER] = { .name = _("Slayer"), .description = COMPOUND_STRING("Slicing attacks have more critical hits."), .aiRating = 8 },
+    [ABILITY_KNIGHT] = { .name = _("Knight"), .description = COMPOUND_STRING("Raises both defenses on entry."), .aiRating = 8 },
+    [ABILITY_WIZARD] = { .name = _("Wizard"), .description = COMPOUND_STRING("Psychic may flinch; Sp. Atk cannot fall."), .aiRating = 8 },
+    [ABILITY_MALVADO] = { .name = _("Wicked"), .description = COMPOUND_STRING("Normal to Dark; Dark may gain priority."), .aiRating = 8 },
+    [ABILITY_GREEDY] = { .name = _("Greedy"), .description = COMPOUND_STRING("Field moves may steal items it cannot use."), .aiRating = 8 },
+    [ABILITY_ENVY] = { .name = _("Envy"), .description = COMPOUND_STRING("Copies the opposite foe's equipment."), .aiRating = 8 },
+    [ABILITY_COLERICO] = { .name = _("Wrathful"), .description = COMPOUND_STRING("Punches that hit raise Attack."), .aiRating = 8 },
+    [ABILITY_MANTHRA] = { .name = _("Manthra"), .description = COMPOUND_STRING("Alternates attacking with healing meditation."), .aiRating = 8 },
+    [ABILITY_FALLEN_ANGEL] = { .name = _("Fallen Angel"), .description = COMPOUND_STRING("Fairy damage is split with Dark."), .aiRating = 8 },
+    [ABILITY_SAMURAI] = { .name = _("Samurai"), .description = COMPOUND_STRING("Slicing turns may reflect contact damage."), .aiRating = 8 },
+    [ABILITY_GELIDO] = { .name = _("Icy"), .description = COMPOUND_STRING("Water to Ice; contact may cause frostbite."), .aiRating = 8 },
+    [ABILITY_BANSHEE] = { .name = _("Banshee"), .description = COMPOUND_STRING("Ghost secondary chance scale pending."), .aiRating = 8 },
+    [ABILITY_ONI] = { .name = _("Oni"), .description = COMPOUND_STRING("Physical Dark uses both attacking stats."), .aiRating = 8 },
+    [ABILITY_DRAKE] = { .name = _("Drake"), .description = COMPOUND_STRING("Dragon ignores part of enemy defenses."), .aiRating = 8 },
+    [ABILITY_MONJE] = { .name = _("Monk"), .description = COMPOUND_STRING("Psychic mixes damage; stats cannot fall."), .aiRating = 8 },
+    [ABILITY_STEEL_SCALES] = { .name = _("Steel Scales"), .description = COMPOUND_STRING("Punishes contact and blocks its secondaries."), .aiRating = 8 },
+    [ABILITY_DAWN_LIGHT] = { .name = _("Dawn Light"), .description = COMPOUND_STRING("Curing status heals and raises Sp. Atk."), .aiRating = 8 },
+    [ABILITY_GREAT_ECLIPSE] = { .name = _("Great Eclipse"), .description = COMPOUND_STRING("Neutralizes four types and prevents sun."), .aiRating = 8 },
+    [ABILITY_GODHAND] = { .name = _("GodHand"), .description = COMPOUND_STRING("Adapts typing and mixes physical/special."), .aiRating = 8 },
+    [ABILITY_TIME_REALM] = { .name = _("Time Realm"), .description = COMPOUND_STRING("Accelerates allied timers, even harmful ones."), .aiRating = 8 },
+    [ABILITY_SPACE_REALM] = { .name = _("Space Realm"), .description = COMPOUND_STRING("Shields allies from area and contact."), .aiRating = 8 },
+    [ABILITY_ANTI_REALM] = { .name = _("Anti Realm"), .description = COMPOUND_STRING("Levitates; neutralizes allied weaknesses."), .aiRating = 8 },
+    [ABILITY_GOD_REALM] = { .name = _("God Realm"), .description = COMPOUND_STRING("Maintains screens and breaks enemy barriers."), .aiRating = 8 },
+    [ABILITY_HYPERBARIC] = { .name = _("Hyperbaric"), .description = COMPOUND_STRING("Maintains Tailwind; deflects projectiles."), .aiRating = 8 },
+    [ABILITY_ANTITHESIS] = { .name = _("Antithesis"), .description = COMPOUND_STRING("Inverts enemy gains and allied status damage."), .aiRating = 8 },
+    [ABILITY_BLACK_HOLE] = { .name = _("Black Hole"), .description = COMPOUND_STRING("Absorbs non-super-effective projectiles."), .aiRating = 8 },
 };

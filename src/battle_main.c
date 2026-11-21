@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_ai_main.h"
@@ -3026,6 +3027,13 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
         gBattleMons[battler].volatiles.substituteHP = volatilesCopy->substituteHP;
     }
 
+    gBattleStruct->unholyReactorReady[battler] = FALSE;
+    gBattleStruct->unholyReactorStartedMax[battler] = FALSE;
+    gBattleStruct->unholyDoubledMicleMask &= ~(1u << battler);
+    gBattleStruct->unholyEnvyConsumedItem[battler] = ITEM_NONE;
+    gBattleStruct->unholyEnvySourceOwner[battler] = 0;
+    memset(&gBattleStruct->unholyEnvyGearCycle[battler], 0, sizeof(struct GearCycle));
+    gBattleStruct->unholySamuraiCharges[battler] = 0;
     gBattleStruct->battlerState[battler].notOnField = FALSE;
     gBattleMons[battler].volatiles.truantSwitchInHack = volatilesCopy->truantSwitchInHack;
 
@@ -4446,12 +4454,19 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
         speed *= 2;
 
     // various effects
-    if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_TAILWIND)
+    if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_TAILWIND
+     || Unholy_SideHasAbility(battler, ABILITY_HYPERBARIC))
         speed *= 2;
 
     // paralysis drop
     if (gBattleMons[battler].status1 & STATUS1_PARALYSIS && ability != ABILITY_QUICK_FEET)
-        speed /= GetConfig(B_PARALYSIS_SPEED) >= GEN_7 ? 2 : 4;
+    {
+        u32 factor = GetConfig(B_PARALYSIS_SPEED) >= GEN_7 ? 2 : 4;
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+            speed *= factor;
+        else
+            speed /= factor;
+    }
 
     if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SWAMP)
         speed /= 4;
@@ -4515,6 +4530,9 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     {
         priority += 3;
     }
+
+    if (ability == ABILITY_MALVADO)
+        priority += Unholy_MalvadoPriority(battler, move);
 
     if (Gear_GetBattlerGear(battler) == GEAR_GUANTES_COHETE && IsPunchingMove(move))
         priority++;
@@ -4653,6 +4671,7 @@ s32 GetWhichBattlerFaster(struct BattleCalcValues *calcValues, bool32 ignoreChos
 
 static void SetActionsAndBattlersTurnOrder(void)
 {
+    Unholy_PrepareTurn();
     s32 turnOrderId = 0;
     enum BattlerId battler, battler2;
 
@@ -4787,6 +4806,8 @@ static void TurnValuesCleanUp(bool32 endTurn)
         }
         else
         {
+            gBattleStruct->unholyMalvadoPriority[i] = 0;
+            gBattleStruct->unholySamuraiCharges[i] = 0;
             memset(&gProtectStructs[i], 0, sizeof(struct ProtectStruct));
 
             if (gBattleStruct->battlerState[i].isFirstTurn)
@@ -5823,7 +5844,11 @@ void SetTypeBeforeUsingMove(enum Move move, enum BattlerId battler, enum Ability
     if (moveType != TYPE_NONE)
         gBattleStruct->dynamicMoveType = moveType;
 
-    moveType = GetBattleMoveType(move);
+    moveType = Unholy_ConvertMoveType(move, ability, GetBattleMoveType(move));
+    if (ability == ABILITY_GODHAND && !IsBattleMoveStatus(move))
+        moveType = Unholy_BestAttackType(battler, gBattleStruct->moveTarget[battler], move);
+    if (moveType != GetMoveType(move))
+        gBattleStruct->dynamicMoveType = moveType;
     if ((gFieldStatuses & STATUS_FIELD_ION_DELUGE && moveType == TYPE_NORMAL)
      || gBattleMons[battler].volatiles.electrified)
         gBattleStruct->dynamicMoveType = TYPE_ELECTRIC;

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_hold_effects.h"
 #include "battle_message.h"
@@ -1211,6 +1212,7 @@ static void Cmd_healthbarupdate(void)
     if (gBattleControllerExecFlags)
         return;
 
+    Unholy_AdjustHealing(battler);
     BtlController_EmitHealthBarUpdate(battler, B_COMM_TO_CONTROLLER, min(gBattleStruct->passiveHpUpdate[battler], 10000));
     MarkBattlerForControllerExec(battler);
     gBattlescriptCurrInstr = cmd->nextInstr;
@@ -1243,6 +1245,8 @@ static void Cmd_datahpupdate(void)
     }
 
     gBattleStruct->passiveHpUpdate[battler] = 0;
+    gBattleStruct->unholyStatusHealingMask &= ~(1u << battler);
+    gBattleStruct->unholyHpAdjustedMask &= ~(1u << battler);
 
     if (gBattleMons[battler].hp > gBattleMons[battler].maxHP / 2)
         gBattleStruct->battlerState[battler].wasAboveHalfHp = TRUE;
@@ -4437,6 +4441,13 @@ static void Cmd_removeitem(void)
     enum BattlerId battler = GetBattlerForBattleScript(cmd->battler);
     enum Item itemId = gBattleMons[battler].item;
     bool32 scriptQueued;
+
+    if (GetBattlerAbility(battler) == ABILITY_ENVY
+     && gLastUsedItem == Unholy_EffectiveItem(battler) && Unholy_ConsumeCopiedItem(battler))
+    {
+        gBattlescriptCurrInstr = cmd->nextInstr;
+        return;
+    }
 
     if (gBattleStruct->flungItem == FLUNG_ITEM_REMOVE)
     {

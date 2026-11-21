@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_controllers.h"
 #include "battle_dynamax.h"
@@ -169,12 +170,20 @@ bool32 Gear_ApplySelfStatChange(enum BattlerId battler, enum Stat stat, s8 stage
     // so they do not reflect or block the wearer's own Gear recoil.
     ability = GetBattlerAbilityIgnoreMoldBreaker(battler);
     stages = Gear_ModifyStatStageByAbility(ability, stages);
+    stages = Unholy_AdjustStatChange(battler, stages);
+    if (ability == ABILITY_WIZARD && stat == STAT_SPATK && stages < 0)
+        stages = 0;
     oldStage = gBattleMons[battler].statStages[stat];
     newStage = min(MAX_STAT_STAGE, max(MIN_STAT_STAGE, oldStage + stages));
     if (newStage == oldStage)
         return FALSE;
 
     gBattleMons[battler].statStages[stat] = newStage;
+    if (stat == STAT_SPATK && stages < 0)
+    {
+        gBattleStruct->unholyReactorReady[battler] = FALSE;
+        gBattleStruct->unholyReactorStartedMax[battler] = FALSE;
+    }
     if (ability == ABILITY_CONTRARY || ability == ABILITY_SIMPLE)
         RecordAbilityBattle(battler, ability);
     return TRUE;
@@ -202,6 +211,21 @@ static void StartRecharge(struct GearCycle *cycle, const struct GearInfo *info)
 
 static struct GearCycle *Prepare(enum BattlerId battler)
 {
+    if (GetBattlerAbility(battler) == ABILITY_ENVY)
+    {
+        enum BattlerId target = Unholy_EnvyTarget(battler);
+        if (target == MAX_BATTLERS_COUNT)
+            return NULL;
+        enum Gear gear = Gear_GetEquipped(GetBattlerMon(target));
+        struct GearCycle *copy = &gBattleStruct->unholyEnvyGearCycle[battler];
+        if (copy->gear != gear)
+        {
+            copy->gear = gear;
+            copy->activations = 0;
+            StartCycle(copy, &gGearsInfo[gear]);
+        }
+        return gear == GEAR_NONE ? NULL : copy;
+    }
     u32 slot = gBattlerPartyIndexes[battler];
 
     if (slot >= PARTY_SIZE)
@@ -586,11 +610,13 @@ void Gear_EndOfTurn(enum BattlerId battler)
     switch (cycle->phase)
     {
     case GEAR_PHASE_OVERLOAD:
-        if (--cycle->turns == 0)
+        cycle->turns -= min(cycle->turns, Unholy_TimeStep(battler));
+        if (cycle->turns == 0)
             StartRecharge(cycle, info);
         break;
     case GEAR_PHASE_RECHARGING:
-        if (--cycle->turns == 0)
+        cycle->turns -= min(cycle->turns, Unholy_TimeStep(battler));
+        if (cycle->turns == 0)
             StartCycle(cycle, info);
         break;
     default:

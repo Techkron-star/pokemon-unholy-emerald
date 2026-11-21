@@ -849,7 +849,7 @@ static s32 HandleKOThroughBerryReduction(struct DamageContext *ctx, s32 dmg)
             gAiLogicData->resistBerryAffected[ctx->battlerAtk][ctx->battlerDef][GetMoveIndex(ctx->battlerAtk, ctx->move)] = TRUE;
 
         // Ignore resist berry if appropriate
-        u32 berryModifier = gAiLogicData->abilities[ctx->battlerDef] == ABILITY_RIPEN ? 4 : 2;
+        u32 berryModifier = (gAiLogicData->abilities[ctx->battlerDef] == ABILITY_RIPEN || gAiLogicData->abilities[ctx->battlerDef] == ABILITY_GLUTTONY) ? 4 : 2;
         u32 unmitigatedDamage = dmg * berryModifier;
         u32 totalDamage = dmg;
 

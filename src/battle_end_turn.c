@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_hold_effects.h"
 #include "battle_setup.h"
@@ -32,6 +33,7 @@ static bool32 HandleEndTurnOrder(enum BattlerId battler)
 {
     bool32 effect = FALSE;
 
+    Unholy_AdvanceTimers();
     gBattleTurnCounter++;
     gBattleStruct->eventState.endTurn++;
 
@@ -609,6 +611,11 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
             if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
              && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
                 gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+            if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
@@ -618,6 +625,11 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
             if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
              && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
                 gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+            if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
@@ -649,6 +661,11 @@ static bool32 HandleEndTurnBurn(enum BattlerId battler)
         if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
          && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
             gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
         BattleScriptCall(BattleScript_BurnTurnDmg);
         effect = TRUE;
     }
@@ -667,6 +684,11 @@ static bool32 HandleEndTurnFrostbite(enum BattlerId battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
         SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / ((GetConfig(B_BURN_DAMAGE) >= GEN_7 || GetConfig(B_BURN_DAMAGE) == GEN_1) ? 16 : 8));
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
         BattleScriptCall(BattleScript_FrostbiteTurnDmg);
         effect = TRUE;
     }
@@ -1395,6 +1417,9 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
         case ABILITY_MOODY:
         case ABILITY_PICKUP:
         case ABILITY_SPEED_BOOST:
+        case ABILITY_REACTOR:
+        case ABILITY_MANTHRA:
+        case ABILITY_DAWN_LIGHT:
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
             break;

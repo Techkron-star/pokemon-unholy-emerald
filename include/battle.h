@@ -112,6 +112,9 @@ struct StatStages
 // Cleared at the start of HandleAction_ActionFinished
 struct SpecialStatus
 {
+    u8 unholyEffectTargets;
+    u8 unholyPunchRaised;
+    u8 unholySamuraiParried;
     u8 neutralizingGasRemoved:1;
     u8 berryReduced:1;
     u8 mindBlownRecoil:1;
@@ -593,6 +596,20 @@ struct GearCycle
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.
 struct BattleStruct
 {
+    // Transient state: never serialized into a save or Pokemon.
+    u8 unholyStatusHealingMask;
+    u8 unholyHpAdjustedMask;
+    u8 unholyDoubledMicleMask;
+    enum Item unholyEnvyConsumedItem[MAX_BATTLERS_COUNT];
+    u8 unholyEnvySourceOwner[MAX_BATTLERS_COUNT];
+    struct GearCycle unholyEnvyGearCycle[MAX_BATTLERS_COUNT];
+    s32 unholySamuraiDamage[MAX_BATTLERS_COUNT];
+    u8 unholySamuraiCharges[MAX_BATTLERS_COUNT];
+    u8 unholyMalvadoPriority[MAX_BATTLERS_COUNT];
+    u8 unholyReactorReady[MAX_BATTLERS_COUNT];
+    u8 unholyReactorStartedMax[MAX_BATTLERS_COUNT];
+    u8 unholyOriginalTarget[MAX_BATTLERS_COUNT];
+
     struct BattlerState battlerState[MAX_BATTLERS_COUNT];
     struct PartyState partyState[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     struct EventStates eventState;

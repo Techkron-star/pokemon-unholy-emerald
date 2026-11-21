@@ -1,6 +1,6 @@
 # Unholy Emerald — catálogo de 37 habilidades nuevas y revisadas
 
-**Estado:** diseño acordado con Camilo, **no equivale a implementación ni a compilación**. Última revisión: 21 de noviembre de 2026.
+**Estado:** integración del motor en curso. Hay reglas de combate programadas para 36 entradas; **Banshee sigue reservada sin modificar probabilidades**, porque falta definir su escala. Ver el estado de implementación y sus límites al final. Última revisión: 21 de noviembre de 2026.
 
 Este documento conserva las **37 habilidades** definidas por tandas. Las cifras confirmadas se distinguen de los detalles que todavía requieren una decisión antes de programar. No asignar habilidades a especies ni modificar las originales de los iniciales hasta completar la fase de distribución y reequilibrio.
 
@@ -133,3 +133,37 @@ La habilidad **no elimina** los estados alterados: invierte sus consecuencias ap
 - **Combate general:** categorías de corte/puño/proyectil, coexistencia de reacciones con Encadenamiento y efectos activados por cada objetivo de movimientos de área.
 
 **Próxima fase:** cerrar los puntos abiertos, asignar estas habilidades a especies/formas y después diseñar los reworks de **Torrente, Mar Llamas y Espesura**. Este catálogo por sí solo no modifica el comportamiento de ninguna ROM.
+
+
+## Estado de implementación del motor — 21 de noviembre de 2026
+
+La implementación vive en `src/battle_unholy_abilities.c`, conectada al cálculo nativo de daño, resolución de movimientos, finales de turno, objetos, Artifacts y Stamina. Se añadieron 35 IDs al final del catálogo sin renumerar habilidades anteriores; Cuerpo Magma y Gula reutilizan sus IDs existentes. Todos tienen nombres y descripciones ES/EN. **Registrar un ID no demuestra que todas sus reglas estén cerradas.**
+
+### Reglas ejecutables
+
+- Conversiones Dragonborn/Abisal/Malvado/Gélido; secundarios originales separados de los convertidos; prioridad de Malvado reservada antes de ordenar las acciones.
+- Recuperación de Reaper por KO enemigo, descuento de Maratonista, progresión de Reactor, carga eléctrica de Super Batería y meditación alterna de Manthra.
+- Contacto, Drenadoras, púas de Acero, críticos de corte, defensa de Knight, protección estadística de Wizard/Monje, Colérico y Luz de Alba.
+- Oni, Monje, Fallen Angel y GodHand suman componentes ponderados en **un solo daño**, con un resultado crítico y una tirada de daño compartidos. La IA evita aplicar de nuevo los modificadores ya incorporados al cálculo mixto.
+- Dual Wield usa ambos rivales como objetivos, sin penalización general de área y con media potencia para el compañero del objetivo original. No añade un ataque adicional contra un aliado propio.
+- Sablazo reserva una carga por cada corte declarado que supere su tirada del 50 %. Las cargas pueden absorber contacto anterior o posterior al corte durante ese turno. Un ataque multigolpe consume una sola carga y refleja sus impactos mientras continúe la ejecución. No restaura PS después de un KO.
+- Envy usa el rival de enfrente, con alternativa al otro rival vivo. Los objetos se imitan virtualmente y cada consumible se consume una vez por fuente; los Artifacts usan un ciclo de carga independiente. No se quitan ni sobrescriben los objetos reales de ninguno. Greedy solo roba objetos ordinarios si tiene el slot libre y no los activa; conserva el funcionamiento de su Artifact propio.
+- Las auras de Space Realm/Anti Realm/God Realm/Hiperbárico se consultan sobre portadores vivos y con habilidad activa. No sobrescriben las duraciones de pantallas/Viento Afín normales. God Realm elimina las barreras convencionales enemigas al alcanzar un objetivo, conservando Protección.
+- Gran Eclipse se aplica a ambos bandos y conserva inmunidades. Bloquea **nuevo** sol; conserva el sol que existía antes de entrar.
+- Time Realm aplica el tick ordinario más 1–2 ticks adicionales a los temporizadores nativos enumerados en `Unholy_AdvanceTimers` y al ciclo de Artifacts. Satura contadores para evitar desbordamientos y deja los mensajes de expiración al motor nativo. Adelanta Canto Mortal aunque cause KO. El clima iniciado con el aura aliada obtiene 1–2 turnos adicionales una sola vez.
+- Antithesis invierte curaciones de PS que pasan por los canales nativos de combate, subidas de etapas, recuperaciones instantáneas de Stamina y consecuencias numéricas de veneno/quemadura/Frostbite/parálisis sobre aliados. La regeneración natural de Stamina no se invierte. Los estados permanecen presentes y no se invierten otra vez por recursión.
+
+### Límites y decisiones pendientes
+
+1. **Banshee:** falta la escala de «+1 nivel de probabilidad». Su ID y textos existen, pero no se inventó una fórmula ni una mejora de probabilidad.
+2. **Antithesis:** no se inventaron inversiones para incapacidades, pantallas, inmunidades u otros beneficios sin transformación numérica definida. No reinterpreta retroactivamente boosts antiguos. Los objetos de la mochila que modifican directamente los datos del equipo requieren una integración específica; las pruebas actuales cubren curación mediante canales de combate y bayas equipadas.
+3. **Bélico:** Aterrado no existe como estado ejecutable en este árbol; la inmunidad a Intimidación está conectada, pero una futura implementación de Aterrado deberá consultar Bélico.
+4. **Time Realm:** no acelera mecánicas todavía inexistentes en el motor, incluido un Réquiem propio distinto del Canto Mortal nativo. No modifica por separado cada efecto imaginado o pendiente de implementación. El registro de cronómetros soportados es explícito.
+5. **Distribución:** no se asignaron nuevas habilidades a especies/formas ni se cambiaron los iniciales. La distribución y los reworks de Torrente/Mar Llamas/Espesura siguen siendo una fase separada. Cuerpo Magma y Gula sí cambian donde ya se usaban sus IDs existentes.
+6. Los porcentajes propuestos de 35/10/25/20/20 y el 150 % de regeneración se usan como balance inicial en `include/config/unholy_abilities.h`; no se presentan como cifras confirmadas definitivamente por el autor.
+
+### Validación
+
+- Pruebas de combate en `test/battle/ability/unholy_catalogue.c`: conversiones originales/convertidas, daño mixto con stats iguales y desiguales, Stamina pasiva/instantánea, objetos virtuales, contacto, temporizadores, estados y protección/redirección en dobles.
+- Verificación ES/EN de nombres y descripciones de todos los IDs con `test/unholy_ability_localization.c`.
+- La compilación de Emerald y las pruebas ejecutadas se registran en la descripción del PR; no se afirma que se haya validado toda la matriz de juegos ni cada combinación posible de Artifacts.

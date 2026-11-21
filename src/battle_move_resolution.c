@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_arena.h"
 #include "battle_environment.h"
@@ -54,6 +55,9 @@ static bool32 CutThirdOfHp(enum BattlerId battler);
 
 static enum CancelerResult CancelerClearFlags(struct BattleCalcValues *cv)
 {
+    gSpecialStatuses[cv->battlerAtk].unholyEffectTargets = 0;
+    gSpecialStatuses[cv->battlerAtk].unholyPunchRaised = FALSE;
+    gSpecialStatuses[cv->battlerAtk].unholySamuraiParried = 0;
     gBattleMons[cv->battlerAtk].volatiles.grudge = FALSE;
     gBattleMons[cv->battlerAtk].volatiles.glaiveRush = FALSE;
     gBattleStruct->eventState.atkCancelerBattler = 0;
@@ -270,7 +274,7 @@ static enum CancelerResult CancelerPowerPoints(struct BattleCalcValues *cv)
 
 static enum CancelerResult CancelerTruant(struct BattleCalcValues *cv)
 {
-    if (GetBattlerAbility(cv->battlerAtk) == ABILITY_TRUANT && gBattleMons[cv->battlerAtk].volatiles.truantCounter)
+    if ((GetBattlerAbility(cv->battlerAtk) == ABILITY_TRUANT || GetBattlerAbility(cv->battlerAtk) == ABILITY_MANTHRA) && gBattleMons[cv->battlerAtk].volatiles.truantCounter)
     {
         CancelMultiTurnMoves(cv->battlerAtk);
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_LOAFING;
@@ -856,6 +860,14 @@ static bool32 HandleMoveTargetRedirection(struct BattleCalcValues *cv, enum Move
      && !IsBattlerAlly(cv->battlerAtk, gSideTimers[side].followmeTarget))
     {
         gBattleStruct->moveTarget[cv->battlerAtk] = cv->battlerDef = gSideTimers[side].followmeTarget; // follow me moxie fix
+        return TRUE;
+    }
+
+    enum BattlerId blackHole = Unholy_ProjectileRedirector(cv);
+    if (blackHole != MAX_BATTLERS_COUNT)
+    {
+        cv->battlerDef = gBattleStruct->moveTarget[cv->battlerAtk] = blackHole;
+        gSpecialStatuses[blackHole].abilityRedirected = TRUE;
         return TRUE;
     }
 
@@ -1741,6 +1753,9 @@ static bool32 IsBattlerWeatherAffectedTemp(enum HoldEffect holdEffect, u32 weath
 
 static bool32 CanTwoTurnMoveFireThisTurn(struct BattleCalcValues *cv, bool32 *showAbilityPopUp)
 {
+    if (cv->abilities[cv->battlerAtk] == ABILITY_SUPER_BATTERY && GetBattleMoveType(cv->move) == TYPE_ELECTRIC)
+        return TRUE;
+
     if (cv->moveEffect == EFFECT_GEOMANCY || gBattleMoveEffects[cv->moveEffect].semiInvulnerableEffect)
         return FALSE;
 
@@ -2701,6 +2716,25 @@ static enum CancelerResult CancelerDamageCalc(struct BattleCalcValues *cv)
 
         ctx.battlerDef = battlerDef;
         gBattleStruct->moveDamage[battlerDef] = CalculateMoveDamage(&ctx);
+        if (gBattleStruct->moveDamage[battlerDef] > 0
+         && !DoesSubstituteBlockMove(cv->battlerAtk, battlerDef, cv->move)
+         && (Unholy_SamuraiReflects(battlerDef, cv->battlerAtk, cv->move)
+          || (gSpecialStatuses[cv->battlerAtk].unholySamuraiParried & (1u << battlerDef))))
+        {
+            if (!(gSpecialStatuses[cv->battlerAtk].unholySamuraiParried & (1u << battlerDef)))
+                gBattleStruct->unholySamuraiCharges[battlerDef]--;
+            gSpecialStatuses[cv->battlerAtk].unholySamuraiParried |= 1u << battlerDef;
+            gBattleStruct->unholySamuraiDamage[battlerDef] = gBattleStruct->moveDamage[battlerDef];
+            gBattleStruct->moveDamage[battlerDef] = 0;
+        }
+    }
+
+    if (cv->abilities[cv->battlerAtk] == ABILITY_GOD_REALM && IsAnyTargetAffected())
+    {
+        enum BattleSide side = GetBattlerSide(cv->battlerAtk) ^ BIT_SIDE;
+        gSideStatuses[side] &= ~(SIDE_STATUS_REFLECT | SIDE_STATUS_LIGHTSCREEN | SIDE_STATUS_AURORA_VEIL | SIDE_STATUS_SAFEGUARD | SIDE_STATUS_MIST);
+        gSideTimers[side].reflectTimer = gSideTimers[side].lightscreenTimer = 0;
+        gSideTimers[side].auroraVeilTimer = gSideTimers[side].safeguardTimer = gSideTimers[side].mistTimer = 0;
     }
 
     if (gSpecialStatuses[cv->battlerAtk].gemBoost
@@ -2986,6 +3020,10 @@ static enum CancelerResult CancelerHealthBarUpdate(struct BattleCalcValues *cv)
          || DoesIceFaceBlockMove(battlerDef, cv->move))
             continue;
 
+        if (gBattleStruct->moveDamage[battlerDef] < 0 && Unholy_EnemyHasAntithesis(battlerDef))
+            gBattleStruct->moveDamage[battlerDef] = -gBattleStruct->moveDamage[battlerDef];
+        if (gBattleStruct->unholySamuraiDamage[battlerDef] && gBattleStruct->moveDamage[battlerDef] == 0)
+            continue;
         s32 dmgUpdate = min(gBattleStruct->moveDamage[battlerDef], 10000);
         BtlController_EmitHealthBarUpdate(battlerDef, B_COMM_TO_CONTROLLER, dmgUpdate);
         MarkBattlerForControllerExec(battlerDef);
@@ -2998,6 +3036,9 @@ static enum CancelerResult CancelerHealthBarUpdate(struct BattleCalcValues *cv)
 
 static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
 {
+    if (gBattleStruct->unholySamuraiDamage[cv->battlerDef] > 0)
+        return FALSE;
+
     if (DoesSubstituteBlockMove(cv->battlerAtk, cv->battlerDef, cv->move) && gBattleMons[cv->battlerDef].volatiles.substituteHP)
     {
         if (gBattleMons[cv->battlerDef].volatiles.substituteHP >= gBattleStruct->moveDamage[cv->battlerDef])
@@ -3516,6 +3557,16 @@ static enum MoveEndResult MoveEndFormChangeOnHit(struct BattleCalcValues *cv)
 static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
 {
     gBattleScripting.moveendState++;
+
+    if (gBattleStruct->unholySamuraiDamage[cv->battlerDef])
+    {
+        SetPassiveDamageAmount(cv->battlerAtk, gBattleStruct->unholySamuraiDamage[cv->battlerDef]);
+        gBattleStruct->unholySamuraiDamage[cv->battlerDef] = 0;
+        gLastUsedAbility = ABILITY_SAMURAI;
+        gBattlerAbility = gBattleScripting.battler = cv->battlerDef;
+        BattleScriptCall(BattleScript_RoughSkinActivates);
+        return MOVEEND_RESULT_RUN_SCRIPT;
+    }
 
     if (Gear_ResolveMeteorArmorAsh(cv->battlerDef, cv->battlerAtk))
     {
@@ -5337,6 +5388,7 @@ static enum MoveEndResult MoveEndClearBits(struct BattleCalcValues *cv)
     gBattleStruct->triAttackBurn = FALSE;
     gBattleStruct->fickleBeamBoosted = FALSE;
     gBattleStruct->battlerState[cv->battlerAtk].usedMicleBerry = FALSE;
+    gBattleStruct->unholyDoubledMicleMask &= ~(1u << cv->battlerAtk);
     gBattleStruct->toxicChainPriority = FALSE;
     gBattleStruct->flungItem = FLUNG_ITEM_NONE;
     gBattleStruct->blunderPolicy = FALSE;

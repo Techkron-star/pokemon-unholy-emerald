@@ -1,4 +1,7 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
+#include "battle_util.h"
+#include "config/unholy_abilities.h"
 #include "battle.h"
 #include "move.h"
 #include "pokemon.h"
@@ -51,14 +54,21 @@ u32 Stamina_GetMax(enum BattlerId battler)
     return gBattleStruct->maxStamina[battler];
 }
 
-void Stamina_RestorePercent(enum BattlerId battler, u32 percent)
+void Stamina_RestoreFraction(enum BattlerId battler, u32 numerator, u32 denominator)
 {
-    if (!STAMINA_ENABLED)
+    if (!STAMINA_ENABLED || !denominator)
         return;
     EnsureInitialized(battler);
-    u32 maxStamina = gBattleStruct->maxStamina[battler];
-    gBattleStruct->stamina[battler] = min(maxStamina,
-        gBattleStruct->stamina[battler] + max(1, maxStamina * percent / 100));
+    u32 amount = max(1, gBattleStruct->maxStamina[battler] * numerator / denominator);
+    if (Unholy_EnemyHasAntithesis(battler))
+        gBattleStruct->stamina[battler] -= min(gBattleStruct->stamina[battler], amount);
+    else
+        gBattleStruct->stamina[battler] = min(gBattleStruct->maxStamina[battler], gBattleStruct->stamina[battler] + amount);
+}
+
+void Stamina_RestorePercent(enum BattlerId battler, u32 percent)
+{
+    Stamina_RestoreFraction(battler, percent, 100);
 }
 
 bool32 Stamina_IsExhausted(enum BattlerId battler)
@@ -97,6 +107,12 @@ u32 Stamina_GetActionCost(enum BattlerId battler, enum Move move, bool32 followU
     if (gBattleMons[battler].volatiles.confusionTimer)
         costPercent += STAMINA_CONFUSION_COST_BONUS;
 
+    if (GetBattlerAbility(battler) == ABILITY_MARATONISTA)
+    {
+        s32 speedStages = gBattleMons[battler].statStages[STAT_SPEED] - DEFAULT_STAT_STAGE;
+        if (speedStages > 0)
+            costPercent = costPercent * (100 - min(speedStages, 6) * 10) / 100;
+    }
     u32 cost = (baseCost * costPercent + 99) / 100;
     if (Gear_GetBattlerGear(battler) == GEAR_MODULO_VECTORIAL && GetMoveEffect(move) == EFFECT_HIT_ESCAPE)
     {
@@ -178,6 +194,11 @@ void Stamina_EndOfTurn(enum BattlerId battler)
 
     u32 max = gBattleStruct->maxStamina[battler];
     u32 regen = max * Stamina_GetRegenPercent(battler) / 100;
+    enum Ability ability = GetBattlerAbility(battler);
+    if (ability == ABILITY_SUPER_BATTERY
+     || (ability == ABILITY_REACTOR && gBattleStruct->unholyReactorReady[battler]
+      && gBattleMons[battler].statStages[STAT_SPATK] == MAX_STAT_STAGE))
+        regen = regen * U_BATTERY_REGEN_PERCENT / 100;
     u32 stamina = gBattleStruct->stamina[battler] + (regen > 0 ? regen : 1);
 
     if (Gear_GetBattlerGear(battler) == GEAR_BATERIA_RESERVA)

@@ -6,7 +6,7 @@
 
 **UI nativa.** El [estándar de organización a 240 × 160](docs/UI_NATIVE_240.md#estándar-de-organización) define la jerarquía, la selección y los controles de los menús. La guía también documenta el Poké Watch, Resumen y los componentes Eclipse y Daylight.
 
-**Habilidades nuevas (diseño, no implementadas):** [catálogo de 37 habilidades y revisiones](docs/UNHOLY_37_ABILITIES.md), con efectos definidos, excepciones, compatibilidades, pruebas necesarias y decisiones aún pendientes.
+**Habilidades nuevas (motor en integración):** [catálogo de 37 habilidades y revisiones](docs/UNHOLY_37_ABILITIES.md). Hay reglas ejecutables para 36 entradas, con Banshee pendiente de su escala, límites explícitos de Antithesis/Time Realm y distribución a especies todavía separada.
 
 **Estado:** documento de diseño y seguimiento de implementación; las tablas de estado distinguen funciones compiladas, funciones no probadas en hardware/emulador y diseño pendiente.
 
