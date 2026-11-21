@@ -30,24 +30,30 @@ The regular ROM must continue to boot in mGBA, Pizza Boy, and real GBA hardware.
    cmake --build build-unholy --target mgba_libretro -j 4
    ```
 
-The core builds as `mgba_libretro.so` on Linux. This is **not** an Android APK.
-Running it on Android will require an NDK-built Libretro core and a compatible
-frontend (e.g. RetroArch); Pizza Boy does not implement this protocol.
+The core builds as `mgba_libretro.so` on Linux. The accompanying
+`build-unholy-extended-core.yml` GitHub Actions workflow also builds an
+Android ARM64 Libretro `.so` using the NDK. This is **not** an Android APK:
+it requires a compatible frontend (e.g. RetroArch). Pizza Boy does not
+implement this protocol.
 
 ## Verification performed
 
 - The modified mGBA core and Linux headless emulator compiled successfully.
 - An mGBA in-process smoke test loaded a compiled Unholy Emerald ROM and
   verified protocol identification, read-only header, 8/16/32-bit accesses,
-  region boundaries, separation from standard EWRAM, and zeroing on reset.
+  region boundaries, separation from standard EWRAM, save-state roundtrip,
+  and zeroing on reset.
+- A GitHub Actions Android ARM64 core build passed (run `44954574560`).
 - The original GBA map and 256 KiB EWRAM remain untouched.
 
 ## Known gaps — do not treat this as a release
 
-- Extended RAM is **not serialized into save states** yet. Avoid using load
-  states with experimental caches until this is implemented and tested.
-- GBA DMA, all emulator memory-view interfaces, and Android/ARM64 builds need
-  end-to-end testing.
+- The custom core appends 4 MiB to its GBA save-state snapshot. Its save states
+  are **not compatible with stock mGBA/Pizza Boy states**; the binary `.sav`
+  battery-backed game saves are unaffected. The state roundtrip has a native
+  smoke test but not yet a live Android runtime test.
+- GBA DMA, all emulator memory-view interfaces, and Android on-device
+  behavior need end-to-end testing.
 - This prototype does not magically increase CPU performance, sprite hardware
   limits, or the size of game cartridge ROM. Future features must opt into the
   extra region explicitly.
