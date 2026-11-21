@@ -12,6 +12,7 @@ u32 Stamina_CalcMaxForMon(struct Pokemon *mon);
 // Stamina actual y máxima del combatiente (se inicializa sola al entrar al campo).
 u32 Stamina_GetCurrent(enum BattlerId battler);
 void Stamina_RestorePercent(enum BattlerId battler, u32 percent);
+void Stamina_RestoreFraction(enum BattlerId battler, u32 numerator, u32 denominator);
 u32 Stamina_GetMax(enum BattlerId battler);
 bool32 Stamina_IsExhausted(enum BattlerId battler);
 

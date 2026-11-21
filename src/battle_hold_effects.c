@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_ai_record.h"
@@ -311,7 +312,7 @@ static enum ItemEffect TryJabocaBerry(enum BattlerId battlerDef, enum BattlerId 
      && !IsAbilityAndRecord(battlerAtk, GetBattlerAbility(battlerAtk), ABILITY_MAGIC_GUARD))
     {
         s32 jabocaDamage = GetNonDynamaxMaxHP(battlerAtk) / 8;
-        if (GetBattlerAbility(battlerDef) == ABILITY_RIPEN)
+        if ((GetBattlerAbility(battlerDef) == ABILITY_RIPEN || GetBattlerAbility(battlerDef) == ABILITY_GLUTTONY))
             jabocaDamage *= 2;
         SetPassiveDamageAmount(battlerAtk, jabocaDamage);
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HURT_BY_ITEM;
@@ -334,7 +335,7 @@ static enum ItemEffect TryRowapBerry(enum BattlerId battlerDef, enum BattlerId b
      && !IsAbilityAndRecord(battlerAtk, GetBattlerAbility(battlerAtk), ABILITY_MAGIC_GUARD))
     {
         s32 rowapDamage = GetNonDynamaxMaxHP(battlerAtk) / 8;
-        if (GetBattlerAbility(battlerDef) == ABILITY_RIPEN)
+        if ((GetBattlerAbility(battlerDef) == ABILITY_RIPEN || GetBattlerAbility(battlerDef) == ABILITY_GLUTTONY))
             rowapDamage *= 2;
         SetPassiveDamageAmount(battlerAtk, rowapDamage);
         gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HURT_BY_ITEM;
@@ -355,7 +356,7 @@ static enum ItemEffect TrySetEnigmaBerry(enum BattlerId battlerDef, enum Battler
      && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battlerDef].volatiles.healBlockTimer))
     {
         s32 healAmount = gBattleMons[battlerDef].maxHP * 25 / 100;
-        if (GetBattlerAbility(battlerDef) == ABILITY_RIPEN)
+        if ((GetBattlerAbility(battlerDef) == ABILITY_RIPEN || GetBattlerAbility(battlerDef) == ABILITY_GLUTTONY))
             healAmount *= 2;
         SetHealAmount(battlerDef, healAmount);
         BattleScriptCall(BattleScript_ItemHealHP_RemoveBerry);
@@ -473,7 +474,7 @@ static enum ItemEffect DamagedStatBoostBerryEffect(enum BattlerId battlerDef, en
     if (gBattleScripting.overrideBerryRequirements
      || (GetBattleMoveCategory(gCurrentMove) == category && IsBattlerTurnDamaged(battlerDef, EXCLUDING_SUBSTITUTES)))
     {
-        if (GetBattlerAbility(battlerDef) == ABILITY_RIPEN)
+        if ((GetBattlerAbility(battlerDef) == ABILITY_RIPEN || GetBattlerAbility(battlerDef) == ABILITY_GLUTTONY))
         {
             SetStatChange(battlerDef, statId, 2);
             BattleScriptCall(BattleScript_ConsumableBerryStatRaiseRipen);
@@ -816,7 +817,7 @@ static enum ItemEffect ItemHealHp(enum BattlerId battler, enum Item itemId, enum
         else
             healAmount = GetItemHoldEffectParam(itemId);
 
-        if (ability == ABILITY_RIPEN && GetItemPocket(itemId) == POCKET_BERRIES)
+        if ((ability == ABILITY_RIPEN || ability == ABILITY_GLUTTONY) && GetItemPocket(itemId) == POCKET_BERRIES)
             healAmount *= 2;
 
         SetHealAmount(battler, healAmount);
@@ -873,7 +874,7 @@ static enum ItemEffect ItemRestorePp(enum BattlerId battler, enum Item itemId)
         u32 maxPP = CalculatePPWithBonus(move, ppBonuses, restoreMove);
         u32 ppRestored = GetItemHoldEffectParam(itemId);
 
-        if (ability == ABILITY_RIPEN)
+        if ((ability == ABILITY_RIPEN || ability == ABILITY_GLUTTONY))
         {
             ppRestored *= 2;
             gBattlerAbility = battler;
@@ -906,7 +907,7 @@ static enum ItemEffect HealConfuseBerry(enum BattlerId battler, enum Item itemId
      && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battler].volatiles.healBlockTimer))
     {
         s32 healAmount = GetNonDynamaxMaxHP(battler) / GetItemHoldEffectParam(itemId);
-        if (ability == ABILITY_RIPEN)
+        if ((ability == ABILITY_RIPEN || ability == ABILITY_GLUTTONY))
             healAmount *= 2;
         SetHealAmount(battler, healAmount);
         if (GetFlavorRelationByPersonality(gBattleMons[battler].personality, flavorId) < 0)
@@ -928,7 +929,7 @@ static enum ItemEffect StatRaiseBerry(enum BattlerId battler, enum Item itemId, 
      && HasEnoughHpToEatBerry(battler, ability, GetItemHoldEffectParam(itemId), itemId))
     {
         gEffectBattler = gBattleScripting.battler = battler;
-        if (ability == ABILITY_RIPEN)
+        if ((ability == ABILITY_RIPEN || ability == ABILITY_GLUTTONY))
         {
             SetStatChange(battler, statId, 2);
             BattleScriptCall(BattleScript_ConsumableBerryStatRaiseRipen);
@@ -953,6 +954,8 @@ static enum ItemEffect CriticalHitRatioUp(enum BattlerId battler, enum Item item
      && HasEnoughHpToEatBerry(battler, GetBattlerAbility(battler), GetItemHoldEffectParam(itemId), itemId))
     {
         gBattleMons[battler].volatiles.focusEnergy = TRUE;
+        if (GetBattlerAbility(battler) == ABILITY_GLUTTONY)
+            gBattleMons[battler].volatiles.bonusCritStages = min(4, gBattleMons[battler].volatiles.bonusCritStages + 2);
         BattleScriptCall(BattleScript_BerryFocusEnergy);
         effect = ITEM_EFFECT_OTHER;
     }
@@ -983,7 +986,7 @@ static enum ItemEffect RandomStatRaiseBerry(enum BattlerId battler, enum Item it
         stat = RandomUniformExcept(RNG_RANDOM_STAT_UP, STAT_ATK, NUM_STATS - 1, MoodyCantRaiseStat);
         gBattlerAttacker = savedAttacker;
 
-        if (ability == ABILITY_RIPEN)
+        if ((ability == ABILITY_RIPEN || ability == ABILITY_GLUTTONY))
         {
             BattleScriptCall(BattleScript_ConsumableBerryStatRaiseRipen);
             SetStatChange(battler, stat, 4);
@@ -1006,6 +1009,8 @@ static enum ItemEffect TrySetMicleBerry(enum BattlerId battler, enum Item itemId
     if (HasEnoughHpToEatBerry(battler, GetBattlerAbility(battler), 4, itemId))
     {
         gBattleStruct->battlerState[battler].usedMicleBerry = TRUE;
+        if (GetBattlerAbility(battler) == ABILITY_GLUTTONY)
+            gBattleStruct->unholyDoubledMicleMask |= 1u << battler;
         BattleScriptCall(BattleScript_MicleBerryActivate);
         effect = ITEM_EFFECT_OTHER;
     }
@@ -1017,10 +1022,13 @@ enum ItemEffect ItemBattleEffects(enum BattlerId itemBattler, enum BattlerId bat
     enum ItemEffect effect = ITEM_NO_EFFECT;
     enum Item item;
 
+    if (GetBattlerAbility(itemBattler) == ABILITY_GREEDY)
+        return ITEM_NO_EFFECT;
+
     if (timing == IsOnBerryActivation || timing == IsOnFlingActivation)
         item = gLastUsedItem;
     else
-        item = gBattleMons[itemBattler].item;
+        item = Unholy_EffectiveItem(itemBattler);
 
     if (holdEffect == HOLD_EFFECT_NONE
      || !timing(holdEffect)

@@ -4875,6 +4875,27 @@ BattleScript_SturdyPreventsOHKO::
 	pause B_WAIT_TIME_LONG
 	return
 
+BattleScript_UnholyAbilityVolatile::
+	call BattleScript_AbilityPopUp
+	seteffectprimary BS_SCRIPTING, BS_EFFECT_BATTLER
+	return
+
+BattleScript_UnholyStatusCure::
+	call BattleScript_AbilityPopUp
+	updatestatusicon BS_SCRIPTING
+	return
+
+BattleScript_UnholyDawnLight::
+	updatestatusicon BS_SCRIPTING
+	trybattlerstatchange BS_SCRIPTING, STAT_CHANGE_NO_FLAGS
+BattleScript_UnholyAbilityHeal::
+	updatestatusicon BS_SCRIPTING
+	call BattleScript_AbilityPopUp
+	healthbarupdate BS_SCRIPTING
+	datahpupdate BS_SCRIPTING, ASSURANCE_DOUBLE
+	tryfaintmon BS_SCRIPTING
+	return
+
 BattleScript_MoveHPDrain::
 	pause B_WAIT_TIME_SHORT
 	call BattleScript_AbilityPopUp
