@@ -598,37 +598,53 @@ static void Task_SearchPc(u8);
 static struct BoxPokemon *GetSelectedStorageMon(void);
 static bool32 IsSelectedFavorite(void);
 static void Task_ReshowPokeStorage(u8);
-// Stable, in-place ordering for a single box. Moves complete BoxPokemon records
-// so mutations, held items, OT data and all other metadata stay together.
-// The PC UI can invoke this after confirming the requested sort mode.
-void SortCurrentBoxBySpecies(void)
+// Stable ordering of complete boxed Pokémon records, preserving all metadata.
+// Empty slots are always moved to the end; eggs retain their records intact.
+static u32 GetBoxSortKey(struct BoxPokemon *mon, u8 mode)
+{
+    u32 species = GetBoxMonData(mon, MON_DATA_SPECIES);
+
+    if (species == SPECIES_NONE)
+        return 0xFFFFFFFF;
+    if (mode == BOX_SORT_LEVEL)
+        return 100 - GetLevelFromBoxMonExp(mon);
+    if (mode == BOX_SORT_IV_TOTAL)
+        return 186 - (GetBoxMonData(mon, MON_DATA_HP_IV)
+                    + GetBoxMonData(mon, MON_DATA_ATK_IV)
+                    + GetBoxMonData(mon, MON_DATA_DEF_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPEED_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPATK_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPDEF_IV));
+    return species;
+}
+
+void SortCurrentBox(u8 mode)
 {
     u8 boxId = StorageGetCurrentBox();
     u8 i, j;
 
+    if (mode > BOX_SORT_IV_TOTAL)
+        return;
     for (i = 1; i < IN_BOX_COUNT; i++)
     {
         for (j = i; j > 0; j--)
         {
             struct BoxPokemon *left = GetBoxedMonPtr(boxId, j - 1);
             struct BoxPokemon *right = GetBoxedMonPtr(boxId, j);
-            u32 leftSpecies = GetBoxMonData(left, MON_DATA_SPECIES);
-            u32 rightSpecies = GetBoxMonData(right, MON_DATA_SPECIES);
             struct BoxPokemon temp;
 
-            // Empty slots always move to the end of the box.
-            if (leftSpecies == SPECIES_NONE)
-                leftSpecies = 0xFFFFFFFF;
-            if (rightSpecies == SPECIES_NONE)
-                rightSpecies = 0xFFFFFFFF;
-            if (leftSpecies <= rightSpecies)
+            if (GetBoxSortKey(left, mode) <= GetBoxSortKey(right, mode))
                 break;
-
             temp = *left;
             *left = *right;
             *right = temp;
         }
     }
+}
+
+void SortCurrentBoxBySpecies(void)
+{
+    SortCurrentBox(BOX_SORT_SPECIES);
 }
 
 static void Task_PokeStorageMain(u8);
