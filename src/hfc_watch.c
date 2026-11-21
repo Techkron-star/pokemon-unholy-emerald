@@ -382,6 +382,7 @@ static void RenderTools(void)
       : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin gasto; respeta niveles")
       : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Requiere MO y medalla")
       : sToolCursor == HFC_WATCH_TOOL_FLASHER ? COMPOUND_STRING("Alumbra cuevas con MO y medalla")
+      : sToolCursor == HFC_WATCH_TOOL_EGG_TRACKER ? COMPOUND_STRING("Huevos y ciclos restantes")
       : COMPOUND_STRING("Pociones tras cada combate"));
     UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:SEL  A:USAR  B:ATRAS"));
 }
@@ -900,4 +901,3 @@ void HfcWatch_OpenHub(bool8 fromStartMenu)
     sLastFeature = sHubCursor;
     sRaidDifficulty = HFC_RAID_STANDARD;
     OpenHub();
-}
