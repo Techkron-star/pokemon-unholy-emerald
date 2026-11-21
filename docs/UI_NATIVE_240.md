@@ -43,6 +43,19 @@ Usar cuadrícula cuando varias opciones se comparan de un vistazo, lista con fic
 
 ## Servicios complementarios del reloj
 
+### Fabricación: lectura de descripciones largas
+
+La ventana de Fabricación e Inyectores aprovecha **224 × 144 px** dentro de la
+pantalla nativa de 240 × 160. El resumen reserva dos líneas de 8 px, con
+separación real respecto a MATERIALES y tres filas de ingredientes. Pulsar
+**START** abre la ficha de descripción a todo el ancho; **A** avanza entre
+páginas y **START/B** vuelve a la lista. El selector de recetas, cantidades,
+confirmación y equipamiento por SELECT mantienen sus controles.
+
+QA visual pendiente: en Eclipse y Daylight, Velo Críptico, nombres de materiales
+largos, tres materiales y una medalla, la tienda de inyectores y la paginación
+de descripciones mayores de siete líneas. Nada debe invadir el pie de página.
+
 - **PC:** abre la organización existente de cajas y regresa al reloj; conserva sus operaciones y selección.
 - **Archivo:** nueve tarjetas de mutación con su tier y una marca en las registradas.
 - **Señal mutante:** tarjeta de estado con el aumento, los encuentros restantes o la condición para activarla.

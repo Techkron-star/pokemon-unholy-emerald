@@ -23,7 +23,7 @@ static const u8 sText_QolSurfOn[] = _("Auto Surf: ON");
 static const u8 sText_QolSurfOff[] = _("Auto Surf: OFF");
 static const u8 sText_QolTextOn[] = _("Auto Text: ON");
 static const u8 sText_QolTextOff[] = _("Auto Text: OFF");
-static const u8 sText_QolClose[] = _("Close");
+static const u8 sText_QolWorldUpdate[] = _("Actualizar mundo");
 
 static const u8 *const sQolLabels[UQOL_OPTION_COUNT][2] =
 {
@@ -79,7 +79,7 @@ void UnholyQolDrawMenu(struct ScriptContext *ctx)
 
     for (i = 0; i < UQOL_OPTION_COUNT; i++)
         menuItems[i].text = sQolLabels[i][UnholyQolIsEnabled(i)];
-    menuItems[UQOL_OPTION_COUNT].text = sText_QolClose;
+    menuItems[UQOL_OPTION_COUNT].text = sText_QolWorldUpdate;
 
     DrawMultichoiceMenuInternal(1, 1, 0, FALSE, sQolMenuCursor, menuItems, UQOL_OPTION_COUNT + 1);
 }
