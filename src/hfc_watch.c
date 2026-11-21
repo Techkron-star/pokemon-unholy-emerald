@@ -13,6 +13,7 @@
 #include "field_weather.h"
 #include "horizon_market.h"
 #include "item.h"
+#include "item_menu.h"
 #include "menu.h"
 #include "mutation_tiers.h"
 #include "overworld.h"
@@ -32,6 +33,7 @@
 #include "constants/flags.h"
 #include "constants/items.h"
 #include "constants/item.h"
+#include "constants/event_objects.h"
 #include "constants/songs.h"
 #include "constants/vars.h"
 #include "new_game.h"
@@ -40,6 +42,7 @@
 #define HUB_COLUMNS 2
 #define HUB_ROWS 3
 #define HUB_PAGE_SIZE (HUB_COLUMNS * HUB_ROWS)
+#define TOOL_PAGE_SIZE 5
 
 static const u8 sFeatureIcons[HFC_WATCH_FEATURE_COUNT] =
 {
@@ -74,6 +77,7 @@ static EWRAM_DATA u8 sHubCursor;
 static EWRAM_DATA struct UnholyUiPalette sWatchPalette;
 static EWRAM_DATA u8 sLastFeature;
 static EWRAM_DATA u8 sToolCursor;
+static EWRAM_DATA bool8 sBagSortCompleted;
 static EWRAM_DATA u8 sLabCursor;
 static EWRAM_DATA bool8 sReturnToStart;
 static EWRAM_DATA enum HfcRaidDifficulty sRaidDifficulty;
@@ -331,6 +335,33 @@ static bool8 IsToolAvailable(u8 tool)
     return TRUE;
 }
 
+static void GetMapPickupProgress(u8 *collected, u8 *total)
+{
+    *collected = 0;
+    *total = 0;
+    if (gMapHeader.events == NULL)
+        return;
+
+    // Counts only visible item-ball objects on the current map. Hidden items,
+    // warps and unvisited maps remain undisclosed; no pickup is performed.
+    for (u8 i = 0; i < gMapHeader.events->objectEventCount; i++)
+    {
+        const struct ObjectEventTemplate *object = &gSaveBlock1Ptr->objectEventTemplates[i];
+        if (object->graphicsId != OBJ_EVENT_GFX_ITEM_BALL || object->flagId == 0)
+            continue;
+        (*total)++;
+        if (FlagGet(object->flagId))
+            (*collected)++;
+    }
+}
+
+void HfcWatch_SortAllBagPockets(void)
+{
+    // The virtual Gear/filter pockets are never persistent bag storage.
+    for (enum Pocket pocket = POCKET_ITEMS; pocket < POCKET_GEARS; pocket++)
+        SortItemsInBag(&gBagPockets[pocket], SORT_BY_TYPE);
+}
+
 static void RenderTools(void)
 {
     static const u8 *const names[HFC_WATCH_TOOL_COUNT] =
@@ -339,11 +370,14 @@ static void RenderTools(void)
         COMPOUND_STRING("CAMPO AUTO"),
         COMPOUND_STRING("HUEVOS"),
         COMPOUND_STRING("AUTO HEAL"),
+        COMPOUND_STRING("ORDENAR BOLSA"),
+        COMPOUND_STRING("BOTINES MAPA"),
         COMPOUND_STRING("FLASHER"),
         COMPOUND_STRING("INFINITY REPEL"),
     };
     u8 text[32];
-    for (u8 tool = 0; tool < HFC_WATCH_TOOL_COUNT; tool++)
+    u8 pageStart = (sToolCursor / TOOL_PAGE_SIZE) * TOOL_PAGE_SIZE;
+    for (u8 tool = pageStart; tool < min(pageStart + TOOL_PAGE_SIZE, HFC_WATCH_TOOL_COUNT); tool++)
     {
         const u8 *detail = NULL;
         bool8 available = IsToolAvailable(tool);
@@ -360,6 +394,18 @@ static void RenderTools(void)
             detail = UnholyQolIsEnabled(UQOL_INFINITE_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
         else if (tool == HFC_WATCH_TOOL_AUTO_HEAL)
             detail = UnholyQolIsEnabled(UQOL_AUTO_HEAL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_SORT_BAG)
+            detail = sBagSortCompleted ? COMPOUND_STRING("ORDENADA") : COMPOUND_STRING("A:USAR");
+        else if (tool == HFC_WATCH_TOOL_MAP_PICKUPS)
+        {
+            u8 collected, total;
+            u8 *end;
+            GetMapPickupProgress(&collected, &total);
+            end = ConvertUIntToDecimalStringN(text, collected, STR_CONV_MODE_LEFT_ALIGN, 2);
+            end = StringCopy(end, COMPOUND_STRING("/"));
+            ConvertUIntToDecimalStringN(end, total, STR_CONV_MODE_LEFT_ALIGN, 2);
+            detail = text;
+        }
         else if (tool == HFC_WATCH_TOOL_EGG_TRACKER)
         {
             u8 eggs = 0, cycles = 255;
@@ -374,14 +420,18 @@ static void RenderTools(void)
             ConvertUIntToDecimalStringN(end, eggs ? cycles : 0, STR_CONV_MODE_LEFT_ALIGN, 3);
             detail = text;
         }
-        UnholyUi_ChoiceRow(sWatchWindowId, 22 + 15 * tool, names[tool], detail, tool == sToolCursor);
+        UnholyUi_ChoiceRow(sWatchWindowId, 22 + 17 * (tool - pageStart), names[tool], detail, tool == sToolCursor);
     }
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 113, 195,
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 145, 5, 37,
+        pageStart == 0 ? COMPOUND_STRING("1/2") : COMPOUND_STRING("2/2"));
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 108, 195,
         sToolCursor == HFC_WATCH_TOOL_EGG_TRACKER ? COMPOUND_STRING("C = ciclos para eclosion")
       : sToolCursor == HFC_WATCH_TOOL_AUTO_REPEL ? COMPOUND_STRING("Reutiliza repelentes existentes")
       : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin gasto; respeta niveles")
       : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Requiere MO y medalla")
       : sToolCursor == HFC_WATCH_TOOL_FLASHER ? COMPOUND_STRING("Alumbra cuevas con MO y medalla")
+      : sToolCursor == HFC_WATCH_TOOL_SORT_BAG ? COMPOUND_STRING("Ordena todos los bolsillos")
+      : sToolCursor == HFC_WATCH_TOOL_MAP_PICKUPS ? COMPOUND_STRING("Bolas del mapa recogidas/total")
       : COMPOUND_STRING("Pociones tras cada combate"));
     UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:SEL  A:USAR  B:ATRAS"));
 }
@@ -565,6 +615,15 @@ static void HandleToolsInput(u8 taskId)
     else if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
     {
         sToolCursor = (sToolCursor + (JOY_REPEAT(DPAD_UP) ? HFC_WATCH_TOOL_COUNT - 1 : 1)) % HFC_WATCH_TOOL_COUNT;
+        sBagSortCompleted = FALSE;
+        PlaySE(SE_SELECT);
+        RenderPanel(HFC_WATCH_FEATURE_TOOLS);
+    }
+    else if (JOY_NEW(L_BUTTON | R_BUTTON))
+    {
+        u8 nextPage = sToolCursor / TOOL_PAGE_SIZE == 0 ? TOOL_PAGE_SIZE : 0;
+        sToolCursor = min(nextPage + sToolCursor % TOOL_PAGE_SIZE, HFC_WATCH_TOOL_COUNT - 1);
+        sBagSortCompleted = FALSE;
         PlaySE(SE_SELECT);
         RenderPanel(HFC_WATCH_FEATURE_TOOLS);
     }
@@ -606,6 +665,10 @@ static void HandleToolsInput(u8 taskId)
             break;
         case HFC_WATCH_TOOL_AUTO_HEAL:
             UnholyQolToggleOption(UQOL_AUTO_HEAL);
+            break;
+        case HFC_WATCH_TOOL_SORT_BAG:
+            HfcWatch_SortAllBagPockets();
+            sBagSortCompleted = TRUE;
             break;
         default:
             break; // Read-only trackers never change the save.

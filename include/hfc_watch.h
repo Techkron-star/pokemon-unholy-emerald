@@ -33,12 +33,15 @@ enum HfcWatchTool
     HFC_WATCH_TOOL_FIELD_ASSIST,
     HFC_WATCH_TOOL_EGG_TRACKER,
     HFC_WATCH_TOOL_AUTO_HEAL,
+    HFC_WATCH_TOOL_SORT_BAG,
+    HFC_WATCH_TOOL_MAP_PICKUPS,
     HFC_WATCH_TOOL_FLASHER,
     HFC_WATCH_TOOL_INFINITY_REPEL,
     HFC_WATCH_TOOL_COUNT,
 };
 
 u8 HfcWatch_ToolMinTier(u8 tool);
+void HfcWatch_SortAllBagPockets(void);
 
 enum HfcWatchAccess
 {

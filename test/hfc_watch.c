@@ -156,9 +156,26 @@ TEST("Watch tools offer read-only trackers early and gate Flash and Infinity by 
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FIELD_ASSIST), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_EGG_TRACKER), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_AUTO_HEAL), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_SORT_BAG), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_MAP_PICKUPS), HFC_WATCH_TIER_POKE);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FLASHER), HFC_WATCH_TIER_SUPER);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_INFINITY_REPEL), HFC_WATCH_TIER_HF);
     EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_COUNT), HFC_WATCH_TIER_COUNT);
+}
+
+TEST("Watch sorts persistent bag pockets without losing quantities")
+{
+    SetBagItemsPointers();
+    ClearBag();
+    EXPECT(AddBagItem(ITEM_SUPER_POTION, 3));
+    EXPECT(AddBagItem(ITEM_POTION, 2));
+    EXPECT(AddBagItem(ITEM_POKE_BALL, 4));
+    EXPECT(AddBagItem(ITEM_REPEL, 5));
+    HfcWatch_SortAllBagPockets();
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_SUPER_POTION), 3);
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), 2);
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POKE_BALL), 4);
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_REPEL), 5);
 }
 
 TEST("Auto Heal consumes real medicine without reviving a fainted teammate")

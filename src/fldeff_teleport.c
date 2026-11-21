@@ -8,7 +8,6 @@
 #include "task.h"
 #include "constants/field_effects.h"
 
-static void FieldCallback_Teleport(void);
 static void StartTeleportFieldEffect(void);
 
 bool32 SetUpFieldMove_Teleport(void)
@@ -16,20 +15,10 @@ bool32 SetUpFieldMove_Teleport(void)
     if (!CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_LEAVE_ROUTE))
         return FALSE;
 
-    if (Overworld_MapTypeAllowsTeleportAndFly(gMapHeader.mapType) == TRUE)
-    {
-        gFieldCallback2 = FieldCallback_PrepareFadeInForTeleport;
-        gPostMenuFieldCallback = FieldCallback_Teleport;
-        return TRUE;
-    }
-    return FALSE;
-}
-
-static void FieldCallback_Teleport(void)
-{
-    Overworld_ResetStateAfterTeleport();
-    FieldEffectStart(FLDEFF_USE_TELEPORT);
-    gFieldEffectArguments[0] = (u32)GetCursorSelectionMonId();
+    // The party menu now routes Teleport through the Fly destination picker.
+    // Do not install the legacy field callback: it would warp to the previous
+    // healing spot after a destination was selected or the map was cancelled.
+    return Overworld_MapTypeAllowsTeleportAndFly(gMapHeader.mapType);
 }
 
 bool8 FldEff_UseTeleport(void)

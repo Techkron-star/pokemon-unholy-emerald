@@ -2695,14 +2695,9 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
     {
         .name = COMPOUND_STRING("Teleport"),
         .description = COMPOUND_STRING(
-        #if B_TELEPORT_BEHAVIOR >= GEN_8
-            "The user switches places\n"
-            "with another party Pokémon."),
-        #else
-            "A psychic move for fleeing\n"
-            "from battle instantly."),
-        #endif
-        .effect = EFFECT_TELEPORT,
+            "Switches out, passing stat\n"
+            "changes to the next ally."),
+        .effect = EFFECT_BATON_PASS,
         .power = 0,
         .type = TYPE_PSYCHIC,
         .accuracy = 0,
