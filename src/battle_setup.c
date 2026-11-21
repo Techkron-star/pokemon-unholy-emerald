@@ -1,4 +1,6 @@
 #include "global.h"
+#include "unholy_bounty.h"
+#include "unholy_localization.h"
 #include "data.h"
 #include "main.h"
 #include "battle.h"
@@ -1750,6 +1752,22 @@ static void CB2_EndRematchBattle(void)
         HandleRematchVarsOnBattleEnd();
         DowngradeBadPoison();
     }
+}
+
+static void CB2_EndBountyBattle(void)
+{
+    UnholyBounty_OnBattleEnd(gBattleOutcome);
+    CB2_EndScriptedWildBattle();
+}
+
+void BattleSetup_StartBountyBattle(u16 trainer)
+{
+    memset(&gTrainerBattleParameter, 0, sizeof(gTrainerBattleParameter));
+    TRAINER_BATTLE_PARAM.opponentA = trainer;
+    TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)UnholyLocalize(COMPOUND_STRING("You earned that bounty."), COMPOUND_STRING("Te ganaste la recompensa."));
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    gMain.savedCallback = CB2_EndBountyBattle;
+    DoTrainerBattle();
 }
 
 void BattleSetup_StartRematchBattle(void)

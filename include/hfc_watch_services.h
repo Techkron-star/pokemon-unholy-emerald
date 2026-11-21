@@ -96,6 +96,14 @@ enum HfcRaidState HfcWatch_GetRaidState(void);
 enum HfcRaidStage HfcWatch_GetRaidStage(void);
 enum HfcRaidDifficulty HfcWatch_GetActiveRaidDifficulty(void);
 u16 HfcWatch_GetActiveRaidCaptureChance(void);
+u8 HfcWatch_GetRaidOfferCount(u8 badges, bool32 champion);
+u8 HfcWatch_GetRaidResourceBonus(u8 badges, bool32 champion);
+u8 HfcWatch_ScaleRaidResource(u8 quantity, u8 bonus, u8 *remainder);
+struct HfcRaidOpponent HfcWatch_GetRaidOfferOpponent(enum HfcRaidDifficulty difficulty, u8 offer,
+                                                    enum HfcRaidStage stage, u8 slot);
+u16 HfcWatch_GetRaidOfferCaptureChance(enum HfcRaidDifficulty difficulty, u8 offer);
+u32 HfcWatch_GetRaidCooldown(enum HfcRaidDifficulty difficulty, u8 offer);
+bool32 HfcWatch_StartRaid(enum HfcRaidDifficulty difficulty, u8 offer);
 bool32 HfcWatch_StartDailyRaid(enum HfcRaidDifficulty difficulty);
 bool32 HfcWatch_ContinueRaid(void);
 void HfcWatch_OnRaidBattleEnd(u8 outcome);

@@ -188,3 +188,6 @@ SECTIONS {
         *(*);
     }
 }
+
+/* Leave room below the GBA user/IRQ stacks for nested menu and battle calls. */
+ASSERT(SIZEOF(.iwram) + SIZEOF(.iwram.bss) <= 0x7000, "IWRAM static data leaves insufficient stack space")

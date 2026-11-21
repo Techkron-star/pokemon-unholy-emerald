@@ -1,5 +1,6 @@
 #include "global.h"
 #include "unholy_ui.h"
+#include "unholy_localization.h"
 #include "hfc_mutator.h"
 #include "hfc_simulator.h"
 #include "hfc_watch.h"
@@ -67,7 +68,7 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_TOOLS] = COMPOUND_STRING("TOOLS"),
     [HFC_WATCH_FEATURE_STORAGE] = COMPOUND_STRING("POKéMON BOXES"),
     [HFC_WATCH_FEATURE_FREQUENCY] = COMPOUND_STRING("MUTANT SIGNAL"),
-    [HFC_WATCH_FEATURE_RAID] = COMPOUND_STRING("DAILY RAID"),
+    [HFC_WATCH_FEATURE_RAID] = COMPOUND_STRING("RAIDS"),
     [HFC_WATCH_FEATURE_ARCHIVE] = COMPOUND_STRING("ANOMALY ARCHIVE"),
     [HFC_WATCH_FEATURE_LAB] = COMPOUND_STRING("LABORATORIO"),
 };
@@ -81,6 +82,7 @@ static EWRAM_DATA bool8 sBagSortCompleted;
 static EWRAM_DATA u8 sLabCursor;
 static EWRAM_DATA bool8 sReturnToStart;
 static EWRAM_DATA enum HfcRaidDifficulty sRaidDifficulty;
+static EWRAM_DATA u8 sRaidOffer;
 static EWRAM_DATA bool8 sRaidCaptureSelected;
 static EWRAM_DATA enum HfcRaidRewardError sRaidRewardError;
 
@@ -181,7 +183,7 @@ static void RenderRaidSelection(void)
     static const u8 *const sMessages[] =
     {
         [HFC_RAID_NOT_ON_ROUTE] = COMPOUND_STRING("Travel to an outdoor route."),
-        [HFC_RAID_USED_TODAY] = COMPOUND_STRING("Come back tomorrow for another raid."),
+        [HFC_RAID_USED_TODAY] = COMPOUND_STRING("Choose another available raid."),
         [HFC_RAID_NEEDS_PARTY] = COMPOUND_STRING("You need two Pokémon ready to fight."),
         [HFC_RAID_UNAVAILABLE] = COMPOUND_STRING("The raid is unavailable here."),
     };
@@ -216,9 +218,9 @@ static void RenderRaidSelection(void)
         return;
     }
 
-    u16 day = VarGet(VAR_DAYS);
-    u32 trainerId = GetTrainerId(gSaveBlock2Ptr->playerTrainerId);
-    struct HfcRaidOpponent boss = HfcWatch_GetRaidOpponent(day, trainerId, sRaidDifficulty, HFC_RAID_BOSS, 0);
+    u8 count = HfcWatch_GetRaidOfferCount(HfcWatch_CountBadges(), FlagGet(FLAG_IS_CHAMPION));
+    sRaidOffer %= count;
+    struct HfcRaidOpponent boss = HfcWatch_GetRaidOfferOpponent(sRaidDifficulty, sRaidOffer, HFC_RAID_BOSS, 0);
     if (boss.species == SPECIES_NONE)
     {
         PrintWatchText(sMessages[HFC_RAID_UNAVAILABLE], 8, 52);
@@ -226,22 +228,34 @@ static void RenderRaidSelection(void)
         return;
     }
     UnholyUi_Card(sWatchWindowId, 5, 51, 182, 38, FALSE);
-    PrintWatchText(COMPOUND_STRING("BOSS"), 10, 53);
+    cursor = StringCopy(text, UnholyLocalize(COMPOUND_STRING("BOSS "), COMPOUND_STRING("JEFE ")));
+    cursor = ConvertUIntToDecimalStringN(cursor, sRaidOffer + 1, STR_CONV_MODE_LEFT_ALIGN, 2);
+    *cursor++ = CHAR_SLASH;
+    ConvertUIntToDecimalStringN(cursor, count, STR_CONV_MODE_LEFT_ALIGN, 2);
+    PrintWatchText(text, 10, 53);
     cursor = StringCopy(text, GetSpeciesName(boss.species));
     cursor = StringCopy(cursor, COMPOUND_STRING("  Lv. "));
     ConvertUIntToDecimalStringN(cursor, boss.level, STR_CONV_MODE_LEFT_ALIGN, 3);
     PrintWatchText(text, 10, 65);
-    const u8 *equipment = NULL;
-    if (boss.gear != GEAR_NONE)
-        equipment = boss.mega ? COMPOUND_STRING("Megapiedra + Artefacto") : COMPOUND_STRING("Objeto + Artefacto");
-    else if (boss.heldItem != ITEM_NONE)
-        equipment = boss.mega ? COMPOUND_STRING("Mega Stone") : COMPOUND_STRING("Held item");
-    if (equipment != NULL)
-        UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 10, 77, 168, equipment);
-
-    PrintRaidCaptureChance(HfcWatch_GetRaidCaptureChance(day, trainerId, sRaidDifficulty), 91);
-    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 104, 175, COMPOUND_STRING("Two double battles, then the boss."));
-    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("L/R:TIER  A:START RAID  B:BACK"));
+    u32 cooldown = HfcWatch_GetRaidCooldown(sRaidDifficulty, sRaidOffer);
+    cursor = StringCopy(text, cooldown == 0
+        ? UnholyLocalize(COMPOUND_STRING("READY"), COMPOUND_STRING("DISPONIBLE"))
+        : UnholyLocalize(COMPOUND_STRING("Wait "), COMPOUND_STRING("Espera ")));
+    if (cooldown != 0)
+    {
+        cursor = ConvertUIntToDecimalStringN(cursor, cooldown / 60, STR_CONV_MODE_LEADING_ZEROS, 2);
+        *cursor++ = CHAR_COLON;
+        ConvertUIntToDecimalStringN(cursor, cooldown % 60, STR_CONV_MODE_LEADING_ZEROS, 2);
+    }
+    PrintWatchText(text, 10, 77);
+    PrintRaidCaptureChance(HfcWatch_GetRaidOfferCaptureChance(sRaidDifficulty, sRaidOffer), 91);
+    cursor = StringCopy(text, UnholyLocalize(COMPOUND_STRING("Resources +"), COMPOUND_STRING("Recursos +")));
+    cursor = ConvertUIntToDecimalStringN(cursor,
+        HfcWatch_GetRaidResourceBonus(HfcWatch_CountBadges(), FlagGet(FLAG_IS_CHAMPION)), STR_CONV_MODE_LEFT_ALIGN, 2);
+    StringCopy(cursor, COMPOUND_STRING("%"));
+    PrintWatchText(text, 8, 104);
+    UnholyUi_Footer(sWatchWindowId, UnholyLocalize(COMPOUND_STRING("L/R:TIER UP/DN:BOSS A:GO B:BACK"),
+        COMPOUND_STRING("L/R:NIVEL ARR/AB:JEFE A:IR B:ATRÁS")));
 }
 
 static void RenderRaidReward(void)
@@ -582,10 +596,26 @@ static void HandleRaidPanelInput(u8 taskId)
         return;
     }
 
+    if (state == HFC_RAID_IDLE && HfcWatch_GetRaidStatus() == HFC_RAID_READY)
+    {
+        if (JOY_NEW(DPAD_UP | DPAD_DOWN))
+        {
+            u8 count = HfcWatch_GetRaidOfferCount(HfcWatch_CountBadges(), FlagGet(FLAG_IS_CHAMPION));
+            sRaidOffer = (sRaidOffer + (JOY_NEW(DPAD_UP) ? count - 1 : 1)) % count;
+            PlaySE(SE_SELECT);
+            RenderPanel(HFC_WATCH_FEATURE_RAID);
+        }
+        // Refresh the visible timer once per second without polling save CRC every frame.
+        if (++gTasks[taskId].data[1] >= 60)
+        {
+            gTasks[taskId].data[1] = 0;
+            RenderPanel(HFC_WATCH_FEATURE_RAID);
+        }
+    }
     if (!JOY_NEW(A_BUTTON))
         return;
 
-    if ((state == HFC_RAID_IDLE && HfcWatch_StartDailyRaid(sRaidDifficulty))
+    if ((state == HFC_RAID_IDLE && HfcWatch_StartRaid(sRaidDifficulty, sRaidOffer))
      || (state == HFC_RAID_NEXT_BATTLE && HfcWatch_ContinueRaid()))
     {
         PlaySE(SE_SELECT);
@@ -597,7 +627,7 @@ static void HandleRaidPanelInput(u8 taskId)
         PlaySE(sRaidRewardError == HFC_RAID_REWARD_OK ? SE_SELECT : SE_FAILURE);
         RenderPanel(HFC_WATCH_FEATURE_RAID);
     }
-    else if (state == HFC_RAID_NEXT_BATTLE)
+    else if (state == HFC_RAID_NEXT_BATTLE || state == HFC_RAID_IDLE)
     {
         PlaySE(SE_FAILURE);
         RenderPanel(HFC_WATCH_FEATURE_RAID);
@@ -962,5 +992,6 @@ void HfcWatch_OpenHub(bool8 fromStartMenu)
     sReturnToStart = fromStartMenu;
     sLastFeature = sHubCursor;
     sRaidDifficulty = HFC_RAID_STANDARD;
+    sRaidOffer = 0;
     OpenHub();
 }

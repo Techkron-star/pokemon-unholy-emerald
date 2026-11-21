@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_bounty.h"
 #include "main.h"
 #include "text.h"
 #include "menu.h"
@@ -47,6 +48,7 @@
 #define MAPCURSOR_Y_MAX (MAPCURSOR_Y_MIN + MAP_HEIGHT - 1)
 
 #define FLYDESTICON_RED_OUTLINE 6
+#define TAG_BOUNTY_MARKER 0xA4B1
 
 enum {
     TAG_CURSOR,
@@ -709,6 +711,7 @@ void InitRegionMapData(struct RegionMap *regionMap, const struct BgTemplate *tem
 {
     sRegionMap = regionMap;
     sRegionMap->initStep = 0;
+    sRegionMap->bountyMarker = NULL;
     sRegionMap->zoomed = zoomed;
     sRegionMap->inputCallback = zoomed == TRUE ? ProcessRegionMapInput_Zoomed : ProcessRegionMapInput_Full;
     if (template != NULL)
@@ -824,6 +827,13 @@ void BlendRegionMap(u16 color, u32 coeff)
 
 void FreeRegionMapIconResources(void)
 {
+    if (sRegionMap->bountyMarker != NULL)
+    {
+        DestroySprite(sRegionMap->bountyMarker);
+        sRegionMap->bountyMarker = NULL;
+        FreeSpriteTilesByTag(TAG_BOUNTY_MARKER);
+        FreeSpritePaletteByTag(TAG_BOUNTY_MARKER);
+    }
     if (sRegionMap->cursorSprite != NULL)
     {
         DestroySprite(sRegionMap->cursorSprite);
@@ -1660,8 +1670,56 @@ static void SpriteCB_CursorMapZoomed(struct Sprite *sprite)
 
 }
 
+static const u32 sBountyMarkerGfx[] =
+{
+    0x00000000, 0x00000000, 0x11111000, 0x22221000,
+    0x32221000, 0x32221000, 0x32221000, 0x32221000,
+    0x00000000, 0x00000000, 0x00011111, 0x00012222,
+    0x00012223, 0x00012223, 0x00012223, 0x00012223,
+    0x32221000, 0x22221000, 0x22221000, 0x32221000,
+    0x22221000, 0x11111000, 0x00000000, 0x00000000,
+    0x00012223, 0x00012222, 0x00012222, 0x00012223,
+    0x00012222, 0x00011111, 0x00000000, 0x00000000,
+};
+static const u16 sBountyMarkerPalette[16] = {RGB_BLACK, RGB(18, 8, 0), RGB(31, 21, 4), RGB_WHITE};
+
+static void SpriteCB_BountyMarker(struct Sprite *sprite)
+{
+    u16 section = sprite->data[0];
+    s16 x = gRegionMapEntries[section].x + MAPCURSOR_X_MIN;
+    s16 y = gRegionMapEntries[section].y + MAPCURSOR_Y_MIN;
+    sprite->x = sRegionMap->zoomed ? x * 16 - 0x30 - 2 * sRegionMap->scrollX : x * 8 + 4;
+    sprite->y = sRegionMap->zoomed ? y * 16 - 0x42 - 2 * sRegionMap->scrollY : y * 8 + 4;
+    sprite->invisible = sprite->x < 0 || sprite->x > DISPLAY_WIDTH || sprite->y < 0 || sprite->y > DISPLAY_HEIGHT;
+}
+
+static void CreateBountyMarker(void)
+{
+    u16 section = UnholyBounty_GetMapSection();
+    const struct SpriteSheet sheet = {sBountyMarkerGfx, sizeof(sBountyMarkerGfx), TAG_BOUNTY_MARKER};
+    const struct SpritePalette palette = {sBountyMarkerPalette, TAG_BOUNTY_MARKER};
+    const struct SpriteTemplate template = {TAG_BOUNTY_MARKER, TAG_BOUNTY_MARKER, &sRegionMapPlayerIconOam,
+        sRegionMapPlayerIconAnimTable, NULL, gDummySpriteAffineAnimTable, SpriteCB_BountyMarker};
+    u8 spriteId;
+    if (sRegionMap->bountyMarker != NULL || section == MAPSEC_NONE || IS_FRLG)
+        return;
+    LoadSpriteSheet(&sheet);
+    LoadSpritePalette(&palette);
+    spriteId = CreateSprite(&template, 0, 0, 0);
+    if (spriteId == MAX_SPRITES)
+    {
+        FreeSpriteTilesByTag(TAG_BOUNTY_MARKER);
+        FreeSpritePaletteByTag(TAG_BOUNTY_MARKER);
+        return;
+    }
+    sRegionMap->bountyMarker = &gSprites[spriteId];
+    sRegionMap->bountyMarker->data[0] = section;
+    SpriteCB_BountyMarker(sRegionMap->bountyMarker);
+}
+
 void CreateRegionMapCursor(u16 tileTag, u16 paletteTag)
 {
+    CreateBountyMarker();
     u8 spriteId;
     struct SpriteTemplate template;
     struct SpritePalette palette;
