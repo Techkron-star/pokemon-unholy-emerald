@@ -1,5 +1,6 @@
 #include "global.h"
 #include "event_data.h"
+#include "field_move.h"
 #include "menu.h"
 #include "script_menu.h"
 #include "unholy_qol.h"
@@ -81,6 +82,31 @@ bool32 UnholyQolIsEnabled(enum UnholyQolOption option)
         return FALSE;
 
     return (GetQolFlags() & (1 << option)) != 0;
+}
+
+// Automatic field moves are learned by the trainer, not tied to one party
+// member. Keep progression intact: the relevant HM must be in the Bag and
+// its badge/field unlock must be earned. Other manual field moves still need
+// a Pokemon that knows them.
+bool32 UnholyQolAutoFieldMoveAvailable(enum FieldMove fieldMove)
+{
+    enum UnholyQolOption option;
+    enum Item hm;
+
+    switch (fieldMove)
+    {
+    case FIELD_MOVE_CUT:        option = UQOL_AUTO_CUT; break;
+    case FIELD_MOVE_ROCK_SMASH: option = UQOL_AUTO_ROCK_SMASH; break;
+    case FIELD_MOVE_STRENGTH:   option = UQOL_AUTO_STRENGTH; break;
+    case FIELD_MOVE_SURF:       option = UQOL_AUTO_SURF; break;
+    default:                    return FALSE;
+    }
+
+    if (!UnholyQolIsEnabled(option) || !IsFieldMoveUnlocked(fieldMove))
+        return FALSE;
+
+    hm = GetTMHMItemIdFromMoveId(FieldMove_GetMoveId(fieldMove));
+    return hm != ITEM_NONE && CheckBagHasItem(hm, 1);
 }
 
 void UnholyQolToggleOption(enum UnholyQolOption option)

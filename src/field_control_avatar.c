@@ -59,7 +59,6 @@ static u16 GetPlayerCurMetatileBehavior(int);
 static bool8 TryStartInteractionScript(struct MapPosition *, u16, enum Direction);
 static const u8 *GetVisibleItemBallScript(struct MapPosition *, enum Direction);
 static bool8 TryAutoFieldMove(struct MapPosition *, u16, enum Direction);
-static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove);
 static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction, bool8 *);
 static const u8 *GetInteractedObjectEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedBackgroundEventScript(struct MapPosition *, u8, enum Direction);
@@ -389,27 +388,6 @@ static const u8 *GetVisibleItemBallScript(struct MapPosition *position, enum Dir
     return NULL;
 }
 
-static bool32 PartyCanUseAutoFieldMove(enum FieldMove fieldMove)
-{
-    u32 i;
-    enum Move move;
-
-    if (!IsFieldMoveUnlocked(fieldMove))
-        return FALSE;
-    move = FieldMove_GetMoveId(fieldMove);
-
-    for (i = 0; i < PARTY_SIZE; i++)
-    {
-        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
-
-        if (GetMonData(mon, MON_DATA_SPECIES) == SPECIES_NONE)
-            break;
-        if (!GetMonData(mon, MON_DATA_IS_EGG) && MonKnowsMove(mon, move))
-            return TRUE;
-    }
-    return FALSE;
-}
-
 static bool8 TryAutoFieldMove(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
 {
     const u8 *script;
@@ -437,7 +415,7 @@ static bool8 TryAutoFieldMove(struct MapPosition *position, u16 metatileBehavior
     else
         return FALSE;
 
-    if (!PartyCanUseAutoFieldMove(move))
+    if (!UnholyQolAutoFieldMoveAvailable(move))
         return FALSE;
 
     ScriptContext_SetupScript(script);
@@ -801,7 +779,9 @@ static const u8 *GetInteractedWaterScript(struct MapPosition *unused1, u8 metati
 {
     if (MetatileBehavior_IsFastWater(metatileBehavior) == TRUE && !TestPlayerAvatarFlags(PLAYER_AVATAR_FLAG_SURFING))
         return EventScript_CurrentTooFast;
-    if (IsFieldMoveUnlocked(FIELD_MOVE_SURF) && PartyHasMonWithSurf() == TRUE && IsPlayerFacingSurfableFishableWater() == TRUE
+    if (IsFieldMoveUnlocked(FIELD_MOVE_SURF)
+     && (PartyHasMonWithSurf() || UnholyQolAutoFieldMoveAvailable(FIELD_MOVE_SURF))
+     && IsPlayerFacingSurfableFishableWater() == TRUE
      && CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_SURF)
      )
         return EventScript_UseSurf;

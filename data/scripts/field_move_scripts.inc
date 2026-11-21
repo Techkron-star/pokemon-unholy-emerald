@@ -8,11 +8,16 @@ EventScript_CutTree::
 	buffermovename STR_VAR_2, MOVE_CUT
 	setvar VAR_0x8000, 2 @ UQOL_AUTO_CUT
 	specialvar VAR_RESULT, UnholyQolGetScriptSetting
-	goto_if_eq VAR_RESULT, TRUE, EventScript_CutTreeCommon
+	goto_if_eq VAR_RESULT, TRUE, EventScript_CutTreeAuto
 	msgbox Text_WantToCut, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelCut
 	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
 	closemessage
+	goto EventScript_CutTreeCommon
+EventScript_CutTreeAuto:
+	@ No Pokemon animation or pose for Auto MO; preserve the tree movement.
+	setvar VAR_0x8004, FALSE
+	goto EventScript_CutTreeDown
 EventScript_CutTreeCommon:
 	isfollowerfieldmoveuser VAR_0x8004
 	setfieldeffectargument 3, VAR_0x8004 @ skip pose if so
@@ -73,11 +78,16 @@ EventScript_RockSmash::
 	buffermovename STR_VAR_2, MOVE_ROCK_SMASH
 	setvar VAR_0x8000, 4 @ UQOL_AUTO_ROCK_SMASH
 	specialvar VAR_RESULT, UnholyQolGetScriptSetting
-	goto_if_eq VAR_RESULT, TRUE, EventScript_RockSmashCommon
+	goto_if_eq VAR_RESULT, TRUE, EventScript_RockSmashAuto
 	msgbox Text_WantToSmash, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelSmash
 	msgbox Text_MonUsedFieldMove, MSGBOX_DEFAULT
 	closemessage
+	goto EventScript_RockSmashCommon
+EventScript_RockSmashAuto:
+	@ Break the rock directly without summoning a Pokemon animation.
+	setvar VAR_0x8004, FALSE
+	goto EventScript_SmashRock
 EventScript_RockSmashCommon:
 	@ check if follower should use the field move
 	isfollowerfieldmoveuser VAR_0x8004
@@ -235,7 +245,7 @@ EventScript_StrengthBoulder::
 	setfieldeffectargument 0, VAR_RESULT
 	setvar VAR_0x8000, 3 @ UQOL_AUTO_STRENGTH
 	specialvar VAR_RESULT, UnholyQolGetScriptSetting
-	goto_if_eq VAR_RESULT, TRUE, EventScript_AutoStrength
+	goto_if_eq VAR_RESULT, TRUE, EventScript_ActivateStrengthAuto
 	msgbox Text_WantToStrength, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_CancelStrength
 EventScript_AutoStrength:
