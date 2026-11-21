@@ -51,6 +51,36 @@ if ("UnholyWorldUpdate_RefreshCurrentMap" not in world_source
     or "Actualizar mundo" not in qol_source):
     fail("Manual world refresh must be present in the L-button QoL settings and re-spawn visible objects")
 
+# The audit must traverse *all* map groups over multiple script frames.
+# Checking a few known route names is not a replacement for a complete scan.
+for expression in (
+    "for (u16 group = 0; group < MAP_GROUPS_COUNT; group++)",
+    "sWorldAudit.totalMaps += MAP_GROUP_COUNT[group]",
+    "WorldUpdate_ScanMap(sWorldAudit.mapGroup, sWorldAudit.mapNum++)",
+    "UNHOLY_WORLD_MAPS_PER_CHUNK 4",
+    "WorldUpdate_DrawAuditProgress()",
+    "WorldUpdate_DespawnWithoutClaiming",
+    "sWorldAudit.repairedBalls++",
+    "sWorldAudit.repairedNpcs++",
+    "sWorldAudit.unclaimedBalls++",
+    "sWorldAudit.appearedBalls +=",
+    "sWorldAudit.appearedNpcs +=",
+    "sWorldAudit.errors++",
+):
+    if expression not in world_source:
+        fail(f"Chunked audit, live repair or changes report is incomplete: {expression}")
+for label in (
+    "callnative UnholyWorldUpdate_BeginAudit",
+    "callnative UnholyWorldUpdate_ProcessChunk",
+    "delay 1",
+    "callnative UnholyWorldUpdate_FinishAudit",
+    "msgbox gStringVar4, MSGBOX_DEFAULT",
+):
+    if label not in qol_script:
+        fail(f"World Update is missing its nonblocking progress/report flow: {label}")
+if "FlagClear(claimedFlag)" in world_source or "RemoveObjectEventByLocalIdAndMap(rom->localId" in world_source:
+    fail("World update can mark a repaired pickup as claimed")
+
 flag_aliases = {}
 for line in flags.splitlines():
     match = re.match(r"#define (FLAG_UNHOLY_WORLD_\w+)\s+(FLAG_UNUSED_0x\w+)", line)
@@ -117,4 +147,4 @@ for map_name, original_count, ordinal, hide_flag, position, item, claimed in EVE
     elif f"ReconcileWorldEvent({hide_flag}" not in world_source:
         fail(f"{map_name}: NPC visibility is not updated by progression")
 
-print("World Update V1: save version, 6 permanent flags, 4 progressive events on 3 maps, 2 non-respawning rewards; automatic and manual refresh verified")
+print("World Update V1 + complete chunk audit: save flags, 4 progressive events, all map groups, 4 maps/frame, current-map repair and changes report verified")
