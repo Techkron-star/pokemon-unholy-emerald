@@ -16,10 +16,10 @@ EventScript_UnholyQolMenu_UpdateWorld:
 	callnative UnholyWorldUpdate_RefreshCurrentMap
 	fadescreen FADE_FROM_BLACK
 	msgbox UnholyQol_Text_WorldUpdated, MSGBOX_DEFAULT
-    goto EventScript_UnholyQolMenu_Exit
+	goto EventScript_UnholyQolMenu_Exit
 EventScript_UnholyQolMenu_Exit:
 	releaseall
 	end
 
 UnholyQol_Text_WorldUpdated:
-	.string "Mundo actualizado.\\nTus objetos recogidos se conservan.$"
+	.string "Mundo actualizado.\nTus objetos recogidos se conservan.$"
