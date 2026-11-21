@@ -127,6 +127,7 @@ static EWRAM_DATA bool8 sHorizonEggBrowsing = FALSE;
 static EWRAM_DATA bool8 sHorizonEggConfirm = FALSE;
 static EWRAM_DATA u8 sHorizonEggSelection = 0;
 static EWRAM_DATA u8 sHorizonEggStatus = 0;
+static EWRAM_DATA u8 sHorizonGlowFrame = 0;
 static EWRAM_DATA u8 sHorizonEggIconId = 0;
 static EWRAM_DATA bool8 sHorizonEggPaletteOwned = FALSE;
 static EWRAM_DATA bool8 sHorizonPokemonConfirm = FALSE;
@@ -733,8 +734,9 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
     const u8 shell = daylight ? 4 : 2;
     const u8 highlight = daylight ? 8 : 10;
     const u8 shadow = daylight ? 9 : 4;
-    const u8 outline = quality == HORIZON_EGG_PRISMATIC ? 13
-                     : quality == HORIZON_EGG_RADIANT ? 7
+    // Slots 15 (gold) and 12 (rainbow) are animated by HorizonEggPulse.
+    const u8 outline = quality == HORIZON_EGG_PRISMATIC ? 12
+                     : quality == HORIZON_EGG_RADIANT ? 15
                      : daylight ? 10 : 3;
 
     // 14x14 miniature with shading, a rim and a reflective quality accent.
@@ -749,6 +751,58 @@ static void HorizonDrawSmallEgg(u8 windowId, u8 x, u8 y, u8 quality)
     FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 2, y + 11, 10, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 4, y + 12, 6, 1);
     FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 6, y + 3, 2, 2);
+
+    // Halo for special grades: dotted rows above and below plus side sparks,
+    // kept inside the egg's 14-pixel footprint so neighbours never collide.
+    if (quality != HORIZON_EGG_STANDARD)
+    {
+        for (u8 dot = 3; dot < 11; dot += 2)
+        {
+            FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + dot, y - 1, 1, 1);
+            FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + dot + 1, y + 13, 1, 1);
+        }
+        for (u8 spark = 5; spark < 10; spark += 2)
+        {
+            FillWindowPixelRect(windowId, PIXEL_FILL(outline), x, y + spark, 1, 1);
+            FillWindowPixelRect(windowId, PIXEL_FILL(outline), x + 13, y + spark, 1, 1);
+        }
+    }
+}
+
+// Neon breathing for the two grade colours: gold for RADIANT, a slow rainbow
+// for PRISMATIC. Only palette entries move; the caller guards that the panel
+// owns palette 14.
+static void HorizonEggPulse(void)
+{
+    static const u8 rainbow[][3] =
+    {
+        {31, 8, 8}, {31, 22, 6}, {26, 31, 8}, {8, 31, 20}, {8, 20, 31}, {24, 10, 31},
+    };
+    u8 frame = sHorizonGlowFrame++;
+    u8 level = ((frame >> 2) & 15) < 8 ? (frame >> 2) & 15 : 15 - ((frame >> 2) & 15);
+    u8 step = (frame >> 3) % ARRAY_COUNT(rainbow);
+    u8 next = (step + 1) % ARRAY_COUNT(rainbow);
+    u8 blend = frame & 7;
+    u16 gold = RGB(31, 20 + level, 3 + level * 2);
+    u16 prism = RGB((rainbow[step][0] * (8 - blend) + rainbow[next][0] * blend) / 8,
+                    (rainbow[step][1] * (8 - blend) + rainbow[next][1] * blend) / 8,
+                    (rainbow[step][2] * (8 - blend) + rainbow[next][2] * blend) / 8);
+
+    gPlttBufferUnfaded[BG_PLTT_ID(14) + 15] = gold;
+    gPlttBufferFaded[BG_PLTT_ID(14) + 15] = gold;
+    gPlttBufferUnfaded[BG_PLTT_ID(14) + 12] = prism;
+    gPlttBufferFaded[BG_PLTT_ID(14) + 12] = prism;
+}
+
+// Selected card in the grade's own glow colour (double line, like a lit tube).
+static void HorizonGlowFrame(u8 panel, u8 x, u8 y, u8 width, u8 height, u8 color)
+{
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x, y, width, 1);
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x, y + height - 1, width, 1);
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x, y, 1, height);
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x + width - 1, y, 1, height);
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x + 1, y + 1, width - 2, 1);
+    FillWindowPixelRect(panel, PIXEL_FILL(color), x + 1, y + height - 2, width - 2, 1);
 }
 
 // Font-aware clipping and panel-specific colors keep text within its card
@@ -955,6 +1009,8 @@ static void HorizonDrawInfo(void)
             bool8 sold = HorizonEggIsSold(tier);
 
             HorizonDrawCard(panel, x, 30, 38, 42, tier == sHorizonEggSelection);
+            if (quality != HORIZON_EGG_STANDARD && tier == sHorizonEggSelection)
+                HorizonGlowFrame(panel, x, 30, 38, 42, quality == HORIZON_EGG_PRISMATIC ? 12 : 15);
             HorizonDrawSmallEgg(panel, x + 12, 34, quality);
             HorizonPrintCardText(panel, sHorizonEggCardNames[tier], x + 3, 49, 32,
                                      tier == sHorizonEggSelection, FONT_SMALL_NARROW);
@@ -962,8 +1018,8 @@ static void HorizonDrawInfo(void)
                 HorizonPrintCardText(panel, sHorizonTextEggSold, x + 4, 61, 32,
                                      tier == sHorizonEggSelection, FONT_SMALL_NARROW);
             else
-                FillWindowPixelRect(panel, PIXEL_FILL(quality == HORIZON_EGG_PRISMATIC ? 13
-                                                    : quality == HORIZON_EGG_RADIANT ? 7
+                FillWindowPixelRect(panel, PIXEL_FILL(quality == HORIZON_EGG_PRISMATIC ? 12
+                                                    : quality == HORIZON_EGG_RADIANT ? 15
                                                     : (daylight ? 7 : 5)),
                                     x + 4, 67, 30, 2);
         }
@@ -1061,6 +1117,10 @@ static void Task_ShopMenu(u8 taskId)
 
     if (sHorizonActive && gPaletteFade.active)
         return;
+
+    if (sHorizonActive && sHorizonPaletteSaved && sHorizonInfoWindowId != 0xFF
+     && (sHorizonEggBrowsing || sHorizonSelectedTab == 3))
+        HorizonEggPulse();
 
     // SELECT returns from a catalogue to the five-store directory. It must
     // not silently activate Pokémon (tab zero) when the directory opens.
