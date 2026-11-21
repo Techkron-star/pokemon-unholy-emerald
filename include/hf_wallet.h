@@ -11,5 +11,7 @@ u32 HfWallet_GetNextSlotPrice(void);
 bool32 HfWallet_BuySlot(void);
 bool32 HfWallet_Deposit(u8 slot, u32 amount);
 bool32 HfWallet_Withdraw(u8 slot, u32 amount);
+bool32 HfWallet_Transfer(u8 from, u8 to, u32 amount);
+u64 HfWallet_GetTotalBalance(void);
 
 #endif
