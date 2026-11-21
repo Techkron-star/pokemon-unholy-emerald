@@ -362,10 +362,10 @@ static void RenderTools(void)
         {
             u8 eggs = 0, cycles = 255;
             for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
-                if (GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
+                if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_IS_EGG))
                 {
                     eggs++;
-                    cycles = min(cycles, GetMonData(&gPlayerParty[i], MON_DATA_FRIENDSHIP));
+                    cycles = min(cycles, GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_FRIENDSHIP));
                 }
             u8 *end = ConvertUIntToDecimalStringN(text, eggs, STR_CONV_MODE_LEFT_ALIGN, 1);
             end = StringCopy(end, COMPOUND_STRING(" H / "));
@@ -376,8 +376,8 @@ static void RenderTools(void)
         {
             u8 ready = 0;
             for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
-                if (!GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG)
-                 && GetMonData(&gPlayerParty[i], MON_DATA_HP))
+                if (!GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_IS_EGG)
+                 && GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_HP))
                     ready++;
             u8 *end = ConvertUIntToDecimalStringN(text, ready, STR_CONV_MODE_LEFT_ALIGN, 1);
             end = StringCopy(end, COMPOUND_STRING("/"));
