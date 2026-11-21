@@ -1400,6 +1400,8 @@ s32 Pokemon_GetMutationStatBonusPercent(struct Pokemon *mon, u32 statIndex)
     s32 bonus = 0;
 
     // Stat bonuses ADD; do not multiply the effects of different mutations.
+    if (badges & POKEMON_BADGE_ALPHA)
+        bonus += 20;
     if (badges & POKEMON_BADGE_ENRAGED)
     {
         u32 level = min(GetMonData(mon, MON_DATA_LEVEL), 100);

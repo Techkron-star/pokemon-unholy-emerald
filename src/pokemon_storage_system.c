@@ -29,7 +29,6 @@
 #include "pokemon_icon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
-#include "hf_pc_groups.h"
 #include "script.h"
 #include "sound.h"
 #include "string_util.h"
@@ -172,16 +171,9 @@ enum {
     MENU_FAVORITE,
     MENU_UNFAVORITE,
     MENU_SEARCH,
-    MENU_HF_GROUP_SPECIES,
-    MENU_HF_GROUP_INITIAL,
     MENU_HF_SORT_SPECIES,
     MENU_HF_SORT_LEVEL,
     MENU_HF_SORT_IV,
-    MENU_HF_SORT_CANCEL,
-    MENU_HF_BROWSE,
-    MENU_HF_PAGE_NEXT,
-    MENU_HF_BACK,
-    MENU_HF_GROUP_OPEN,
     MENU_HF_SORT_OPEN,
 };
 #define MENU_WALLPAPER_SETS_START MENU_SCENERY_1
@@ -588,6 +580,7 @@ static void Task_ChangeScreen(u8);
 static void Task_ShowPokeStorage(u8);
 static void Task_OnBPressed(u8);
 static void Task_HandleBoxOptions(u8);
+static void Task_SortCurrentBox(u8);
 static void Task_OnSelectedMon(u8);
 static void Task_OnCloseBoxPressed(u8);
 static void Task_HidePartyPokemon(u8);
@@ -2334,172 +2327,13 @@ enum {
     MSTATE_MULTIMOVE_RUN_MOVED,
     MSTATE_SCROLL_BOX_ITEM,
     MSTATE_WAIT_ITEM_ANIM,
-    MSTATE_HF_SORT_MENU,
-    MSTATE_HF_FOLDER_MENU,
-    MSTATE_HF_MEMBERS_MENU,
-    MSTATE_HF_GROUP_CHOICES,
-    MSTATE_HF_SORT_CHOICES,
 };
 
-// Two START presses within 20 frames open the non-destructive grouping/sort menu.
-// Do not rearrange boxes while a Pokémon or multi-selection is being moved.
+// Sorting is a separate option in the box-title menu, not a grouping mode.
 static void InitBoxMonSprites(u8 boxId);
 static void DestroyBoxMonIconAtPosition(u8 boxPosition);
 
-static u8 sHfSortStartTimer;
-
-static u8 sHfPcGroupMode = HF_PC_GROUP_SPECIES;
-static u16 sHfPcFolderCount;
-static u16 sHfPcFolderPage;
-static u16 sHfPcMemberPage;
-static u32 sHfPcSelectedKey;
-// These 3.6 KiB buffers must not consume the IWRAM stack used by field menus.
-static EWRAM_DATA u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
-static EWRAM_DATA struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
-static EWRAM_DATA u8 sHfPcFolderLabels[5][32];
-static EWRAM_DATA u8 sHfPcMemberLabels[5][32];
-
-
-static void HfPc_AddFolderRow(const u8 *label, u8 id)
-{
-    u8 length;
-    // Never write past the seven-entry PC menu; malformed labels must not
-    // create an invalid window or corrupt the menu's backing storage.
-    if (label == NULL || sStorage->menuItemsCount >= ARRAY_COUNT(sStorage->menuItems))
-        return;
-    length = StringLength(label);
-    struct StorageMenu *item = &sStorage->menuItems[sStorage->menuItemsCount++];
-    item->text = label;
-    item->textId = id;
-    if (length > sStorage->menuWidth)
-        sStorage->menuWidth = length;
-}
-
-static void HfPc_OpenFolderPage(void)
-{
-    u16 i, index;
-    InitMenu();
-    for (i = 0; i < 5 && sHfPcFolderPage * 5 + i < sHfPcFolderCount; i++)
-    {
-        index = sHfPcFolderPage * 5 + i;
-        if (sHfPcGroupMode == HF_PC_GROUP_SPECIES)
-            StringCopy(sHfPcFolderLabels[i], GetSpeciesName(sHfPcFolderKeys[index]));
-        else
-        {
-            sHfPcFolderLabels[i][0] = sHfPcFolderKeys[index];
-            sHfPcFolderLabels[i][1] = EOS;
-        }
-        HfPc_AddFolderRow(sHfPcFolderLabels[i], i);
-    }
-    SetMenuText(MENU_HF_PAGE_NEXT);
-    SetMenuText(MENU_HF_BACK);
-    AddMenu();
-    sStorage->state = MSTATE_HF_FOLDER_MENU;
-}
-
-static void HfPc_OpenMemberPage(void)
-{
-    u16 i, index, count = HfPcGroup_List(sHfPcGroupMode, sHfPcSelectedKey,
-                                         sHfPcMembers, ARRAY_COUNT(sHfPcMembers));
-    InitMenu();
-    for (i = 0; i < 5 && sHfPcMemberPage * 5 + i < count; i++)
-    {
-        index = sHfPcMemberPage * 5 + i;
-        StringCopy(sHfPcMemberLabels[i],
-                   GetSpeciesName(GetBoxMonDataAt(sHfPcMembers[index].box,
-                                                  sHfPcMembers[index].slot, MON_DATA_SPECIES)));
-        HfPc_AddFolderRow(sHfPcMemberLabels[i], i);
-    }
-    SetMenuText(MENU_HF_PAGE_NEXT);
-    SetMenuText(MENU_HF_BACK);
-    AddMenu();
-    sStorage->state = MSTATE_HF_MEMBERS_MENU;
-}
-
-static void HfPc_BrowseFolders(void)
-{
-    sHfPcFolderCount = HfPcGroup_CollectKeys(sHfPcGroupMode, sHfPcFolderKeys,
-                                              ARRAY_COUNT(sHfPcFolderKeys));
-    sHfPcFolderPage = 0;
-    HfPc_OpenFolderPage();
-}
-
-static void HfPc_HandleFolderMenu(void)
-{
-    s16 choice = HandleMenuInput();
-    if (choice == MENU_NOTHING_CHOSEN)
-        return;
-    if (choice == MENU_B_PRESSED || choice == MENU_HF_BACK)
-        sStorage->state = MSTATE_HANDLE_INPUT;
-    else if (choice == MENU_HF_PAGE_NEXT)
-    {
-        sHfPcFolderPage = (sHfPcFolderPage + 1) * 5 < sHfPcFolderCount ? sHfPcFolderPage + 1 : 0;
-        HfPc_OpenFolderPage();
-    }
-    else if (choice >= 0 && choice < 5)
-    {
-        sHfPcSelectedKey = sHfPcFolderKeys[sHfPcFolderPage * 5 + choice];
-        sHfPcMemberPage = 0;
-        HfPc_OpenMemberPage();
-    }
-}
-
-static void HfPc_HandleMemberMenu(void)
-{
-    s16 choice = HandleMenuInput();
-    u16 count;
-    if (choice == MENU_NOTHING_CHOSEN)
-        return;
-    if (choice == MENU_B_PRESSED || choice == MENU_HF_BACK)
-        HfPc_OpenFolderPage();
-    else if (choice == MENU_HF_PAGE_NEXT)
-    {
-        count = HfPcGroup_Count(sHfPcGroupMode, sHfPcSelectedKey);
-        sHfPcMemberPage = (sHfPcMemberPage + 1) * 5 < count ? sHfPcMemberPage + 1 : 0;
-        HfPc_OpenMemberPage();
-    }
-    else if (choice >= 0 && choice < 5)
-    {
-        // Listing only: do not pretend the classic box cursor has moved.
-        PlaySE(SE_SELECT);
-        HfPc_OpenMemberPage();
-    }
-}
-
-static void HfPc_OpenSortMenu(void)
-{
-    InitMenu();
-    SetMenuText(MENU_HF_GROUP_OPEN);
-    SetMenuText(MENU_HF_SORT_OPEN);
-    SetMenuText(MENU_HF_BROWSE);
-    SetMenuText(MENU_HF_SORT_CANCEL);
-    AddMenu();
-    sStorage->state = MSTATE_HF_SORT_MENU;
-}
-
-static void HfPc_OpenGroupChoices(void)
-{
-    InitMenu();
-    SetMenuText(MENU_HF_GROUP_SPECIES);
-    SetMenuText(MENU_HF_GROUP_INITIAL);
-    SetMenuText(MENU_HF_BACK);
-    AddMenu();
-    sStorage->state = MSTATE_HF_GROUP_CHOICES;
-}
-
-static void HfPc_OpenSortChoices(void)
-{
-    InitMenu();
-    SetMenuText(MENU_HF_SORT_SPECIES);
-    SetMenuText(MENU_HF_SORT_LEVEL);
-    SetMenuText(MENU_HF_SORT_IV);
-    SetMenuText(MENU_HF_BACK);
-    AddMenu();
-    sStorage->state = MSTATE_HF_SORT_CHOICES;
-}
-
-
-static void HfPc_RefreshSortedBox(void)
+static void RefreshSortedBoxIcons(void)
 {
     u8 i;
     for (i = 0; i < IN_BOX_COUNT; i++)
@@ -2508,93 +2342,11 @@ static void HfPc_RefreshSortedBox(void)
     RefreshDisplayMon();
 }
 
-static bool8 HfWatch_HandleBoxSortShortcut(void)
-{
-    if (sHfSortStartTimer != 0)
-        sHfSortStartTimer--;
-    if (!JOY_NEW(START_BUTTON))
-        return FALSE;
-    if (sHfSortStartTimer == 0)
-    {
-        sHfSortStartTimer = 20;
-        return FALSE;
-    }
-    sHfSortStartTimer = 0;
-    if (sIsMonBeingMoved || sStorage->inBoxMovingMode != MOVE_MODE_NORMAL
-     || sStorage->boxOption == OPTION_SELECT_MON || sStorage->boxOption == OPTION_MOVE_ITEMS)
-        return FALSE;
-    HfPc_OpenSortMenu();
-    PlaySE(SE_SELECT);
-    return TRUE;
-}
-
-static void HfPc_HandleSortMenu(void)
-{
-    s16 choice = HandleMenuInput();
-    if (choice == MENU_NOTHING_CHOSEN)
-        return;
-    if (choice == MENU_HF_GROUP_OPEN)
-        HfPc_OpenGroupChoices();
-    else if (choice == MENU_HF_SORT_OPEN)
-        HfPc_OpenSortChoices();
-    else if (choice == MENU_HF_BROWSE)
-        HfPc_BrowseFolders();
-    else
-        sStorage->state = MSTATE_HANDLE_INPUT;
-}
-
-static void HfPc_HandleGroupChoices(void)
-{
-    s16 choice = HandleMenuInput();
-    if (choice == MENU_NOTHING_CHOSEN)
-        return;
-    if (choice == MENU_HF_GROUP_SPECIES || choice == MENU_HF_GROUP_INITIAL)
-    {
-        sHfPcGroupMode = choice == MENU_HF_GROUP_SPECIES ? HF_PC_GROUP_SPECIES : HF_PC_GROUP_INITIAL;
-        HfPc_BrowseFolders();
-    }
-    else
-        HfPc_OpenSortMenu();
-}
-
-static void HfPc_HandleSortChoices(void)
-{
-    s16 choice = HandleMenuInput();
-    if (choice == MENU_NOTHING_CHOSEN)
-        return;
-    if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
-    {
-        SortCurrentBox(choice == MENU_HF_SORT_SPECIES ? BOX_SORT_SPECIES
-                     : choice == MENU_HF_SORT_LEVEL ? BOX_SORT_LEVEL : BOX_SORT_IV_TOTAL);
-        HfPc_RefreshSortedBox();
-        sStorage->state = MSTATE_HANDLE_INPUT;
-    }
-    else
-        HfPc_OpenSortMenu();
-}
-
 static void Task_PokeStorageMain(u8 taskId)
 {
     switch (sStorage->state)
     {
-    case MSTATE_HF_SORT_MENU:
-        HfPc_HandleSortMenu();
-        break;
-    case MSTATE_HF_GROUP_CHOICES:
-        HfPc_HandleGroupChoices();
-        break;
-    case MSTATE_HF_SORT_CHOICES:
-        HfPc_HandleSortChoices();
-        break;
-    case MSTATE_HF_FOLDER_MENU:
-        HfPc_HandleFolderMenu();
-        break;
-    case MSTATE_HF_MEMBERS_MENU:
-        HfPc_HandleMemberMenu();
-        break;
     case MSTATE_HANDLE_INPUT:
-        if (HfWatch_HandleBoxSortShortcut())
-            break;
         switch (HandleInput())
         {
         case INPUT_MOVE_CURSOR:
@@ -3796,12 +3548,56 @@ static void Task_HandleBoxOptions(u8 taskId)
             ClearBottomWindow();
             SetPokeStorageTask(Task_SearchPc);
             break;
+        case MENU_HF_SORT_OPEN:
+            PlaySE(SE_SELECT);
+            ClearBottomWindow();
+            SetPokeStorageTask(Task_SortCurrentBox);
+            break;
         case MENU_JUMP:
             PlaySE(SE_SELECT);
             ClearBottomWindow();
             SetPokeStorageTask(Task_JumpBox);
             break;
         }
+        break;
+    }
+}
+
+// Only the current box is reordered. Pokémon records (including eggs,
+// mutations, held items and favorites) move together; empty slots go last.
+static void Task_SortCurrentBox(u8 taskId)
+{
+    s16 choice;
+
+    switch (sStorage->state)
+    {
+    case 0:
+        InitMenu();
+        SetMenuText(MENU_HF_SORT_SPECIES);
+        SetMenuText(MENU_HF_SORT_LEVEL);
+        SetMenuText(MENU_HF_SORT_IV);
+        SetMenuText(MENU_CANCEL);
+        AddMenu();
+        sStorage->state++;
+        break;
+    case 1:
+        if (!IsMenuLoading())
+            sStorage->state++;
+        break;
+    case 2:
+        choice = HandleMenuInput();
+        if (choice == MENU_NOTHING_CHOSEN)
+            break;
+        if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
+        {
+            SortCurrentBox(choice == MENU_HF_SORT_SPECIES ? BOX_SORT_SPECIES
+                         : choice == MENU_HF_SORT_LEVEL ? BOX_SORT_LEVEL : BOX_SORT_IV_TOTAL);
+            RefreshSortedBoxIcons();
+            PlaySE(SE_SELECT);
+        }
+        AnimateBoxScrollArrows(TRUE);
+        ClearBottomWindow();
+        SetPokeStorageTask(Task_PokeStorageMain);
         break;
     }
 }
@@ -8227,7 +8023,10 @@ static void AddBoxOptionsMenu(void)
     SetMenuText(MENU_NAME);
     if (!sInPartyMenu && !sIsMonBeingMoved && sStorage->inBoxMovingMode == MOVE_MODE_NORMAL
      && sStorage->boxOption != OPTION_MOVE_ITEMS && sStorage->boxOption != OPTION_SELECT_MON)
+    {
         SetMenuText(MENU_SEARCH);
+        SetMenuText(MENU_HF_SORT_OPEN);
+    }
     SetMenuText(MENU_CANCEL);
 }
 
@@ -8598,16 +8397,9 @@ static const u8 *const sMenuTexts[] =
     [MENU_FAVORITE]   = COMPOUND_STRING("FAVORITE"),
     [MENU_UNFAVORITE] = COMPOUND_STRING("UNFAVORITE"),
     [MENU_SEARCH]     = COMPOUND_STRING("SEARCH"),
-    [MENU_HF_GROUP_SPECIES] = COMPOUND_STRING("FOLDERS: SPECIES"),
-    [MENU_HF_GROUP_INITIAL] = COMPOUND_STRING("FOLDERS: INITIAL"),
-    [MENU_HF_SORT_SPECIES] = COMPOUND_STRING("SORT: SPECIES"),
-    [MENU_HF_SORT_LEVEL] = COMPOUND_STRING("SORT: LEVEL"),
-    [MENU_HF_SORT_IV] = COMPOUND_STRING("SORT: IV TOTAL"),
-    [MENU_HF_SORT_CANCEL] = COMPOUND_STRING("CANCEL"),
-    [MENU_HF_BROWSE] = COMPOUND_STRING("FOLDERS"),
-    [MENU_HF_PAGE_NEXT] = COMPOUND_STRING("NEXT PAGE"),
-    [MENU_HF_BACK] = COMPOUND_STRING("BACK"),
-    [MENU_HF_GROUP_OPEN] = COMPOUND_STRING("GROUP"),
+    [MENU_HF_SORT_SPECIES] = COMPOUND_STRING("SPECIES"),
+    [MENU_HF_SORT_LEVEL] = COMPOUND_STRING("LEVEL"),
+    [MENU_HF_SORT_IV] = COMPOUND_STRING("IV TOTAL"),
     [MENU_HF_SORT_OPEN] = COMPOUND_STRING("SORT"),
 };
 
