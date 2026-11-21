@@ -29,6 +29,7 @@
 #include "pokemon_icon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
+#include "unholy_natural_tones.h"
 #include "script.h"
 #include "sound.h"
 #include "string_util.h"
@@ -500,6 +501,7 @@ struct PokemonStorageSystemData
     u8 displayMonMarkings;
     u8 displayMonLevel;
     bool8 displayMonIsEgg;
+    bool8 displayMonIsShiny;
     u8 displayMonName[POKEMON_NAME_LENGTH + 1];
     u8 displayMonNameText[36];
     u8 displayMonSpeciesName[36];
@@ -4261,6 +4263,7 @@ static void LoadDisplayMonGfx(enum Species species, u32 pid, bool32 isEgg)
         LoadSpecialPokePicIsEgg(sStorage->tileBuffer, species, pid, TRUE, isEgg);
         CpuCopy32(sStorage->tileBuffer, sStorage->displayMonTilePtr, MON_PIC_SIZE);
         LoadPalette(sStorage->displayMonPalette, sStorage->displayMonPalOffset, PLTT_SIZE_4BPP);
+        NaturalTone_ApplyLoadedPalette(sStorage->displayMonPalOffset, pid, sStorage->displayMonIsShiny, isEgg);
         sStorage->displayMonSprite->invisible = FALSE;
     }
     else
@@ -7266,6 +7269,7 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
     bool8 sanityIsBadEgg;
 
     sStorage->displayMonItemId = ITEM_NONE;
+    sStorage->displayMonIsShiny = FALSE;
     gender = MON_MALE;
     sanityIsBadEgg = FALSE;
     if (mode == MODE_PARTY)
@@ -7286,6 +7290,7 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
             sStorage->displayMonLevel = GetMonData(mon, MON_DATA_LEVEL);
             sStorage->displayMonMarkings = GetMonData(mon, MON_DATA_MARKINGS);
             sStorage->displayMonPersonality = GetMonData(mon, MON_DATA_PERSONALITY);
+            sStorage->displayMonIsShiny = GetMonData(mon, MON_DATA_IS_SHINY);
             sStorage->displayMonPalette = GetMonFrontSpritePal(mon);
             gender = GetMonGender(mon);
             sStorage->displayMonItemId = GetMonData(mon, MON_DATA_HELD_ITEM);
@@ -7310,6 +7315,7 @@ static void SetDisplayMonData(void *pokemon, u8 mode)
             sStorage->displayMonLevel = GetLevelFromBoxMonExp(boxMon);
             sStorage->displayMonMarkings = GetBoxMonData(boxMon, MON_DATA_MARKINGS);
             sStorage->displayMonPersonality = GetBoxMonData(boxMon, MON_DATA_PERSONALITY);
+            sStorage->displayMonIsShiny = isShiny;
             sStorage->displayMonIsEgg = GetBoxMonData(boxMon, MON_DATA_IS_EGG);
             sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(sStorage->displayMonSpecies, isShiny, sStorage->displayMonPersonality, sStorage->displayMonIsEgg);
             gender = GetGenderFromSpeciesAndPersonality(sStorage->displayMonSpecies, sStorage->displayMonPersonality);
@@ -10365,6 +10371,8 @@ void UpdateSpeciesSpritePSS(struct BoxPokemon *boxMon)
     // Update front sprite
     sStorage->displayMonSpecies = species;
     sStorage->displayMonPalette = GetMonSpritePalFromSpeciesAndPersonalityIsEgg(species, isShiny, pid, isEgg);
+    sStorage->displayMonPersonality = pid;
+    sStorage->displayMonIsShiny = isShiny;
     sStorage->displayMonIsEgg = isEgg;
     if (!sJustOpenedBag)
     {

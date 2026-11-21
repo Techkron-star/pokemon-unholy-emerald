@@ -31,6 +31,7 @@
 #include "naming_screen.h"
 #include "party_menu.h"
 #include "palette.h"
+#include "unholy_natural_tones.h"
 #include "pokeball.h"
 #include "pokemon.h"
 #include "pokemon_sprite_visualizer.h"
@@ -4718,6 +4719,11 @@ static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
         return 0xFF;
     case 1:
         LoadSpritePaletteWithTag(GetMonSpritePalFromSpeciesAndPersonalityIsEgg(summary->species, summary->isShiny, summary->pid, summary->isEgg), summary->species2);
+        {
+            u32 palSlot = IndexOfSpritePaletteTag(summary->species2);
+            if (palSlot != 0xFF)
+                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palSlot), summary->pid, summary->isShiny, summary->isEgg);
+        }
         SetMultiuseSpriteTemplateToPokemon(summary->species2, B_POSITION_OPPONENT_LEFT);
         (*state)++;
         return 0xFF;
