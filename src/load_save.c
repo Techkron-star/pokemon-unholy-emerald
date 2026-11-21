@@ -187,6 +187,12 @@ void LoadPlayerParty(void)
         u32 data;
         gParties[B_TRAINER_PLAYER][i] = *GetSavedPlayerPartyMon(i);
 
+        // Older saves may contain Alpha Pokémon whose cached stats predate
+        // the +20% bonus. Rebuild those stats once when loading the party;
+        // recalculation is idempotent and preserves their IVs and EVs.
+        if (GetMonData(&gParties[B_TRAINER_PLAYER][i], MON_DATA_SPECIAL_BADGES) & POKEMON_BADGE_ALPHA)
+            CalculateMonStats(&gParties[B_TRAINER_PLAYER][i]);
+
         // TODO: Turn this into a save migration once those are available.
         // At which point we can remove hp and status from Pokemon entirely.
         data = gParties[B_TRAINER_PLAYER][i].maxHP - gParties[B_TRAINER_PLAYER][i].hp;
