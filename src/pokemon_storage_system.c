@@ -181,6 +181,8 @@ enum {
     MENU_HF_BROWSE,
     MENU_HF_PAGE_NEXT,
     MENU_HF_BACK,
+    MENU_HF_GROUP_OPEN,
+    MENU_HF_SORT_OPEN,
 };
 #define MENU_WALLPAPER_SETS_START MENU_SCENERY_1
 #define MENU_WALLPAPERS_START MENU_FOREST
@@ -2335,6 +2337,8 @@ enum {
     MSTATE_HF_SORT_MENU,
     MSTATE_HF_FOLDER_MENU,
     MSTATE_HF_MEMBERS_MENU,
+    MSTATE_HF_GROUP_CHOICES,
+    MSTATE_HF_SORT_CHOICES,
 };
 
 // Two START presses within 20 frames open the non-destructive grouping/sort menu.
@@ -2459,15 +2463,35 @@ static void HfPc_HandleMemberMenu(void)
 static void HfPc_OpenSortMenu(void)
 {
     InitMenu();
+    SetMenuText(MENU_HF_GROUP_OPEN);
+    SetMenuText(MENU_HF_SORT_OPEN);
     SetMenuText(MENU_HF_BROWSE);
-    SetMenuText(MENU_HF_GROUP_SPECIES);
-    SetMenuText(MENU_HF_GROUP_INITIAL);
-    SetMenuText(MENU_HF_SORT_SPECIES);
-    SetMenuText(MENU_HF_SORT_LEVEL);
-    SetMenuText(MENU_HF_SORT_IV);
+    SetMenuText(MENU_HF_SORT_CANCEL);
     AddMenu();
     sStorage->state = MSTATE_HF_SORT_MENU;
 }
+
+static void HfPc_OpenGroupChoices(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_GROUP_SPECIES);
+    SetMenuText(MENU_HF_GROUP_INITIAL);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_GROUP_CHOICES;
+}
+
+static void HfPc_OpenSortChoices(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_SORT_SPECIES);
+    SetMenuText(MENU_HF_SORT_LEVEL);
+    SetMenuText(MENU_HF_SORT_IV);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_SORT_CHOICES;
+}
+
 
 static void HfPc_RefreshSortedBox(void)
 {
@@ -2503,25 +2527,44 @@ static void HfPc_HandleSortMenu(void)
     s16 choice = HandleMenuInput();
     if (choice == MENU_NOTHING_CHOSEN)
         return;
+    if (choice == MENU_HF_GROUP_OPEN)
+        HfPc_OpenGroupChoices();
+    else if (choice == MENU_HF_SORT_OPEN)
+        HfPc_OpenSortChoices();
+    else if (choice == MENU_HF_BROWSE)
+        HfPc_BrowseFolders();
+    else
+        sStorage->state = MSTATE_HANDLE_INPUT;
+}
+
+static void HfPc_HandleGroupChoices(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
     if (choice == MENU_HF_GROUP_SPECIES || choice == MENU_HF_GROUP_INITIAL)
     {
-        // Rebuild virtual folder indexes from current storage without moving Pokémon.
         sHfPcGroupMode = choice == MENU_HF_GROUP_SPECIES ? HF_PC_GROUP_SPECIES : HF_PC_GROUP_INITIAL;
         HfPc_BrowseFolders();
-        return;
     }
-    else if (choice == MENU_HF_BROWSE)
-    {
-        HfPc_BrowseFolders();
+    else
+        HfPc_OpenSortMenu();
+}
+
+static void HfPc_HandleSortChoices(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
         return;
-    }
-    else if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
+    if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
     {
         SortCurrentBox(choice == MENU_HF_SORT_SPECIES ? BOX_SORT_SPECIES
                      : choice == MENU_HF_SORT_LEVEL ? BOX_SORT_LEVEL : BOX_SORT_IV_TOTAL);
         HfPc_RefreshSortedBox();
+        sStorage->state = MSTATE_HANDLE_INPUT;
     }
-    sStorage->state = MSTATE_HANDLE_INPUT;
+    else
+        HfPc_OpenSortMenu();
 }
 
 static void Task_PokeStorageMain(u8 taskId)
@@ -2530,6 +2573,12 @@ static void Task_PokeStorageMain(u8 taskId)
     {
     case MSTATE_HF_SORT_MENU:
         HfPc_HandleSortMenu();
+        break;
+    case MSTATE_HF_GROUP_CHOICES:
+        HfPc_HandleGroupChoices();
+        break;
+    case MSTATE_HF_SORT_CHOICES:
+        HfPc_HandleSortChoices();
         break;
     case MSTATE_HF_FOLDER_MENU:
         HfPc_HandleFolderMenu();
@@ -8552,6 +8601,8 @@ static const u8 *const sMenuTexts[] =
     [MENU_HF_BROWSE] = COMPOUND_STRING("FOLDERS"),
     [MENU_HF_PAGE_NEXT] = COMPOUND_STRING("NEXT PAGE"),
     [MENU_HF_BACK] = COMPOUND_STRING("BACK"),
+    [MENU_HF_GROUP_OPEN] = COMPOUND_STRING("GROUP"),
+    [MENU_HF_SORT_OPEN] = COMPOUND_STRING("SORT"),
 };
 
 static void SetMenuText(u8 textId)
