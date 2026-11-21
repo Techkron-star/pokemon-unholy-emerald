@@ -601,7 +601,7 @@ static void Task_ReshowPokeStorage(u8);
 // Stable, in-place ordering for a single box. Moves complete BoxPokemon records
 // so mutations, held items, OT data and all other metadata stay together.
 // The PC UI can invoke this after confirming the requested sort mode.
-static void SortCurrentBoxBySpecies(void)
+void SortCurrentBoxBySpecies(void)
 {
     u8 boxId = StorageGetCurrentBox();
     u8 i, j;
