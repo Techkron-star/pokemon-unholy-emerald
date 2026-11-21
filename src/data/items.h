@@ -10111,9 +10111,47 @@ const struct ItemInfo gItemsInfo[] =
         .sortType = ITEM_TYPE_RELIC,
         .type = ITEM_USE_BAG_MENU,
         .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
-        .iconPic = gItemIcon_Meteorite,
-        .iconPalette = gItemIconPalette_Meteorite,
+        .iconPic = gItemIcon_ArmaduraMeteorica,
+        .iconPalette = gItemIconPalette_ArmaduraMeteorica,
     },
+
+    [ITEM_GEAR_ESCUDO_PALADIN] =
+    {
+        .name = ITEM_NAME("Escudo de paladín"),
+        .description = COMPOUND_STRING("Puede anular efectos\nhostiles. Gana suerte\ntras fallar cada turno."),
+        .importance = 1,
+        .pocket = POCKET_KEY_ITEMS,
+        .sortType = ITEM_TYPE_RELIC,
+        .type = ITEM_USE_BAG_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse,
+        .iconPic = gItemIcon_EscudoPaladin,
+        .iconPalette = gItemIconPalette_EscudoPaladin,
+    },
+
+#define EXTRA_ARTIFACT(id, displayName, descriptionText, gfx) \
+    [ITEM_GEAR_##id] = { \
+        .name = ITEM_NAME(displayName), \
+        .description = COMPOUND_STRING(descriptionText), \
+        .importance = 1, \
+        .pocket = POCKET_KEY_ITEMS, \
+        .sortType = ITEM_TYPE_RELIC, \
+        .type = ITEM_USE_BAG_MENU, \
+        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, \
+        .iconPic = gItemIcon_##gfx, \
+        .iconPalette = gItemIconPalette_##gfx, \
+    },
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte", "Control cura al aliado\ny puede limpiarlo.", EstandarteGuerra)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA, "Torre de vigilancia", "Aumenta Precisión\nperiódicamente.", TorreVigilancia)
+    EXTRA_ARTIFACT(FARO, "Faro", "Suprime bonificaciones\nclimáticas del rival.", Faro)
+    EXTRA_ARTIFACT(ROMPEOLAS, "Rompeolas", "Amortigua ataques Agua;\nmás los ataques de área.", Rompeolas)
+    EXTRA_ARTIFACT(RED_SILOS, "Red de silos", "Genera réplicas de\nproyectiles elegibles.", RedSilos)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO, "Tablero trifásico", "Permite rebotes de\nataques eléctricos.", TableroTrifasico)
+    EXTRA_ARTIFACT(CRT, "CRT", "Extiende las pantallas\ny comparte la Protección.", CRT)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR, "Deshumidificador", "Reduce duración del\nclima ambiental.", Deshumidificador)
+    EXTRA_ARTIFACT(BOMBA_ARIETE, "Bomba de ariete", "Repite ataques de Agua\ncon potencia parcial.", BombaAriete)
+    EXTRA_ARTIFACT(GLICERINA, "Glicerina", "Los ataques de Fuego\npueden quemar más.", Glicerina)
+    EXTRA_ARTIFACT(ABONO, "Abono", "Regenera a los Planta;\ndoble con Enraizado.", Abono)
+#undef EXTRA_ARTIFACT
 
     [ITEM_QUICK_CLAW] =
     {

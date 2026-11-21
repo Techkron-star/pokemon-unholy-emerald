@@ -74,6 +74,33 @@ static const u16 sNewGearPalette_NucleoHydra[] = INCGFX_U16("graphics/gears/nucl
 static const u32 sNewGearIcon_CascoHoplita[] = INCGFX_U32("graphics/gears/casco_hoplita/icon.png", ".4bpp");
 static const u16 sNewGearPalette_CascoHoplita[] = INCGFX_U16("graphics/gears/casco_hoplita/icon.pal", ".gbapal");
 
+static const u32 sArtifactIcon_ArmaduraMeteorica[] = INCGFX_U32("graphics/gears/armadura_meteorica/icon.png", ".4bpp");
+static const u16 sArtifactPal_ArmaduraMeteorica[] = INCGFX_U16("graphics/gears/armadura_meteorica/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_EscudoPaladin[] = INCGFX_U32("graphics/gears/escudo_paladin/icon.png", ".4bpp");
+static const u16 sArtifactPal_EscudoPaladin[] = INCGFX_U16("graphics/gears/escudo_paladin/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_EstandarteGuerra[] = INCGFX_U32("graphics/gears/estandarte_guerra/icon.png", ".4bpp");
+static const u16 sArtifactPal_EstandarteGuerra[] = INCGFX_U16("graphics/gears/estandarte_guerra/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_TorreVigilancia[] = INCGFX_U32("graphics/gears/torre_vigilancia/icon.png", ".4bpp");
+static const u16 sArtifactPal_TorreVigilancia[] = INCGFX_U16("graphics/gears/torre_vigilancia/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_Faro[] = INCGFX_U32("graphics/gears/faro/icon.png", ".4bpp");
+static const u16 sArtifactPal_Faro[] = INCGFX_U16("graphics/gears/faro/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_Rompeolas[] = INCGFX_U32("graphics/gears/rompeolas/icon.png", ".4bpp");
+static const u16 sArtifactPal_Rompeolas[] = INCGFX_U16("graphics/gears/rompeolas/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_RedSilos[] = INCGFX_U32("graphics/gears/red_silos/icon.png", ".4bpp");
+static const u16 sArtifactPal_RedSilos[] = INCGFX_U16("graphics/gears/red_silos/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_TableroTrifasico[] = INCGFX_U32("graphics/gears/tablero_trifasico/icon.png", ".4bpp");
+static const u16 sArtifactPal_TableroTrifasico[] = INCGFX_U16("graphics/gears/tablero_trifasico/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_CRT[] = INCGFX_U32("graphics/gears/crt/icon.png", ".4bpp");
+static const u16 sArtifactPal_CRT[] = INCGFX_U16("graphics/gears/crt/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_Deshumidificador[] = INCGFX_U32("graphics/gears/deshumidificador/icon.png", ".4bpp");
+static const u16 sArtifactPal_Deshumidificador[] = INCGFX_U16("graphics/gears/deshumidificador/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_BombaAriete[] = INCGFX_U32("graphics/gears/bomba_ariete/icon.png", ".4bpp");
+static const u16 sArtifactPal_BombaAriete[] = INCGFX_U16("graphics/gears/bomba_ariete/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_Glicerina[] = INCGFX_U32("graphics/gears/glicerina/icon.png", ".4bpp");
+static const u16 sArtifactPal_Glicerina[] = INCGFX_U16("graphics/gears/glicerina/icon.pal", ".gbapal");
+static const u32 sArtifactIcon_Abono[] = INCGFX_U32("graphics/gears/abono/icon.png", ".4bpp");
+static const u16 sArtifactPal_Abono[] = INCGFX_U16("graphics/gears/abono/icon.pal", ".gbapal");
+
 const struct GearInfo gGearsInfo[GEAR_COUNT] =
 {
     [GEAR_NONE] = {0},
@@ -221,10 +248,37 @@ const struct GearInfo gGearsInfo[GEAR_COUNT] =
     {
         .name = COMPOUND_STRING("Armadura Meteórica"),
         .description = COMPOUND_STRING("Aguanta 1 golpe letal con\n30% PS. Baja Defensas;\nceniza quema al rival."),
-        // Temporary art: the meteorite in the bag and Hoplite armor in the HUD.
-        .iconGfx = sNewGearIcon_CascoHoplita,
-        .iconPal = sNewGearPalette_CascoHoplita,
+        .iconGfx = sArtifactIcon_ArmaduraMeteorica,
+        .iconPal = sArtifactPal_ArmaduraMeteorica,
         .trigger = GEAR_TRIGGER_EVENT,
         .cooldownTurns = 3,
     },
+    [GEAR_ESCUDO_PALADIN] =
+    {
+        .name = COMPOUND_STRING("Escudo de paladín"),
+        .description = COMPOUND_STRING("Puede anular un efecto hostil por turno.\nSu probabilidad aumenta al fallar."),
+        .iconGfx = sArtifactIcon_EscudoPaladin,
+        .iconPal = sArtifactPal_EscudoPaladin,
+        .trigger = GEAR_TRIGGER_PASSIVE,
+    },
+#define EXTRA_ARTIFACT(id, title, text, gfx) \
+    [GEAR_##id] = { \
+        .name = COMPOUND_STRING(title), \
+        .description = COMPOUND_STRING(text), \
+        .iconGfx = sArtifactIcon_##gfx, \
+        .iconPal = sArtifactPal_##gfx, \
+        .trigger = GEAR_TRIGGER_PASSIVE, \
+    },
+    EXTRA_ARTIFACT(ESTANDARTE_GUERRA, "Estandarte de guerra", "Control cura un 10% al aliado.\n30% de limpiar un estado.", EstandarteGuerra)
+    EXTRA_ARTIFACT(TORRE_VIGILANCIA, "Torre de vigilancia", "Cada 3 turnos sube Precisión\ny borra sus reducciones.", TorreVigilancia)
+    EXTRA_ARTIFACT(FARO, "Faro", "Niega beneficios climáticos\nal rival cada 2 turnos.", Faro)
+    EXTRA_ARTIFACT(ROMPEOLAS, "Rompeolas", "Reduce golpes de Agua cada\n2 turnos; más en área.", Rompeolas)
+    EXTRA_ARTIFACT(RED_SILOS, "Red de silos", "Proyectiles lanzan hasta 4\nréplicas decrecientes.", RedSilos)
+    EXTRA_ARTIFACT(TABLERO_TRIFASICO, "Tablero trifásico", "Electricidad rebota al otro\nrival con 25% de daño.", TableroTrifasico)
+    EXTRA_ARTIFACT(CRT, "CRT", "Extiende pantallas y comparte\nProtección con el aliado.", CRT)
+    EXTRA_ARTIFACT(DESHUMIDIFICADOR, "Deshumidificador", "Acorta climas y neblina\nentre 1 y 2 turnos.", Deshumidificador)
+    EXTRA_ARTIFACT(BOMBA_ARIETE, "Bomba de ariete", "Cada 2 turnos repite Agua\ncon 25% de potencia.", BombaAriete)
+    EXTRA_ARTIFACT(GLICERINA, "Glicerina", "Todos los ataques de Fuego\npueden causar quemaduras.", Glicerina)
+    EXTRA_ARTIFACT(ABONO, "Abono", "Regenera a los tipo Planta;\ndoble con Enraizado.", Abono)
+#undef EXTRA_ARTIFACT
 };

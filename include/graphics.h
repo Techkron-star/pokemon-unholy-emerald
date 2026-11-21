@@ -1307,6 +1307,23 @@ extern const u16 gItemIconPalette_Shackle[];
     extern const u16 gItemIconPalette_##gfx[];
 #include "constants/gear_batch8.h"
 #undef NEW_GEAR
+#define UNHOLY_ARTIFACT_ICON(name) \
+    extern const u32 gItemIcon_##name[]; \
+    extern const u16 gItemIconPalette_##name[];
+UNHOLY_ARTIFACT_ICON(ArmaduraMeteorica)
+UNHOLY_ARTIFACT_ICON(EscudoPaladin)
+UNHOLY_ARTIFACT_ICON(EstandarteGuerra)
+UNHOLY_ARTIFACT_ICON(TorreVigilancia)
+UNHOLY_ARTIFACT_ICON(Faro)
+UNHOLY_ARTIFACT_ICON(Rompeolas)
+UNHOLY_ARTIFACT_ICON(RedSilos)
+UNHOLY_ARTIFACT_ICON(TableroTrifasico)
+UNHOLY_ARTIFACT_ICON(CRT)
+UNHOLY_ARTIFACT_ICON(Deshumidificador)
+UNHOLY_ARTIFACT_ICON(BombaAriete)
+UNHOLY_ARTIFACT_ICON(Glicerina)
+UNHOLY_ARTIFACT_ICON(Abono)
+#undef UNHOLY_ARTIFACT_ICON
 extern const u32 gItemIcon_BloodFire[];
 extern const u32 gItemIcon_BloodDragon[];
 extern const u32 gItemIcon_BloodDark[];

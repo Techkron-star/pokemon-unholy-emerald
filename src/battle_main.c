@@ -3665,6 +3665,7 @@ bool32 EndTurnEvents(void) // Called from Battle Script
     {
         if (IsBattlerAlive(battler))
             Gear_EndOfTurn(battler);
+        gBattleStruct->paladinWeakenedChainTarget[battler] = 0;
         if (gBattleStruct->shackleTurns[battler] != 0)
             gBattleStruct->shackleTurns[battler]--;
         gChosenActionByBattler[battler] = B_ACTION_NONE;
@@ -3678,6 +3679,8 @@ bool32 EndTurnEvents(void) // Called from Battle Script
         if (gBattleStruct->battlerState[battler].stompingTantrumTimer > 0)
             gBattleStruct->battlerState[battler].stompingTantrumTimer--;
     }
+
+    gBattleStruct->paladinTurnSerial++;
 
     for (u32 i = 0; i < NUM_BATTLE_SIDES; i++)
     {
@@ -4410,7 +4413,7 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
     speed *= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][0];
     speed /= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][1];
 
-    u32 weather = GetWeather();
+    u32 weather = Gear_WeatherBonusesSuppressed(battler) ? B_WEATHER_NONE : GetWeather();
     // weather abilities
     if (ability == ABILITY_SWIFT_SWIM       && holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather  & B_WEATHER_RAIN)
         speed *= 2;

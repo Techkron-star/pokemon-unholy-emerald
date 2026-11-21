@@ -359,6 +359,13 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
          && IsBattlerAffectedByHazards(battler, holdEffect, FALSE)
          && IsBattlerGrounded(battler, ability, holdEffect))
         {
+            if (Gear_TryPaladinBlock(battler))
+            {
+                gBattleScripting.battler = battler;
+                BattleScriptCall(BattleScript_PaladinShieldBlock);
+                effect = TRUE;
+                break;
+            }
             s32 spikesDmg = GetNonDynamaxMaxHP(battler) / ((5 - gSideTimers[side].spikesAmount) * 2);
             SetPassiveDamageAmount(battler, spikesDmg);
             if (Gear_GetBattlerGear(battler) == GEAR_BOTAS_UMBRAL
@@ -371,6 +378,13 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
     case HAZARDS_STICKY_WEB:
         if (IsBattlerAffectedByHazards(battler, holdEffect, FALSE) && IsBattlerGrounded(battler, ability, holdEffect))
         {
+            if (Gear_TryPaladinBlock(battler))
+            {
+                gBattleScripting.battler = battler;
+                BattleScriptCall(BattleScript_PaladinShieldBlock);
+                effect = TRUE;
+                break;
+            }
             gEffectBattler = battler;
             SetStatChange(battler, STAT_SPEED, -1);
             BattleScriptCall(BattleScript_StickyWebOnSwitchIn);
@@ -394,6 +408,13 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
         else if (IsBattlerAffectedByHazards(battler, holdEffect, TRUE)
               && CanBePoisoned(battler, battler, ABILITY_NONE, ability))
         {
+            if (Gear_TryPaladinBlock(battler))
+            {
+                gBattleScripting.battler = battler;
+                BattleScriptCall(BattleScript_PaladinShieldBlock);
+                effect = TRUE;
+                break;
+            }
             gBattleScripting.battler = battler;
             BattleScriptPushCursor();
             if (gSideTimers[GetBattlerSide(battler)].toxicSpikesAmount >= 2)
@@ -422,7 +443,14 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
                 gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] / 2);
             if (gBattleStruct->passiveHpUpdate[battler] != 0)
             {
-                SetDmgHazardsBattlescript(battler, B_MSG_STEALTHROCKDMG);
+                if (Gear_TryPaladinBlock(battler))
+                {
+                    gBattleStruct->passiveHpUpdate[battler] = 0;
+                    gBattleScripting.battler = battler;
+                    BattleScriptCall(BattleScript_PaladinShieldBlock);
+                }
+                else
+                    SetDmgHazardsBattlescript(battler, B_MSG_STEALTHROCKDMG);
                 effect = TRUE;
             }
         }
@@ -437,7 +465,14 @@ static bool32 TryHazardsOnSwitchIn(enum BattlerId battler, enum Ability ability,
                 gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] / 2);
             if (gBattleStruct->passiveHpUpdate[battler] != 0)
             {
-                SetDmgHazardsBattlescript(battler, B_MSG_SHARPSTEELDMG);
+                if (Gear_TryPaladinBlock(battler))
+                {
+                    gBattleStruct->passiveHpUpdate[battler] = 0;
+                    gBattleScripting.battler = battler;
+                    BattleScriptCall(BattleScript_PaladinShieldBlock);
+                }
+                else
+                    SetDmgHazardsBattlescript(battler, B_MSG_SHARPSTEELDMG);
                 effect = TRUE;
             }
         }
