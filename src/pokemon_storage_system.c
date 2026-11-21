@@ -2348,15 +2348,17 @@ static void DestroyBoxMonIconAtPosition(u8 boxPosition);
 
 static u8 sHfSortStartTimer;
 
-static u8 sHfPcGroupMode = HF_PC_GROUP_SPECIES;
-static u16 sHfPcFolderCount;
-static u16 sHfPcFolderPage;
-static u16 sHfPcMemberPage;
-static u32 sHfPcSelectedKey;
-static u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
-static struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
-static u8 sHfPcFolderLabels[5][32];
-static u8 sHfPcMemberLabels[5][32];
+// Keep PC browsing indexes in EWRAM. IWRAM also holds the boot-time stack,
+// and the large folder/member buffers leave too little space for startup.
+EWRAM_DATA static u8 sHfPcGroupMode = HF_PC_GROUP_SPECIES;
+EWRAM_DATA static u16 sHfPcFolderCount;
+EWRAM_DATA static u16 sHfPcFolderPage;
+EWRAM_DATA static u16 sHfPcMemberPage;
+EWRAM_DATA static u32 sHfPcSelectedKey;
+EWRAM_DATA static u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
+EWRAM_DATA static struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
+EWRAM_DATA static u8 sHfPcFolderLabels[5][32];
+EWRAM_DATA static u8 sHfPcMemberLabels[5][32];
 
 
 static void HfPc_AddFolderRow(const u8 *label, u8 id)
