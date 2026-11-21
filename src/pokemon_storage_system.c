@@ -598,6 +598,39 @@ static void Task_SearchPc(u8);
 static struct BoxPokemon *GetSelectedStorageMon(void);
 static bool32 IsSelectedFavorite(void);
 static void Task_ReshowPokeStorage(u8);
+// Stable, in-place ordering for a single box. Moves complete BoxPokemon records
+// so mutations, held items, OT data and all other metadata stay together.
+// The PC UI can invoke this after confirming the requested sort mode.
+static void SortCurrentBoxBySpecies(void)
+{
+    u8 boxId = StorageGetCurrentBox();
+    u8 i, j;
+
+    for (i = 1; i < IN_BOX_COUNT; i++)
+    {
+        for (j = i; j > 0; j--)
+        {
+            struct BoxPokemon *left = GetBoxedMonPtr(boxId, j - 1);
+            struct BoxPokemon *right = GetBoxedMonPtr(boxId, j);
+            u32 leftSpecies = GetBoxMonData(left, MON_DATA_SPECIES);
+            u32 rightSpecies = GetBoxMonData(right, MON_DATA_SPECIES);
+            struct BoxPokemon temp;
+
+            // Empty slots always move to the end of the box.
+            if (leftSpecies == SPECIES_NONE)
+                leftSpecies = 0xFFFFFFFF;
+            if (rightSpecies == SPECIES_NONE)
+                rightSpecies = 0xFFFFFFFF;
+            if (leftSpecies <= rightSpecies)
+                break;
+
+            temp = *left;
+            *left = *right;
+            *right = temp;
+        }
+    }
+}
+
 static void Task_PokeStorageMain(u8);
 static void Task_JumpBox(u8);
 static void Task_HandleWallpapers(u8);
