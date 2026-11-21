@@ -2324,11 +2324,46 @@ enum {
     MSTATE_WAIT_ITEM_ANIM,
 };
 
+// Two START presses within 20 frames cycle the HF Watch sort modes.
+// Do not rearrange boxes while a Pokémon or multi-selection is being moved.
+static u8 sHfSortStartTimer;
+static u8 sHfSortMode;
+
+static bool8 HfWatch_HandleBoxSortShortcut(void)
+{
+    u8 i;
+
+    if (sHfSortStartTimer != 0)
+        sHfSortStartTimer--;
+    if (!JOY_NEW(START_BUTTON))
+        return FALSE;
+    if (sHfSortStartTimer == 0)
+    {
+        sHfSortStartTimer = 20;
+        return FALSE;
+    }
+    sHfSortStartTimer = 0;
+    if (sIsMonBeingMoved || sStorage->inBoxMovingMode != MOVE_MODE_NORMAL
+     || sStorage->boxOption == OPTION_SELECT_MON || sStorage->boxOption == OPTION_MOVE_ITEMS)
+        return FALSE;
+
+    SortCurrentBox(sHfSortMode);
+    sHfSortMode = (sHfSortMode + 1) % 3;
+    for (i = 0; i < IN_BOX_COUNT; i++)
+        DestroyBoxMonIconAtPosition(i);
+    InitBoxMonSprites(StorageGetCurrentBox());
+    RefreshDisplayMon();
+    PlaySE(SE_SELECT);
+    return TRUE;
+}
+
 static void Task_PokeStorageMain(u8 taskId)
 {
     switch (sStorage->state)
     {
     case MSTATE_HANDLE_INPUT:
+        if (HfWatch_HandleBoxSortShortcut())
+            break;
         switch (HandleInput())
         {
         case INPUT_MOVE_CURSOR:
