@@ -109,8 +109,13 @@
 // To use the following features in scripting, replace the 0s with the flag ID you're assigning it to.
 // Eg: Replace with FLAG_UNUSED_0x264 so you can use that flag to toggle the feature.
 #define OW_FLAG_PAUSE_TIME          0  // If this flag is set and OW_USE_FAKE_RTC is enabled, seconds on the in-game clock will not advance.
-#define OW_FLAG_NO_TRAINER_SEE      0  // If this flag is set, trainers will not battle the player unless they're talked to.
-#define OW_FLAG_NO_COLLISION        0  // If this flag is set, the player will be able to walk over tiles with collision. Mainly intended for debugging purposes.
+#if defined(FIRERED) || defined(LEAFGREEN)
+#define OW_FLAG_NO_TRAINER_SEE      0
+#define OW_FLAG_NO_COLLISION        0
+#else
+#define OW_FLAG_NO_TRAINER_SEE      FLAG_UNHOLY_DEBUG_NO_TRAINER_SEE // Trainers only fight when spoken to.
+#define OW_FLAG_NO_COLLISION        FLAG_UNHOLY_DEBUG_NO_COLLISION   // Debug only: walk across blocked tiles.
+#endif
 #define OW_FLAG_POKE_RIDER          0  // If this flag is set, the player will be able to use fly from the Pokenav Region Map and the Town Map key item by pressing 'R' on a city/location they are able to fly to.
 
 #define BATTLE_PYRAMID_RANDOM_ENCOUNTERS    FALSE    // If set to TRUE, battle pyramid Pokemon will be generated randomly based on the round's challenge instead of hardcoded in src/data/battle_frontier/battle_pyramid_level_50_wild_mons.h (or open_level_wild_mons.h)

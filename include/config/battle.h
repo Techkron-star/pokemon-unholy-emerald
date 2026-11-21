@@ -305,7 +305,11 @@
 #define NO_BAG_IN_BATTLE         2
 #define NO_BAG_INVALID_VALUE     3
 
-#define B_VAR_NO_BAG_USE         0     // If set to 1, the ability to use the Bag is disabled in Trainer battles. If set to 2, it is also disabled in wild battles.
+#if defined(FIRERED) || defined(LEAFGREEN)
+#define B_VAR_NO_BAG_USE         0
+#else
+#define B_VAR_NO_BAG_USE         VAR_UNHOLY_DEBUG_NO_BAG_USE // Debug: 0 normal, 1 no bag in trainer battles, 2 no bag in any battle.
+#endif
 
 // Sky Battles
 #define B_FLAG_SKY_BATTLE                 0     // If this flag has a value, the player will be able to engage in scripted Sky Battles.
