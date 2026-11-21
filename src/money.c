@@ -88,18 +88,11 @@ void AddMoney(u32 *moneyPtr, u32 toAdd)
 {
     u32 toSet = GetMoney(moneyPtr);
 
-    // can't have more money than MAX
-    if (toSet + toAdd > MAX_MONEY)
-    {
+    // Subtract before comparing: toSet + toAdd could overflow u32.
+    if (toSet >= MAX_MONEY || toAdd > MAX_MONEY - toSet)
         toSet = MAX_MONEY;
-    }
     else
-    {
         toSet += toAdd;
-        // check overflow, can't have less money after you receive more
-        if (toSet < GetMoney(moneyPtr))
-            toSet = MAX_MONEY;
-    }
 
     SetMoney(moneyPtr, toSet);
 }
@@ -135,7 +128,7 @@ void PrintMoneyAmountInMoneyBox(u8 windowId, int amount, u8 speed)
 static u32 CalculateLeadingSpacesForMoney(u32 numDigits)
 {
     u32 leadingSpaces = CountDigits(INT_MAX) - StringLength(gStringVar1);
-    return (numDigits > 8) ? leadingSpaces : leadingSpaces - 2;
+    return (numDigits > 8) ? leadingSpaces : (leadingSpaces >= 2 ? leadingSpaces - 2 : 0);
 }
 
 void PrintMoneyAmount(u8 windowId, u8 x, u8 y, int amount, u8 speed)
