@@ -2303,6 +2303,29 @@ static enum CancelerResult CancelerTargetFailure(struct BattleCalcValues *cv)
             }
         }
         gBattleStruct->eventState.moveEndBlock++;
+    case TARGET_FAILURE_PALADIN:
+        for (enum BattlerId battler = B_BATTLER_0; battler < gBattlersCount; battler++)
+        {
+            cv->battlerDef = GetTargetBySlot(cv->battlerAtk, battler);
+
+            if (moveTarget == TARGET_OPPONENTS_FIELD
+             || ShouldSkipFailureCheckOnBattler(cv->battlerAtk, cv->battlerDef)
+             || IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+             || gSpecialStatuses[cv->battlerAtk].multiHitOn)
+                continue;
+
+            if (Gear_TryPaladinBlock(cv->battlerDef))
+            {
+                gBattleStruct->moveResultFlags[cv->battlerDef] |= MOVE_RESULT_PROTECTED;
+                gBattleScripting.battler = cv->battlerDef;
+                gMultiHitCounter = 0; // One shield block cancels the WHOLE multi-hit action.
+                if (!Chain_IsFollowingUp(cv->battlerAtk))
+                    gBattleStruct->paladinWeakenedChainTarget[cv->battlerAtk] = cv->battlerDef + 1;
+                BattleScriptCall(BattleScript_PaladinShieldBlock);
+                return TargetAvoidedAttack(cv->battlerAtk, cv->battlerDef);
+            }
+        }
+        gBattleStruct->eventState.moveEndBlock++;
     }
 
     if (IsDoubleBattle())
@@ -2361,6 +2384,8 @@ static enum CancelerResult CancelerMultihitMoves(struct BattleCalcValues *cv)
 {
     gBattleStruct->survivalUsedThisMoveMask = 0;
     gBattleStruct->shackleTriedThisMove = FALSE;
+    gBattleStruct->artifactReplicaTotal[cv->battlerAtk] = 0;
+    gBattleStruct->artifactReplicaKind[cv->battlerAtk] = 0;
     SetPossibleNewSmartTarget(cv->move);
 
     if (IsBattlerUnaffectedByMove(gBattlerTarget))
@@ -2430,6 +2455,16 @@ static enum CancelerResult CancelerMultihitMoves(struct BattleCalcValues *cv)
     {
         gSpecialStatuses[cv->battlerAtk].stormStaffStrike = TRUE;
         gMultiHitCounter = 2;
+        PREPARE_BYTE_NUMBER_BUFFER(gBattleScripting.multihitString, 1, 0)
+    }
+    else if (gBattleStruct->numSpreadTargets <= 1
+          && !IsMoveParentalBondAffected(cv)
+          && (gMultiHitCounter = Gear_TryStartExtraStrikes(cv->battlerAtk, cv->move,
+                                                            cv->battlerDef, TRUE)) != 0)
+    {
+        // The opening strike is full strength. Following ones use the Artifacts'
+        // per-hit diminishing power, with only one PP/Stamina expenditure.
+        gMultiHitCounter++;
         PREPARE_BYTE_NUMBER_BUFFER(gBattleScripting.multihitString, 1, 0)
     }
     else if (IsMoveParentalBondAffected(cv))
@@ -2696,7 +2731,7 @@ static enum CancelerResult CancelerDamageCalc(struct BattleCalcValues *cv)
         .chosenMove = gChosenMove,
         .baseMove = gBattleStruct->baseMove,
         .moveType = GetBattleMoveType(cv->move),
-        .weather = GetWeather(),
+        .weather = Gear_WeatherBonusesSuppressed(cv->battlerAtk) ? B_WEATHER_NONE : GetWeather(),
         .terrain = gFieldTimers.terrain,
         .randomFactor = TRUE,
         .updateFlags = TRUE,
@@ -2716,6 +2751,13 @@ static enum CancelerResult CancelerDamageCalc(struct BattleCalcValues *cv)
 
         ctx.battlerDef = battlerDef;
         gBattleStruct->moveDamage[battlerDef] = CalculateMoveDamage(&ctx);
+        if (gBattleStruct->moveDamage[battlerDef] > 0)
+            gBattleStruct->moveDamage[battlerDef] = Gear_AdjustResolvedDamage(
+                cv->battlerAtk, battlerDef, cv->move, gBattleStruct->moveDamage[battlerDef],
+                gBattleStruct->numSpreadTargets > 1);
+        if (Chain_IsFollowingUp(cv->battlerAtk) && gBattleStruct->moveDamage[battlerDef] > 0)
+            gBattleStruct->moveDamage[battlerDef] = Gear_ApplyPaladinChainPenalty(
+                cv->battlerAtk, battlerDef, gBattleStruct->moveDamage[battlerDef]);
         if (gBattleStruct->moveDamage[battlerDef] > 0
          && !DoesSubstituteBlockMove(cv->battlerAtk, battlerDef, cv->move)
          && (Unholy_SamuraiReflects(battlerDef, cv->battlerAtk, cv->move)
@@ -3581,6 +3623,14 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
      && IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES))
         Gear_OnDamaged(cv->battlerDef, gBattleStruct->moveDamage[cv->battlerDef]);
 
+    if (!IsBattleMoveStatus(cv->move) && gBattleStruct->moveDamage[cv->battlerDef] > 0
+     && IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES)
+     && !IsBattlerUnaffectedByMove(cv->battlerDef))
+    {
+        Gear_OnFireMoveHit(cv->battlerAtk, cv->battlerDef, cv->move);
+        Gear_OnExtraStrike(cv->battlerAtk, cv->battlerDef, cv->move);
+    }
+
     if (Gear_GetBattlerGear(cv->battlerAtk) == GEAR_ARIETE_NAUTILO
      && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
      && !IsBattleMoveStatus(cv->move)
@@ -3591,6 +3641,12 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
      && IsMoveMakingContact(cv->battlerAtk, cv->battlerDef,
                             cv->abilities[cv->battlerAtk], cv->holdEffects[cv->battlerAtk], cv->move))
     {
+        if (Gear_TryPaladinBlock(cv->battlerDef))
+        {
+            gBattleScripting.battler = cv->battlerDef;
+            BattleScriptCall(BattleScript_PaladinShieldBlock);
+            return MOVEEND_RESULT_RUN_SCRIPT;
+        }
         struct StatStages defDrop = {
             .stat = STAT_DEF,
             .stage = Gear_ModifyStatStageByAbility(cv->abilities[cv->battlerDef], -1),
@@ -3612,6 +3668,21 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
         }
     }
 
+    if (!IsBattlerUnaffectedByMove(cv->battlerDef)
+     && (gBattleStruct->moveResultFlags[cv->battlerDef] & MOVE_RESULT_MISSED) == 0)
+    {
+        enum BattlerId ally = Gear_TryWarBannerSupport(cv->battlerAtk, cv->battlerDef);
+        if (ally < gBattlersCount)
+        {
+            gBattleScripting.battler = ally;
+            PREPARE_ITEM_BUFFER(gBattleTextBuff1, Gear_ToItem(GEAR_ESTANDARTE_GUERRA));
+            SetHealAmount(ally, max(1, gBattleMons[ally].maxHP / 10));
+            gBattleStruct->artifactLastAnnounced[cv->battlerAtk] = gBattleStruct->gearActivations[cv->battlerAtk];
+            BattleScriptCall(BattleScript_WarBannerHeal);
+            return MOVEEND_RESULT_RUN_SCRIPT;
+        }
+    }
+
     if (gBattleStruct->shackleTriedThisMove || IsBattleMoveStatus(cv->move)
      || IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
      || gSpecialStatuses[cv->battlerAtk].attackerInParty
@@ -3625,6 +3696,13 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
     gBattleStruct->shackleTriedThisMove = TRUE;
     if (gBattleStruct->shackleTurns[cv->battlerDef] != 0 || !RandomPercentage(RNG_GEAR_SHACKLE, 20))
         return MOVEEND_RESULT_CONTINUE;
+
+    if (Gear_TryPaladinBlock(cv->battlerDef))
+    {
+        gBattleScripting.battler = cv->battlerDef;
+        BattleScriptCall(BattleScript_PaladinShieldBlock);
+        return MOVEEND_RESULT_RUN_SCRIPT;
+    }
 
     // Includes the rest of this turn and the target's next complete turn.
     gBattleStruct->shackleTurns[cv->battlerDef] = 2;
@@ -3642,6 +3720,27 @@ static enum MoveEndResult MoveEndAbilitiesAttacker(struct BattleCalcValues *cv)
 
     gBattleScripting.moveendState++;
     return result;
+}
+
+// Consume one event per pass, so simultaneous attacker/defender triggers are
+// displayed separately without repeating the message for each projectile hit.
+static enum MoveEndResult MoveEndArtifactAnnouncement(struct BattleCalcValues *cv)
+{
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        if (gBattleStruct->artifactLastAnnounced[battler] == gBattleStruct->gearActivations[battler])
+            continue;
+        gBattleStruct->artifactLastAnnounced[battler] = gBattleStruct->gearActivations[battler];
+        enum Gear gear = Gear_GetBattlerGear(battler);
+        if (gear == GEAR_NONE)
+            continue;
+        gBattleScripting.battler = battler;
+        PREPARE_ITEM_BUFFER(gBattleTextBuff1, Gear_ToItem(gear));
+        BattleScriptCall(BattleScript_ArtifactActivated);
+        return MOVEEND_RESULT_RUN_SCRIPT;
+    }
+    gBattleScripting.moveendState++;
+    return MOVEEND_RESULT_CONTINUE;
 }
 
 static enum MoveEndResult MoveEndQueueDancer(struct BattleCalcValues *cv)
@@ -4170,7 +4269,9 @@ static enum MoveEndResult MoveEndMultihitMove(struct BattleCalcValues *cv)
     {
         enum MoveTarget target = GetBattlerMoveTargetType(cv->battlerAtk, cv->move);
         gMultiHitCounter--;
-        if (!IsBattlerAlive(cv->battlerDef) && target != TARGET_SMART)
+        if (!IsBattlerAlive(cv->battlerDef) && target != TARGET_SMART
+         && !(gBattleStruct->artifactReplicaKind[cv->battlerAtk] == 3
+           && IsBattlerAlive(GetPartnerBattler(cv->battlerDef))))
             gMultiHitCounter = 0;
 
         gBattleScripting.multihitString[4]++;
@@ -4184,6 +4285,8 @@ static enum MoveEndResult MoveEndMultihitMove(struct BattleCalcValues *cv)
         }
         else
         {
+            if (gBattleStruct->artifactReplicaKind[cv->battlerAtk] == 3)
+                gBattlerTarget = cv->battlerDef = Gear_GetReboundTarget(cv->battlerAtk, cv->battlerDef);
             if (target == TARGET_SMART
              && !IsAffectedByFollowMe(cv->battlerAtk, GetBattlerSide(cv->battlerDef), cv->move)
              && !(gBattleStruct->moveResultFlags[GetPartnerBattler(cv->battlerDef)] & MOVE_RESULT_MISSED) // didn't miss the other target
@@ -5488,6 +5591,7 @@ static enum MoveEndResult (*const sMoveEndHandlers[])(struct BattleCalcValues *c
     [MOVEEND_RESIST_BERRY_MESSAGE] = MoveEndResistBerryMessage,
     [MOVEEND_FORM_CHANGE_ON_HIT] = MoveEndFormChangeOnHit,
     [MOVEEND_GEAR_ON_HIT] = MoveEndGearOnHit,
+    [MOVEEND_ARTIFACT_ANNOUNCEMENT] = MoveEndArtifactAnnouncement,
     [MOVEEND_ABILITIES_ATTACKER] = MoveEndAbilitiesAttacker,
     [MOVEEND_QUEUE_DANCER] = MoveEndQueueDancer,
     [MOVEEND_STATUS_IMMUNITY_ABILITIES] = MoveEndStatusImmunityAbilities,

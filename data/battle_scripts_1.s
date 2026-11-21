@@ -5009,6 +5009,19 @@ BattleScript_UnholyGearHeal::
 	datahpupdate BS_ATTACKER, ASSURANCE_DOUBLE
 	return
 
+BattleScript_WarBannerHeal::
+	printstring STRINGID_WARBANNERHEAL
+	waitmessage B_WAIT_TIME_LONG
+	playanimation BS_SCRIPTING, B_ANIM_SIMPLE_HEAL
+	healthbarupdate BS_SCRIPTING
+	datahpupdate BS_SCRIPTING, ASSURANCE_DOUBLE
+	return
+
+BattleScript_ArtifactActivated::
+	printstring STRINGID_ARTIFACTACTIVATED
+	waitmessage B_WAIT_TIME_LONG
+	return
+
 BattleScript_StickyHoldActivates::
 	call BattleScript_StickyHoldActivatesRet
 	goto BattleScript_MoveEnd
@@ -5322,6 +5335,11 @@ BattleScript_MeteorArmorAsh::
 
 BattleScript_MeteorArmorAshContrary::
 	printstring STRINGID_METEORARMORCONTRARY
+	waitmessage B_WAIT_TIME_LONG
+	return
+
+BattleScript_PaladinShieldBlock::
+	printstring STRINGID_PALADINSHIELDBLOCK
 	waitmessage B_WAIT_TIME_LONG
 	return
 
