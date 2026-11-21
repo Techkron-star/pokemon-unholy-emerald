@@ -3334,36 +3334,39 @@ static void DebugSelectionStep_UpdateShinyness(u8 taskId, u8 digits, u32 min, u3
     DebugSelectionStep_PrintGenericBooleanInput(taskId, COMPOUND_STRING("Shiny:"));
 }
 
+static u32 DebugGetAbilityOptions(enum Species species, u8 *slots)
+{
+    u32 count = 0;
+    for (u8 slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+    {
+        enum Ability ability = GetSpeciesAbility(species, slot);
+        bool32 duplicate = ability == ABILITY_NONE;
+        for (u8 i = 0; i < count; i++)
+            if (GetSpeciesAbility(species, slots[i]) == ability)
+                duplicate = TRUE;
+        if (!duplicate)
+            slots[count++] = slot;
+    }
+    return count;
+}
+
 static u32 DebugSelectionStep_GetMaxAbility(u8 taskId)
 {
-    enum Species species = DebugSelection_GetData(taskId, 0);
-    u32 max = 0;
-    if ((gSpeciesInfo[species].abilities[1] != gSpeciesInfo[species].abilities[0]) && (gSpeciesInfo[species].abilities[1] != ABILITY_NONE))
-        max++;
-    if (gSpeciesInfo[species].abilities[2] != ABILITY_NONE)
-        max++;
-    return max;
+    u8 slots[NUM_ABILITY_SLOTS];
+    u32 count = DebugGetAbilityOptions(DebugSelection_GetData(taskId, 0), slots);
+    return count > 0 ? count - 1 : 0;
 }
 
 static void DebugSelectionStep_UpdateAbility(u8 taskId, u8 digits, u32 min, u32 max)
 {
-    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u8 slots[NUM_ABILITY_SLOTS];
     enum Species species = DebugSelection_GetData(taskId, 0);
-    abilities[0] = gSpeciesInfo[species].abilities[0];
-    u32 i = 1;
-    if (gSpeciesInfo[species].abilities[1] != abilities[0] && gSpeciesInfo[species].abilities[1] != ABILITY_NONE)
-    {
-        abilities[1] = gSpeciesInfo[species].abilities[1];
-        i++;
-    }
-    if (gSpeciesInfo[species].abilities[2] != ABILITY_NONE)
-    {
-        abilities[i] = gSpeciesInfo[species].abilities[2];
-    }
+    u32 count = DebugGetAbilityOptions(species, slots);
 
     ConvertIntToDecimalStringN(gStringVar3, gTasks[taskId].tInput, STR_CONV_MODE_LEADING_ZEROS, digits);
     StringCopy(gStringVar1, COMPOUND_STRING("Ability:"));
-    StringCopy(gStringVar2, GetLocalizedAbilityName(abilities[gTasks[taskId].tInput]));
+    StringCopy(gStringVar2, GetLocalizedAbilityName(count > 0 && gTasks[taskId].tInput < count
+        ? GetSpeciesAbility(species, slots[gTasks[taskId].tInput]) : ABILITY_NONE));
     StringCopy(gStringVar3, COMPOUND_STRING(""));
     DebugNativeStep_PrintWindowSelection(taskId);
 }
@@ -3371,11 +3374,10 @@ static void DebugSelectionStep_UpdateAbility(u8 taskId, u8 digits, u32 min, u32 
 static void DebugSelectionStep_AbilityConfirm(u8 taskId)
 {
     enum Species species = DebugSelection_GetData(taskId, 0);
-    if (gTasks[taskId].tInput == 1)
-    {
-        if ((gSpeciesInfo[species].abilities[1] == gSpeciesInfo[species].abilities[0]) || (gSpeciesInfo[species].abilities[1] == ABILITY_NONE))
-            gTasks[taskId].tInput++;
-    }
+    u8 slots[NUM_ABILITY_SLOTS];
+    u32 count = DebugGetAbilityOptions(species, slots);
+    if (count > 0 && gTasks[taskId].tInput < count)
+        gTasks[taskId].tInput = slots[gTasks[taskId].tInput];
     DebugSelectionStep_GenericInputConfirm(taskId);
 }
 

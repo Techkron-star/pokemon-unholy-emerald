@@ -81,6 +81,8 @@
 #include "constants/union_room.h"
 #include "constants/weather.h"
 
+#include "data/pokemon/unholy_secondary_hidden_abilities.h"
+
 extern enum Item gSpecialVar_ItemId;
 
 #define FRIENDSHIP_EVO_THRESHOLD ((P_FRIENDSHIP_EVO_THRESHOLD >= GEN_8) ? 160 : 220)
@@ -3459,7 +3461,14 @@ enum Type GetSpeciesType(enum Species species, u8 slot)
 
 enum Ability GetSpeciesAbility(enum Species species, u8 slot)
 {
-    return gSpeciesInfo[SanitizeSpeciesId(species)].abilities[slot];
+    species = SanitizeSpeciesId(species);
+    if (slot >= NUM_ABILITY_SLOTS)
+        return ABILITY_NONE;
+    // A fourth slot preserves all three original abilities (including the
+    // first hidden ability) and fits the existing 2-bit saved abilityNum.
+    if (slot == NUM_NORMAL_ABILITY_SLOTS + 1)
+        return sUnholySecondaryHiddenAbilities[species];
+    return gSpeciesInfo[species].abilities[slot];
 }
 
 u32 GetSpeciesBaseHP(enum Species species)

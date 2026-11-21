@@ -16,6 +16,7 @@
 - [Unholy Emerald · Horizon Market y alertas mutantes](./HORIZON_MARKET.md)
 - [Unholy Emerald · Clasificación de mutaciones por tiers](./MUTATION_TIERS.md)
 - [Unholy Emerald · Catálogo de 37 habilidades nuevas y revisadas](./UNHOLY_37_ABILITIES.md)
+- [Unholy Emerald · Distribución de 37 habilidades por Pokémon](./UNHOLY_ABILITY_DISTRIBUTION.md)
 - [Unholy Emerald · Mochila de siete bolsillos](./BAG_UX.md)
 - [Unholy Emerald · QA de KO y crafting](./qa/chain-ko-crafting-regressions.md)
 - [Unholy Emerald · QA tutorial de encadenados](./qa/first-battle-chain-tutorial.md)

@@ -284,15 +284,14 @@ void ModifyPersonalityForNature(u32 *personality, s32 newNature)
 
 bool32 SetCorrectAbilityNum(struct Pokemon *mon, enum Species species, enum Ability ability)
 {
-    const struct SpeciesInfo *speciesInfo = &gSpeciesInfo[species];
     u32 abilityNum;
-    u32 maxAbilityNum = ARRAY_COUNT(speciesInfo->abilities);
+    u32 maxAbilityNum = NUM_ABILITY_SLOTS;
     for (abilityNum = 0; abilityNum < maxAbilityNum; ++abilityNum)
     {
-        if (speciesInfo->abilities[abilityNum] == ability)
+        if (GetSpeciesAbility(species, abilityNum) == ability)
             break;
     }
-    assertf(abilityNum < maxAbilityNum, "illegal ability %S for %S", gAbilitiesInfo[ability].name, speciesInfo->speciesName)
+    assertf(abilityNum < maxAbilityNum, "illegal ability %S for %S", gAbilitiesInfo[ability].name, gSpeciesInfo[species].speciesName)
     {
         return FALSE;
     }
@@ -375,7 +374,7 @@ void GenerateMonFromTrainerMon(struct Pokemon *mon, const struct TrainerMon *tra
         {
             do {
                 data = Random() % NUM_ABILITY_SLOTS; // includes hidden abilities
-            } while (GetAbilityBySpecies(trainerMon->species, data) == ABILITY_NONE);
+            } while (GetSpeciesAbility(trainerMon->species, data) == ABILITY_NONE);
             SetMonData(mon, MON_DATA_ABILITY_NUM, &data);
         }
         else if (B_TRAINER_MON_RANDOM_ABILITY == 0)

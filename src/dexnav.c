@@ -1356,11 +1356,15 @@ static u8 DexNavGetAbilityNum(enum Species species, u8 searchLevel)
     }
 
     if (genAbility
-            && GetSpeciesAbility(species, 2) != ABILITY_NONE
+            && (GetSpeciesAbility(species, 2) != ABILITY_NONE || GetSpeciesAbility(species, 3) != ABILITY_NONE)
             && GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT))
     {
-        //Only give hidden ability if Pokemon has been caught before
-        abilityNum = 2;
+        // Only give hidden abilities if the species has been caught before.
+        // Both hidden slots are independently available where defined.
+        if (GetSpeciesAbility(species, 2) != ABILITY_NONE && GetSpeciesAbility(species, 3) != ABILITY_NONE)
+            abilityNum = 2 + (Random() & 1);
+        else
+            abilityNum = GetSpeciesAbility(species, 3) != ABILITY_NONE ? 3 : 2;
     }
     else
     {
@@ -2126,8 +2130,9 @@ static void PrintCurrentSpeciesInfo(void)
     }
     else if (GetSetPokedexFlag(dexNum, FLAG_GET_CAUGHT))
     {
-        if (GetSpeciesAbility(species, 2) != ABILITY_NONE)
-            AddTextPrinterParameterized3(WINDOW_INFO, FONT_SMALL, 0, HA_INFO_Y, sFontColor_Black, 0, GetLocalizedAbilityName(GetSpeciesAbility(species, 2)));
+        if (GetSpeciesAbility(species, 2) != ABILITY_NONE || GetSpeciesAbility(species, 3) != ABILITY_NONE)
+            AddTextPrinterParameterized3(WINDOW_INFO, FONT_SMALL, 0, HA_INFO_Y, sFontColor_Black, 0,
+                GetLocalizedAbilityName(GetSpeciesAbility(species, 2) != ABILITY_NONE ? GetSpeciesAbility(species, 2) : GetSpeciesAbility(species, 3)));
         else
             AddTextPrinterParameterized3(WINDOW_INFO, FONT_SMALL, 0, HA_INFO_Y, sFontColor_Black, 0, gText_None);
     }

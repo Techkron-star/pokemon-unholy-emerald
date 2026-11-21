@@ -1355,6 +1355,35 @@ TEST("InheritAbility doesn't do anything, ability is chosen randomly (gen4-)")
     EXPECT_EQ(GetMonData(&egg, MON_DATA_ABILITY_NUM), 3);
 }
 
+TEST("InheritAbility rolls for the second hidden slot just like the original hidden slot")
+{
+    struct Pokemon egg;
+    u32 eggAbilityNum = 0;
+    bool32 inheritHidden = FALSE;
+
+    PARAMETRIZE { inheritHidden = FALSE; }
+    PARAMETRIZE { inheritHidden = TRUE; }
+
+    SetConfig(CONFIG_ABILITY_INHERITANCE, GEN_6);
+    SET_RNG(RNG_DAYCARE_ABILITY_INHERITANCE, inheritHidden);
+    ZeroPlayerPartyMons();
+    memset(&gSaveBlock1Ptr->daycare, 0, sizeof(gSaveBlock1Ptr->daycare));
+
+    RUN_OVERWORLD_SCRIPT(
+        givemon SPECIES_SCEPTILE, 50, gender=MON_FEMALE, abilityNum=3;
+        givemon SPECIES_SCEPTILE, 50, gender=MON_MALE, abilityNum=0;
+    );
+    gSpecialVar_0x8004 = 0;
+    StoreSelectedPokemonInDaycare();
+    gSpecialVar_0x8004 = 0;
+    StoreSelectedPokemonInDaycare();
+
+    CreateMonWithIVs(&egg, SPECIES_TREECKO, 1, 0, OTID_STRUCT_PLAYER_ID, 0);
+    SetMonData(&egg, MON_DATA_ABILITY_NUM, &eggAbilityNum);
+    InheritAbility(&egg, &gSaveBlock1Ptr->daycare);
+    EXPECT_EQ(GetMonData(&egg, MON_DATA_ABILITY_NUM), inheritHidden ? 3 : 0);
+}
+
 TEST("InheritAbility copy the ability of the mother if the dad is not a ditto (gen5)")
 {
     struct Pokemon egg;
