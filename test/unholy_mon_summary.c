@@ -46,6 +46,32 @@ TEST("Unholy summary rejects missing output and null Pokémon")
     EXPECT_EQ(Stamina_CalcMaxForMon(NULL), 0);
 }
 
+TEST("Alpha boosts actual HP and five regular stats by 20 percent without modifying genetics")
+{
+    struct Pokemon regular, alpha;
+    u32 originalIv, originalEv;
+
+    CreateMonWithIVs(&regular, SPECIES_SCEPTILE, 50, 0x12345678,
+                     OTID_STRUCT_PRESET(0xABCDEF01), 20);
+    alpha = regular;
+    originalIv = GetMonData(&alpha, MON_DATA_HP_IV);
+    originalEv = GetMonData(&alpha, MON_DATA_HP_EV);
+    Pokemon_SetBadge(&alpha, POKEMON_BADGE_ALPHA);
+    CalculateMonStats(&alpha);
+
+    for (u32 stat = 0; stat < NUM_STATS; stat++)
+    {
+        u32 base = GetMonData(&regular, MON_DATA_MAX_HP + stat);
+        EXPECT_EQ(GetMonData(&alpha, MON_DATA_MAX_HP + stat), (base * 120 + 50) / 100);
+    }
+    EXPECT_EQ(GetMonData(&alpha, MON_DATA_HP_IV), originalIv);
+    EXPECT_EQ(GetMonData(&alpha, MON_DATA_HP_EV), originalEv);
+    CalculateMonStats(&alpha);
+    for (u32 stat = 0; stat < NUM_STATS; stat++)
+        EXPECT_EQ(GetMonData(&alpha, MON_DATA_MAX_HP + stat),
+                  (GetMonData(&regular, MON_DATA_MAX_HP + stat) * 120 + 50) / 100);
+}
+
 TEST("Unholy summary reads combined mutation bonuses and independent item and Gear without changing the mon")
 {
     struct Pokemon mon, before;
@@ -70,7 +96,7 @@ TEST("Unholy summary reads combined mutation bonuses and independent item and Ge
     EXPECT_EQ(memcmp(&mon, &before, sizeof(mon)), 0);
 }
 
-TEST("Mutation summary distinguishes non-stat Alpha from Hyper and Titan modifiers")
+TEST("Alpha grants 20 percent to all six stats, stacking additively with Hyper and Titan")
 {
     struct Pokemon mon;
     struct UnholyMonSummary summary;
@@ -80,21 +106,21 @@ TEST("Mutation summary distinguishes non-stat Alpha from Hyper and Titan modifie
     Pokemon_SetBadge(&mon, POKEMON_BADGE_ALPHA);
     EXPECT(UnholyMonSummary_Build(&mon, &summary));
     for (u32 stat = 0; stat < NUM_STATS; stat++)
-        EXPECT_EQ(summary.mutationBonusPercent[stat], 0);
+        EXPECT_EQ(summary.mutationBonusPercent[stat], 20);
     EXPECT_EQ(summary.mutationStaminaBonusPercent, 0);
 
     Pokemon_SetBadge(&mon, POKEMON_BADGE_HYPER);
     EXPECT(UnholyMonSummary_Build(&mon, &summary));
     for (u32 stat = 0; stat < NUM_STATS; stat++)
-        EXPECT_EQ(summary.mutationBonusPercent[stat], 25);
+        EXPECT_EQ(summary.mutationBonusPercent[stat], 45);
     EXPECT_EQ(summary.mutationStaminaBonusPercent, 25);
 
     Pokemon_SetBadge(&mon, POKEMON_BADGE_TITAN);
     EXPECT(UnholyMonSummary_Build(&mon, &summary));
-    EXPECT_EQ(summary.mutationBonusPercent[STAT_SPEED], -25);
-    EXPECT_EQ(summary.mutationBonusPercent[STAT_ATK], 25);
-    EXPECT_GE(summary.mutationBonusPercent[STAT_HP], 45);
-    EXPECT_LE(summary.mutationBonusPercent[STAT_HP], 85);
+    EXPECT_EQ(summary.mutationBonusPercent[STAT_SPEED], -5);
+    EXPECT_EQ(summary.mutationBonusPercent[STAT_ATK], 45);
+    EXPECT_GE(summary.mutationBonusPercent[STAT_HP], 65);
+    EXPECT_LE(summary.mutationBonusPercent[STAT_HP], 105);
     EXPECT_EQ(summary.mutationStaminaBonusPercent, 25);
 }
 
