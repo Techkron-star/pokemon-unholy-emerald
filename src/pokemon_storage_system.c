@@ -29,6 +29,7 @@
 #include "pokemon_icon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
+#include "hf_pc_groups.h"
 #include "script.h"
 #include "sound.h"
 #include "string_util.h"
@@ -171,6 +172,12 @@ enum {
     MENU_FAVORITE,
     MENU_UNFAVORITE,
     MENU_SEARCH,
+    MENU_HF_GROUP_SPECIES,
+    MENU_HF_GROUP_INITIAL,
+    MENU_HF_SORT_SPECIES,
+    MENU_HF_SORT_LEVEL,
+    MENU_HF_SORT_IV,
+    MENU_HF_SORT_CANCEL,
 };
 #define MENU_WALLPAPER_SETS_START MENU_SCENERY_1
 #define MENU_WALLPAPERS_START MENU_FOREST
@@ -2322,20 +2329,43 @@ enum {
     MSTATE_MULTIMOVE_RUN_MOVED,
     MSTATE_SCROLL_BOX_ITEM,
     MSTATE_WAIT_ITEM_ANIM,
+    MSTATE_HF_SORT_MENU,
 };
 
-// Two START presses within 20 frames cycle the HF Watch sort modes.
+// Two START presses within 20 frames open the non-destructive grouping/sort menu.
 // Do not rearrange boxes while a Pokémon or multi-selection is being moved.
 static void InitBoxMonSprites(u8 boxId);
 static void DestroyBoxMonIconAtPosition(u8 boxPosition);
 
 static u8 sHfSortStartTimer;
-static u8 sHfSortMode;
+
+static u8 sHfPcGroupMode = HF_PC_GROUP_SPECIES;
+static u16 sHfPcFolderCount;
+
+static void HfPc_OpenSortMenu(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_GROUP_SPECIES);
+    SetMenuText(MENU_HF_GROUP_INITIAL);
+    SetMenuText(MENU_HF_SORT_SPECIES);
+    SetMenuText(MENU_HF_SORT_LEVEL);
+    SetMenuText(MENU_HF_SORT_IV);
+    SetMenuText(MENU_HF_SORT_CANCEL);
+    AddMenu();
+    sStorage->state = MSTATE_HF_SORT_MENU;
+}
+
+static void HfPc_RefreshSortedBox(void)
+{
+    u8 i;
+    for (i = 0; i < IN_BOX_COUNT; i++)
+        DestroyBoxMonIconAtPosition(i);
+    InitBoxMonSprites(StorageGetCurrentBox());
+    RefreshDisplayMon();
+}
 
 static bool8 HfWatch_HandleBoxSortShortcut(void)
 {
-    u8 i;
-
     if (sHfSortStartTimer != 0)
         sHfSortStartTimer--;
     if (!JOY_NEW(START_BUTTON))
@@ -2349,21 +2379,40 @@ static bool8 HfWatch_HandleBoxSortShortcut(void)
     if (sIsMonBeingMoved || sStorage->inBoxMovingMode != MOVE_MODE_NORMAL
      || sStorage->boxOption == OPTION_SELECT_MON || sStorage->boxOption == OPTION_MOVE_ITEMS)
         return FALSE;
-
-    SortCurrentBox(sHfSortMode);
-    sHfSortMode = (sHfSortMode + 1) % 3;
-    for (i = 0; i < IN_BOX_COUNT; i++)
-        DestroyBoxMonIconAtPosition(i);
-    InitBoxMonSprites(StorageGetCurrentBox());
-    RefreshDisplayMon();
+    HfPc_OpenSortMenu();
     PlaySE(SE_SELECT);
     return TRUE;
+}
+
+static void HfPc_HandleSortMenu(void)
+{
+    s16 choice = HandleMenuInput();
+    u32 keys[HF_PC_GROUP_COUNT];
+
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_HF_GROUP_SPECIES || choice == MENU_HF_GROUP_INITIAL)
+    {
+        // Rebuild virtual folder indexes from current storage without moving Pokémon.
+        sHfPcGroupMode = choice == MENU_HF_GROUP_SPECIES ? HF_PC_GROUP_SPECIES : HF_PC_GROUP_INITIAL;
+        sHfPcFolderCount = HfPcGroup_CollectKeys(sHfPcGroupMode, keys, ARRAY_COUNT(keys));
+    }
+    else if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
+    {
+        SortCurrentBox(choice == MENU_HF_SORT_SPECIES ? BOX_SORT_SPECIES
+                     : choice == MENU_HF_SORT_LEVEL ? BOX_SORT_LEVEL : BOX_SORT_IV_TOTAL);
+        HfPc_RefreshSortedBox();
+    }
+    sStorage->state = MSTATE_HANDLE_INPUT;
 }
 
 static void Task_PokeStorageMain(u8 taskId)
 {
     switch (sStorage->state)
     {
+    case MSTATE_HF_SORT_MENU:
+        HfPc_HandleSortMenu();
+        break;
     case MSTATE_HANDLE_INPUT:
         if (HfWatch_HandleBoxSortShortcut())
             break;
@@ -8370,6 +8419,12 @@ static const u8 *const sMenuTexts[] =
     [MENU_FAVORITE]   = COMPOUND_STRING("FAVORITE"),
     [MENU_UNFAVORITE] = COMPOUND_STRING("UNFAVORITE"),
     [MENU_SEARCH]     = COMPOUND_STRING("SEARCH"),
+    [MENU_HF_GROUP_SPECIES] = COMPOUND_STRING("FOLDERS: SPECIES"),
+    [MENU_HF_GROUP_INITIAL] = COMPOUND_STRING("FOLDERS: INITIAL"),
+    [MENU_HF_SORT_SPECIES] = COMPOUND_STRING("SORT: SPECIES"),
+    [MENU_HF_SORT_LEVEL] = COMPOUND_STRING("SORT: LEVEL"),
+    [MENU_HF_SORT_IV] = COMPOUND_STRING("SORT: IV TOTAL"),
+    [MENU_HF_SORT_CANCEL] = COMPOUND_STRING("CANCEL"),
 };
 
 static void SetMenuText(u8 textId)
