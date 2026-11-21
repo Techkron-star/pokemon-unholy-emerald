@@ -18,6 +18,7 @@
 #include "battle_hold_effects.h"
 #include "battle_stat_change.h"
 #include "config_changes.h"
+#include "config/unholy_abilities.h"
 #include "party_menu.h"
 #include "pokemon.h"
 #include "international_string_util.h"
@@ -9937,6 +9938,14 @@ u32 CalcSecondaryEffectChance(enum BattlerId battler, enum Ability battlerAbilit
         secondaryEffectChance *= 2;
     if (hasRainbow)
         secondaryEffectChance *= 2;
+
+    // Banshee raises each secondary effect's chance by 20 percentage points.
+    // Primary/guaranteed effects use chance 0 and are not changed.
+    if (battlerAbility == ABILITY_BANSHEE
+     && additionalEffect->chance != 0
+     && GetMovePower(gCurrentMove) > 0
+     && GetBattleMoveType(gCurrentMove) == TYPE_GHOST)
+        secondaryEffectChance += U_BANSHEE_SECONDARY_BONUS;
 
     // Permafrost afecta por cada comprobacion de un efecto de estado
     // secundario de un movimiento de Hielo que inflige dano. Las reglas de

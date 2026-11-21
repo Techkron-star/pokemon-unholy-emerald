@@ -6,7 +6,7 @@
 
 **UI nativa.** El [estándar de organización a 240 × 160](docs/UI_NATIVE_240.md#estándar-de-organización) define la jerarquía, la selección y los controles de los menús. La guía también documenta el Poké Watch, Resumen y los componentes Eclipse y Daylight.
 
-**Habilidades nuevas (motor en integración):** [catálogo de 37 habilidades y revisiones](docs/UNHOLY_37_ABILITIES.md). Hay reglas ejecutables para 36 entradas, con Banshee pendiente de su escala, límites explícitos de Antithesis/Time Realm y distribución a especies todavía separada.
+**Habilidades nuevas (motor en integración):** [catálogo de 37 habilidades y revisiones](docs/UNHOLY_37_ABILITIES.md). Las 37 cuentan con reglas de combate, incluida Banshee (+20 puntos porcentuales a efectos secundarios Fantasma); permanecen límites explícitos de Antithesis/Time Realm y la distribución a especies todavía separada.
 
 **Estado:** documento de diseño y seguimiento de implementación; las tablas de estado distinguen funciones compiladas, funciones no probadas en hardware/emulador y diseño pendiente.
 

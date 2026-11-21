@@ -4,7 +4,25 @@
 #include "battle_stamina.h"
 #include "battle_util.h"
 #include "gear.h"
+#include "move.h"
 #include "test/battle.h"
+
+SINGLE_BATTLE_TEST("Unholy 37: Banshee raises Ghost secondary chances by twenty points")
+{
+    GIVEN {
+        PLAYER(SPECIES_ABRA) { Ability(ABILITY_BANSHEE); }
+        OPPONENT(SPECIES_WOBBUFFET) { HP(1000); }
+    } WHEN {
+        TURN { MOVE(player, MOVE_SHADOW_BALL); MOVE(opponent, MOVE_CELEBRATE); }
+    } THEN {
+        const struct AdditionalEffect *effect = GetMoveAdditionalEffectById(MOVE_SHADOW_BALL, 0);
+        gCurrentMove = MOVE_SHADOW_BALL;
+        EXPECT_EQ(CalcSecondaryEffectChance(B_BATTLER_0, ABILITY_BANSHEE, effect), 40);
+        EXPECT_EQ(CalcSecondaryEffectChance(B_BATTLER_0, ABILITY_SERENE_GRACE, effect), 40);
+        gCurrentMove = MOVE_PSYCHIC;
+        EXPECT_EQ(CalcSecondaryEffectChance(B_BATTLER_0, ABILITY_BANSHEE, effect), 20);
+    }
+}
 
 SINGLE_BATTLE_TEST("Unholy 37: Knight raises both defenses on entry")
 {

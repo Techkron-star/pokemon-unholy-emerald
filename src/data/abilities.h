@@ -2573,7 +2573,7 @@ const struct AbilityInfo gAbilitiesInfo[ABILITIES_COUNT] =
     [ABILITY_FALLEN_ANGEL] = { .name = _("Fallen Angel"), .description = COMPOUND_STRING("Fairy damage is split with Dark."), .aiRating = 8 },
     [ABILITY_SAMURAI] = { .name = _("Samurai"), .description = COMPOUND_STRING("Slicing turns may reflect contact damage."), .aiRating = 8 },
     [ABILITY_GELIDO] = { .name = _("Icy"), .description = COMPOUND_STRING("Water to Ice; contact may cause frostbite."), .aiRating = 8 },
-    [ABILITY_BANSHEE] = { .name = _("Banshee"), .description = COMPOUND_STRING("Ghost secondary chance scale pending."), .aiRating = 8 },
+    [ABILITY_BANSHEE] = { .name = _("Banshee"), .description = COMPOUND_STRING("Ghost moves: +20% secondary chance."), .aiRating = 8 },
     [ABILITY_ONI] = { .name = _("Oni"), .description = COMPOUND_STRING("Physical Dark uses both attacking stats."), .aiRating = 8 },
     [ABILITY_DRAKE] = { .name = _("Drake"), .description = COMPOUND_STRING("Dragon ignores part of enemy defenses."), .aiRating = 8 },
     [ABILITY_MONJE] = { .name = _("Monk"), .description = COMPOUND_STRING("Psychic mixes damage; stats cannot fall."), .aiRating = 8 },

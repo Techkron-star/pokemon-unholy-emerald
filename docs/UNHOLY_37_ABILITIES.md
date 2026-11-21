@@ -1,6 +1,6 @@
 # Unholy Emerald — catálogo de 37 habilidades nuevas y revisadas
 
-**Estado:** integración del motor en curso. Hay reglas de combate programadas para 36 entradas; **Banshee sigue reservada sin modificar probabilidades**, porque falta definir su escala. Ver el estado de implementación y sus límites al final. Última revisión: 21 de noviembre de 2026.
+**Estado:** integración del motor en curso. Hay reglas de combate programadas para las **37 entradas**, incluida la bonificación de Banshee de **+20 puntos porcentuales**. La distribución por especies todavía es una fase separada. Ver los límites restantes al final. Última revisión: 21 de noviembre de 2026.
 
 Este documento conserva las **37 habilidades** definidas por tandas. Las cifras confirmadas se distinguen de los detalles que todavía requieren una decisión antes de programar. No asignar habilidades a especies ni modificar las originales de los iniciales hasta completar la fase de distribución y reequilibrio.
 
@@ -63,7 +63,7 @@ Este documento conserva las **37 habilidades** definidas por tandas. Las cifras 
 | --- | --- | --- |
 | 21 | **Samurai** | **Cada ejecución** de un movimiento de corte tiene **50 % de activar Sablazo**. Si hay dos cortes en una cadena, se hacen **dos tiradas independientes**. Sablazo absorbe el **100 % del daño** de un ataque **de contacto** y lo devuelve al atacante. Opera en el turno del corte tanto si el contacto enemigo llega antes como después del corte; no se conserva como escudo de turnos posteriores. No funciona si el movimiento propio no era de corte ni contra ataques sin contacto. |
 | 22 | **Gélido** | Convierte movimientos Agua en **Hielo**. Tiene **20 % de causar Frostbite**, **no congelación completa**, al realizar un ataque de contacto o al recibir uno. La aplicación sigue las inmunidades/reglas del estado Frostbite. |
-| 23 | **Banshee** | Los ataques Fantasma obtienen **+1 nivel de probabilidad de sus efectos secundarios**. Ejemplo conceptual del autor: subir un nivel la probabilidad de veneno de *Poison Sting*; **ese movimiento no pasa a ser afectado por Banshee**, porque no es Fantasma. **Falta definir la escala matemática** del +1; no sustituirla todavía por doble tirada ni por +10 puntos porcentuales. |
+| 23 | **Banshee** | Los movimientos **dañinos de tipo Fantasma** reciben **+20 puntos porcentuales** a la probabilidad de sus efectos secundarios, con tope del 100 %. Por ejemplo, 20 % pasa a **40 %**, y 30 % a **50 %**. No añade una tirada adicional, no cambia los efectos primarios y no afecta a movimientos de otros tipos. |
 | 24 | **Oni** | Los ataques **físicos Siniestro** infligen daño mixto de categoría: **50 % con Ataque/Defensa y 50 % con Ataque Especial/Defensa Especial**. Los Siniestro ya especiales permanecen íntegramente especiales. Es un movimiento, no dos impactos. |
 | 25 | **Drake** | Los movimientos Dragón **ignoran el 20 %** de la Defensa o Defensa Especial del objetivo según la categoría del daño. No equivale a un aumento permanente de estadísticas. |
 
@@ -122,7 +122,6 @@ La habilidad **no elimina** los estados alterados: invierte sus consecuencias ap
 
 ## Decisiones todavía pendientes — no inventar valores
 
-- **Banshee:** fórmula de «+1 nivel» en la probabilidad de efecto secundario; el usuario **no confirmó** ni una tirada adicional ni +10 puntos porcentuales.
 - **Antithesis:** inversión de estados de incapacidad (sueño, parálisis, congelación, etc.), efectos positivos no numéricos como barreras, retroactividad sobre boosts ya existentes y alcance exacto en dobles.
 - **Gran Eclipse:** si la neutralización de los cuatro tipos afecta a **ambos bandos** o solo al portador/sus movimientos; qué sucede con sol establecido antes de entrar.
 - **Samurai:** protección ante un contacto que ocurre **antes** de la ejecución del corte y resolución de dos Sablazos activados dentro de una misma cadena.
@@ -155,12 +154,11 @@ La implementación vive en `src/battle_unholy_abilities.c`, conectada al cálcul
 
 ### Límites y decisiones pendientes
 
-1. **Banshee:** falta la escala de «+1 nivel de probabilidad». Su ID y textos existen, pero no se inventó una fórmula ni una mejora de probabilidad.
-2. **Antithesis:** no se inventaron inversiones para incapacidades, pantallas, inmunidades u otros beneficios sin transformación numérica definida. No reinterpreta retroactivamente boosts antiguos. Los objetos de la mochila que modifican directamente los datos del equipo requieren una integración específica; las pruebas actuales cubren curación mediante canales de combate y bayas equipadas.
-3. **Bélico:** Aterrado no existe como estado ejecutable en este árbol; la inmunidad a Intimidación está conectada, pero una futura implementación de Aterrado deberá consultar Bélico.
-4. **Time Realm:** no acelera mecánicas todavía inexistentes en el motor, incluido un Réquiem propio distinto del Canto Mortal nativo. No modifica por separado cada efecto imaginado o pendiente de implementación. El registro de cronómetros soportados es explícito.
-5. **Distribución:** no se asignaron nuevas habilidades a especies/formas ni se cambiaron los iniciales. La distribución y los reworks de Torrente/Mar Llamas/Espesura siguen siendo una fase separada. Cuerpo Magma y Gula sí cambian donde ya se usaban sus IDs existentes.
-6. Los porcentajes propuestos de 35/10/25/20/20 y el 150 % de regeneración se usan como balance inicial en `include/config/unholy_abilities.h`; no se presentan como cifras confirmadas definitivamente por el autor.
+1. **Antithesis:** no se inventaron inversiones para incapacidades, pantallas, inmunidades u otros beneficios sin transformación numérica definida. No reinterpreta retroactivamente boosts antiguos. Los objetos de la mochila que modifican directamente los datos del equipo requieren una integración específica; las pruebas actuales cubren curación mediante canales de combate y bayas equipadas.
+2. **Bélico:** Aterrado no existe como estado ejecutable en este árbol; la inmunidad a Intimidación está conectada, pero una futura implementación de Aterrado deberá consultar Bélico.
+3. **Time Realm:** no acelera mecánicas todavía inexistentes en el motor, incluido un Réquiem propio distinto del Canto Mortal nativo. No modifica por separado cada efecto imaginado o pendiente de implementación. El registro de cronómetros soportados es explícito.
+4. **Distribución:** no se asignaron nuevas habilidades a especies/formas ni se cambiaron los iniciales. La distribución y los reworks de Torrente/Mar Llamas/Espesura siguen siendo una fase separada. Cuerpo Magma y Gula sí cambian donde ya se usaban sus IDs existentes.
+5. Los porcentajes propuestos de 35/10/25/20/20 y el 150 % de regeneración se usan como balance inicial en `include/config/unholy_abilities.h`; no se presentan como cifras confirmadas definitivamente por el autor.
 
 ### Validación
 
