@@ -9829,9 +9829,9 @@ const struct ItemInfo gItemsInfo[] =
         .holdEffect = HOLD_EFFECT_EXP_SHARE,
     #if I_EXP_SHARE_ITEM >= GEN_6
         .description = COMPOUND_STRING(
-            "This device allows\n"
-            "all party members\n"
-            "to share in Exp."),
+            "All inactive party\n"
+            "members gain 75%\n"
+            "battle Exp."),
         .price = 0,
         .importance = 1,
         .pocket = POCKET_KEY_ITEMS,

@@ -4,6 +4,9 @@
 #define HORIZON_GOODS_ITEM_COUNT 9
 #define HORIZON_GOODS_DISC_COUNT 6
 
+u8 HorizonGoodsItemCountForTier(u8 watchTier);
+u8 HorizonGoodsDiscCountForTier(u8 watchTier);
+
 // Called from Horizon's existing saved-market refresh. Generates a new seed
 // only when the main market really rotates, or once for an older save.
 void HorizonGoodsRollSeeds(void);

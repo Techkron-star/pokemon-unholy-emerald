@@ -1,5 +1,6 @@
 #include "global.h"
 #include "horizon_market.h"
+#include "hfc_watch.h"
 #include "mutation_tiers.h"
 #include "horizon_eggs.h"
 #include "horizon_goods.h"
@@ -83,6 +84,26 @@ static const u8 sHorizonNameOverloaded[] = _("OVERLOADED");
 static const u8 sHorizonNameTitan[] = _("TITAN");
 static const u8 sHorizonNameAncestral[] = _("ANCESTRAL");
 static const u8 sHorizonNameAscended[] = _("ASCENDED");
+
+u8 HorizonMarketOfferCountForTier(u8 watchTier)
+{
+    return watchTier >= HFC_WATCH_TIER_HF ? 6
+         : watchTier >= HFC_WATCH_TIER_SUPER ? 4 : 3;
+}
+
+// 0: Alpha/Hyper; 1: Super/Overloaded/Enraged; 2: Ancestral.
+// Titan+ remain permanently unavailable in the standard market.
+u8 HorizonMarketMutationGradeForTier(u8 watchTier)
+{
+    return watchTier >= HFC_WATCH_TIER_HF ? 2
+         : watchTier >= HFC_WATCH_TIER_SUPER ? 1 : 0;
+}
+
+u8 HorizonMarketGetVisibleOfferCount(void)
+{
+    return HorizonMarketOfferCountForTier(HfcWatch_GetTier());
+}
+
 static u8 HorizonMarketBadgeCount(void)
 {
     u8 count = 0;
@@ -130,9 +151,11 @@ static enum Species HorizonMarketRollSpecies(u8 badges, u8 period)
     return SPECIES_ZIGZAGOON;
 }
 
-static u8 HorizonMarketRollMutation(u8 badges)
+static u8 HorizonMarketRollMutation(u8 badges, u8 watchTier)
 {
     u8 result = 0;
+    u8 grade = HorizonMarketMutationGradeForTier(watchTier);
+    u8 oddsBonus = 1 + grade;
     enum MutationTier highestTier = MUTATION_TIER_NONE;
     u16 highestRarity = 0;
 
@@ -145,7 +168,12 @@ static u8 HorizonMarketRollMutation(u8 badges)
         if (!MutationTierCanAppearInMarket(entry->mutation) || badges < entry->minBadges)
             continue;
 
-        if (Random32() % entry->denominator == 0
+        if (grade == 0 && entry->mutation != POKEMON_BADGE_ALPHA && entry->mutation != POKEMON_BADGE_HYPER)
+            continue;
+        if (grade == 1 && entry->mutation == POKEMON_BADGE_ANCESTRAL)
+            continue;
+
+        if (Random32() % max(1, entry->denominator / oddsBonus) == 0
          && (tier > highestTier || (tier == highestTier && entry->denominator > highestRarity)))
         {
             result = i + 1;
@@ -177,6 +205,9 @@ void HorizonMarketRefresh(void)
     u16 day = (u16)RtcGetLocalDayCount();
     u8 period = HorizonMarketPeriod();
     u8 badges = HorizonMarketBadgeCount();
+    u8 watchTier = HfcWatch_GetTier();
+    u8 qualityBadges = min(badges, watchTier >= HFC_WATCH_TIER_HF ? 8
+                                  : watchTier >= HFC_WATCH_TIER_SUPER ? 4 : 2);
 
     if (VarGet(VAR_HORIZON_MARKET_VERSION) == HORIZON_STOCK_VERSION
      && VarGet(VAR_HORIZON_MARKET_BADGES) == badges)
@@ -199,8 +230,8 @@ void HorizonMarketRefresh(void)
 
     for (u8 i = 0; i < HORIZON_MARKET_OFFER_COUNT; i++)
     {
-        enum Species species = HorizonMarketRollSpecies(badges, period);
-        u8 mutation = HorizonMarketRollMutation(badges);
+        enum Species species = HorizonMarketRollSpecies(qualityBadges, period);
+        u8 mutation = HorizonMarketRollMutation(qualityBadges, watchTier);
 
         // Independent RNG for each stock slot. Retry duplicates only to improve
         // variety; a duplicate after retries is valid and is a separate offer.
@@ -212,7 +243,7 @@ void HorizonMarketRefresh(void)
                     duplicate = TRUE;
             if (!duplicate)
                 break;
-            species = HorizonMarketRollSpecies(badges, period);
+            species = HorizonMarketRollSpecies(qualityBadges, period);
         }
         selected[i] = species;
         VarSet(HorizonMarketSpeciesVar(i), species);
@@ -232,14 +263,14 @@ void HorizonMarketRefresh(void)
 
 enum Species HorizonMarketGetSpecies(u8 slot)
 {
-    if (slot >= HORIZON_MARKET_OFFER_COUNT)
+    if (slot >= HorizonMarketGetVisibleOfferCount())
         return SPECIES_NONE;
     return VarGet(HorizonMarketSpeciesVar(slot));
 }
 
 bool8 HorizonMarketOfferSold(u8 slot)
 {
-    if (slot >= HORIZON_MARKET_OFFER_COUNT)
+    if (slot >= HorizonMarketGetVisibleOfferCount())
         return TRUE;
     return (VarGet(VAR_HORIZON_MARKET_STATUS) & HORIZON_MARKET_SOLD(slot)) != 0;
 }
@@ -248,7 +279,7 @@ static u8 HorizonMarketGetMutationCode(u8 slot)
 {
     u16 codes;
 
-    if (slot >= HORIZON_MARKET_OFFER_COUNT)
+    if (slot >= HorizonMarketGetVisibleOfferCount())
         return 0;
 
     if (HorizonMarketOfferSold(slot))

@@ -1,5 +1,6 @@
 #include "global.h"
 #include "horizon_goods.h"
+#include "hfc_watch.h"
 #include "event_data.h"
 #include "random.h"
 #include "constants/items.h"
@@ -67,6 +68,18 @@ static const enum Item sHorizonTypeGems[] =
 #include "constants/blood_gears.h"
 #undef GEAR_BLOOD_VARIANT
 };
+
+u8 HorizonGoodsItemCountForTier(u8 watchTier)
+{
+    return watchTier >= HFC_WATCH_TIER_HF ? HORIZON_GOODS_ITEM_COUNT
+         : watchTier >= HFC_WATCH_TIER_SUPER ? 7 : 5;
+}
+
+u8 HorizonGoodsDiscCountForTier(u8 watchTier)
+{
+    return watchTier >= HFC_WATCH_TIER_HF ? HORIZON_GOODS_DISC_COUNT
+         : watchTier >= HFC_WATCH_TIER_SUPER ? 4 : 3;
+}
 
 static u32 HorizonGoodsNextRandom(u32 *seed)
 {
@@ -196,6 +209,7 @@ const u16 *HorizonGoodsGetItems(void)
     seed = HorizonGoodsSavedSeed(0xC33D97B9u);
     sHorizonItems[HORIZON_GOODS_ITEM_COUNT - 1] = sHorizonTypeGems[HorizonGoodsNextRandom(&seed) % ARRAY_COUNT(sHorizonTypeGems)];
     sHorizonItems[HORIZON_GOODS_ITEM_COUNT] = ITEM_NONE;
+    sHorizonItems[HorizonGoodsItemCountForTier(HfcWatch_GetTier())] = ITEM_NONE;
     return sHorizonItems;
 }
 
@@ -205,5 +219,6 @@ const u16 *HorizonGoodsGetDiscs(void)
     HorizonGoodsBuildList(sHorizonDiscPool, ARRAY_COUNT(sHorizonDiscPool),
                           sHorizonDiscs, HORIZON_GOODS_DISC_COUNT,
                           HorizonGoodsSavedSeed(0x7338C71Du));
+    sHorizonDiscs[HorizonGoodsDiscCountForTier(HfcWatch_GetTier())] = ITEM_NONE;
     return sHorizonDiscs;
 }

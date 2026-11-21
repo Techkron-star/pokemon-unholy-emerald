@@ -1,5 +1,6 @@
 #include "global.h"
 #include "horizon_goods.h"
+#include "hfc_watch.h"
 #include "event_data.h"
 #include "test/test.h"
 #include "constants/items.h"
@@ -14,6 +15,8 @@ TEST("Horizon goods lists are deterministic for the same saved market")
     u16 items[HORIZON_GOODS_ITEM_COUNT + 1];
     u16 discs[HORIZON_GOODS_DISC_COUNT + 1];
     const u16 *actual;
+    u8 itemCount = HorizonGoodsItemCountForTier(HfcWatch_GetTier());
+    u8 discCount = HorizonGoodsDiscCountForTier(HfcWatch_GetTier());
 
     VarSet(VAR_HORIZON_GOODS_SEED_A, 0x4A31);
     VarSet(VAR_HORIZON_GOODS_SEED_B, 0x9B27);
@@ -43,23 +46,23 @@ TEST("Horizon goods lists are deterministic for the same saved market")
     EXPECT_EQ(items[3], ITEM_LINKING_CORD);
     EXPECT(items[HORIZON_GOODS_ITEM_COUNT - 1] >= ITEM_NORMAL_GEM);
     EXPECT(items[HORIZON_GOODS_ITEM_COUNT - 1] <= ITEM_FAIRY_GEM);
-    EXPECT_EQ(items[HORIZON_GOODS_ITEM_COUNT], ITEM_NONE);
-    EXPECT_EQ(discs[HORIZON_GOODS_DISC_COUNT], ITEM_NONE);
+    EXPECT_EQ(items[itemCount], ITEM_NONE);
+    EXPECT_EQ(discs[discCount], ITEM_NONE);
 
-    for (u8 i = 3; i < HORIZON_GOODS_ITEM_COUNT; i++)
+    for (u8 i = 3; i < itemCount; i++)
     {
         EXPECT_NE(items[i], ITEM_NONE);
         EXPECT_NE(items[i], ITEM_ULTRA_BALL);
         EXPECT_NE(items[i], ITEM_RARE_CANDY);
-        for (u8 j = i + 1; j < HORIZON_GOODS_ITEM_COUNT; j++)
+        for (u8 j = i + 1; j < itemCount; j++)
             EXPECT_NE(items[i], items[j]);
     }
 
-    for (u8 i = 0; i < HORIZON_GOODS_DISC_COUNT; i++)
+    for (u8 i = 0; i < discCount; i++)
     {
         EXPECT_NE(discs[i], ITEM_NONE);
         EXPECT_NE(discs[i], ITEM_TM26); // TM26 requires seven badges.
-        for (u8 j = i + 1; j < HORIZON_GOODS_DISC_COUNT; j++)
+        for (u8 j = i + 1; j < discCount; j++)
             EXPECT_NE(discs[i], discs[j]);
     }
 

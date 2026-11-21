@@ -7,6 +7,7 @@
 #include "fishing.h"
 #include "follower_npc.h"
 #include "hfc_watch_services.h"
+#include "unholy_qol.h"
 #include "item.h"
 #include "random.h"
 #include "field_player_avatar.h"
@@ -1051,6 +1052,9 @@ bool8 UpdateRepelCounter(void)
     if (InUnionRoom() == TRUE)
         return FALSE;
 
+    if (!isLure && UnholyQolIsEnabled(UQOL_INFINITE_REPEL))
+        return FALSE; // Retain existing spray steps while the free HF tool is on.
+
     if (steps != 0)
     {
         steps--;
@@ -1081,7 +1085,7 @@ bool8 IsWildLevelAllowedByRepel(u8 wildLevel)
 {
     u8 i;
 
-    if (!REPEL_STEP_COUNT)
+    if (!REPEL_STEP_COUNT && !UnholyQolIsEnabled(UQOL_INFINITE_REPEL))
         return TRUE;
 
     for (i = 0; i < PARTY_SIZE; i++)

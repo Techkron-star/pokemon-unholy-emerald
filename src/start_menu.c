@@ -336,9 +336,9 @@ static const u8 *const sUnholyCraftStatuses[] =
 // replacing a held item. Repeating a recipe creates another physical copy.
 static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
 {
-    { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE01_GET, 1,
+    { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE03_GET, 1,
       {{ ITEM_EXP_SHARE, 1 }} },
-    { ITEM_OVERLOADED_EXP_SHARE, sUnholyRecipeOverloadedExp, FLAG_BADGE04_GET, 2,
+    { ITEM_OVERLOADED_EXP_SHARE, sUnholyRecipeOverloadedExp, FLAG_BADGE06_GET, 2,
       {{ ITEM_SUPER_EXP_SHARE, 1 }, { ITEM_NUGGET, 1 }} },
     { ITEM_GEAR_VISOR_COSMICO, sUnholyRecipeVisor, 0, 3,
       {{ ITEM_SPELL_TAG, 2 }, { ITEM_MOON_STONE, 2 }, { ITEM_STAR_PIECE, 1 }} },

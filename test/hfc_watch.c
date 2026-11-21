@@ -1,6 +1,9 @@
 #include "global.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
+#include "horizon_market.h"
+#include "horizon_goods.h"
+#include "unholy_qol.h"
 #include "event_data.h"
 #include "item.h"
 #include "string_util.h"
@@ -38,16 +41,16 @@ TEST("HFC Watch locked rows explain tier, badges and story without granting acce
     EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_STORAGE, progress),
         COMPOUND_STRING("REQUIRES SUPER POKé WATCH")), 0);
     EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_STORAGE, progress),
-        COMPOUND_STRING("2 BADGES")), 0);
+        COMPOUND_STRING("READY")), 0);
     EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_CRAFTING, progress),
         COMPOUND_STRING("UNLOCK CRAFTING AFTER ROXANNE")), 0);
-    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress),
-        COMPOUND_STRING("8 BADGES")), 0);
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_LAB, progress),
+        COMPOUND_STRING("3 BADGES")), 0);
     EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, progress),
         COMPOUND_STRING("UNAVAILABLE")), 0);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress), HFC_WATCH_NEEDS_BADGES);
-    progress.badges = 8;
-    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, progress),
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_LAB, progress), HFC_WATCH_NEEDS_BADGES);
+    progress.badges = 3;
+    EXPECT_EQ(StringCompare(HfcWatch_GetRequirement(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_LAB, progress),
         COMPOUND_STRING("READY")), 0);
 }
 
@@ -78,12 +81,11 @@ TEST("HFC Watch tiers add the features the design assigns")
 {
     EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_HORIZON_SHOP));
     EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_POKENAV));
-    EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_POKELOCATOR));
+    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_POKELOCATOR));
+    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_TOOLS));
     EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_POKELOCATOR));
-    EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_MUTATOR));
-    EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_SIMULATOR));
-    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR));
-    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR));
+    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_LAB));
+    EXPECT(HfcWatch_TierHasFeature(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_LAB));
     EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_NONE, HFC_WATCH_FEATURE_HORIZON_SHOP));
     EXPECT(!HfcWatch_TierHasFeature(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT));
 }
@@ -95,25 +97,25 @@ TEST("HFC Watch opens the basic PokeNav at zero badges and lists working tools")
 
     EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_NONE, start, list), 0);
 
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, start, list), 2);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, start, list), 4);
     EXPECT_EQ(list[0], HFC_WATCH_FEATURE_HORIZON_SHOP);
     EXPECT_EQ(list[1], HFC_WATCH_FEATURE_POKENAV);
-
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_SUPER, start, list), 3);
     EXPECT_EQ(list[2], HFC_WATCH_FEATURE_POKELOCATOR);
+    EXPECT_EQ(list[3], HFC_WATCH_FEATURE_TOOLS);
 
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_HF, start, list), 4);
-    EXPECT_EQ(list[3], HFC_WATCH_FEATURE_ARCHIVE);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_SUPER, start, list), 6);
+    EXPECT_EQ(list[4], HFC_WATCH_FEATURE_STORAGE);
+    EXPECT_EQ(list[5], HFC_WATCH_FEATURE_ARCHIVE);
+
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_HF, start, list), 6);
 }
 
-TEST("HFC Watch paid services require the HF tier and their own badge thresholds")
+TEST("HFC Watch laboratory opens at Super but the mutator subtool requires HF")
 {
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 3}), HFC_WATCH_NEEDS_BADGES);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_SIMULATOR, (struct HfcWatchProgress){.badges = 4}), HFC_WATCH_READY);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 7}), HFC_WATCH_NEEDS_BADGES);
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_MUTATOR, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_READY);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_LAB, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_LAB, (struct HfcWatchProgress){.badges = 2}), HFC_WATCH_NEEDS_BADGES);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_LAB, (struct HfcWatchProgress){.badges = 3}), HFC_WATCH_READY);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_LAB, (struct HfcWatchProgress){.badges = 5}), HFC_WATCH_READY);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_COUNT, (struct HfcWatchProgress){.badges = 8}), HFC_WATCH_WRONG_TIER);
 }
 
@@ -124,14 +126,14 @@ TEST("HFC Watch preserves the crafting unlock when migrating it into the hub")
 
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_CRAFTING, progress), HFC_WATCH_NEEDS_UNLOCK);
     progress.craftingUnlocked = TRUE;
-    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, progress, list), 3);
+    EXPECT_EQ(HfcWatch_BuildMenu(HFC_WATCH_TIER_POKE, progress, list), 5);
     EXPECT_EQ(list[2], HFC_WATCH_FEATURE_CRAFTING);
 }
 
 TEST("HFC Watch gates Boxes, the Mutant Signal and the Daily Raid by tier and badges")
 {
     struct HfcWatchProgress progress = {.badges = 1};
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_STORAGE, progress), HFC_WATCH_NEEDS_BADGES);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_STORAGE, progress), HFC_WATCH_READY);
 
     progress.badges = 2;
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_POKE, HFC_WATCH_FEATURE_STORAGE, progress), HFC_WATCH_WRONG_TIER);
@@ -139,13 +141,74 @@ TEST("HFC Watch gates Boxes, the Mutant Signal and the Daily Raid by tier and ba
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_FREQUENCY, progress), HFC_WATCH_NEEDS_BADGES);
 
     progress.badges = 3;
-    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_FREQUENCY, progress), HFC_WATCH_READY);
+    EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_SUPER, HFC_WATCH_FEATURE_FREQUENCY, progress), HFC_WATCH_READY);
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_RAID, progress), HFC_WATCH_NEEDS_BADGES);
 
     progress.badges = 4;
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_RAID, progress), HFC_WATCH_NEEDS_BADGES);
     progress.badges = 5;
     EXPECT_EQ(HfcWatch_GetAccess(HFC_WATCH_TIER_HF, HFC_WATCH_FEATURE_RAID, progress), HFC_WATCH_READY);
+}
+
+TEST("Watch tools offer read-only trackers early and gate Flash and Infinity by hardware")
+{
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_AUTO_REPEL), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FIELD_ASSIST), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_EGG_TRACKER), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_AUTO_HEAL), HFC_WATCH_TIER_POKE);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_FLASHER), HFC_WATCH_TIER_SUPER);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_INFINITY_REPEL), HFC_WATCH_TIER_HF);
+    EXPECT_EQ(HfcWatch_ToolMinTier(HFC_WATCH_TOOL_COUNT), HFC_WATCH_TIER_COUNT);
+}
+
+TEST("Auto Heal consumes real medicine without reviving a fainted teammate")
+{
+    u16 oldFlags = VarGet(VAR_UNHOLY_QOL_FLAGS);
+    u16 hp, maxHp;
+    struct Pokemon *party = gParties[B_TRAINER_PLAYER];
+
+    SetBagItemsPointers();
+    ClearBag();
+    CreateMonWithIVs(&party[0], SPECIES_WOBBUFFET, 30, 0, OTID_STRUCT_PRESET(0), 10);
+    CreateMonWithIVs(&party[1], SPECIES_WOBBUFFET, 30, 0, OTID_STRUCT_PRESET(0), 10);
+    gPartiesCount[B_TRAINER_PLAYER] = 2;
+    maxHp = GetMonData(&party[0], MON_DATA_MAX_HP);
+    hp = maxHp - 70;
+    SetMonData(&party[0], MON_DATA_HP, &hp);
+    hp = 0;
+    SetMonData(&party[1], MON_DATA_HP, &hp);
+    VarSet(VAR_UNHOLY_QOL_FLAGS, (1 << 15) | (1 << UQOL_AUTO_HEAL));
+    EXPECT(AddBagItem(ITEM_POTION, 1));
+    EXPECT(AddBagItem(ITEM_SUPER_POTION, 1));
+    EXPECT(AddBagItem(ITEM_MAX_POTION, 1));
+
+    // Even a saved ON preference does nothing until the basic Watch is owned.
+    UnholyQolAutoHealAfterBattle();
+    EXPECT_EQ(GetMonData(&party[0], MON_DATA_HP), maxHp - 70);
+    EXPECT(AddBagItem(ITEM_POKE_WATCH, 1));
+    UnholyQolAutoHealAfterBattle();
+    EXPECT_EQ(GetMonData(&party[0], MON_DATA_HP), maxHp);
+    EXPECT_EQ(GetMonData(&party[1], MON_DATA_HP), 0);
+    EXPECT(!CheckBagHasItem(ITEM_POTION, 1));
+    EXPECT(!CheckBagHasItem(ITEM_SUPER_POTION, 1));
+    EXPECT(CheckBagHasItem(ITEM_MAX_POTION, 1));
+    VarSet(VAR_UNHOLY_QOL_FLAGS, oldFlags);
+}
+
+TEST("Horizon offers and mutation grades grow with Watch hardware, never above Ancestral")
+{
+    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_POKE), 3);
+    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_SUPER), 4);
+    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_HF), 6);
+    EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_POKE), 0);
+    EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_SUPER), 1);
+    EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_HF), 2);
+    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_POKE), 5);
+    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_SUPER), 7);
+    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_HF), 9);
+    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_POKE), 3);
+    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_SUPER), 4);
+    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_HF), 6);
 }
 
 TEST("HFC Watch Raid unlocks four difficulties and varies capture odds to hundredths")

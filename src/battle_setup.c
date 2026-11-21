@@ -27,6 +27,7 @@
 #include "gym_leader_rematch.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
+#include "unholy_qol.h"
 #include "item.h"
 #include "load_save.h"
 #include "malloc.h"
@@ -758,11 +759,23 @@ static void DowngradeBadPoison(void)
     }
 }
 
+static void TryUnholyAutoHealAfterBattle(void)
+{
+    // The watch is a field convenience, never a way to refill between raid
+    // rounds or during Battle Frontier / Pyramid / Pike challenges.
+    if (IsPlayerDefeated(gBattleOutcome)
+     || (gBattleTypeFlags & (BATTLE_TYPE_RAID | BATTLE_TYPE_FRONTIER))
+     || InBattlePike()
+     || CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE
+     || InTrainerHillChallenge())
+        return;
+    UnholyQolAutoHealAfterBattle();
+}
+
 static void CB2_EndWildBattle(void)
 {
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
-    gBattleTypeFlags &= ~BATTLE_TYPE_RAID;
 
     if (IsNPCFollowerWildBattle())
     {
@@ -772,6 +785,9 @@ static void CB2_EndWildBattle(void)
          || FlagGet(FNPC_FLAG_HEAL_AFTER_FOLLOWER_BATTLE)))
             HealPlayerParty();
     }
+
+    TryUnholyAutoHealAfterBattle();
+    gBattleTypeFlags &= ~BATTLE_TYPE_RAID;
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InBattlePike())
     {
@@ -800,6 +816,7 @@ static void CB2_EndScriptedWildBattle(void)
     sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
+    TryUnholyAutoHealAfterBattle();
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE)
     {
@@ -1664,6 +1681,8 @@ static void CB2_EndTrainerBattle(void)
             HealPlayerParty();
     }
 
+    TryUnholyAutoHealAfterBattle();
+
     if (TRAINER_BATTLE_PARAM.earlyRival)
     {
         if (IsPlayerDefeated(gBattleOutcome) == TRUE)
@@ -1713,6 +1732,7 @@ static void CB2_EndTrainerBattle(void)
 
 static void CB2_EndRematchBattle(void)
 {
+    TryUnholyAutoHealAfterBattle();
     if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
     {
         DowngradeBadPoison();
