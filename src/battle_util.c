@@ -550,6 +550,10 @@ void HandleAction_UseMove(void)
     SetTypeBeforeUsingMove(gChosenMove, gBattlerAttacker, GetBattlerAbility(gBattlerAttacker), GetBattlerHoldEffect(gBattlerAttacker));
     gBattleStruct->baseMove = gCurrentMove;
 
+    // Snapshot and activate move-triggered artifacts once per action, before
+    // the battle script calculates damage. Chain actions enter here separately.
+    // Use the resolved move below after Z/Max conversion instead (see call).
+
     // check Z-Move used
     if (GetActiveGimmick(gBattlerAttacker) == GIMMICK_Z_MOVE
      && GetMoveCategory(gCurrentMove) != DAMAGE_CATEGORY_STATUS // Check the actual type, not the dynamic one
@@ -562,6 +566,8 @@ void HandleAction_UseMove(void)
     {
         gCurrentMove = gChosenMove = GetMaxMove(gBattlerAttacker, gCurrentMove);
     }
+
+    Gear_OnMoveUsed(gBattlerAttacker, gCurrentMove, GetMoveType(gCurrentMove));
 
     gBattleStruct->eventState.atkCanceler = 0;
     ClearDamageCalcResults();
