@@ -811,7 +811,7 @@ static void HorizonDrawRootPreview(u8 panel)
 
     if (sHorizonSelectedTab == 0)
     {
-        for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
+        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
         {
             u8 col = slot % 3;
             u8 row = slot / 3;
@@ -892,7 +892,7 @@ static void HorizonDrawInfo(void)
 
         // Six offers occupy a native 3x2 grid instead of a cramped vertical
         // list. Every slot retains its persistent state, price and rare badge.
-        for (u8 slot = 0; slot < HORIZON_MARKET_OFFER_COUNT; slot++)
+        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
         {
             u8 x = 5 + (slot % 3) * 70;
             u8 y = 28 + (slot / 3) * 28;
@@ -1202,11 +1202,11 @@ static void Task_ShopMenu(u8 taskId)
         if (JOY_REPEAT(DPAD_ANY))
         {
             if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
-                sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HORIZON_MARKET_OFFER_COUNT;
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HorizonMarketGetVisibleOfferCount();
             else if (JOY_REPEAT(DPAD_LEFT))
-                sHorizonPokemonSelection = (sHorizonPokemonSelection + HORIZON_MARKET_OFFER_COUNT - 1) % HORIZON_MARKET_OFFER_COUNT;
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + HorizonMarketGetVisibleOfferCount() - 1) % HorizonMarketGetVisibleOfferCount();
             else
-                sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HORIZON_MARKET_OFFER_COUNT;
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + 1) % HorizonMarketGetVisibleOfferCount();
             sHorizonPokemonConfirm = FALSE;
             sHorizonPokemonStatus = 0;
             PlaySE(SE_SELECT);
@@ -1325,6 +1325,7 @@ static void Task_HorizonPokemon(u8 taskId)
     HorizonMarketRefresh();
     HorizonMarketMarkPokemonSeen();
     sHorizonPokemonBrowsing = TRUE;
+    sHorizonPokemonSelection %= HorizonMarketGetVisibleOfferCount();
     sHorizonPokemonConfirm = FALSE;
     // Preserve focus while opening and closing this catalogue repeatedly.
     // The purchase status is transient; the offer index is session-local.

@@ -52,7 +52,7 @@ Safari, Pirámide, batalla en curso, bloqueos de encuentros/captura e impediment
 
 ## Señal y presentación
 
-**Tools → Mutant Signal** conserva las nueve mutaciones, tiradas base `1/N`, cargas y confirmación del servicio existente: HF Watch, medallas/reloj, una activación diaria y diez encuentros del mapa. La mejora C/B es relativa; A/S/Omega mantienen sus tasas. Consultar nunca consume cargas; Search confirmado usa el generador nativo y consume una.
+**Watch → Mutant Signal** conserva las nueve mutaciones, tiradas base `1/N`, cargas y confirmación del servicio existente: Super Watch desde la tercera medalla, una activación diaria y diez encuentros del mapa. La mejora C/B es relativa; A/S/Omega mantienen sus tasas. Consultar nunca consume cargas; Search confirmado usa el generador nativo y consume una. **Watch → Tools** agrupa únicamente utilidades de campo (repelentes, Flash, equipo y huevos).
 
 Eclipse y Daylight comparten geometría 240×160. Los textos reservan 12 píxeles reales por línea; catálogo y modales usan tiles por debajo del límite de 512 del bloque del campo y liberan iconos/paletas al regresar.
 

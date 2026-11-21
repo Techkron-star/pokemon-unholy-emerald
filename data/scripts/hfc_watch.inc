@@ -1,6 +1,6 @@
 @ Hand-over of the HFC Watch tiers. Each script gives its tier and removes the lower ones,
 @ so the bag keeps a single watch; running one twice changes nothing.
-@ Norman gives the first tier after Wally, Brawly gives Super, and Norman gives HF after battle.
+@ Wally awards Basic, Wattson awards Super, and Norman awards HF after battle.
 EventScript_GivePokeWatch::
 	checkitem ITEM_POKE_WATCH, 1
 	goto_if_eq VAR_RESULT, TRUE, EventScript_GivePokeWatch_Done

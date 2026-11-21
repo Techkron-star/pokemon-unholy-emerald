@@ -2258,7 +2258,7 @@ static void Cmd_getexp(void)
                         if (*exp == 0)
                             *exp = 1;
 
-                        gBattleStruct->expShareExpValue = calculatedExp / 2 / viaExpShare;
+                        gBattleStruct->expShareExpValue = (share == ITEM_EXP_SHARE ? calculatedExp * 3 / 4 : calculatedExp / 2) / viaExpShare;
                         if (gBattleStruct->expShareExpValue == 0)
                             gBattleStruct->expShareExpValue = 1;
                     }
@@ -2274,7 +2274,7 @@ static void Cmd_getexp(void)
             else
             {
                 *exp = calculatedExp;
-                gBattleStruct->expShareExpValue = hasExpSharePlus ? calculatedExp : calculatedExp / 2;
+                gBattleStruct->expShareExpValue = hasExpSharePlus ? calculatedExp : share == ITEM_EXP_SHARE ? calculatedExp * 3 / 4 : calculatedExp / 2;
                 if (gBattleStruct->expShareExpValue == 0)
                     gBattleStruct->expShareExpValue = 1;
             }

@@ -4,6 +4,8 @@
 #include "hfc_simulator.h"
 #include "hfc_watch.h"
 #include "hfc_watch_services.h"
+#include "battle.h"
+#include "unholy_qol.h"
 #include "event_data.h"
 #include "event_object_lock.h"
 #include "event_object_movement.h"
@@ -15,6 +17,7 @@
 #include "mutation_tiers.h"
 #include "overworld.h"
 #include "palette.h"
+#include "pokemon.h"
 #include "pokelocator.h"
 #include "pokenav.h"
 #include "pokemon_storage_system.h"
@@ -28,6 +31,7 @@
 #include "window.h"
 #include "constants/flags.h"
 #include "constants/items.h"
+#include "constants/item.h"
 #include "constants/songs.h"
 #include "constants/vars.h"
 #include "new_game.h"
@@ -43,12 +47,12 @@ static const u8 sFeatureIcons[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_POKENAV] = UNHOLY_UI_ICON_NAV,
     [HFC_WATCH_FEATURE_CRAFTING] = UNHOLY_UI_ICON_CRAFT,
     [HFC_WATCH_FEATURE_POKELOCATOR] = UNHOLY_UI_ICON_LOCATOR,
+    [HFC_WATCH_FEATURE_TOOLS] = UNHOLY_UI_ICON_TOOLS,
     [HFC_WATCH_FEATURE_STORAGE] = UNHOLY_UI_ICON_BOXES,
     [HFC_WATCH_FEATURE_FREQUENCY] = UNHOLY_UI_ICON_SIGNAL,
     [HFC_WATCH_FEATURE_RAID] = UNHOLY_UI_ICON_RAID,
     [HFC_WATCH_FEATURE_ARCHIVE] = UNHOLY_UI_ICON_ARCHIVE,
-    [HFC_WATCH_FEATURE_MUTATOR] = UNHOLY_UI_ICON_MUTATOR,
-    [HFC_WATCH_FEATURE_SIMULATOR] = UNHOLY_UI_ICON_SIMULATOR,
+    [HFC_WATCH_FEATURE_LAB] = UNHOLY_UI_ICON_MUTATOR,
 };
 
 static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
@@ -57,18 +61,20 @@ static const u8 *const sFeatureNames[HFC_WATCH_FEATURE_COUNT] =
     [HFC_WATCH_FEATURE_POKENAV] = COMPOUND_STRING("POKéNAV"),
     [HFC_WATCH_FEATURE_CRAFTING] = COMPOUND_STRING("CRAFTING"),
     [HFC_WATCH_FEATURE_POKELOCATOR] = COMPOUND_STRING("LOCATOR"),
+    [HFC_WATCH_FEATURE_TOOLS] = COMPOUND_STRING("TOOLS"),
     [HFC_WATCH_FEATURE_STORAGE] = COMPOUND_STRING("POKéMON BOXES"),
     [HFC_WATCH_FEATURE_FREQUENCY] = COMPOUND_STRING("MUTANT SIGNAL"),
     [HFC_WATCH_FEATURE_RAID] = COMPOUND_STRING("DAILY RAID"),
     [HFC_WATCH_FEATURE_ARCHIVE] = COMPOUND_STRING("ANOMALY ARCHIVE"),
-    [HFC_WATCH_FEATURE_MUTATOR] = COMPOUND_STRING("MUTATOR"),
-    [HFC_WATCH_FEATURE_SIMULATOR] = COMPOUND_STRING("POKé SIMULATOR"),
+    [HFC_WATCH_FEATURE_LAB] = COMPOUND_STRING("LABORATORIO"),
 };
 
 static EWRAM_DATA u8 sWatchWindowId;
 static EWRAM_DATA u8 sHubCursor;
 static EWRAM_DATA struct UnholyUiPalette sWatchPalette;
 static EWRAM_DATA u8 sLastFeature;
+static EWRAM_DATA u8 sToolCursor;
+static EWRAM_DATA u8 sLabCursor;
 static EWRAM_DATA bool8 sReturnToStart;
 static EWRAM_DATA enum HfcRaidDifficulty sRaidDifficulty;
 static EWRAM_DATA bool8 sRaidCaptureSelected;
@@ -307,6 +313,103 @@ static void RenderRaid(void)
     UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("B:BACK"));
 }
 
+static bool8 IsFieldAssistEnabled(void)
+{
+    return UnholyQolIsEnabled(UQOL_AUTO_CUT)
+        && UnholyQolIsEnabled(UQOL_AUTO_STRENGTH)
+        && UnholyQolIsEnabled(UQOL_AUTO_ROCK_SMASH)
+        && UnholyQolIsEnabled(UQOL_AUTO_SURF);
+}
+
+static bool8 IsToolAvailable(u8 tool)
+{
+    if (HfcWatch_GetTier() < HfcWatch_ToolMinTier(tool))
+        return FALSE;
+    if (tool == HFC_WATCH_TOOL_FLASHER)
+        return FlagGet(IS_FRLG ? FLAG_BADGE01_GET : FLAG_BADGE02_GET)
+            && CheckBagHasItem(ITEM_HM_FLASH, 1);
+    return TRUE;
+}
+
+static void RenderTools(void)
+{
+    static const u8 *const names[HFC_WATCH_TOOL_COUNT] =
+    {
+        COMPOUND_STRING("REPEL AUTO"),
+        COMPOUND_STRING("CAMPO AUTO"),
+        COMPOUND_STRING("HUEVOS"),
+        COMPOUND_STRING("EQUIPO"),
+        COMPOUND_STRING("FLASHER"),
+        COMPOUND_STRING("INFINITY REPEL"),
+    };
+    u8 text[32];
+    for (u8 tool = 0; tool < HFC_WATCH_TOOL_COUNT; tool++)
+    {
+        const u8 *detail = NULL;
+        bool8 available = IsToolAvailable(tool);
+        if (!available)
+            detail = HfcWatch_GetTier() < HfcWatch_ToolMinTier(tool)
+                ? COMPOUND_STRING("OTRO RELOJ") : COMPOUND_STRING("HM + MEDALLA");
+        else if (tool == HFC_WATCH_TOOL_AUTO_REPEL)
+            detail = UnholyQolIsEnabled(UQOL_AUTO_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_FIELD_ASSIST)
+            detail = IsFieldAssistEnabled() ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_FLASHER)
+            detail = UnholyQolIsEnabled(UQOL_AUTO_FLASH) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_INFINITY_REPEL)
+            detail = UnholyQolIsEnabled(UQOL_INFINITE_REPEL) ? COMPOUND_STRING("ON") : COMPOUND_STRING("OFF");
+        else if (tool == HFC_WATCH_TOOL_EGG_TRACKER)
+        {
+            u8 eggs = 0, cycles = 255;
+            for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
+                if (GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG))
+                {
+                    eggs++;
+                    cycles = min(cycles, GetMonData(&gPlayerParty[i], MON_DATA_FRIENDSHIP));
+                }
+            u8 *end = ConvertUIntToDecimalStringN(text, eggs, STR_CONV_MODE_LEFT_ALIGN, 1);
+            end = StringCopy(end, COMPOUND_STRING(" H / "));
+            ConvertUIntToDecimalStringN(end, eggs ? cycles : 0, STR_CONV_MODE_LEFT_ALIGN, 3);
+            detail = text;
+        }
+        else if (tool == HFC_WATCH_TOOL_PARTY_STATUS)
+        {
+            u8 ready = 0;
+            for (u8 i = 0; i < gPartiesCount[B_TRAINER_PLAYER]; i++)
+                if (!GetMonData(&gPlayerParty[i], MON_DATA_IS_EGG)
+                 && GetMonData(&gPlayerParty[i], MON_DATA_HP))
+                    ready++;
+            u8 *end = ConvertUIntToDecimalStringN(text, ready, STR_CONV_MODE_LEFT_ALIGN, 1);
+            end = StringCopy(end, COMPOUND_STRING("/"));
+            end = ConvertUIntToDecimalStringN(end, gPartiesCount[B_TRAINER_PLAYER], STR_CONV_MODE_LEFT_ALIGN, 1);
+            StringCopy(end, COMPOUND_STRING(" LISTOS"));
+            detail = text;
+        }
+        UnholyUi_ChoiceRow(sWatchWindowId, 22 + 15 * tool, names[tool], detail, tool == sToolCursor);
+    }
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 113, 195,
+        sToolCursor == HFC_WATCH_TOOL_EGG_TRACKER ? COMPOUND_STRING("C = ciclos restantes del proximo huevo")
+      : sToolCursor == HFC_WATCH_TOOL_AUTO_REPEL ? COMPOUND_STRING("Reutiliza repelentes de la mochila")
+      : sToolCursor == HFC_WATCH_TOOL_INFINITY_REPEL ? COMPOUND_STRING("Sin consumo; respeta niveles salvajes")
+      : sToolCursor == HFC_WATCH_TOOL_FIELD_ASSIST ? COMPOUND_STRING("Solo MO y medallas desbloqueadas")
+      : sToolCursor == HFC_WATCH_TOOL_FLASHER ? COMPOUND_STRING("Alumbra cuevas con MO y medalla")
+      : COMPOUND_STRING("Consulta PS sin curar al equipo"));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:ELEGIR  A:USAR  B:VOLVER"));
+}
+
+static void RenderLaboratory(void)
+{
+    UnholyUi_ChoiceRow(sWatchWindowId, 31, COMPOUND_STRING("SIMULADOR"),
+                       COMPOUND_STRING("SUPER / 3 MED."), sLabCursor == 0);
+    UnholyUi_ChoiceRow(sWatchWindowId, 55, COMPOUND_STRING("MUTADOR"),
+                       HfcWatch_GetTier() >= HFC_WATCH_TIER_HF
+                           ? COMPOUND_STRING("HF DISPONIBLE") : COMPOUND_STRING("REQUIERE HF"), sLabCursor == 1);
+    UnholyUi_Print(sWatchWindowId, FONT_SMALL_NARROW, 8, 83, 192,
+        sLabCursor == 0 ? COMPOUND_STRING("Entrena EV e IV pagando el coste")
+                        : COMPOUND_STRING("Modifica mutaciones pagando el coste"));
+    UnholyUi_Footer(sWatchWindowId, COMPOUND_STRING("UP/DN:ELEGIR  A:ENTRAR  B:VOLVER"));
+}
+
 static void RenderFrequency(void)
 {
     u8 remaining = HfcWatch_GetFrequencyRemaining();
@@ -390,6 +493,12 @@ static void RenderPanel(u8 feature)
     case HFC_WATCH_FEATURE_ARCHIVE:
         RenderArchive();
         break;
+    case HFC_WATCH_FEATURE_TOOLS:
+        RenderTools();
+        break;
+    case HFC_WATCH_FEATURE_LAB:
+        RenderLaboratory();
+        break;
     }
     CopyWindowToVram(sWatchWindowId, COPYWIN_FULL);
 }
@@ -456,6 +565,94 @@ static void HandleRaidPanelInput(u8 taskId)
     }
 }
 
+static void HandleToolsInput(u8 taskId)
+{
+    if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        CloseWatchPanel(taskId);
+        OpenHub();
+    }
+    else if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+    {
+        sToolCursor = (sToolCursor + (JOY_REPEAT(DPAD_UP) ? HFC_WATCH_TOOL_COUNT - 1 : 1)) % HFC_WATCH_TOOL_COUNT;
+        PlaySE(SE_SELECT);
+        RenderPanel(HFC_WATCH_FEATURE_TOOLS);
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        if (!IsToolAvailable(sToolCursor))
+        {
+            PlaySE(SE_FAILURE);
+            return;
+        }
+        switch (sToolCursor)
+        {
+        case HFC_WATCH_TOOL_AUTO_REPEL:
+            UnholyQolToggleOption(UQOL_AUTO_REPEL);
+            break;
+        case HFC_WATCH_TOOL_FIELD_ASSIST:
+        {
+            bool8 turnOn = !IsFieldAssistEnabled();
+            static const enum UnholyQolOption options[] =
+            {
+                UQOL_AUTO_CUT, UQOL_AUTO_STRENGTH, UQOL_AUTO_ROCK_SMASH, UQOL_AUTO_SURF,
+            };
+            for (u8 i = 0; i < ARRAY_COUNT(options); i++)
+                if (UnholyQolIsEnabled(options[i]) != turnOn)
+                    UnholyQolToggleOption(options[i]);
+            break;
+        }
+        case HFC_WATCH_TOOL_FLASHER:
+            UnholyQolToggleOption(UQOL_AUTO_FLASH);
+            if (UnholyQolIsEnabled(UQOL_AUTO_FLASH) && gMapHeader.cave && !FlagGet(FLAG_SYS_USE_FLASH))
+            {
+                FlagSet(FLAG_SYS_USE_FLASH);
+                SetFlashLevel(1);
+                WriteFlashScanlineEffectBuffer(1);
+            }
+            break;
+        case HFC_WATCH_TOOL_INFINITY_REPEL:
+            UnholyQolToggleOption(UQOL_INFINITE_REPEL);
+            break;
+        default:
+            break; // Read-only trackers never change the save.
+        }
+        PlaySE(SE_SELECT);
+        RenderPanel(HFC_WATCH_FEATURE_TOOLS);
+    }
+}
+
+static void HandleLaboratoryInput(u8 taskId)
+{
+    if (JOY_NEW(B_BUTTON))
+    {
+        PlaySE(SE_SELECT);
+        CloseWatchPanel(taskId);
+        OpenHub();
+    }
+    else if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+    {
+        sLabCursor = !sLabCursor;
+        PlaySE(SE_SELECT);
+        RenderPanel(HFC_WATCH_FEATURE_LAB);
+    }
+    else if (JOY_NEW(A_BUTTON))
+    {
+        if (sLabCursor == 1 && HfcWatch_GetTier() < HFC_WATCH_TIER_HF)
+        {
+            PlaySE(SE_FAILURE);
+            return;
+        }
+        PlaySE(SE_SELECT);
+        CloseWatchPanel(taskId);
+        if (sLabCursor == 0)
+            HfcSimulator_Open(OpenHub);
+        else
+            HfcMutator_Open(OpenHub);
+    }
+}
+
 static void Task_HfcWatchPanel(u8 taskId)
 {
     u8 feature = gTasks[taskId].data[0];
@@ -464,6 +661,10 @@ static void Task_HfcWatchPanel(u8 taskId)
 
     if (feature == HFC_WATCH_FEATURE_RAID)
         HandleRaidPanelInput(taskId);
+    else if (feature == HFC_WATCH_FEATURE_TOOLS)
+        HandleToolsInput(taskId);
+    else if (feature == HFC_WATCH_FEATURE_LAB)
+        HandleLaboratoryInput(taskId);
     else if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);
@@ -484,6 +685,8 @@ static void OpenPanel(u8 feature)
         height = 18;
     else if (feature == HFC_WATCH_FEATURE_RAID)
         height = 17;
+    else if (feature == HFC_WATCH_FEATURE_TOOLS || feature == HFC_WATCH_FEATURE_LAB)
+        height = 18;
 
     u8 taskId = CreateTask(Task_HfcWatchPanel, HUB_TASK_PRIORITY);
     if (gTasks[taskId].func != Task_HfcWatchPanel)
@@ -661,16 +864,6 @@ static void Task_HfcWatchHub(u8 taskId)
         CloseWatchWindow();
         DestroyTask(taskId);
         Pokelocator_OpenFromField(OpenHub);
-        break;
-    case HFC_WATCH_FEATURE_SIMULATOR:
-        CloseWatchWindow();
-        DestroyTask(taskId);
-        HfcSimulator_Open(OpenHub);
-        break;
-    case HFC_WATCH_FEATURE_MUTATOR:
-        CloseWatchWindow();
-        DestroyTask(taskId);
-        HfcMutator_Open(OpenHub);
         break;
     default:
         CloseWatchWindow();

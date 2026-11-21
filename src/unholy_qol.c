@@ -3,6 +3,10 @@
 #include "menu.h"
 #include "script_menu.h"
 #include "unholy_qol.h"
+#include "hfc_watch.h"
+#include "item.h"
+#include "constants/flags.h"
+#include "constants/items.h"
 #include "constants/vars.h"
 
 #define QOL_FLAGS_INITIALIZED (1 << 15)
@@ -24,6 +28,10 @@ static const u8 sText_QolSurfOff[] = _("Auto Surf: OFF");
 static const u8 sText_QolTextOn[] = _("Auto Text: ON");
 static const u8 sText_QolTextOff[] = _("Auto Text: OFF");
 static const u8 sText_QolWorldUpdate[] = _("Actualizar mundo");
+static const u8 sText_QolInfinityOn[] = _("Infinity Repel: ON");
+static const u8 sText_QolInfinityOff[] = _("Infinity Repel: OFF");
+static const u8 sText_QolFlashOn[] = _("Flasher: ON");
+static const u8 sText_QolFlashOff[] = _("Flasher: OFF");
 
 static const u8 *const sQolLabels[UQOL_OPTION_COUNT][2] =
 {
@@ -34,6 +42,8 @@ static const u8 *const sQolLabels[UQOL_OPTION_COUNT][2] =
     [UQOL_AUTO_ROCK_SMASH] = {sText_QolSmashOff, sText_QolSmashOn},
     [UQOL_AUTO_SURF]       = {sText_QolSurfOff, sText_QolSurfOn},
     [UQOL_AUTO_DIALOGUE]   = {sText_QolTextOff, sText_QolTextOn},
+    [UQOL_INFINITE_REPEL] = {sText_QolInfinityOff, sText_QolInfinityOn},
+    [UQOL_AUTO_FLASH]     = {sText_QolFlashOff, sText_QolFlashOn},
 };
 
 static EWRAM_DATA u8 sQolMenuCursor = 0;
@@ -52,6 +62,15 @@ bool32 UnholyQolIsEnabled(enum UnholyQolOption option)
         return FALSE;
     if (option == UQOL_AUTO_REPEL)
         return VarGet(VAR_REPEL_AUTO_RENEW) == 2;
+
+    // Never grant a tool after a downgrade or before its normal field unlock.
+    if (option == UQOL_INFINITE_REPEL && HfcWatch_GetTier() < HFC_WATCH_TIER_HF)
+        return FALSE;
+    if (option == UQOL_AUTO_FLASH
+     && (HfcWatch_GetTier() < HFC_WATCH_TIER_SUPER
+      || !FlagGet(IS_FRLG ? FLAG_BADGE01_GET : FLAG_BADGE02_GET)
+      || !CheckBagHasItem(ITEM_HM_FLASH, 1)))
+        return FALSE;
 
     return (GetQolFlags() & (1 << option)) != 0;
 }
@@ -74,21 +93,21 @@ void UnholyQolToggleOption(enum UnholyQolOption option)
 
 void UnholyQolDrawMenu(struct ScriptContext *ctx)
 {
-    struct MenuAction menuItems[UQOL_OPTION_COUNT + 1] = {0};
+    struct MenuAction menuItems[UQOL_GENERAL_OPTION_COUNT + 1] = {0};
     u32 i;
 
-    for (i = 0; i < UQOL_OPTION_COUNT; i++)
+    for (i = 0; i < UQOL_GENERAL_OPTION_COUNT; i++)
         menuItems[i].text = sQolLabels[i][UnholyQolIsEnabled(i)];
-    menuItems[UQOL_OPTION_COUNT].text = sText_QolWorldUpdate;
+    menuItems[UQOL_GENERAL_OPTION_COUNT].text = sText_QolWorldUpdate;
 
-    DrawMultichoiceMenuInternal(1, 1, 0, FALSE, sQolMenuCursor, menuItems, UQOL_OPTION_COUNT + 1);
+    DrawMultichoiceMenuInternal(1, 1, 0, FALSE, sQolMenuCursor, menuItems, UQOL_GENERAL_OPTION_COUNT + 1);
 }
 
 void UnholyQolToggleSelection(struct ScriptContext *ctx)
 {
     u16 choice = gSpecialVar_Result;
 
-    if (choice >= UQOL_OPTION_COUNT)
+    if (choice >= UQOL_GENERAL_OPTION_COUNT)
         return;
     sQolMenuCursor = choice;
     UnholyQolToggleOption(choice);

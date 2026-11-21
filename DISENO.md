@@ -296,14 +296,15 @@ Implementación apilada en los PR #8 → #9 → #10 → #11 → #13, **sin fusio
 | Progreso | Desbloqueo | Regla |
 | --- | --- | --- |
 | **Inicio; al bajar y encontrarse con la madre** | Repartir EXP y otros objetos QoL | La madre entrega las herramientas básicas de conveniencia. Lista adicional pendiente. |
-| **Primera medalla** | Súper Repartir EXP | Cada Pokémon elegible recibe **100 % de la EXP**, sin repartirse la cifra entre el equipo. |
-| **Cuarta medalla** | Repartir EXP Sobrecargado | Se fabrica en Crafteo con el Súper Repartir EXP y una Pepita. Se activa al fabricarlo y se puede apagar desde Objetos Clave. |
-| **Quinta medalla, al recibir el HF** | Poké Simulator | Ajuste de IV y EV por estadística con vista previa y pago al confirmar. |
-| **Octava medalla** | Acceso limitado al Mutator | Máquina de mutaciones genéticas aleatorias. |
-| **Segunda medalla** | **Pokélocator** | Acceso desde el Super Poké Watch. Muestra los Pokémon de la ruta actual. La Señal mutante se abre con el HF. |
+| **Inicio** | Repartir EXP básico | El equipo que no participó recibe **75 % de EXP**; la evolución no llega inmediatamente. |
+| **Tercera medalla** | Súper Repartir EXP | Cada Pokémon elegible recibe **100 % de la EXP**. |
+| **Sexta medalla** | Repartir EXP Sobrecargado | Crafteo con el Súper Repartir EXP y una Pepita; añade entrenamiento de IV e incubación. |
+| **Tercera medalla / reloj Super** | Laboratorio: Simulador | Ajuste de IV y EV por estadística, pagando el coste. |
+| **Quinta medalla / reloj HF** | Laboratorio: Mutador | Máquina de mutaciones genéticas aleatorias, con su coste. |
+| **Reloj básico tras Wally** | **Pokélocator** | Disponible sin esperar una mejora de reloj. La Señal mutante se abre con Super tras Wattson. |
 
 ### Pokélocator
-- El Super Poké Watch de Brawly habilita el acceso por historia. El objeto dedicado permanece disponible en Debug.
+- El Poké Watch básico, recibido tras Wally, habilita el acceso por historia. El objeto dedicado permanece disponible en Debug.
 - Funciona como el **Pokénav de Pokémon Elite Redux**: se abre desde el menú, muestra la lista de especies de la ruta y su información.
 - **Por medallas:** cada medalla desbloquea más información (especies, tasas de encuentro, probabilidad de mutación).
 - **Forzar mutación:** el jugador puede activar un modificador de probabilidad de mutación sobre los salvajes de la ruta. Propuesta de balance (no confirmada): consumo de un recurso por ruta o por encuentro, y topes por medalla.
@@ -353,12 +354,15 @@ Dispositivo de muñeca en tres niveles. El HF Poke Watch es el completo; los otr
 
 | Reloj | Entrega | Funciones |
 |---|---|---|
-| Poké Watch | Norman tras la captura guiada de Wally | Horizon Shop y PokéNav básico. Crafteo tras ganar a Roxanne. |
-| Super Poké Watch | Brawly (Marcial) tras la segunda medalla | Añade Pokélocator y las cajas del PC. |
-| HF Poké Watch | Norman tras la quinta medalla | Añade Archivo de anomalías, Señal mutante, Poké Simulator e incursiones. El Mutator aparece con la octava medalla. |
+| Poké Watch | Tras la captura guiada de Wally | Horizon (3 Pokémon, 5 objetos, 3 MT), PokéNav, Locator, Tools básicos. Crafteo tras Roxanne. |
+| Super Poké Watch | Wattson tras la tercera medalla | Horizon (4 Pokémon, 7 objetos, 4 MT), PC, Archivo, Señal mutante y Laboratorio con Simulador. Flasher con MO Flash y medalla. |
+| HF Poké Watch | Norman tras la quinta medalla | Horizon (6 Pokémon, 9 objetos, 6 MT), Mutador en Laboratorio, Repelente infinito e incursiones. |
 
 - **WATCH** en START reúne las funciones en dos páginas de tarjetas. L/R cambia de página y B regresa desde cada herramienta a la tarjeta que la abrió. En Horizon, L/R cambia de tienda desde el catálogo y B vuelve a WATCH. Horizon Shop se abre desde WATCH a partir del primer Poké Watch. Crafteo incluye recetas y equipamiento de Gears. Las partidas que aún carezcan de reloj pueden entrar a Crafteo desde START. Las cajas usan la pantalla de organización del PC.
-- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger la mejora hablando de nuevo con Norman o Brawly tras el hito correspondiente.
+- Los relojes se pueden usar desde la mochila o registrar en SELECT. Cada mejora sustituye el reloj anterior y conserva el registro si lo tenía. Las partidas anteriores pueden recoger Super volviendo a hablar con Wattson y HF con Norman.
+- **Tools** junta autorrepel (gasta repelentes), asistencia de campo (usa solo las MO y medallas legítimas), consultas de huevos y equipo, Flasher automático (requiere MO Flash y medalla) e Infinity Repel (HF, no consume objetos y solo impide encuentros bajo el nivel del primer Pokémon). Los interruptores se guardan con las opciones existentes; las consultas no cambian el estado.
+- **Laboratorio** fusiona Simulador y Mutador en una entrada. Simulador se habilita con Super y tres medallas; Mutador requiere HF. Ambos conservan sus costes y restricciones originales.
+- **Horizon** mejora tanto el número de ofertas como su calidad: Básico puede ofrecer Alpha/Hyper; Super añade Super, Overloaded y Enraged; HF llega hasta Ancestral. Las probabilidades de mutación aumentan al mejorar el reloj; Titan, Ascended y Omega siguen prohibidas en la tienda Pokémon. La rotación diaria persiste: mejorar el reloj revela más posiciones de inmediato, y los nuevos porcentajes se aplican en la siguiente rotación real.
 - El PokéNav básico ofrece mapa y condición. Match Call y cintas siguen su progresión habitual. El Pokélocator también conserva su objeto dedicado.
 
 **Incursiones y señal, balance inicial.**
@@ -384,7 +388,7 @@ Cada combate admite una megaevolución rival. La megapiedra ocupa la ranura de o
 | Experta | 7 | 47, 49, 53 | 50.01–65.00 % | 4 Ultra Balls, 2 Restaurar Todo, 2 Caramelos Raros |
 | Maestra | 8 | 54, 56, 60 | 65.01–80.00 % | 5 Ultra Balls, 3 Restaurar Todo, 3 Caramelos Raros |
 
-- La señal se activa una vez al día con el HF. En la progresión actual, aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez Pokémon de encuentros normales de esa zona. Conserva los usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
+- La señal se activa una vez al día desde el Super (tercera medalla). Aumenta entre 35 % y 50 % **relativo** la probabilidad de mutaciones de tier C y B en los próximos diez encuentros normales de esa zona. Conserva usos al guardar y cambia de día con el ciclo del juego. Mantiene las probabilidades originales de A, S y Omega.
 - El archivo enumera las nueve mutaciones y su tier. Registra ejemplares al capturar, recibir, eclosionar o intercambiar y, al abrirlo, incorpora los que ya están en el equipo o en las cajas. El registro queda tras liberar el ejemplar.
 
 **Poké Simulator.** WATCH permite elegir un Pokémon del equipo, preparar cambios de IV y EV y previsualizar sus estadísticas. La tarifa provisional cobra ₽300 por punto de IV y ₽20 por punto de EV cambiado al confirmar. Aplica los límites habituales del motor. Los huevos, Ascendidos y Omega tienen su edición bloqueada.
@@ -499,7 +503,7 @@ Pendientes: duración, quién puede sustituir el campo, superposición con otros
 - Auditar y reparar las Poké Balls visibles sin contenido no reservado (además de las futuras recompensas de Artifacts): censo de mapa/coordenadas/ítem/script/flag, prueba con A, mochila llena, guardado/carga. Reglas y nuevos destinos tentativos en [Artifacts casino/rutas](docs/UNHOLY_CASINO_AND_ROUTE_ARTIFACTS.md).
 
 - Correr automáticamente, correr en interiores y opción de movimiento acelerado. Implementado con `OW_AUTO_RUN`; mantener A permite caminar despacio.
-- Repelente automático/renovable implementado; falta decidir y balancear el modo de repelente infinito.
+- Repelente automático/renovable implementado; Infinity Repel se añade como comodidad exclusiva del HF Watch, sin consumir repelentes y sin afectar encuentros obligatorios.
 - Saltar escenas repetidas de gimnasios, jefes y reintentos; el salto inicial ya está implementado.
 - PC avanzado: favoritos con protección frente a liberación y búsqueda combinada por especie seleccionada, tipo, mutación, favorito, shiny y Gear implementados; ver [controles y QA pendiente](docs/PC_QOL.md). El traslado múltiple y el cambio rápido de caja ya existen en la base. Falta validar navegación, guardado/carga y aspecto en emulador/hardware.
 - Aprender/olvidar movimientos desde **Horizon MOVES**: código de ambas acciones integrado; todavía deben validarse cancelación, restricciones y guardado.

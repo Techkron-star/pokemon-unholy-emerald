@@ -12,8 +12,8 @@ EventScript_CraftSuperExpShare::
 
 EventScript_CraftSuperExpShare_Recipe::
 	lock
-	checkflag FLAG_BADGE01_GET
-	goto_if_unset FLAG_BADGE01_GET, EventScript_CraftSuperExpShare_NoBadge
+	checkflag FLAG_BADGE03_GET
+	goto_if_unset FLAG_BADGE03_GET, EventScript_CraftSuperExpShare_NoBadge
 	checkitem ITEM_EXP_SHARE, 1
 	goto_if_eq VAR_RESULT, FALSE, EventScript_CraftSuperExpShare_NoExpShare
 	checkitemspace ITEM_SUPER_EXP_SHARE, 1
@@ -61,7 +61,7 @@ Crafting_Text_SuperExpShareComplete:
 	.string "SUPER EXP. SHARE!$"
 
 Crafting_Text_SuperExpShareNoBadge:
-	.string "Necesitas la Medalla Piedra.$"
+	.string "Necesitas la Medalla Dinamo.$"
 
 Crafting_Text_SuperExpShareNoBase:
 	.string "Primero necesitas EXP. SHARE.$"

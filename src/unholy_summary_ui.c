@@ -940,8 +940,8 @@ static bool32 QolInput(u8 taskId)
                 struct HfcWatchProgress progress = {.badges = HfcWatch_CountBadges()};
                 u8 tier = HfcWatch_GetTier();
                 if (!EditableParty()) sSummary->notice = COMPOUND_STRING("MOVE TO YOUR PARTY TO USE THE SIMULATOR");
-                else if (HfcWatch_GetAccess(tier, HFC_WATCH_FEATURE_SIMULATOR, progress) != HFC_WATCH_READY)
-                    sSummary->notice = HfcWatch_GetRequirement(tier, HFC_WATCH_FEATURE_SIMULATOR, progress);
+                else if (HfcWatch_GetAccess(tier, HFC_WATCH_FEATURE_LAB, progress) != HFC_WATCH_READY)
+                    sSummary->notice = HfcWatch_GetRequirement(tier, HFC_WATCH_FEATURE_LAB, progress);
                 else
                 {
                     DestroyPortrait(); DestroyMutationIcons(); DestroyEvolutionIcons();
