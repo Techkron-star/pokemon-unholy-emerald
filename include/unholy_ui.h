@@ -45,6 +45,9 @@ void UnholyUi_Icon(u8 window, u16 x, u16 y, u8 icon, u8 color);
 u16 UnholyUi_Chip(u8 window, u16 x, u16 y, const u8 *text);
 void UnholyUi_Button(u8 window, u16 x, u16 y, u16 width, const u8 *text, u8 icon, bool8 active);
 void UnholyUi_PulseAccent(u8 paletteSlot, u8 phase);
+void UnholyUi_Tick(u8 paletteSlot);
+void UnholyUi_Halo(u8 window, u16 x, u16 y, u16 width, u16 height, u8 color);
+void UnholyUi_Switch(u8 window, u16 x, u16 y, bool8 on);
 bool8 UnholyUi_PrintWrapped(u8 window, u16 x, u16 y, u16 width, u8 step, u8 maxLines, u8 fill, const u8 *source);
 
 #endif
