@@ -39,6 +39,9 @@ TEST("Hue rotation can turn red into violet while preserving main brightness")
               14 | (2 << 5) | (26 << 10));
     EXPECT_EQ(NaturalTone_AdjustColor(red, NATURAL_TONE_HUE_PLUS_60),
               26 | (26 << 5) | (2 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(red, NATURAL_TONE_COMPLEMENT),
+              2 | (26 << 5) | (26 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(gray, NATURAL_TONE_COMPLEMENT), gray);
     EXPECT_EQ(NaturalTone_AdjustColor(gray, NATURAL_TONE_HUE_PLUS_90), gray);
 }
 

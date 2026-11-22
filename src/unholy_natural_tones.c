@@ -4,8 +4,8 @@
 
 // Weights sum to 100. A Pokémon's personality fixes its palette for life.
 // Shinies remain shiny, but their shiny species palette may also be hue-shifted.
-static const u8 sNormalToneWeights[NATURAL_TONE_COUNT] = {25, 10, 10, 7, 8, 10, 10, 7, 7, 3, 3};
-static const u8 sShinyToneWeights[NATURAL_TONE_COUNT]  = {25,  5,  5, 5, 5, 10, 10, 10, 10, 7, 8};
+static const u8 sNormalToneWeights[NATURAL_TONE_COUNT] = {25, 10, 10, 7, 8, 9, 9, 6, 6, 3, 3, 4};
+static const u8 sShinyToneWeights[NATURAL_TONE_COUNT]  = {25,  5,  5, 5, 5,  9,  9,  9,  9, 7, 7, 5};
 
 static u8 NaturalTone_ClampChannel(s32 value)
 {
@@ -162,6 +162,8 @@ u16 NaturalTone_AdjustColor(u16 color, u8 tone)
         return NaturalTone_ShiftHue(color, red, green, blue, 384);
     case NATURAL_TONE_HUE_MINUS_90:
         return NaturalTone_ShiftHue(color, red, green, blue, -384);
+    case NATURAL_TONE_COMPLEMENT:
+        return NaturalTone_ShiftHue(color, red, green, blue, 768);
     default:
         return color;
     }

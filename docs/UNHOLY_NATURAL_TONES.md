@@ -6,8 +6,9 @@ ahora puede girar su **matiz** por el círculo cromático sin alterar el
 brillo máximo, el mínimo ni la saturación de los colores principales.
 
 Por ejemplo, un Heatran rojo podría mostrar partes principales magenta o
-violetas con un giro de -60° o -90°. No se invierte todo a un color opuesto:
-solo cambian tonos cercanos en la rueda cromática. Se preservan grises,
+violetas con un giro de -60° o -90°. Los giros de 30° a 90° buscan tonos cercanos, mientras que una variante
+menos frecuente gira 180° hacia el color complementario. No se invierten
+los contornos ni las luces. Se preservan grises,
 contornos casi negros, reflejos casi blancos y el color transparente.
 
 | Tono | Pokémon normales | Shinies | Efecto |
@@ -17,17 +18,17 @@ contornos casi negros, reflejos casi blancos y el color transparente.
 | Frío | 10 % | 5 % | -2 rojo, +2 azul |
 | Claro | 7 % | 5 % | +1 en cada canal |
 | Oscuro | 8 % | 5 % | -1 en cada canal |
-| Matiz +30° | 10 % | 10 % | Giro cromático suave |
-| Matiz -30° | 10 % | 10 % | Giro cromático suave |
-| Matiz +60° | 7 % | 10 % | Giro cromático moderado |
-| Matiz -60° | 7 % | 10 % | Giro cromático moderado |
+| Matiz +30° | 9 % | 9 % | Giro cromático suave |
+| Matiz -30° | 9 % | 9 % | Giro cromático suave |
+| Matiz +60° | 6 % | 9 % | Giro cromático moderado |
+| Matiz -60° | 6 % | 9 % | Giro cromático moderado |
 | Matiz +90° | 3 % | 7 % | Giro cromático notable |
-| Matiz -90° | 3 % | 8 % | Giro cromático notable; rojos pueden verse violetas |
+| Matiz -90° | 3 % | 7 % | Giro cromático notable; rojos pueden verse violetas |
+| Complementario 180° | 4 % | 5 % | Invierte el matiz hacia un color opuesto, sin invertir grises ni luces |
 
 Los shinies usan como base **su propia paleta shiny**, y pueden recibir
 también una variante de matiz. Conservan su estado shiny, sus destellos y
-su probabilidad normal de aparición. No hay variantes perladas/blancas
-especiales ni inversión de colores complementarios: se quitó esa idea para
+su probabilidad normal de aparición. No hay variantes perladas/blancas especiales: se quitó esa idea para
 mantener cada especie reconocible. Huevos sin cambios.
 
 Los porcentajes son distribuciones esperadas entre muchos Pokémon, no
