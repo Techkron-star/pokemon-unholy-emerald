@@ -13,10 +13,12 @@
 #include "caps.h"
 #include "unholy_ui.h"
 #include "battle.h"
+#include "battle_gfx_sfx_util.h"
 #include "bg.h"
 #include "data.h"
 #include "gear.h"
 #include "unholy_localization.h"
+#include "unholy_natural_tones.h"
 #include "gpu_regs.h"
 #include "horizon_market.h"
 #include "item.h"
@@ -40,6 +42,7 @@
 #include "trainer_pokemon_sprites.h"
 #include "window.h"
 #include "constants/songs.h"
+#include "constants/sound.h"
 #include "constants/rgb.h"
 #include "constants/party_menu.h"
 
@@ -189,8 +192,52 @@ static void ReadMon(void)
 static void DestroyPortrait(void)
 {
     if (sSummary->portrait < MAX_SPRITES)
+    {
+        // The vanilla summary animation can leave a delayed task pointing at
+        // this sprite. Cancel it before the portrait is freed or replaced.
+        StopPokemonAnimationDelayTask();
+        SummaryScreen_SetAnimDelayTaskId(TASK_NONE);
         FreeAndDestroyMonPicSprite(sSummary->portrait);
+    }
     sSummary->portrait = SPRITE_NONE;
+}
+
+static void SpriteCB_StartPortraitAnimation(struct Sprite *sprite)
+{
+    // Let the opening fade finish so the original entrance animation remains
+    // visible rather than playing behind a black screen.
+    if (gPaletteFade.active)
+        return;
+
+    if (!sprite->data[2] && sSummary->qol == QOL_NONE)
+        PlayCry_ByMode(sprite->data[0], 0, ShouldPlayNormalMonCry(&sSummary->mon) ? CRY_MODE_NORMAL : CRY_MODE_WEAK);
+
+    sprite->data[1] = IsMonSpriteNotFlipped(sprite->data[0]);
+    PokemonSummaryDoMonAnimation(sprite, sprite->data[0], sprite->data[2]);
+}
+
+static void CreatePortrait(enum Species species, s16 x, s16 y)
+{
+    struct Pokemon *mon = &sSummary->mon;
+    bool8 isEgg = GetMonData(mon, MON_DATA_IS_EGG);
+    u32 pid = GetMonData(mon, MON_DATA_PERSONALITY);
+    bool8 isShiny = GetMonData(mon, MON_DATA_IS_SHINY);
+    enum Species picSpecies = isEgg ? SPECIES_EGG : species;
+
+    sSummary->portrait = CreateMonPicSprite(picSpecies, isShiny, pid, TRUE, x, y, 0, TAG_NONE);
+    if (sSummary->portrait < MAX_SPRITES)
+    {
+        struct Sprite *sprite = &gSprites[sSummary->portrait];
+
+        // This new UI bypasses the classic summary palette-loading path.
+        // Use the same individual identity so INFO, battles and evolution
+        // previews display the exact same chromatic variant.
+        NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(sprite->oam.paletteNum), pid,
+            GetMonData(mon, MON_DATA_OT_ID), isShiny, isEgg);
+        sprite->data[0] = picSpecies;
+        sprite->data[2] = isEgg;
+        sprite->callback = SpriteCB_StartPortraitAnimation;
+    }
 }
 
 static void DestroyMutationIcons(void)
@@ -224,8 +271,7 @@ static void Info(void)
     u8 text[64];
 
     if (sSummary->portrait == SPRITE_NONE)
-        sSummary->portrait = CreateMonPicSprite(GetMonData(mon, MON_DATA_IS_EGG) ? SPECIES_EGG : species,
-            GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_PERSONALITY), TRUE, 49, 84, 0, TAG_NONE);
+        CreatePortrait(species, 49, 84);
 
     if (GetMonData(mon, MON_DATA_IS_EGG))
     {
@@ -836,8 +882,7 @@ static void DrawQol(void)
     QolText(8, 23, 208, GetSpeciesName(option->target));
     UnholyEvolution_StatusText(option, text);
     QolText(8, 36, 208, text);
-    sSummary->portrait = CreateMonPicSprite(option->target, GetMonData(&sSummary->mon, MON_DATA_IS_SHINY),
-        GetMonData(&sSummary->mon, MON_DATA_PERSONALITY), TRUE, 182, 80, 0, TAG_NONE);
+    CreatePortrait(option->target, 182, 80);
     if (sSummary->qol == QOL_CONFIRM)
     {
         if (!option->costCount)
