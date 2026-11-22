@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_localization.h"
 #include "unholy_move_ui.h"
 #include "battle_stamina.h"
 #include "malloc.h"

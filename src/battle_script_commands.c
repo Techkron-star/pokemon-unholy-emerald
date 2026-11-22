@@ -3223,7 +3223,7 @@ static bool32 IsValidSwitchIn(enum BattleTrainer trainer, u32 index)
         return FALSE;
 
     struct Pokemon *party = GetTrainerParty(trainer);
-    if (!IsValidForBattle(&party[index]))
+    if (!IsValidForBattle(&party[index]) || UnholyStatus_PartyExiled(trainer, index))
         return FALSE;
 
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
@@ -5668,6 +5668,7 @@ static void Cmd_forcerandomswitch(void)
             if (GetMonData(&party[i], MON_DATA_SPECIES) != SPECIES_NONE
              && !GetMonData(&party[i], MON_DATA_IS_EGG)
              && GetMonData(&party[i], MON_DATA_HP) != 0
+             && !UnholyStatus_PartyExiled(GetBattlerTrainer(gBattlerTarget), i)
              && i != battler1PartyId
              && i != battler2PartyId)
              {

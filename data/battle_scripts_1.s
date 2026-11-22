@@ -6547,3 +6547,9 @@ BattleScript_UnholyBanishedWait::
     printstring STRINGID_UNHOLYBANISHEDWAIT
     waitmessage B_WAIT_TIME_LONG
     goto BattleScript_MoveEnd
+
+BattleScript_UnholyHealerCure::
+    call BattleScript_AbilityPopUp
+    printstring STRINGID_UNHOLYSTATUSCURED
+    waitmessage B_WAIT_TIME_LONG
+    return

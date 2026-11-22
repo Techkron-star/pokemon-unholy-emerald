@@ -155,7 +155,7 @@ La implementación vive en `src/battle_unholy_abilities.c`, conectada al cálcul
 ### Límites y decisiones pendientes
 
 1. **Antithesis:** no se inventaron inversiones para incapacidades, pantallas, inmunidades u otros beneficios sin transformación numérica definida. No reinterpreta retroactivamente boosts antiguos. Los objetos de la mochila que modifican directamente los datos del equipo requieren una integración específica; las pruebas actuales cubren curación mediante canales de combate y bayas equipadas.
-2. **Bélico:** Aterrado no existe como estado ejecutable en este árbol; la inmunidad a Intimidación está conectada, pero una futura implementación de Aterrado deberá consultar Bélico.
+2. **Bélico:** la inmunidad a Intimidación y al estado custom Aterrado está conectada. Véase [motor de estados custom](UNHOLY_CUSTOM_STATUSES.md).
 3. **Time Realm:** no acelera mecánicas todavía inexistentes en el motor, incluido un Réquiem propio distinto del Canto Mortal nativo. No modifica por separado cada efecto imaginado o pendiente de implementación. El registro de cronómetros soportados es explícito.
 4. **Distribución:** el reparto por especies/formas está preparado en una **segunda oculta**, sin reemplazar las habilidades previas ni cambiar las originales de los iniciales. Ver [catálogo de distribución](./UNHOLY_ABILITY_DISTRIBUTION.md). Los reworks de Torrente/Mar Llamas/Espesura siguen pendientes. Cuerpo Magma y Gula también cambian donde ya se usaban sus IDs existentes.
 5. Los porcentajes propuestos de 35/10/25/20/20 y el 150 % de regeneración se usan como balance inicial en `include/config/unholy_abilities.h`; no se presentan como cifras confirmadas definitivamente por el autor.

@@ -775,7 +775,6 @@ struct BattleStruct
     // Sistema de stamina (ver src/battle_stamina.c)
     u8 customStatusTurns[MAX_BATTLERS_COUNT][UNHOLY_STATUS_COUNT];
     u16 customStatusFresh[MAX_BATTLERS_COUNT];
-    u8 exileFresh[MAX_BATTLE_TRAINERS];
     u16 stamina[MAX_BATTLERS_COUNT];
     u16 maxStamina[MAX_BATTLERS_COUNT];
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina

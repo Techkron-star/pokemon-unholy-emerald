@@ -1,6 +1,7 @@
 #ifndef GUARD_BATTLE_SCRIPTS_H
 #define GUARD_BATTLE_SCRIPTS_H
 
+extern const u8 BattleScript_UnholyHealerCure[];
 extern const u8 BattleScript_EffectUnholyStatus[];
 extern const u8 BattleScript_UnholyBanishedWait[];
 

@@ -1941,8 +1941,10 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
     struct Pokemon *party = GetBattlerParty(battler);
 
 
+    if (IsDoubleBattle() && UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
+        return TRUE;
     if (!IsDoubleBattle())
-        return FALSE;
+        return !CanBattlerSwitch(battler);
 
     bool32 isPlayerSide = IsOnPlayerSide(battler);
 
@@ -1959,7 +1961,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
         {
             u8 count = 0;
             for (i = 0; i < lastId; i++)
-                if (IsValidForBattle(&party[i]))
+                if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i)))
                     count++;
 
             if (count < 2)
@@ -1973,7 +1975,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
 
         for (i = 0; i < lastId; i++)
         {
-            if (IsValidForBattle(&party[i])
+            if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i))
              && i != partyIdBattlerOn1 && i != partyIdBattlerOn2
              && i != gBattleStruct->monToSwitchIntoId[flankId] && i != playerId[gBattleStruct->monToSwitchIntoId])
                 break;
@@ -1994,7 +1996,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
 
             for (i = 0; i < lastId; i++)
             {
-                if (IsValidForBattle(&party[i])
+                if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i))
                  && i != partyIdBattlerOn1 && i != partyIdBattlerOn2
                  && i != gBattleStruct->monToSwitchIntoId[flankId] && i != playerId[gBattleStruct->monToSwitchIntoId])
                     break;
@@ -2005,7 +2007,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
         {
             for (i = 0; i < lastId; i++)
             {
-                if (IsValidForBattle(&party[i]))
+                if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i)))
                     break;
             }
             return (i == lastId);
@@ -2015,7 +2017,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
     {
         for (i = 0; i < lastId; i++)
         {
-            if (IsValidForBattle(&party[i]))
+            if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i)))
                 break;
         }
         return (i == lastId);
@@ -2024,7 +2026,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
     {
         for (i = 0; i < lastId; i++)
         {
-            if (IsValidForBattle(&party[i]))
+            if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i)))
                 break;
         }
         return (i == lastId);
@@ -2049,7 +2051,7 @@ bool32 HasNoMonsToSwitch(enum BattlerId battler, u8 partyIdBattlerOn1, u8 partyI
 
         for (i = 0; i < lastId; i++)
         {
-            if (IsValidForBattle(&party[i])
+            if ((IsValidForBattle(&party[i]) && !UnholyStatus_PartyExiled(GetBattlerTrainer(battler), i))
              && i != partyIdBattlerOn1 && i != partyIdBattlerOn2
              && i != gBattleStruct->monToSwitchIntoId[flankId] && i != playerId[gBattleStruct->monToSwitchIntoId])
                 break;
@@ -3832,8 +3834,12 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
                  && RandomPercentage(RNG_HEALER, 30))
                 {
                     if (!(gBattleMons[gBattleScripting.battler].status1 & STATUS1_ANY))
+                    {
                         UnholyStatus_CureNegative(gBattleScripting.battler);
-                    BattleScriptCall(BattleScript_HealerActivates);
+                        BattleScriptCall(BattleScript_UnholyHealerCure);
+                    }
+                    else
+                        BattleScriptCall(BattleScript_HealerActivates);
                     effect++;
                 }
                 break;

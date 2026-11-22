@@ -426,31 +426,16 @@ El Mutator abre desde WATCH con el HF y ocho medallas. Se elige un Pokémon del 
 ## 9. Estados alterados, afinidades y destierro
 
 ### Estados añadidos
-**Rooted, Ingravidez, Confinado, Cegado, Aterrado, Encadenado, Desterrado, Santificado y Demonificado.**
-Frostbite ya existe y no se define como estado inventado. **Rooted, Ingravidez, Confinado, Cegado y Aterrado** son nombres confirmados **sin efecto completo confirmado**.
 
-### Encadenado
-- Impide al afectado **encadenar movimientos**. Puede seguir atacando individualmente.
-- Duración, formas de retirarlo y otras restricciones: pendientes.
+**Enraizado (Rooted), Ingravidez, Confinado, Cegado, Aterrado, Encadenado, Desterrado, Santificado y Demonificado.** Frostbite conserva su implementación existente.
 
-### Desterrado
-- Dura **1–5 turnos elegidos aleatoriamente**.
-- **1v1:** retira al objetivo del campo y **obliga a abrir la pantalla de cambio**. El Pokémon desterrado no puede volver hasta que pase el efecto.
-- **2v2:** el afectado **permanece ocupando su posición**, pero **no puede cambiarse**. Si solo quedan esos dos Pokémon y cae el compañero que puede seguir combatiendo, el jugador **pierde**, aunque el desterrado conserve PS.
-- Al recibir Desterrado se **borran automáticamente los efectos secundarios** que el Pokémon tuviera.
-- **Invulnerabilidad:** no se le puede causar daño de ninguna fuente mientras dure el destierro.
-- **Una sola vez por individuo para siempre:** tras padecer el destierro, ese Pokémon adquiere **inmunidad definitiva** a futuros Desterrados. Se requiere guardarla de modo persistente.
-- Abierto: reglas si en 1v1 no existe otro Pokémon disponible, posibilidad de actuar en el espacio ocupado de 2v2, conflictos con cambios forzados/campos y definición precisa de efectos purgados.
+Los nueve tienen motor, duración, movimientos aplicadores y acceso por catálogo de aprendizaje. El [documento de estados custom](docs/UNHOLY_CUSTOM_STATUSES.md) distingue las reglas acordadas del balance inicial elegido para los cinco estados antes definidos solo por nombre.
 
-### Santificado / Demonificado y STAB
-| Afinidad | Tipos confirmados | Santificado | Demonificado |
-| --- | --- | --- | --- |
-| **Positiva** | Psíquico, Hada, Normal, Lucha | STAB favorable | STAB negativo |
-| **Negativa** | Veneno, Fantasma, Dragón, Fuego | STAB negativo | STAB favorable |
-
-- Se clasifican por asociación con **creación/orden frente a destrucción**. Los otros tipos, incluido Siniestro, siguen **pendientes de clasificación explícita**.
-- El **STAB negativo** perjudica el daño de ataques del tipo correspondiente; multiplicador exacto **sin definir**. ×0.75 fue solamente un ejemplo.
-- Falta especificar tipos duales, compatibilidad simultánea de estados y efectos en movimientos sin STAB.
+- Encadenado mantiene la semántica de Grillete: permite una acción y bloquea el segundo ataque sin consumir sus PP/stamina.
+- Desterrado dura aleatoriamente 1–5 turnos; en individuales fuerza sustitución y bloquea el retorno; en dobles conserva posición, no actúa ni cambia y no puede sostener al equipo si cae su último compañero. Purga los estados, impide todo daño y concede inmunidad permanente por individuo. Sin reserva legal en individuales, falla sin consumir esa inmunidad.
+- Santificado y Demonificado se sustituyen y alteran solo STAB de tipos clasificados: positivos Psíquico/Hada/Normal/Lucha y negativos Veneno/Fantasma/Dragón/Fuego. Los demás tipos conservan su STAB. Balance inicial: favorable añade 0.25 al multiplicador y negativo vale ×0.75.
+- Efectos y cifras provisionales: Rooted fija al suelo/restringe cambio (3 turnos), Ingravidez levita (3), Confinado restringe cambio (2), Cegado reduce precisión un 25% (3) y Aterrado reduce ambas ofensivas un 20% (2). Bélico es inmune a Aterrado.
+- Enfermero puede retirar un estado custom negativo por activación cuando no hay uno principal. Nombres, contador y descripción del movimiento disponibles en ES/EN.
 
 ---
 

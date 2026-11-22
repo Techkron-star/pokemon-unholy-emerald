@@ -22212,7 +22212,7 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
         .category = DAMAGE_CATEGORY_STATUS,
         .magicCoatAffected = TRUE,
         .argument.status = UNHOLY_STATUS_BANISHED,
-        .battleAnimScript = gBattleAnimMove_PhantomForce,
+        .battleAnimScript = gBattleAnimMove_NightShade,
     },
 
     [MOVE_UNHOLY_SANCTIFY] =
