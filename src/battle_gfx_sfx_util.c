@@ -23,6 +23,7 @@
 #include "decompress.h"
 #include "data.h"
 #include "palette.h"
+#include "unholy_natural_tones.h"
 #include "contest.h"
 #include "trainer.h"
 #include "trainer_pokemon_sprites.h"
@@ -675,6 +676,8 @@ void BattleLoadMonSpriteGfx(struct Pokemon *mon, enum BattlerId battler)
 
     LoadPalette(paletteData, paletteOffset, PLTT_SIZE_4BPP);
     LoadPalette(paletteData, BG_PLTT_ID(8) + BG_PLTT_ID(battler), PLTT_SIZE_4BPP);
+    NaturalTone_ApplyLoadedPalette(paletteOffset, personalityValue, isShiny, FALSE);
+    NaturalTone_ApplyLoadedPalette(BG_PLTT_ID(8) + BG_PLTT_ID(battler), personalityValue, isShiny, FALSE);
 
     // transform's pink color
     if (gBattleMons[battler].volatiles.transformed)
@@ -967,6 +970,7 @@ void HandleSpeciesGfxDataChange(enum BattlerId battlerAtk, enum BattlerId battle
     paletteOffset = OBJ_PLTT_ID(battlerAtk);
     paletteData = GetMonSpritePalFromSpeciesAndPersonality(targetSpecies, isShiny, personalityValue);
     LoadPalette(paletteData, paletteOffset, PLTT_SIZE_4BPP);
+    NaturalTone_ApplyLoadedPalette(paletteOffset, personalityValue, isShiny, FALSE);
 
     if (changeType == SPECIES_GFX_CHANGE_GHOST_UNVEIL)
     {
