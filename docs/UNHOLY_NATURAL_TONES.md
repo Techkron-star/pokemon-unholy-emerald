@@ -1,31 +1,49 @@
-# Tonos naturales de Pokémon — prototipo
+# Variantes cromáticas de Pokémon — prototipo
 
-Cada Pokémon no shiny puede tener una variación ligera de color definida por su
-`personality` de 32 bits. No es otra mutación, no aumenta estadísticas ni cambia
-la probabilidad de shiny.
+Cada Pokémon recibe un tono visual **estable** según su `personality` de 32 bits.
+Ahora hay cambios sutiles y cambios fuertes sobre los colores principales de
+cada especie. Los shinies también pueden tener variantes cromáticas: parten
+siempre de la paleta shiny propia de la especie, conservan sus destellos y
+siguen siendo shinies. Ningún tono altera estadísticas o probabilidades de
+captura/shiny.
 
-- 40 %: paleta original.
-- 15 %: tono cálido (ligeramente más rojo y menos azul).
-- 15 %: tono frío (ligeramente menos rojo y más azul).
-- 15 %: más luminoso (un paso de RGB de 5 bits por canal).
-- 15 %: más oscuro (un paso de RGB de 5 bits por canal).
+| Tono | Pokémon normales | Shinies | Efecto |
+| --- | ---: | ---: | --- |
+| Original | 30 % | 30 % | Paleta intacta |
+| Cálido | 10 % | 5 % | +2 rojo, -2 azul |
+| Frío | 10 % | 5 % | -2 rojo, +2 azul |
+| Claro | 10 % | 5 % | +1 en cada canal |
+| Oscuro | 10 % | 5 % | -1 en cada canal |
+| Giro verde | 10 % | 12 % | R/G/B → B/R/G, solo colores saturados |
+| Giro violeta | 10 % | 12 % | R/G/B → G/B/R, solo colores saturados |
+| Complementario | 7 % | 13 % | Invierte el matiz principal, sin invertir grises |
+| Perlado | 3 % | 13 % | Convierte colores principales a blancos, grises o marfiles claros, preservando sombras |
 
-Solo se modifican los colores de la paleta de 16 entradas que acaba de
-cargarse. Se respetan la transparencia, los contornos oscuros y las luces casi
-blancas. Los shiny y los huevos usan siempre su paleta original.
+Por ejemplo, un Charizard shiny con tono perlado puede tener el cuerpo
+blanquecino o plateado y acentos ligeramente teñidos; otros shiny conservan su
+color original o pueden ser violetas/verdes según sus paletas. La variante
+perlada es genérica, no una forma o sprite especial reservado para Charizard.
+Los porcentajes son distribuciones esperadas entre muchos Pokémon; no son
+tiradas repetibles al entrar a un menú.
 
-## Alcance inicial
+La recoloración opera sobre la paleta de 16 entradas en RGB555 **ya cargada**.
+No altera el color transparente (índice 0), los contornos casi negros, los
+destellos casi blancos ni el bit alto reservado. Los tonos más intensos
+recoloran solamente colores con suficiente saturación. Huevos sin cambios.
 
-- Sprites de combate y su paleta de fondo.
-- Retrato de Pokémon en la pantalla de resumen.
-- Retrato ampliado del PC clásico.
-- Sprites creados temporalmente para animaciones de combate.
+## Alcance
 
-Los iconos pequeños compartidos del PC, los overworlds y los sprites de otros
-personajes siguen usando sus colores habituales: recolorearlos individualmente
-exigiría bancos de paletas adicionales y comprobaciones de compatibilidad.
+- Sprites de combate, incluido el fondo de batalla de Pokémon.
+- Retratos en la pantalla de resumen y en el PC clásico.
+- Sprites temporales de algunas animaciones de combate.
 
-Este sistema no añade datos a los archivos `.sav` ni usa RAM extendida. Un
-Pokémon conserva la variante al evolucionar porque se deriva de su personalidad.
-Es una **prueba experimental**: debe verificarse visualmente en el emulador,
-especialmente durante fades, combates dobles, transformaciones y cambios de forma.
+Los iconos pequeños compartidos del PC, los overworlds y otros personajes
+conservan sus colores habituales. No se añaden bytes al `.sav` ni se usa
+RAM extendida. El tono se conserva al evolucionar y al cargar la partida.
+Los Pokémon shiny mantienen su bandera shiny; su paleta resultante puede
+diferir de la de otros shinies de la misma especie.
+
+**Experimental:** probar en Pizza Boy Pro fades, combates dobles, evoluciones,
+transformaciones y cambios de forma. El algoritmo no reconoce regiones del
+sprite, solo colores de la paleta; un mismo color usado en alas y cuerpo se
+recolorea en ambas zonas. Se puede ajustar la distribución y la intensidad.
