@@ -5,6 +5,7 @@
 - [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
 - [Unholy Emerald · Interfaz nativa 240 × 160](./UI_NATIVE_240.md)
 - [Unholy Emerald · PC: favoritos y búsqueda](./PC_QOL.md)
+- [Unholy Emerald · Tonos naturales por personalidad](./UNHOLY_NATURAL_TONES.md)
 - [Unholy Emerald · Evolución y herramientas QoL](./EVOLUTION_QOL.md)
 - [Unholy Emerald · Preparación del equipo y movimientos compatibles](./TEAM_QOL.md)
 - [Unholy Emerald · Iconos de mutación](./MUTATION_ICONS.md)

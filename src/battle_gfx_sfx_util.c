@@ -23,6 +23,7 @@
 #include "decompress.h"
 #include "data.h"
 #include "palette.h"
+#include "unholy_natural_tones.h"
 #include "contest.h"
 #include "trainer.h"
 #include "trainer_pokemon_sprites.h"
@@ -675,6 +676,10 @@ void BattleLoadMonSpriteGfx(struct Pokemon *mon, enum BattlerId battler)
 
     LoadPalette(paletteData, paletteOffset, PLTT_SIZE_4BPP);
     LoadPalette(paletteData, BG_PLTT_ID(8) + BG_PLTT_ID(battler), PLTT_SIZE_4BPP);
+    // Keep the actor's own hue identity even when Transform changes the
+    // displayed species/personality.
+    NaturalTone_ApplyLoadedPalette(paletteOffset, GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPalette(BG_PLTT_ID(8) + BG_PLTT_ID(battler), GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
 
     // transform's pink color
     if (gBattleMons[battler].volatiles.transformed)
@@ -967,6 +972,12 @@ void HandleSpeciesGfxDataChange(enum BattlerId battlerAtk, enum BattlerId battle
     paletteOffset = OBJ_PLTT_ID(battlerAtk);
     paletteData = GetMonSpritePalFromSpeciesAndPersonality(targetSpecies, isShiny, personalityValue);
     LoadPalette(paletteData, paletteOffset, PLTT_SIZE_4BPP);
+    // Contest sprite previews can use a temporary personality. Outside
+    // contests, always use the actual attacker's permanent PID + OT ID.
+    if (IsContest())
+        NaturalTone_ApplyLoadedPalette(paletteOffset, personalityValue, 0, isShiny, FALSE);
+    else
+        NaturalTone_ApplyLoadedPalette(paletteOffset, GetMonData(monAtk, MON_DATA_PERSONALITY), GetMonData(monAtk, MON_DATA_OT_ID), isShiny, FALSE);
 
     if (changeType == SPECIES_GFX_CHANGE_GHOST_UNVEIL)
     {
