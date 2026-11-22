@@ -25,6 +25,7 @@ TEST("Chromatic profile stays stable and depends on original trainer ID")
     NaturalTone_GetProfile(0x12345678u, 0x9ABCDEF0u, FALSE, &b);
     NaturalTone_GetProfile(0x12345678u, 0x9ABCDEF1u, FALSE, &c);
 
+    EXPECT_EQ(a.microSeed, 2246944448u);
     EXPECT_EQ(a.mode, NATURAL_TONE_NEAR);
     EXPECT_EQ(a.hueShift, 299);
     EXPECT_EQ(a.saturationPercent, -2);
@@ -42,10 +43,11 @@ TEST("Chromatic hue rotates a red individual to violet and preserves grays")
 
     profile.mode = NATURAL_TONE_NEAR;
     profile.hueShift = -384;
-    EXPECT_EQ(NaturalTone_AdjustColor(red, &profile), 14 | (2 << 5) | (26 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(gray, &profile), gray);
-    EXPECT_EQ(NaturalTone_AdjustColor(0, &profile), 0);
-    EXPECT_EQ(NaturalTone_AdjustColor(0x7FFF, &profile), 0x7FFF);
+    EXPECT_EQ(NaturalTone_AdjustColor(red, 1, &profile), 13 | (2 << 5) | (27 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(gray, 1, &profile), 15 | (15 << 5) | (15 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(gray, 2, &profile), 17 | (17 << 5) | (17 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(0, 1, &profile), 0);
+    EXPECT_EQ(NaturalTone_AdjustColor(0x7FFF, 1, &profile), 0x7FFF);
 }
 
 TEST("Rare chromatic light inversion can make a dark shiny silver-white")
@@ -56,9 +58,9 @@ TEST("Rare chromatic light inversion can make a dark shiny silver-white")
     bool32 found = FALSE;
 
     profile.mode = NATURAL_TONE_LIGHT_INVERSION;
-    EXPECT_EQ(NaturalTone_AdjustColor(bodyGray, &profile),
-              22 | (22 << 5) | (22 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(outline, &profile), outline);
+    EXPECT_EQ(NaturalTone_AdjustColor(bodyGray, 1, &profile),
+              21 | (21 << 5) | (21 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(outline, 1, &profile), outline);
     for (u32 pid = 0; pid < 1024; pid++)
     {
         NaturalTone_GetProfile(pid, 0x9ABCDEF0u, TRUE, &profile);

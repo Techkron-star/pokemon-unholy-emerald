@@ -23,7 +23,13 @@ resultantes sean visualmente distintas: el hardware tiene colores finitos.
 | Inversión de luminosidad | 1 % | 2,5 % | Oscuros neutros → grises claros/blancos, manteniendo contornos |
 
 Adicionalmente, el código individual determina una variación de saturación
-de ±6 % y luminosidad de ±1 paso RGB555. Ya no hay once categorías fijas.
+de ±6 % y luminosidad de ±1 paso RGB555. Para evitar que la reducción a
+15 colores colapse cientos de identidades en una misma paleta, cada índice
+de color intermedio recibe una **microvariación fija de ±1 paso RGB555**.
+Los colores acromáticos ajustan su brillo y los saturados desplazan
+suavemente rojo/azul, sin tocar transparencia, contornos o altas luces.
+No es ruido aleatorio por frame: usa el mismo código PID + OT ID e índice
+de paleta en todas las pantallas. Ya no hay once categorías fijas.
 No se altera la bandera ni la probabilidad de shiny. La base de un shiny
 es siempre su paleta shiny propia de la especie.
 
@@ -58,6 +64,8 @@ build. Modificaciones futuras necesitarían migración o compatibilidad con V1.
 
 **Experimental:** comprobar visualmente en Pizza Boy Pro cambios de forma,
 Transform, Illusion, combates dobles, shinies, evolución, PC y fades.
-RGB555 puede producir tonos indistinguibles para algunos pares diferentes;
-no prometer unicidad visual absoluta sin una tabla persistente de asignación
-de colores por especie.
+En una simulación de 1.000 Heatran normales y 1.000 Charizard shiny
+con PID distintos del mismo entrenador, la versión con microvariaciones
+produjo 0 paletas exactamente repetidas en cada lote (frente a centenares
+sin ese refinamiento). Esta es una muestra reproducible, no una garantía
+universal. RGB555 todavía puede producir tonos visualmente parecidos.

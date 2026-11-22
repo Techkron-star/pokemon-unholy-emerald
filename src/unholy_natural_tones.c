@@ -35,6 +35,8 @@ void NaturalTone_GetProfile(u32 personality, u32 otId, bool32 isShiny, struct Na
     u32 detail = NaturalTone_Mix32(category ^ hue ^ 0x64657431u);
     u32 roll = category % 1000;
 
+    profile->microSeed = lower ^ (upper << 7 | upper >> 25);
+
     // Continuous hue shifts are the default. Opposite-wheel hues are rare;
     // an even rarer luminance inversion enables dark shiny body -> white.
     if (roll < (isShiny ? 880 : 900))
@@ -121,44 +123,79 @@ static u8 NaturalTone_ClampChannel(s32 value)
     return value;
 }
 
-u16 NaturalTone_AdjustColor(u16 color, const struct NaturalToneProfile *profile)
+static u16 NaturalTone_FineTuneColor(u16 original, u16 mapped, u32 paletteIndex, const struct NaturalToneProfile *profile)
 {
+    u32 fine = NaturalTone_Mix32(profile->microSeed ^ (paletteIndex * 0x9E3779B9u));
+    s32 srcRed = original & 31;
+    s32 srcGreen = (original >> 5) & 31;
+    s32 srcBlue = (original >> 10) & 31;
+    s32 chroma = max(srcRed, max(srcGreen, srcBlue)) - min(srcRed, min(srcGreen, srcBlue));
+    s32 red = mapped & 31;
+    s32 green = (mapped >> 5) & 31;
+    s32 blue = (mapped >> 10) & 31;
+
+    // One RGB555 step at most per palette shade. This avoids collapsing
+    // hundreds of distinct 64-bit identities into identical visible palettes
+    // without adding new random noise, using save bytes or damaging outlines.
+    if (chroma < 4)
+    {
+        s32 delta = (s32)(fine % 3) - 1;
+        red += delta;
+        green += delta;
+        blue += delta;
+    }
+    else
+    {
+        red += (s32)(fine % 3) - 1;
+        blue += (s32)((fine >> 3) % 3) - 1;
+    }
+
+    return (mapped & 0x8000)
+         | NaturalTone_ClampChannel(red)
+         | (NaturalTone_ClampChannel(green) << 5)
+         | (NaturalTone_ClampChannel(blue) << 10);
+}
+
+u16 NaturalTone_AdjustColor(u16 color, u32 paletteIndex, const struct NaturalToneProfile *profile)
+{
+    u16 original = color;
     s32 red = color & 31;
     s32 green = (color >> 5) & 31;
     s32 blue = (color >> 10) & 31;
     s32 avg, gray, result;
 
-    // Preserve outlines and white highlights; palette entry zero is skipped
-    // separately by NaturalTone_ApplyLoadedPalette.
-    if (red + green + blue <= 6 || red + green + blue >= 87)
+    // The transparent index, outlines and white highlights never change.
+    if (paletteIndex == 0 || red + green + blue <= 6 || red + green + blue >= 87)
         return color;
 
     if (profile->mode == NATURAL_TONE_LIGHT_INVERSION
      && max(red, max(green, blue)) - min(red, min(green, blue)) <= 6)
     {
-        // Lighten neutral body shades while keeping their ordering and the
-        // original black outline. This permits a white/gray shiny Charizard.
         gray = (red * 3 + green * 4 + blue) / 8;
         if (gray <= 5)
-            return color; // Low-value eye detail and soft outlines.
+            return color;
         result = 17 + gray * 14 / 31;
-        return (color & 0x8000) | result | (result << 5) | (result << 10);
+        color = (color & 0x8000) | result | (result << 5) | (result << 10);
+    }
+    else
+    {
+        color = NaturalTone_ShiftHue(color, red, green, blue, profile->hueShift);
+        red = color & 31;
+        green = (color >> 5) & 31;
+        blue = (color >> 10) & 31;
+
+        avg = (red + green + blue) / 3;
+        red = avg + (red - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
+        green = avg + (green - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
+        blue = avg + (blue - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
+
+        color = (color & 0x8000)
+              | NaturalTone_ClampChannel(red)
+              | (NaturalTone_ClampChannel(green) << 5)
+              | (NaturalTone_ClampChannel(blue) << 10);
     }
 
-    color = NaturalTone_ShiftHue(color, red, green, blue, profile->hueShift);
-    red = color & 31;
-    green = (color >> 5) & 31;
-    blue = (color >> 10) & 31;
-
-    avg = (red + green + blue) / 3;
-    red = avg + (red - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
-    green = avg + (green - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
-    blue = avg + (blue - avg) * (100 + profile->saturationPercent) / 100 + profile->brightnessSteps;
-
-    return (color & 0x8000)
-         | NaturalTone_ClampChannel(red)
-         | (NaturalTone_ClampChannel(green) << 5)
-         | (NaturalTone_ClampChannel(blue) << 10);
+    return NaturalTone_FineTuneColor(original, color, paletteIndex, profile);
 }
 
 void NaturalTone_ApplyLoadedPalette(u32 paletteOffset, u32 personality, u32 otId, bool32 isShiny, bool32 isEgg)
@@ -176,6 +213,6 @@ void NaturalTone_ApplyLoadedPalette(u32 paletteOffset, u32 personality, u32 otId
     // previously tinted buffer. Do not alter the transparency entry.
     colors[0] = gPlttBufferUnfaded[paletteOffset];
     for (i = 1; i < ARRAY_COUNT(colors); i++)
-        colors[i] = NaturalTone_AdjustColor(gPlttBufferUnfaded[paletteOffset + i], &profile);
+        colors[i] = NaturalTone_AdjustColor(gPlttBufferUnfaded[paletteOffset + i], i, &profile);
     LoadPalette(colors, paletteOffset, sizeof(colors));
 }
