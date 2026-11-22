@@ -25,36 +25,34 @@ TEST("Natural Pokémon tones change 15-bit colors subtly and keep outlines")
     EXPECT_EQ(NaturalTone_AdjustColor(middle, NATURAL_TONE_COOL), 8 | (20 << 5) | (7 << 10));
     EXPECT_EQ(NaturalTone_AdjustColor(middle, NATURAL_TONE_LIGHT), 11 | (21 << 5) | (6 << 10));
     EXPECT_EQ(NaturalTone_AdjustColor(middle, NATURAL_TONE_DARK), 9 | (19 << 5) | (4 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(0, NATURAL_TONE_PEARL), 0);
-    EXPECT_EQ(NaturalTone_AdjustColor(0x7FFF, NATURAL_TONE_COMPLEMENT), 0x7FFF);
+    EXPECT_EQ(NaturalTone_AdjustColor(0, NATURAL_TONE_HUE_MINUS_90), 0);
+    EXPECT_EQ(NaturalTone_AdjustColor(0x7FFF, NATURAL_TONE_HUE_PLUS_90), 0x7FFF);
     EXPECT_EQ(NaturalTone_AdjustColor(middle | 0x8000, NATURAL_TONE_LIGHT),
               NaturalTone_AdjustColor(middle, NATURAL_TONE_LIGHT) | 0x8000);
 }
 
-TEST("Chromatic tones rotate and complement main colors while keeping grayscale")
+TEST("Hue rotation can turn red into violet while preserving main brightness")
 {
-    const u16 orange = (26 | (12 << 5) | (3 << 10));
+    const u16 red = (26 | (3 << 5) | (2 << 10));
     const u16 gray = (16 | (16 << 5) | (16 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(orange, NATURAL_TONE_SHIFT_GREEN), 3 | (26 << 5) | (12 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(orange, NATURAL_TONE_SHIFT_VIOLET), 12 | (3 << 5) | (26 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(orange, NATURAL_TONE_COMPLEMENT), 3 | (17 << 5) | (26 << 10));
-    EXPECT_EQ(NaturalTone_AdjustColor(gray, NATURAL_TONE_COMPLEMENT), gray);
+    EXPECT_EQ(NaturalTone_AdjustColor(red, NATURAL_TONE_HUE_MINUS_90),
+              14 | (2 << 5) | (26 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(red, NATURAL_TONE_HUE_PLUS_60),
+              26 | (26 << 5) | (2 << 10));
+    EXPECT_EQ(NaturalTone_AdjustColor(gray, NATURAL_TONE_HUE_PLUS_90), gray);
 }
 
-TEST("A shiny may have a pearl-white phenotype without losing its shiny status")
+TEST("Shiny Pokémon can receive chromatic hues without changing shiny status")
 {
-    const u16 bodyGray = (12 | (12 << 5) | (12 << 10));
-    bool32 foundPearl = FALSE;
+    bool32 foundViolet = FALSE;
 
     for (u32 personality = 0; personality < 1024; personality++)
     {
-        if (NaturalTone_FromShinyPersonality(personality) == NATURAL_TONE_PEARL)
+        if (NaturalTone_FromShinyPersonality(personality) == NATURAL_TONE_HUE_MINUS_90)
         {
-            foundPearl = TRUE;
+            foundViolet = TRUE;
             break;
         }
     }
-    EXPECT_EQ(foundPearl, TRUE);
-    EXPECT_EQ(NaturalTone_AdjustColor(bodyGray, NATURAL_TONE_PEARL),
-              23 | (23 << 5) | (23 << 10));
+    EXPECT_EQ(foundViolet, TRUE);
 }

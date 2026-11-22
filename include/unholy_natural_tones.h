@@ -1,8 +1,8 @@
 #ifndef GUARD_UNHOLY_NATURAL_TONES_H
 #define GUARD_UNHOLY_NATURAL_TONES_H
 
-// Deterministic cosmetic palettes based on each Pokémon's personality.
-// Shiny Pokémon use the original shiny species palette as their base.
+// Cosmetic hues derive from each Pokémon's permanent personality.
+// Shiny Pokémon use their canonical shiny palette before color adjustment.
 enum NaturalTone
 {
     NATURAL_TONE_STANDARD,
@@ -10,10 +10,12 @@ enum NaturalTone
     NATURAL_TONE_COOL,
     NATURAL_TONE_LIGHT,
     NATURAL_TONE_DARK,
-    NATURAL_TONE_SHIFT_GREEN,
-    NATURAL_TONE_SHIFT_VIOLET,
-    NATURAL_TONE_COMPLEMENT,
-    NATURAL_TONE_PEARL,
+    NATURAL_TONE_HUE_PLUS_30,
+    NATURAL_TONE_HUE_MINUS_30,
+    NATURAL_TONE_HUE_PLUS_60,
+    NATURAL_TONE_HUE_MINUS_60,
+    NATURAL_TONE_HUE_PLUS_90,
+    NATURAL_TONE_HUE_MINUS_90,
     NATURAL_TONE_COUNT,
 };
 
