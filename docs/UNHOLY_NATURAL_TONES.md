@@ -54,8 +54,13 @@ build. Modificaciones futuras necesitarían migración o compatibilidad con V1.
 
 - No se cambia la estructura `BoxPokemon`, ni el formato `.sav`, ni se usa
   RAM extendida. Se usa la OT ID ya guardada en equipo/PC/resumen.
-- Se recolorean sprites de combate, retrato ampliado del PC clásico,
-  resumen y ciertos sprites temporales de animaciones.
+- Se recolorean sprites de combate, resumen, retrato ampliado del PC clásico,
+  evolución (forma anterior y nueva, incluida la evolución por intercambio),
+  animación de intercambio y eclosión, además de sprites temporales de combate.
+  En intercambios, las dos partes usan paletas separadas incluso si ambos
+  Pokémon son de la misma especie, para preservar sus tonos individuales.
+  Pantallas que solo presentan una especie, sin un Pokémon concreto (por
+  ejemplo, la Pokédex), conservan la paleta canónica.
 - Los iconos de 16×16 del PC y los overworlds comparten paletas; todavía
   conservan los colores de especie para evitar cambiar otros Pokémon.
 - Se preservan entrada transparente 0, contornos muy oscuros, blancos
