@@ -197,6 +197,8 @@ static void DestroyPortrait(void)
         // this sprite. Cancel it before the portrait is freed or replaced.
         StopPokemonAnimationDelayTask();
         SummaryScreen_SetAnimDelayTaskId(TASK_NONE);
+        // Some species temporarily allocate an OAM matrix while animating.
+        FreeSpriteOamMatrix(&gSprites[sSummary->portrait]);
         FreeAndDestroyMonPicSprite(sSummary->portrait);
     }
     sSummary->portrait = SPRITE_NONE;
