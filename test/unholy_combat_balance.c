@@ -176,3 +176,44 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
 }
+
+TEST("Exhausted Pokemon on either side cannot recover until the stamina threshold")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    struct BattlePokemon previousMons[2] = {gBattleMons[B_BATTLER_0], gBattleMons[B_BATTLER_1]};
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    for (enum BattlerId battler = B_BATTLER_0; battler <= B_BATTLER_1; battler++)
+    {
+        gBattleMons[battler] = (struct BattlePokemon){0};
+        gBattleStruct->staminaOwner[battler] = gBattlerPartyIndexes[battler] + 1;
+        gBattleStruct->maxStamina[battler] = 100;
+        gBattleStruct->stamina[battler] = 5;
+
+        // A final effort is allowed but must exhaust BOTH sides afterward.
+        Stamina_SpendForMove(battler, MOVE_EMBER, FALSE);
+        EXPECT_EQ(Stamina_GetCurrent(battler), 0);
+        EXPECT(Stamina_IsExhausted(battler));
+
+        Stamina_EndOfTurn(battler);
+        EXPECT_EQ(Stamina_GetCurrent(battler), 18);
+        EXPECT(Stamina_IsExhausted(battler));
+        EXPECT_EQ(gBattleMons[battler].volatiles.rechargeTimer, 1);
+
+        // Recovery is only possible once the configured threshold is met.
+        gBattleMons[battler].volatiles.rechargeTimer = 0;
+        Stamina_EndOfTurn(battler);
+        EXPECT_EQ(Stamina_GetCurrent(battler), 36);
+        EXPECT(!Stamina_IsExhausted(battler));
+
+        // Even with a stale exhaustion flag, zero stamina must block actions.
+        gBattleStruct->stamina[battler] = 0;
+        gBattleStruct->staminaExhausted[battler] = FALSE;
+        EXPECT(Stamina_IsExhausted(battler));
+    }
+
+    gBattleMons[B_BATTLER_0] = previousMons[0];
+    gBattleMons[B_BATTLER_1] = previousMons[1];
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
