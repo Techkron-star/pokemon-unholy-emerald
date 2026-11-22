@@ -1212,6 +1212,8 @@ static void Cmd_healthbarupdate(void)
     if (gBattleControllerExecFlags)
         return;
 
+    if (UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
+        gBattleStruct->passiveHpUpdate[battler] = 0;
     Unholy_AdjustHealing(battler);
     BtlController_EmitHealthBarUpdate(battler, B_COMM_TO_CONTROLLER, min(gBattleStruct->passiveHpUpdate[battler], 10000));
     MarkBattlerForControllerExec(battler);
@@ -1225,6 +1227,9 @@ static void Cmd_datahpupdate(void)
 
     if (gBattleControllerExecFlags)
         return;
+
+    if (UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
+        gBattleStruct->passiveHpUpdate[battler] = 0;
 
     if (gBattleStruct->passiveHpUpdate[battler] < 0)
     {
@@ -2528,7 +2533,7 @@ static u32 DoesPartyHaveBattleReadyMons(enum BattleTrainer trainer)
                 continue;
         }
 
-        if (GetMonData(&mon, MON_DATA_HP) > 0)
+        if (GetMonData(&mon, MON_DATA_HP) > 0 && !UnholyStatus_PartyExiled(trainer, i))
             return TRUE;
     }
 
@@ -3218,7 +3223,7 @@ static bool32 IsValidSwitchIn(enum BattleTrainer trainer, u32 index)
         return FALSE;
 
     struct Pokemon *party = GetTrainerParty(trainer);
-    if (!IsValidForBattle(&party[index]))
+    if (!IsValidForBattle(&party[index]) || UnholyStatus_PartyExiled(trainer, index))
         return FALSE;
 
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
@@ -3361,6 +3366,8 @@ static void Cmd_switchinanim(void)
 
 bool32 CanBattlerSwitch(enum BattlerId battler)
 {
+    if (IsDoubleBattle() && UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
+        return FALSE;
     s32 lastMonId;
     enum BattlerId battlerIn1, battlerIn2;
     struct Pokemon *party = GetBattlerParty(battler);
@@ -3375,7 +3382,8 @@ bool32 CanBattlerSwitch(enum BattlerId battler)
 
     for (u32 mon = 0; mon < lastMonId; mon++)
     {
-        if (GetMonData(&party[mon], MON_DATA_HP) == 0
+        if (UnholyStatus_PartyExiled(GetBattlerTrainer(battler), mon)
+         || GetMonData(&party[mon], MON_DATA_HP) == 0
          || GetMonData(&party[mon], MON_DATA_SPECIES) == SPECIES_NONE
          || GetMonData(&party[mon], MON_DATA_IS_EGG)
          || (mon == gBattlerPartyIndexes[battlerIn1] && BattlersShareParty(battler, battlerIn1))
@@ -5660,6 +5668,7 @@ static void Cmd_forcerandomswitch(void)
             if (GetMonData(&party[i], MON_DATA_SPECIES) != SPECIES_NONE
              && !GetMonData(&party[i], MON_DATA_IS_EGG)
              && GetMonData(&party[i], MON_DATA_HP) != 0
+             && !UnholyStatus_PartyExiled(GetBattlerTrainer(gBattlerTarget), i)
              && i != battler1PartyId
              && i != battler2PartyId)
              {
@@ -12489,5 +12498,19 @@ void BS_TryDoMoveEffectsBeforeMoves(void)
         }
     }
 
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
+void BS_ApplyUnholyStatus(void)
+{
+    NATIVE_ARGS();
+    UnholyStatus_ApplyMove();
+    gBattlescriptCurrInstr = cmd->nextInstr;
+}
+
+void BS_UnholyStatusPrepareSwitch(void)
+{
+    NATIVE_ARGS();
+    gBattleScripting.battler = gBattlerTarget;
     gBattlescriptCurrInstr = cmd->nextInstr;
 }

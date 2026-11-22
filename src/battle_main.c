@@ -2958,7 +2958,7 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
     enum BattleMoveEffects effect = GetMoveEffect(gCurrentMove);
 
     Chain_InvalidateFollowUps();
-    gBattleStruct->shackleTurns[battler] = 0;
+    UnholyStatus_Clear(battler);
     gBattleStruct->survivalGuardMask &= ~(1u << battler);
     gBattleStruct->survivalUsedThisMoveMask &= ~(1u << battler);
 
@@ -3680,6 +3680,7 @@ bool32 EndTurnEvents(void) // Called from Battle Script
             gBattleStruct->battlerState[battler].stompingTantrumTimer--;
     }
 
+    UnholyStatus_EndTurn();
     gBattleStruct->paladinTurnSerial++;
 
     for (u32 i = 0; i < NUM_BATTLE_SIDES; i++)
@@ -3982,6 +3983,7 @@ static void HandleTurnActionSelectionState(void)
                     gBattleStruct->battlerPartyIndexes[battler] = gBattlerPartyIndexes[battler];
                     if (gBattleTypeFlags & BATTLE_TYPE_ARENA
                         || gBattleStruct->battlerState[battler].commanderSpecies != SPECIES_NONE
+                        || UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED)
                         || (!CanBattlerEscape(battler) && GetBattlerHoldEffect(battler) != HOLD_EFFECT_SHED_SHELL))
                     {
                         BtlController_EmitChoosePokemon(battler, B_COMM_TO_CONTROLLER, PARTY_ACTION_CANT_SWITCH, PARTY_SIZE, ABILITY_NONE, 0, gBattleStruct->battlerPartyOrders[battler]);

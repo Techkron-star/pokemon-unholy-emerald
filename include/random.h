@@ -279,6 +279,7 @@ enum RandomTag
     RNG_GEAR_ESTANDARTE,
     RNG_GEAR_TABLERO,
     RNG_GEAR_DESHUMIDIFICADOR,
+    RNG_UNHOLY_BANISH,
 };
 
 #define RandomWeighted(tag, ...) \

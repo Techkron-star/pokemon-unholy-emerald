@@ -6524,3 +6524,32 @@ BattleScript_BelchFails::
 	printstring STRINGID_BELCHCANTSELECT
 	waitmessage B_WAIT_TIME_LONG
 	goto BattleScript_MoveEnd
+
+BattleScript_EffectUnholyStatus::
+    attackcanceler
+    attackanimation
+    waitanimation
+    callnative BS_ApplyUnholyStatus
+    jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, 0, BattleScript_ButItFailed
+    jumpifbyte CMP_EQUAL, cMULTISTRING_CHOOSER, 2, BattleScript_UnholyExileSingle
+    printstring STRINGID_UNHOLYSTATUSAPPLIED
+    waitmessage B_WAIT_TIME_LONG
+    goto BattleScript_MoveEnd
+BattleScript_UnholyExileSingle::
+    printstring STRINGID_UNHOLYSTATUSAPPLIED
+    waitmessage B_WAIT_TIME_LONG
+    callnative BS_UnholyStatusPrepareSwitch
+    returntoball BS_SCRIPTING, FALSE
+    switchoutabilities BS_SCRIPTING
+    call BattleScript_QueuedSwitchOpenPartyScreen
+    goto BattleScript_MoveEnd
+BattleScript_UnholyBanishedWait::
+    printstring STRINGID_UNHOLYBANISHEDWAIT
+    waitmessage B_WAIT_TIME_LONG
+    goto BattleScript_MoveEnd
+
+BattleScript_UnholyHealerCure::
+    call BattleScript_AbilityPopUp
+    printstring STRINGID_UNHOLYSTATUSCURED
+    waitmessage B_WAIT_TIME_LONG
+    return

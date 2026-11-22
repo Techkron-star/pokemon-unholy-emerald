@@ -5,6 +5,12 @@
 
 const struct BattleMoveEffect gBattleMoveEffects[NUM_BATTLE_MOVE_EFFECTS] =
 {
+    [EFFECT_UNHOLY_STATUS] =
+    {
+        .battleScript = BattleScript_EffectUnholyStatus,
+        .battleTvScore = 0,
+        .encourageEncore = TRUE,
+    },
     [EFFECT_PLACEHOLDER] =
     {
         .battleScript = BattleScript_EffectPlaceholder,

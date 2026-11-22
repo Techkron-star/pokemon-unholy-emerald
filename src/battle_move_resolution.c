@@ -1,4 +1,5 @@
 #include "global.h"
+#include "string_util.h"
 #include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_arena.h"
@@ -55,6 +56,12 @@ static bool32 CutThirdOfHp(enum BattlerId battler);
 
 static enum CancelerResult CancelerClearFlags(struct BattleCalcValues *cv)
 {
+    if (UnholyStatus_Has(cv->battlerAtk, UNHOLY_STATUS_BANISHED))
+    {
+        StringCopy(gBattleTextBuff1, UnholyStatus_Name(UNHOLY_STATUS_BANISHED));
+        gBattlescriptCurrInstr = BattleScript_UnholyBanishedWait;
+        return CANCELER_RESULT_FAILURE;
+    }
     gSpecialStatuses[cv->battlerAtk].unholyEffectTargets = 0;
     gSpecialStatuses[cv->battlerAtk].unholyPunchRaised = FALSE;
     gSpecialStatuses[cv->battlerAtk].unholySamuraiParried = 0;
@@ -3078,6 +3085,11 @@ static enum CancelerResult CancelerHealthBarUpdate(struct BattleCalcValues *cv)
 
 static bool32 TryMoveDamageUpdate(struct BattleCalcValues *cv)
 {
+    if (UnholyStatus_Has(cv->battlerDef, UNHOLY_STATUS_BANISHED))
+    {
+        gBattleStruct->moveDamage[cv->battlerDef] = 0;
+        return FALSE;
+    }
     if (gBattleStruct->unholySamuraiDamage[cv->battlerDef] > 0)
         return FALSE;
 
@@ -3705,7 +3717,8 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
     }
 
     // Includes the rest of this turn and the target's next complete turn.
-    gBattleStruct->shackleTurns[cv->battlerDef] = 2;
+    if (!UnholyStatus_Apply(cv->battlerDef, UNHOLY_STATUS_CHAINED, 2))
+        return MOVEEND_RESULT_CONTINUE;
     gBattleStruct->gearActivations[cv->battlerAtk]++;
     BattleScriptCall(BattleScript_GearShackle);
     return MOVEEND_RESULT_RUN_SCRIPT;

@@ -2,6 +2,7 @@
 #include "battle.h"
 #include "main.h"
 #include "move.h"
+#include "unholy_status.h"
 #include "unholy_localization.h"
 
 #include "data/moves_info.h"
@@ -24,6 +25,7 @@ static const struct MoveTranslation sSpanishMoveTranslations[MOVES_COUNT_ALL] =
 #include "data/move_localization_es_gen7.h"
 #include "data/move_localization_es_gen8.h"
 #include "data/move_localization_es_gen9.h"
+#include "data/move_localization_es_unholy.h"
 #include "data/move_localization_es_special.h"
 };
 

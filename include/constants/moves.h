@@ -907,7 +907,16 @@ enum __attribute__((packed)) Move
 
     // Add any custom moves here, not further down!
 
-    MOVES_COUNT = MOVES_COUNT_GEN9,
+    MOVE_UNHOLY_ROOT = MOVES_COUNT_GEN9,
+    MOVE_UNHOLY_WEIGHTLESS,
+    MOVE_UNHOLY_CONFINE,
+    MOVE_UNHOLY_BLIND,
+    MOVE_UNHOLY_TERROR,
+    MOVE_UNHOLY_SHACKLE,
+    MOVE_UNHOLY_BANISH,
+    MOVE_UNHOLY_SANCTIFY,
+    MOVE_UNHOLY_DEMONIFY,
+    MOVES_COUNT,
 
     // Z Moves
     FIRST_Z_MOVE = MOVES_COUNT,

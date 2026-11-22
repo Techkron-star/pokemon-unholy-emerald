@@ -12,6 +12,7 @@
 #include "constants/hold_effects.h"
 #include "constants/moves.h"
 #include "battle_main.h"
+#include "unholy_status.h"
 #include "battle_message.h"
 #include "battle_util.h"
 #include "battle_script_commands.h"
@@ -561,7 +562,7 @@ struct PartyState
     u32 sentOut:1;
     u32 isKnockedOff:1;
     u32 freezeTurns:2;
-    u32 padding:3;
+    u32 exileTurns:3; // Temporary timer; also ticks on the bench.
     enum Item usedHeldItem;
 };
 
@@ -772,6 +773,8 @@ struct BattleStruct
     u8 allowPartingShot:1;
     u8 adrenalineOrbActivated:1; // prevents looping after an adrenaline stat changed
     // Sistema de stamina (ver src/battle_stamina.c)
+    u8 customStatusTurns[MAX_BATTLERS_COUNT][UNHOLY_STATUS_COUNT];
+    u16 customStatusFresh[MAX_BATTLERS_COUNT];
     u16 stamina[MAX_BATTLERS_COUNT];
     u16 maxStamina[MAX_BATTLERS_COUNT];
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina

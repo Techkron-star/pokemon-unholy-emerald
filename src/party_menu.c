@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_localization.h"
 #include "unholy_move_ui.h"
 #include "battle_stamina.h"
 #include "malloc.h"
@@ -7660,6 +7661,11 @@ static bool8 TrySwitchInPokemon(void)
     {
         StringCopy(gStringVar1, GetTrainerPartnerName());
         StringExpandPlaceholders(gStringVar4, gText_CantSwitchWithAlly);
+        return FALSE;
+    }
+    if (UnholyStatus_PartyExiled(GetBattlerTrainer(gBattlerInMenuId), CombinedToIndividualPartyId(battlePartyId)))
+    {
+        StringCopy(gStringVar4, UnholyLocalize(COMPOUND_STRING("This Pokémon is still banished."), COMPOUND_STRING("Este Pokémon sigue desterrado.")));
         return FALSE;
     }
     if (GetMonData(&party[partySlot], MON_DATA_HP) == 0)

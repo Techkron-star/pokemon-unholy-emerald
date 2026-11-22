@@ -1832,8 +1832,10 @@ static void DrawChainPreview(enum BattlerId battler)
     StringAppend(text, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
     if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
-    if (gBattleStruct->shackleTurns[battler] != 0)
-        StringCopy(text, COMPOUND_STRING("CHAINED"));
+    u8 statusText[32];
+    UnholyStatus_FormatSummary(battler, statusText);
+    if (statusText[0] != EOS)
+        StringCopy(text, statusText);
     else if (Chain_IsAvailable(battler) && !marked && !Chain_IsMoveChainable(info->moves[selected]))
         StringCopy(text, COMPOUND_STRING("SINGLE MOVE"));
     else if (marked && selected != first && !pairAllowed)

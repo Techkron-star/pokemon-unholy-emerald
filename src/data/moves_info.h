@@ -22110,6 +22110,141 @@ const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL] =
         .battleAnimScript = gBattleAnimMove_MalignantChain,
     },
 
+    [MOVE_UNHOLY_ROOT] =
+    {
+        .name = COMPOUND_STRING("Root Snare"),
+        .description = COMPOUND_STRING("Roots ground and trap the foe\nfor three turns."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_GRASS,
+        .accuracy = 90,
+        .pp = 15,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_ROOTED,
+        .battleAnimScript = gBattleAnimMove_Ingrain,
+    },
+
+    [MOVE_UNHOLY_WEIGHTLESS] =
+    {
+        .name = COMPOUND_STRING("Weightlessness"),
+        .description = COMPOUND_STRING("Floats above Ground attacks\nfor three turns."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_PSYCHIC,
+        .accuracy = 100,
+        .pp = 15,
+        .target = TARGET_USER_OR_ALLY,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = FALSE,
+        .argument.status = UNHOLY_STATUS_WEIGHTLESS,
+        .battleAnimScript = gBattleAnimMove_MagnetRise,
+    },
+
+    [MOVE_UNHOLY_CONFINE] =
+    {
+        .name = COMPOUND_STRING("Confinement"),
+        .description = COMPOUND_STRING("Confines the target for two\nturns, preventing withdrawal."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_DARK,
+        .accuracy = 90,
+        .pp = 15,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_CONFINED,
+        .battleAnimScript = gBattleAnimMove_MeanLook,
+    },
+
+    [MOVE_UNHOLY_BLIND] =
+    {
+        .name = COMPOUND_STRING("Blinding Mist"),
+        .description = COMPOUND_STRING("Reduces accuracy by 25%\nfor three turns."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_DARK,
+        .accuracy = 90,
+        .pp = 15,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_BLINDED,
+        .battleAnimScript = gBattleAnimMove_Smokescreen,
+    },
+
+    [MOVE_UNHOLY_TERROR] =
+    {
+        .name = COMPOUND_STRING("Terror Gaze"),
+        .description = COMPOUND_STRING("Lowers both offenses by 20%\nfor two turns."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_GHOST,
+        .accuracy = 90,
+        .pp = 15,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_TERRIFIED,
+        .battleAnimScript = gBattleAnimMove_ScaryFace,
+    },
+
+    [MOVE_UNHOLY_SHACKLE] =
+    {
+        .name = COMPOUND_STRING("Shackle"),
+        .description = COMPOUND_STRING("Blocks chained follow-ups\nwithout blocking a lone move."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_STEEL,
+        .accuracy = 90,
+        .pp = 15,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_CHAINED,
+        .battleAnimScript = gBattleAnimMove_MeanLook,
+    },
+
+    [MOVE_UNHOLY_BANISH] =
+    {
+        .name = COMPOUND_STRING("Banishment"),
+        .description = COMPOUND_STRING("Exiles once for 1-5 turns.\nLifetime immunity afterward."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_GHOST,
+        .accuracy = 85,
+        .pp = 5,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_BANISHED,
+        .battleAnimScript = gBattleAnimMove_NightShade,
+    },
+
+    [MOVE_UNHOLY_SANCTIFY] =
+    {
+        .name = COMPOUND_STRING("Sanctification"),
+        .description = COMPOUND_STRING("Favors positive STAB types;\nweakens negative ones."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_FAIRY,
+        .accuracy = 100,
+        .pp = 10,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_SANCTIFIED,
+        .battleAnimScript = gBattleAnimMove_Moonlight,
+    },
+
+    [MOVE_UNHOLY_DEMONIFY] =
+    {
+        .name = COMPOUND_STRING("Demonification"),
+        .description = COMPOUND_STRING("Favors negative STAB types;\nweakens positive ones."),
+        .effect = EFFECT_UNHOLY_STATUS,
+        .type = TYPE_DARK,
+        .accuracy = 100,
+        .pp = 10,
+        .target = TARGET_SELECTED,
+        .category = DAMAGE_CATEGORY_STATUS,
+        .magicCoatAffected = TRUE,
+        .argument.status = UNHOLY_STATUS_DEMONIFIED,
+        .battleAnimScript = gBattleAnimMove_Curse,
+    },
+
     // Z-Moves
     [MOVE_BREAKNECK_BLITZ] =
     {

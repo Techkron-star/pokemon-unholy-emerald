@@ -1,5 +1,6 @@
 #include "global.h"
 #include "unholy_moves.h"
+#include "unholy_status.h"
 #include "battle.h"
 #include "item.h"
 #include "main.h"
@@ -62,6 +63,15 @@ void UnholyMoves_Build(struct Pokemon *mon, struct UnholyMoveCatalog *catalog)
             if (ValidMove(eggs[i])) catalog->sources[eggs[i]] |= UNHOLY_MOVE_EGG;
         ancestor = GetSpeciesPreEvolution(ancestor);
     }
+    for (enum Move move = MOVE_UNHOLY_ROOT; move <= MOVE_UNHOLY_DEMONIFY; move++)
+    {
+        u8 level = UnholyStatus_MoveLevel(species, move);
+        if (level != 0)
+        {
+            catalog->sources[move] |= UNHOLY_MOVE_TUTOR;
+            catalog->level[move] = level;
+        }
+    }
     const u16 *teachable = GetSpeciesTeachableLearnset(species);
     for (u16 i = 0; teachable[i] != MOVE_UNAVAILABLE; i++)
     {
@@ -94,6 +104,8 @@ u8 UnholyMoves_Status(struct Pokemon *mon, const struct UnholyMoveCatalog *catal
     if (!Valid(mon) || !ValidMove(move) || catalog->sources[move] == 0) return UNHOLY_MOVE_INVALID;
     if (MonKnowsMove(mon, move)) return UNHOLY_MOVE_KNOWN;
     u8 sources = catalog->sources[move];
+    if (UnholyStatus_MoveLevel(GetMonData(mon, MON_DATA_SPECIES), move) > GetMonData(mon, MON_DATA_LEVEL))
+        return UNHOLY_MOVE_NEEDS_LEVEL;
     if (sources & (UNHOLY_MOVE_EGG | UNHOLY_MOVE_TUTOR)) return UNHOLY_MOVE_READY;
     if ((sources & (UNHOLY_MOVE_LEVEL | UNHOLY_MOVE_PRE_EVO))
      && catalog->level[move] <= GetMonData(mon, MON_DATA_LEVEL)) return UNHOLY_MOVE_READY;
