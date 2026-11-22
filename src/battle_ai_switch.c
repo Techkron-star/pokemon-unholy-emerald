@@ -1306,6 +1306,8 @@ bool32 ShouldSwitchDynFuncExample(struct SwitchAiContext *switchContext)
 
 static bool32 CanBattlerConsiderSwitch(enum BattlerId battler)
 {
+    if (!CanBattlerEscape(battler))
+        return FALSE;
     if (gBattleMons[battler].volatiles.wrapped)
         return FALSE;
     if (gBattleMons[battler].volatiles.escapePrevention)
@@ -1398,7 +1400,7 @@ void GetShouldSwitchPartyMonEligibility(struct SwitchAiContext *switchContext)
 {
     for (u32 monIndex = 0; monIndex < switchContext->lastId; monIndex++)
     {
-        if (!IsValidForBattle(&switchContext->party[monIndex]))
+        if (!IsValidForBattle(&switchContext->party[monIndex]) || UnholyStatus_PartyExiled(GetBattlerTrainer(switchContext->battler), monIndex))
             continue;
         if (IsPartyMonOnFieldOrChosenToSwitch(switchContext->battler, monIndex, switchContext->battlerIn1, switchContext->battlerIn2))
             continue;
@@ -2234,7 +2236,7 @@ static u32 GetBestMonIntegrated(struct Pokemon *party, int lastId, enum BattlerI
     for (u32 monIndex = 0; monIndex < lastId; monIndex++)
     {
         // Check mon validity
-        if (!IsValidForBattle(&party[monIndex]))
+        if (!IsValidForBattle(&party[monIndex]) || UnholyStatus_PartyExiled(GetBattlerTrainer(battler), monIndex))
             continue;
         // Check if mon is already in play or being sent in
         if (IsPartyMonOnFieldOrChosenToSwitch(battler, monIndex, battlerIn1, battlerIn2))
@@ -2495,7 +2497,7 @@ static u32 GetBestMonVanilla(struct Pokemon *party, int lastId, enum BattlerId b
     for (u32 monIndex = 0; monIndex < lastId; monIndex++)
     {
         // Check mon validity
-        if (!IsValidForBattle(&party[monIndex]))
+        if (!IsValidForBattle(&party[monIndex]) || UnholyStatus_PartyExiled(GetBattlerTrainer(battler), monIndex))
             continue;
         // Check if mon is already in play or being sent in
         if (IsPartyMonOnFieldOrChosenToSwitch(battler, monIndex, battlerIn1, battlerIn2))
@@ -2584,7 +2586,7 @@ static u32 GetNextMonInParty(struct Pokemon *party, int lastId, enum BattlerId b
     for (u32 monIndex = 0; monIndex < lastId; monIndex++)
     {
         // Check mon validity
-        if (!IsValidForBattle(&party[monIndex]))
+        if (!IsValidForBattle(&party[monIndex]) || UnholyStatus_PartyExiled(GetBattlerTrainer(battler), monIndex))
         {
             continue;
         }

@@ -3827,9 +3827,12 @@ u32 AbilityBattleEffects(enum AbilityEffect caseID, enum BattlerId battler, enum
             case ABILITY_HEALER:
                 gBattleScripting.battler = GetPartnerBattler(battler);
                 if (IsBattlerAlive(gBattleScripting.battler)
-                 && gBattleMons[gBattleScripting.battler].status1 & STATUS1_ANY
+                 && !UnholyStatus_Has(gBattleScripting.battler, UNHOLY_STATUS_BANISHED)
+                 && ((gBattleMons[gBattleScripting.battler].status1 & STATUS1_ANY) || UnholyStatus_HasNegative(gBattleScripting.battler))
                  && RandomPercentage(RNG_HEALER, 30))
                 {
+                    if (!(gBattleMons[gBattleScripting.battler].status1 & STATUS1_ANY))
+                        UnholyStatus_CureNegative(gBattleScripting.battler);
                     BattleScriptCall(BattleScript_HealerActivates);
                     effect++;
                 }
@@ -5086,6 +5089,8 @@ u32 IsAbilityPreventingEscape(enum BattlerId battler)
 
 bool32 CanBattlerEscape(enum BattlerId battler) // no ability check
 {
+    if (UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
+        return FALSE;
     if (gBattleStruct->battlerState[battler].commanderSpecies != SPECIES_NONE)
         return FALSE;
     else if (GetConfig(B_GHOSTS_ESCAPE) >= GEN_6 && IS_BATTLER_OF_TYPE(battler, TYPE_GHOST))
@@ -5094,7 +5099,9 @@ bool32 CanBattlerEscape(enum BattlerId battler) // no ability check
         return FALSE;
     else if (gBattleMons[battler].volatiles.wrapped)
         return FALSE;
-    else if (gBattleMons[battler].volatiles.root)
+    else if (gBattleMons[battler].volatiles.root
+          || UnholyStatus_Has(battler, UNHOLY_STATUS_ROOTED)
+          || UnholyStatus_Has(battler, UNHOLY_STATUS_CONFINED))
         return FALSE;
     else if (gFieldStatuses & STATUS_FIELD_FAIRY_LOCK)
         return FALSE;
@@ -5375,6 +5382,8 @@ bool32 CanSetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId battler
     u32 sideBattler = 0;
     bool32 abilityAffected = FALSE;
 
+    if (UnholyStatus_Has(battlerDef, UNHOLY_STATUS_BANISHED))
+        return FALSE;
     // Move specific checks
     switch (effect)
     {
@@ -6027,6 +6036,8 @@ enum IronBallCheck
 
 static bool32 IsBattlerUngroundedByAbilityItemOrEffect(enum BattlerId battler, enum Ability ability, enum HoldEffect holdEffect)
 {
+    if (UnholyStatus_Has(battler, UNHOLY_STATUS_WEIGHTLESS))
+        return TRUE;
     if (gBattleMons[battler].volatiles.telekinesis)
         return TRUE;
     if (gBattleMons[battler].volatiles.magnetRiseTimer > 0)
@@ -6043,6 +6054,8 @@ static bool32 IsBattlerGroundedInverseCheck(enum BattlerId battler, enum Ability
     if (holdEffect == HOLD_EFFECT_IRON_BALL)
         return TRUE;
     if (gFieldStatuses & STATUS_FIELD_GRAVITY && isAnticipation == FALSE)
+        return TRUE;
+    if (UnholyStatus_Has(battler, UNHOLY_STATUS_ROOTED))
         return TRUE;
     if (B_ROOTED_GROUNDING >= GEN_4 && gBattleMons[battler].volatiles.root)
         return TRUE;
@@ -7040,6 +7053,7 @@ static inline u32 CalcAttackStat(struct DamageContext *ctx)
     if (ctx->abilities[ctx->battlerDef] == ABILITY_UNAWARE)
         atkStage = DEFAULT_STAT_STAGE;
 
+    atkStat = UnholyStatus_AdjustAttack(battlerAtk, atkStat);
     atkStat *= gStatStageRatios[atkStage][0];
     atkStat /= gStatStageRatios[atkStage][1];
 
@@ -7903,9 +7917,9 @@ s32 ApplyModifiersAfterDmgRoll(struct DamageContext *ctx, s32 dmg)
     if (ctx->unholyDamageModified)
         return dmg;
     if (GetActiveGimmick(ctx->battlerAtk) == GIMMICK_TERA)
-        DAMAGE_APPLY_MODIFIER(GetTeraMultiplier(ctx));
+        DAMAGE_APPLY_MODIFIER(UnholyStatus_AdjustStab(ctx, GetTeraMultiplier(ctx)));
     else
-        DAMAGE_APPLY_MODIFIER(GetSameTypeAttackBonusModifier(ctx));
+        DAMAGE_APPLY_MODIFIER(UnholyStatus_AdjustStab(ctx, GetSameTypeAttackBonusModifier(ctx)));
     DAMAGE_APPLY_MODIFIER(ctx->typeEffectivenessModifier);
     DAMAGE_APPLY_MODIFIER(GetBurnOrFrostBiteModifier(ctx));
     DAMAGE_APPLY_MODIFIER(GetMoveAgainstProtectionModifier(ctx));
@@ -10900,7 +10914,7 @@ u32 GetTotalAccuracy(struct BattleCalcValues *cv, u32 weather)
     if (weather & B_WEATHER_FOG)
         calc = (calc * 60) / 100; // modified by 3/5
 
-    return calc;
+    return UnholyStatus_AdjustAccuracy(battlerAtk, calc);
 }
 
 bool32 DoesOHKOMoveMissTarget(struct BattleCalcValues *cv)
@@ -11020,6 +11034,8 @@ static bool32 CanBreakThroughSemiInvulnerablityInternal(enum BattlerId battlerAt
 
 bool32 CanBreakThroughSemiInvulnerablity(enum BattlerId battlerAtk, enum BattlerId battlerDef, enum Ability abilityAtk, enum Ability abilityDef, enum Move move)
 {
+    if (UnholyStatus_Has(battlerDef, UNHOLY_STATUS_BANISHED))
+        return FALSE;
     return CanBreakThroughSemiInvulnerablityInternal(battlerAtk, battlerDef, abilityAtk, abilityDef, move, gBattleMons[battlerDef].volatiles.semiInvulnerable);
 }
 

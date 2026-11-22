@@ -51,7 +51,8 @@ static enum ChainMoveType Chain_GetMoveType(enum Move move)
 
 bool32 Chain_IsAvailable(enum BattlerId battler)
 {
-    if (!CHAIN_ENABLED || gBattleStruct->shackleTurns[battler] != 0)
+    if (!CHAIN_ENABLED || gBattleStruct->shackleTurns[battler] != 0
+     || UnholyStatus_Has(battler, UNHOLY_STATUS_BANISHED))
         return FALSE;
     if (IsDoubleBattle())
         return FALSE;

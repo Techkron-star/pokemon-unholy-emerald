@@ -1622,6 +1622,10 @@ static s32 AI_CheckBadMove(enum BattlerId battlerAtk, enum BattlerId battlerDef,
     // check move effects
     switch (moveEffect)
     {
+    case EFFECT_UNHOLY_STATUS:
+        if (!UnholyStatus_CanApply(battlerDef, gMovesInfo[move].argument.status))
+            ADJUST_SCORE(-10);
+        break;
     default:
         break;
     case EFFECT_HIT: // only applies to Vital Throw - This probably should not be here

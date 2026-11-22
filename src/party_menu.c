@@ -7662,6 +7662,11 @@ static bool8 TrySwitchInPokemon(void)
         StringExpandPlaceholders(gStringVar4, gText_CantSwitchWithAlly);
         return FALSE;
     }
+    if (UnholyStatus_PartyExiled(GetBattlerTrainer(gBattlerInMenuId), CombinedToIndividualPartyId(battlePartyId)))
+    {
+        StringCopy(gStringVar4, UnholyLocalize(COMPOUND_STRING("This Pokémon is still banished."), COMPOUND_STRING("Este Pokémon sigue desterrado.")));
+        return FALSE;
+    }
     if (GetMonData(&party[partySlot], MON_DATA_HP) == 0)
     {
         GetMonNickname(&party[partySlot], gStringVar1);

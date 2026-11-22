@@ -2240,6 +2240,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
             retVal = moves->gear | (moves->gearHigh << 5);
             break;
         }
+        case MON_DATA_HAS_BEEN_EXILED:
+            retVal = GetSubstruct0(boxMon)->hasBeenExiled;
+            break;
         case MON_DATA_IS_FAVORITE:
             retVal = boxMon->isFavorite;
             break;
@@ -2775,6 +2778,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
             moves->gearHigh = data[0] >> 5;
             break;
         }
+        case MON_DATA_HAS_BEEN_EXILED:
+            GetSubstruct0(boxMon)->hasBeenExiled = data[0] != 0;
+            break;
         case MON_DATA_IS_FAVORITE:
             boxMon->isFavorite = data[0] != 0;
             break;
