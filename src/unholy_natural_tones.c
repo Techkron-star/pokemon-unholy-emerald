@@ -54,8 +54,8 @@ u16 NaturalTone_AdjustColor(u16 color, u8 tone)
     s32 green = (color >> 5) & 31;
     s32 blue = (color >> 10) & 31;
     s32 sum = red + green + blue;
-    s32 max = MAX(red, MAX(green, blue));
-    s32 min = MIN(red, MIN(green, blue));
+    s32 max = max(red, max(green, blue));
+    s32 min = min(red, min(green, blue));
     s32 oldRed = red;
     s32 oldGreen = green;
     s32 oldBlue = blue;
