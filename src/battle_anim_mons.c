@@ -10,6 +10,7 @@
 #include "gpu_regs.h"
 #include "malloc.h"
 #include "palette.h"
+#include "unholy_natural_tones.h"
 #include "pokemon_icon.h"
 #include "sprite.h"
 #include "task.h"
@@ -2054,6 +2055,11 @@ u8 CreateAdditionalMonSpriteForMoveAnim(enum Species species, bool32 isBackpic, 
                            personality,
                            FALSE);
     }
+    // Temporary effect sprites use the same identity as their battler.
+    if (battler < MAX_BATTLERS_COUNT)
+        NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palette), gBattleMons[battler].personality, gBattleMons[battler].otId, isShiny, FALSE);
+    else
+        NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palette), personality, 0, isShiny, FALSE);
 
     RequestDma3Copy(gMonSpritesGfxPtr->buffer, (void *)(OBJ_VRAM0 + (sheet * 0x20)), MON_PIC_SIZE, 1);
     FREE_AND_SET_NULL(gMonSpritesGfxPtr->buffer);

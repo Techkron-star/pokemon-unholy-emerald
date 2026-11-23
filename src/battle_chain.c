@@ -230,6 +230,16 @@ static bool32 HasValidSelection(enum BattlerId battler)
 
 void Chain_ExpandTurnOrder(void)
 {
+    // Snapshot each battler's choice before Chain_Reset clears chainSecondPos.
+    // Only actual move choices in modes where chaining is available qualify.
+    for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
+    {
+        gBattleStruct->staminaSoloRegenEligible[battler] =
+            gChosenActionByBattler[battler] == B_ACTION_USE_MOVE
+            && gBattleStruct->chainSecondPos[battler] == 0
+            && Chain_IsAvailable(battler);
+    }
+
     gBattleStruct->numTurnActions = 0;
     gBattleStruct->chainTurnInterrupted = FALSE;
     gBattleStruct->chainFollowUpsInvalid = FALSE;

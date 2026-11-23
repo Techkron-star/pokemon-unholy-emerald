@@ -24,6 +24,7 @@
 
 // Recarga al final de cada turno, en % de la stamina máxima.
 #define STAMINA_REGEN_PERCENT           18
+#define STAMINA_SOLO_REGEN_BONUS_PERCENT 4   // +4% max / turn for choosing one move instead of a chain
 #define STAMINA_BURN_REGEN_PERCENT      12
 #define STAMINA_PARALYSIS_REGEN_PERCENT 15
 #define STAMINA_FREEZE_REGEN_PERCENT     6

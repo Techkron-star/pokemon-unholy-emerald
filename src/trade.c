@@ -43,6 +43,7 @@
 #include "trade.h"
 #include "union_room.h"
 #include "util.h"
+#include "unholy_natural_tones.h"
 #include "window.h"
 #include "constants/contest.h"
 #include "constants/items.h"
@@ -52,6 +53,9 @@
 #include "constants/rgb.h"
 #include "constants/songs.h"
 #include "constants/union_room.h"
+
+// Keep a different palette for each trainer's Pokémon even when they share a species.
+#define TAG_TRADE_MON_PALETTE_BASE 0xEFA0
 
 // IDs for RunTradeMenuCallback
 enum {
@@ -2779,12 +2783,18 @@ static void LoadTradeMonPic(struct Pokemon *mon, u8 state)
 
         HandleLoadSpecialPokePic(TRUE, gMonSpritesGfxPtr->spritesGfx[whichParty * 2 + B_POSITION_OPPONENT_LEFT], species, personality);
 
-        LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), species);
+        {
+            u32 palNum = LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), TAG_TRADE_MON_PALETTE_BASE + whichParty);
+            if (palNum != 0xFF)
+                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palNum), personality, GetMonData(mon, MON_DATA_OT_ID),
+                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG));
+        }
         sTradeAnim->monSpecies[whichParty] = species;
         sTradeAnim->monPersonalities[whichParty] = personality;
         break;
     case 1:
         SetMultiuseSpriteTemplateToPokemon(species, whichParty * 2 + B_POSITION_OPPONENT_LEFT);
+        gMultiuseSpriteTemplate.paletteTag = TAG_TRADE_MON_PALETTE_BASE + whichParty;
         sTradeAnim->monSpriteIds[whichParty] = CreateSprite(&gMultiuseSpriteTemplate, 120, 60, 6);
         gSprites[sTradeAnim->monSpriteIds[whichParty]].invisible = TRUE;
         gSprites[sTradeAnim->monSpriteIds[whichParty]].callback = SpriteCallbackDummy;

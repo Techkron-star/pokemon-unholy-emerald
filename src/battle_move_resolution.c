@@ -106,7 +106,11 @@ static enum CancelerResult CancelerSkyDrop(struct BattleCalcValues *cv)
 
 static enum CancelerResult CancelerRecharge(struct BattleCalcValues *cv)
 {
-    if (gBattleMons[cv->battlerAtk].volatiles.rechargeTimer > 0)
+    // The timer alone can be cleared by other battle mechanics. Check the
+    // exhausted state on every attack for BOTH player and opponent, including
+    // forced or multi-turn moves that bypass normal PP/stamina deduction.
+    if (gBattleMons[cv->battlerAtk].volatiles.rechargeTimer > 0
+     || (STAMINA_ENABLED && Stamina_IsExhausted(cv->battlerAtk)))
     {
         CancelMultiTurnMoves(cv->battlerAtk);
         gBattlescriptCurrInstr = BattleScript_MoveUsedMustRecharge;

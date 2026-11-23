@@ -779,6 +779,7 @@ struct BattleStruct
     u16 maxStamina[MAX_BATTLERS_COUNT];
     u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
     u8 staminaExhausted[MAX_BATTLERS_COUNT];
+    u8 staminaSoloRegenEligible[MAX_BATTLERS_COUNT]; // solo-action regen reward, cleared after each turn
     // Sistema de Gears (ver src/gear.c)
     u8 gearOwner[MAX_BATTLERS_COUNT];        // entrenador × PARTY_SIZE + índice de equipo + 1
     u8 gearActivations[MAX_BATTLERS_COUNT];  // serial de activación para el HUD

@@ -61,9 +61,15 @@ void Stamina_RestoreFraction(enum BattlerId battler, u32 numerator, u32 denomina
     EnsureInitialized(battler);
     u32 amount = max(1, gBattleStruct->maxStamina[battler] * numerator / denominator);
     if (Unholy_EnemyHasAntithesis(battler))
+    {
         gBattleStruct->stamina[battler] -= min(gBattleStruct->stamina[battler], amount);
+        if (gBattleStruct->stamina[battler] == 0)
+            gBattleStruct->staminaExhausted[battler] = TRUE;
+    }
     else
+    {
         gBattleStruct->stamina[battler] = min(gBattleStruct->maxStamina[battler], gBattleStruct->stamina[battler] + amount);
+    }
 }
 
 void Stamina_RestorePercent(enum BattlerId battler, u32 percent)
@@ -73,8 +79,13 @@ void Stamina_RestorePercent(enum BattlerId battler, u32 percent)
 
 bool32 Stamina_IsExhausted(enum BattlerId battler)
 {
+    if (!STAMINA_ENABLED)
+        return FALSE;
+
     EnsureInitialized(battler);
-    return gBattleStruct->staminaExhausted[battler];
+    // Check the actual pool too: a drain may bring a battler to zero
+    // between turns, regardless of who controls it.
+    return gBattleStruct->staminaExhausted[battler] || gBattleStruct->stamina[battler] == 0;
 }
 
 u32 Stamina_GetMoveCost(enum BattlerId battler, enum Move move)
@@ -199,6 +210,9 @@ void Stamina_EndOfTurn(enum BattlerId battler)
      || (ability == ABILITY_REACTOR && gBattleStruct->unholyReactorReady[battler]
       && gBattleMons[battler].statStages[STAT_SPATK] == MAX_STAT_STAGE))
         regen = regen * U_BATTERY_REGEN_PERCENT / 100;
+    if (gBattleStruct->staminaSoloRegenEligible[battler])
+        regen += max * STAMINA_SOLO_REGEN_BONUS_PERCENT / 100;
+    gBattleStruct->staminaSoloRegenEligible[battler] = FALSE;
     u32 stamina = gBattleStruct->stamina[battler] + (regen > 0 ? regen : 1);
 
     if (Gear_GetBattlerGear(battler) == GEAR_BATERIA_RESERVA)

@@ -38,6 +38,7 @@
 #include "battle.h" // to get rid of later
 #include "constants/rgb.h"
 #include "party_menu.h"
+#include "unholy_natural_tones.h"
 
 #define GFXTAG_EGG       12345
 #define GFXTAG_EGG_SHARD 23456
@@ -386,7 +387,10 @@ static u8 EggHatchCreateMonSprite(u8 useAlt, u8 state, u8 partyId, enum Species 
             HandleLoadSpecialPokePicIsEgg(TRUE,
                                      gMonSpritesGfxPtr->spritesGfx[(useAlt * 2) + B_POSITION_OPPONENT_LEFT],
                                      species, pid, FALSE);
-            LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), species);
+            u32 palNum = LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), species);
+            if (palNum != 0xFF)
+                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palNum), pid, GetMonData(mon, MON_DATA_OT_ID),
+                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG));
             *speciesLoc = species;
         }
         break;
