@@ -713,4 +713,84 @@ Estos son los **nombres de diseño**, no una asignación de IDs ni prueba de que
 
 ---
 
-*Última actualización: 14 de noviembre de 2026. Añadido el renombramiento de la familia de 18 Gears a Inyectores (sección 16), conservando sus efectos y dejando la migración de código pendiente de auditoría; siguen vigentes Cofradía, Torre Celestial, Báculo Tormentoso y Encadenamiento 2.0.*
+*Actualización histórica (14 de noviembre de 2026): la familia de 18 Gears pasó a denominarse Inyectores; sus efectos permanecen intactos.*
+
+
+---
+
+## 17. Catálogo de nuevos movimientos (23-11-2026)
+
+> Registro de **diseño**, no evidencia de implementación o compilación. Nombres aportados por el autor. Destello Aniquilador tiene definidos por el autor tipo, potencia, precisión, PP y alcance en área. Para Hachazo, el autor confirmó explícitamente que rompe barreras y siempre asesta crítico contra Pokémon Planta. Las otras cifras y efectos proceden de propuestas de balance **pendientes de aprobación**.
+
+### 17.1. Tabla de movimientos
+
+| Movimiento | Tipo / categoría | Pot. | Prec. | PP | Efecto | Confirmación |
+|---|---|---:|---:|---:|---|---|
+| **Destello Aniquilador** | Hada / especial | **100** | **90 %** | **5** | Golpea a ambos rivales; sin retroceso propuesto. Inspirado en **Luz Aniquiladora** de Floette Flor Eterna, pero con potencia menor y alcance múltiple. | Estadísticas, tipo y área definidos; categoría y ausencia de retroceso son propuestas. |
+| **Rayo Fotovoltaico** | Eléctrico / especial | 120 | 100 % | 10 | Carga un turno, salvo bajo sol, cuando ataca directamente. | Propuesta. |
+| **Estampida** | Normal / físico | 90 | 95 % | 10 | Golpea a ambos rivales; 20 % de retroceso para cada objetivo elegible. | Propuesta. |
+| **Hachazo** | Acero / físico | 100 | 90 % | 10 | Destruye Reflejo, Pantalla Luz y Velo Aurora en el lado enemigo; **crítico garantizado contra objetivos de tipo Planta**. | Conceptos de barreras y crítico a Planta confirmados; parámetros propuestos. |
+| **Golpe Hidráulico** | Agua / físico | 90 | 100 % | 10 | 30 % de bajar en un nivel la Defensa enemiga. | Propuesta. |
+| **Envite Planetario** | Tierra / físico | 130 | 90 % | 5 | Retroceso de 1/3 del daño infligido. Ortografía normalizada desde «Embite». | Propuesta. |
+| **Lanza Meteórica** | Roca / físico | 110 | 90 % | 5 | Alto índice de crítico; ignora Sustituto. | Propuesta, requiere balance. |
+| **Redirección** | Psíquico / estado | — | — | 10 | Prioridad +3: redirige el siguiente ataque de objetivo único hacia otro enemigo válido. | Propuesta, concretar reglas de objetivos. |
+| **Parry** | Acero / estado | — | — | 5 | Bloquea un ataque de contacto; si lo bloquea, el siguiente ataque físico propio gana 50 % de potencia. | Propuesta, inspiración temática en Aegislash; no exclusivo confirmado. |
+| **Ametrallagua** | Agua / físico | 20 por impacto | 100 % | 15 | Impacta entre 2 y 5 veces en una ejecución. | Propuesta. |
+| **Velo Ozono** | Volador / estado | — | — | 10 | Durante 5 turnos reduce un 25 % el daño de ataques supereficaces recibido por aliados de tipo Volador. | Propuesta. |
+
+### 17.2. Reglas de integración pendientes
+
+1. **Hachazo:** comprobar el tipo del blanco en el instante de impacto, incluidos dobles tipos y cambios temporales; respetar efectos que impidan críticos. Resolver si la ruptura de pantallas ocurre antes o después del daño y si requiere acertar o hacer daño. Nunca romper barreras aliadas por error.
+2. **Destello Aniquilador y Estampida:** objetivo = ambos oponentes, no el aliado; aplicar las reglas estándar de daño de área cuando corresponda, precisión individual y bloqueos por objetivo en dobles y raids.
+3. **Ametrallagua:** varios impactos, pero **un único movimiento**; gastar PP y stamina una sola vez, y respetar interacciones de supervivencia descritas en §§12–13.
+4. **Redirección y Parry:** contrastar con Señuelo, Polvo Ira, prioridad, Protección, Escudo Real y ataques de área. El bono de Parry se consume al usarse y no debe acumularse indefinidamente.
+5. **Rayo Fotovoltaico:** fijar el comportamiento cuando cambia el clima durante la carga. Velo Ozono debe comprobar cambios de tipo y duración.
+6. **Distribución:** lista de aprendizaje, MT/tutores, nombres localizados, animaciones y costes de stamina pendientes. No otorgar Destello Aniquilador automáticamente a todos los usuarios de Brillo Mágico.
+
+### 17.3. QA básico
+
+Probar Hachazo frente a Planta puro/dual, cambios de tipo, barreras, inmunidad a críticos y fallo; Destello Aniquilador contra uno o dos rivales; Parry contra contacto y no contacto; Ametrallagua con 2–5 impactos y KO intermedio; Redirección con objetivos no válidos; sol/lluvia con Rayo Fotovoltaico; Velo Ozono frente a ataques supereficaces y al caducar.
+
+---
+
+## 18. Nuevas habilidades: catálogo propuesto (23-11-2026)
+
+> Los **11 nombres** provienen del autor. **Quelicerado** tiene identidad funcional expresamente indicada: los ataques de mordida pueden envenenar. **La probabilidad concreta de Quelicerado y los efectos de las otras diez habilidades fueron propuestos por el asistente** y requieren aprobación antes de implementarse. «Cuerpo Micelial» es una normalización tentativa del nombre original «Cuerpo miscelio».
+
+| Habilidad | Efecto propuesto | Límites / decisiones abiertas |
+|---|---|---|
+| **Quelicerado** | Los movimientos marcados como mordida pueden envenenar; **+20 puntos porcentuales** de probabilidad de envenenamiento, con una única comprobación por ejecución. | Porcentaje no confirmado; definir lista blanca y coexistencia con efectos previos. |
+| **Blindado** | **−20 %** de daño recibido por movimientos de contacto. | No equivale a defensa física; cuenta el contacto real. |
+| **Acorazado** | **−20 %** del daño de golpes supereficaces; **−10 %** a Velocidad efectiva. | Estudiar acumulación con artefactos y otras mitigaciones. |
+| **Cañonero** | **+25 %** de potencia a cañones, proyectiles explosivos y disparos energéticos elegibles. | Lista blanca explícita; evitar solapamientos no intencionales con Megadisparador. |
+| **Seeker** | Al atacar ignora **una fase positiva** de Evasión del blanco; **+20 %** de potencia si este tiene menos del 50 % de PS máximos. | Localización del nombre al español pendiente. |
+| **Nihilista** | Ignora aumentos de estadísticas defensivas del blanco al atacar, pero el portador no se beneficia de sus propios aumentos positivos de estadísticas. | Las bajadas siguen afectándolo; verificar Simple y Contrario. |
+| **Cuerpo Micelial** | Tras recibir contacto, **30 %** de bajar **1 nivel de Velocidad** al atacante. | Nombre pendiente de aprobación; no propagar automáticamente al compañero. |
+| **Sangre Divina** | **Una vez por combate**, elimina el primer estado alterado principal recibido y cura **12,5 % de PS máximos**. | Definir el caso de un estado que ya existía al entrar y los estados personalizados. |
+| **Metástasis** | **Una vez por combate**, cuando cae un rival envenenado, el siguiente rival que entre queda envenenado salvo inmunidad. | Resolver veneno normal/grave, dobles, atribución del KO y trampas. |
+| **Anabiosis** | **Una vez por combate**, estando a PS completos, sobrevive a un golpe letal con **1 PS**, se duerme y cura **25 % de PS máximos** al final del siguiente turno si sigue en combate. | Prioridad con Robustez y otras supervivencias; riesgos por clima/veneno entre activación y curación. |
+| **Orochi** | Movimientos elegibles de mordida o cola dan un **segundo impacto al 30 % de la potencia original**. No funciona en ataques ya multigolpe. | Definir críticos, secundarios y contacto en el segundo golpe. Un solo gasto de PP/stamina. |
+
+### 18.1. Distribución temática (orientativa, sin cambios a especies)
+
+- Quelicerado: candidatos como Ariados, Drapion y Galvantula, si disponen de movimientos compatibles.
+- Cuerpo Micelial: Pokémon fúngicos como Parasect.
+- Orochi: candidatos con varias cabezas o ataques de mordida/cola, como Hydreigon, Arbok o Seviper.
+- Parry es un **movimiento**, no una habilidad, aunque Aegislash inspire su diseño.
+- No asignar ninguna habilidad a toda una familia evolutiva sin revisar compatibilidad, otras habilidades propias y balance.
+
+### 18.2. Criterios generales para implementación y pruebas
+
+1. Clasificar las familias de ataques por **flags**, no por palabras del nombre: mordida, cola, cañón y otras clases necesarias. Permitir localización ES/EN.
+2. Quelicerado se comprueba una vez por movimiento, incluso si hay impactos adicionales; Orochi produce un impacto adicional del mismo movimiento, **no otra acción encadenada** (§§12–13).
+3. Respetar inmunidades a veneno, Salvaguarda, Sustituto y reglas de estado del motor. Metástasis no debe anular inmunidades.
+4. Contadores «una vez por combate» reiniciados al final de la batalla y asociados correctamente al combatiente durante cambios de posición; decidir si se conservan después de retirar/reingresar.
+5. Auditar la mitigación de Blindado/Acorazado y los aumentos de Nihilista con artefactos, mutaciones, clima y estadísticas.
+6. Casos delicados: Metástasis con Trampa Sombra/Trampa Arena/Hemotoxina; Anabiosis con artefactos que evitan KO; Sangre Divina con estados personalizados; Orochi con efectos por impacto.
+7. Probar jugador, IA, combates simples/dobles y raids; verificar HUD, PP, stamina, descripciones y estabilidad de animaciones.
+
+**Pendiente de decisión:** confirmar efectos y porcentajes propuestos, nombres localizados (Parry, Seeker y Cuerpo Micelial), distribución por especies, animaciones y costes de stamina. **Registrar no equivale a programar o compilar.**
+
+---
+
+*Última actualización: 23 de noviembre de 2026. Secciones 17–18: movimientos y once habilidades documentados como especificaciones de diseño, con distinción entre decisiones del autor y propuestas aún no aprobadas.*
