@@ -198,7 +198,7 @@ TEST("Exhausted Pokemon on either side cannot recover until the stamina threshol
         Stamina_EndOfTurn(battler);
         EXPECT_EQ(Stamina_GetCurrent(battler), 18);
         EXPECT(Stamina_IsExhausted(battler));
-        EXPECT_EQ(gBattleMons[battler].volatiles.rechargeTimer, 1);
+        EXPECT_EQ((u32)gBattleMons[battler].volatiles.rechargeTimer, 1);
 
         // Recovery is only possible once the configured threshold is met.
         gBattleMons[battler].volatiles.rechargeTimer = 0;
