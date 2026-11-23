@@ -210,6 +210,9 @@ void Stamina_EndOfTurn(enum BattlerId battler)
      || (ability == ABILITY_REACTOR && gBattleStruct->unholyReactorReady[battler]
       && gBattleMons[battler].statStages[STAT_SPATK] == MAX_STAT_STAGE))
         regen = regen * U_BATTERY_REGEN_PERCENT / 100;
+    if (gBattleStruct->staminaSoloRegenEligible[battler])
+        regen += max * STAMINA_SOLO_REGEN_BONUS_PERCENT / 100;
+    gBattleStruct->staminaSoloRegenEligible[battler] = FALSE;
     u32 stamina = gBattleStruct->stamina[battler] + (regen > 0 ? regen : 1);
 
     if (Gear_GetBattlerGear(battler) == GEAR_BATERIA_RESERVA)

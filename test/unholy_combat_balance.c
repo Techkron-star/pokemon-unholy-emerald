@@ -217,3 +217,60 @@ TEST("Exhausted Pokemon on either side cannot recover until the stamina threshol
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
 }
+
+TEST("Solo moves earn a small stamina regeneration bonus, chains do not")
+{
+    struct BattleStruct *previousBattleStruct = gBattleStruct;
+    u32 previousBattleType = gBattleTypeFlags;
+    u8 previousCount = gBattlersCount;
+    struct BattlePokemon previousMons[2] = {gBattleMons[B_BATTLER_0], gBattleMons[B_BATTLER_1]};
+    enum BattlerId previousOrder[MAX_BATTLERS_COUNT];
+    u8 previousActions[MAX_BATTLERS_COUNT];
+    u8 previousChosenActions[MAX_BATTLERS_COUNT];
+
+    memcpy(previousOrder, gBattlerByTurnOrder, sizeof(previousOrder));
+    memcpy(previousActions, gActionsByTurnOrder, sizeof(previousActions));
+    memcpy(previousChosenActions, gChosenActionByBattler, sizeof(previousChosenActions));
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleTypeFlags = 0;
+    gBattlersCount = 2;
+
+    for (enum BattlerId battler = B_BATTLER_0; battler <= B_BATTLER_1; battler++)
+    {
+        gBattleMons[battler] = (struct BattlePokemon){
+            .moves = {MOVE_EMBER, MOVE_SCRATCH},
+            .pp = {10, 10}, .hp = 100, .maxHP = 100,
+        };
+        gActionsByTurnOrder[battler] = B_ACTION_USE_MOVE;
+        gChosenActionByBattler[battler] = B_ACTION_USE_MOVE;
+        gBattlerByTurnOrder[battler] = battler;
+        gBattleStruct->staminaOwner[battler] = gBattlerPartyIndexes[battler] + 1;
+        gBattleStruct->maxStamina[battler] = 100;
+        gBattleStruct->stamina[battler] = 50;
+    }
+
+    // Player chains two legal moves; opponent deliberately chooses one.
+    gBattleStruct->chainSecondPos[B_BATTLER_0] = 2;
+    gBattleStruct->chainSecondPos[B_BATTLER_1] = 0;
+    Chain_ExpandTurnOrder();
+    EXPECT(!gBattleStruct->staminaSoloRegenEligible[B_BATTLER_0]);
+    EXPECT(gBattleStruct->staminaSoloRegenEligible[B_BATTLER_1]);
+
+    // Chain_Reset runs before end-turn regeneration in the battle loop.
+    Chain_Reset();
+    Stamina_EndOfTurn(B_BATTLER_0);
+    Stamina_EndOfTurn(B_BATTLER_1);
+    EXPECT_EQ(Stamina_GetCurrent(B_BATTLER_0), 68);
+    EXPECT_EQ(Stamina_GetCurrent(B_BATTLER_1), 72);
+    EXPECT(!gBattleStruct->staminaSoloRegenEligible[B_BATTLER_1]);
+
+    gBattleMons[B_BATTLER_0] = previousMons[0];
+    gBattleMons[B_BATTLER_1] = previousMons[1];
+    gBattlersCount = previousCount;
+    gBattleTypeFlags = previousBattleType;
+    memcpy(gBattlerByTurnOrder, previousOrder, sizeof(previousOrder));
+    memcpy(gActionsByTurnOrder, previousActions, sizeof(previousActions));
+    memcpy(gChosenActionByBattler, previousChosenActions, sizeof(previousChosenActions));
+    Free(gBattleStruct);
+    gBattleStruct = previousBattleStruct;
+}
