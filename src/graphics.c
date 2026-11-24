@@ -42,6 +42,9 @@ const u16 gBattleAnimSpritePal_AlphaSymbol[] = INCGFX_U16("graphics/battle_anims
 
 const u32 gBattleAnimSpriteGfx_OmegaSymbol[] = INCGFX_U32("graphics/battle_anims/sprites/omega_symbol.png", ".4bpp.smol");
 const u16 gBattleAnimSpritePal_OmegaSymbol[] = INCGFX_U16("graphics/battle_anims/sprites/omega_symbol.png", ".gbapal");
+// Omega six-point-star art; actual animation hook is still pending.
+const u32 gBattleAnimSpriteGfx_OmegaGlint[] = INCGFX_U32("graphics/battle_anims/sprites/omega_glint.png", ".4bpp.smol");
+const u16 gBattleAnimSpritePal_OmegaGlint[] = INCGFX_U16("graphics/battle_anims/sprites/omega_glint.png", ".gbapal");
 
 const u32 gBattleAnimSpriteGfx_TeraSymbol[] = INCGFX_U32("graphics/battle_anims/sprites/tera_symbol.png", ".4bpp.smol");
 const u16 gBattleAnimSpritePal_TeraSymbol[] = INCGFX_U16("graphics/battle_anims/sprites/tera_symbol.png", ".gbapal");

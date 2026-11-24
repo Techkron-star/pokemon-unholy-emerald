@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_hold_effects.h"
 #include "battle_setup.h"
@@ -7,12 +8,24 @@
 #include "battle_ai_record.h"
 #include "battle_stat_change.h"
 #include "battle_gimmick.h"
+#include "gear.h"
 #include "battle_scripts.h"
 #include "constants/battle.h"
 #include "constants/battle_string_ids.h"
 #include "constants/abilities.h"
 #include "constants/items.h"
 #include "constants/moves.h"
+
+// A shield proc stops this *one* residual tick without removing its status.
+// The caller has already advanced the end-turn cursor, so it cannot replay.
+static bool32 TryPaladinBlockResidual(enum BattlerId battler)
+{
+    if (!Gear_TryPaladinBlock(battler))
+        return FALSE;
+    gBattleScripting.battler = battler;
+    BattleScriptCall(BattleScript_PaladinShieldBlock);
+    return TRUE;
+}
 
 static enum BattlerId GetBattlerSideForMessage(enum BattleSide side)
 {
@@ -31,6 +44,7 @@ static bool32 HandleEndTurnOrder(enum BattlerId battler)
 {
     bool32 effect = FALSE;
 
+    Unholy_AdvanceTimers();
     gBattleTurnCounter++;
     gBattleStruct->eventState.endTurn++;
 
@@ -134,14 +148,16 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
         break;
     case BATTLE_WEATHER_SUN:
     case BATTLE_WEATHER_SUN_PRIMAL:
-        if (ability == ABILITY_DRY_SKIN || ability == ABILITY_SOLAR_POWER)
+        if ((ability == ABILITY_DRY_SKIN || ability == ABILITY_SOLAR_POWER)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
         }
         break;
     case BATTLE_WEATHER_SANDSTORM:
-        if (ability != ABILITY_SAND_VEIL
+        if (Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA
+         && ability != ABILITY_SAND_VEIL
          && ability != ABILITY_SAND_FORCE
          && ability != ABILITY_SAND_RUSH
          && ability != ABILITY_OVERCOAT
@@ -151,9 +167,14 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
          && GetBattlerHoldEffect(battler) != HOLD_EFFECT_SAFETY_GOGGLES
          && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
         {
-            SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
-            gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SANDSTORM;
-            BattleScriptCall(BattleScript_DamagingWeather);
+            if (TryPaladinBlockResidual(battler))
+                effect = TRUE;
+            else
+            {
+                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+                gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SANDSTORM;
+                BattleScriptCall(BattleScript_DamagingWeather);
+            }
             effect = TRUE;
         }
         break;
@@ -164,7 +185,8 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
         }
-        else if (currBattleWeather == BATTLE_WEATHER_HAIL)
+        else if (currBattleWeather == BATTLE_WEATHER_HAIL
+              && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (ability != ABILITY_SNOW_CLOAK
              && ability != ABILITY_OVERCOAT
@@ -174,9 +196,12 @@ static bool32 HandleEndTurnWeatherDamage(enum BattlerId battler)
              && GetBattlerHoldEffect(battler) != HOLD_EFFECT_SAFETY_GOGGLES
              && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
             {
-                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
-                gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HAIL;
-                BattleScriptCall(BattleScript_DamagingWeather);
+                if (!TryPaladinBlockResidual(battler))
+                {
+                    SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+                    gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_HAIL;
+                    BattleScriptCall(BattleScript_DamagingWeather);
+                }
                 effect = TRUE;
             }
         }
@@ -346,14 +371,18 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     {
     case FIRST_EVENT_BLOCK_GMAX_MOVE_RESIDUAL: // TODO: Has to be split into 3 statuses and needs a queue
         side = GetBattlerSide(battler);
-        if (gSideStatuses[side] & SIDE_STATUS_DAMAGE_NON_TYPES)
+        if ((gSideStatuses[side] & SIDE_STATUS_DAMAGE_NON_TYPES)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA)
         {
             if (!IS_BATTLER_OF_TYPE(battler, gSideTimers[side].damageNonTypesType)
              && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
             {
-                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 6);
-                ChooseDamageNonTypesString(gSideTimers[side].damageNonTypesType);
-                BattleScriptCall(BattleScript_DamageNonTypesContinues);
+                if (!TryPaladinBlockResidual(battler))
+                {
+                    SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 6);
+                    ChooseDamageNonTypesString(gSideTimers[side].damageNonTypesType);
+                    BattleScriptCall(BattleScript_DamageNonTypesContinues);
+                }
                 effect = TRUE;
             }
         }
@@ -362,14 +391,18 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     case FIRST_EVENT_BLOCK_SEA_OF_FIRE_DAMAGE:
         side = GetBattlerSide(battler);
         if ((gSideStatuses[side] & SIDE_STATUS_SEA_OF_FIRE)
+         && Gear_GetBattlerGear(battler) != GEAR_TUNICA_RUNICA
          && !IS_BATTLER_OF_TYPE(battler, TYPE_FIRE)
          && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
         {
-            gBattlerAttacker = battler;
-            SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
-            BtlController_EmitStatusAnimation(battler, B_COMM_TO_CONTROLLER, FALSE, STATUS1_BURN);
-            MarkBattlerForControllerExec(battler);
-            BattleScriptCall(BattleScript_HurtByTheSeaOfFire);
+            if (!TryPaladinBlockResidual(battler))
+            {
+                gBattlerAttacker = battler;
+                SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
+                BtlController_EmitStatusAnimation(battler, B_COMM_TO_CONTROLLER, FALSE, STATUS1_BURN);
+                MarkBattlerForControllerExec(battler);
+                BattleScriptCall(BattleScript_HurtByTheSeaOfFire);
+            }
             effect = TRUE;
         }
         gBattleStruct->eventState.endTurnBlock++;
@@ -431,6 +464,46 @@ static bool32 HandleEndTurnFirstEventBlock(enum BattlerId battler)
     case FIRST_EVENT_BLOCK_HEAL_ITEMS:
         if (ItemBattleEffects(battler, 0, GetBattlerHoldEffect(battler), IsLeftoversActivation))
             effect = TRUE;
+        gBattleStruct->eventState.endTurnBlock++;
+        break;
+    case FIRST_EVENT_BLOCK_GEAR_HEAL:
+        if (IsBattlerPresent(battler) && Gear_GetEndTurnHeal(battler) != 0
+         && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battler].volatiles.healBlockTimer))
+        {
+            gBattlerAttacker = battler;
+            SetHealAmount(battler, Gear_GetEndTurnHeal(battler));
+            BattleScriptCall(BattleScript_UnholyGearHeal);
+            effect = TRUE;
+        }
+        // Permafrost es un Restos de 1/16 por turno, no vampirismo.
+        // Si el item ordinario ya cura 1/16 con Restos o Lodo Negro
+        // a un usuario Veneno, el promedio de ambos sigue siendo 1/16.
+        if (IsBattlerPresent(battler)
+         && Gear_GetBattlerGear(battler) == GEAR_PERMAFROST_FRAGMENT
+         && IS_BATTLER_OF_TYPE(battler, TYPE_ICE)
+         && !IsBattlerAtMaxHp(battler)
+         && !(GetConfig(B_HEAL_BLOCKING) >= GEN_5 && gBattleMons[battler].volatiles.healBlockTimer)
+         && GetBattlerHoldEffect(battler) != HOLD_EFFECT_LEFTOVERS
+         && !(GetBattlerHoldEffect(battler) == HOLD_EFFECT_BLACK_SLUDGE
+           && IS_BATTLER_OF_TYPE(battler, TYPE_POISON)))
+        {
+            gBattlerAttacker = battler;
+            SetHealAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
+            BattleScriptCall(BattleScript_PermafrostHeal);
+            effect = TRUE;
+        }
+        if (IsBattlerPresent(battler)
+         && gBattleMons[battler].status1 != 0
+         && Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+         && Gear_ActivateEvent(battler))
+        {
+            // Status cures are once per charge cycle, at the close of a turn.
+            // Keep party status synchronized with the battle controller.
+            gBattleMons[battler].status1 = 0;
+            BtlController_EmitSetMonData(battler, B_COMM_TO_CONTROLLER, REQUEST_STATUS_BATTLE, 0, 4,
+                                         &gBattleMons[battler].status1);
+            MarkBattlerForControllerExec(battler);
+        }
         gBattleStruct->eventState.endTurnBlock = 0;
         gBattleStruct->eventState.endTurnBattler++;
         break;
@@ -494,6 +567,8 @@ static bool32 HandleEndTurnLeechSeed(enum BattlerId battler)
      && IsBattlerPresent(receiverBattler)
      && !IsAbilityAndRecord(drainedBattler, GetBattlerAbility(drainedBattler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(drainedBattler))
+            return TRUE;
         gBattlerAttacker = receiverBattler;
         gBattlerAbility = gBattleScripting.battler = drainedBattler;
         gBattleScripting.animArg1 = receiverBattler;
@@ -556,16 +631,41 @@ static bool32 HandleEndTurnPoison(enum BattlerId battler)
         }
         else if (isToxicPoison)
         {
+            // Toxic still advances while this tick is blocked; the status remains.
+            if (TryPaladinBlockResidual(battler))
+            {
+                if ((gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) != STATUS1_TOXIC_TURN(15))
+                    gBattleMons[battler].status1 += STATUS1_TOXIC_TURN(1);
+                return TRUE;
+            }
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 16);
             if ((gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) != STATUS1_TOXIC_TURN(15)) // not 16 turns
                 gBattleMons[battler].status1 += STATUS1_TOXIC_TURN(1);
             gBattleStruct->passiveHpUpdate[battler] *= (gBattleMons[battler].status1 & STATUS1_TOXIC_COUNTER) >> 8;
+            if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+            if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
         else
         {
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 8);
+            if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+             && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+                gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+            if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
             BattleScriptCall(BattleScript_PoisonTurnDmg);
             effect = TRUE;
         }
@@ -586,6 +686,8 @@ static bool32 HandleEndTurnBurn(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, ability, ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         s32 burnDamage = GetNonDynamaxMaxHP(battler) / ((GetConfig(B_BURN_DAMAGE) >= GEN_7 || GetConfig(B_BURN_DAMAGE) == GEN_1) ? 16 : 8);
         if (ability == ABILITY_HEATPROOF)
         {
@@ -594,6 +696,14 @@ static bool32 HandleEndTurnBurn(enum BattlerId battler)
             burnDamage /= 2;
         }
         SetPassiveDamageAmount(battler, burnDamage);
+        if (Gear_GetBattlerGear(battler) == GEAR_CRISOL_ESPIRITUAL
+         && Gear_GetPhase(battler) == GEAR_PHASE_RECHARGING)
+            gBattleStruct->passiveHpUpdate[battler] = max(1, gBattleStruct->passiveHpUpdate[battler] * 75 / 100);
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
         BattleScriptCall(BattleScript_BurnTurnDmg);
         effect = TRUE;
     }
@@ -611,7 +721,14 @@ static bool32 HandleEndTurnFrostbite(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / ((GetConfig(B_BURN_DAMAGE) >= GEN_7 || GetConfig(B_BURN_DAMAGE) == GEN_1) ? 16 : 8));
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+        {
+            gBattleStruct->passiveHpUpdate[battler] = -gBattleStruct->passiveHpUpdate[battler];
+            gBattleStruct->unholyStatusHealingMask |= 1u << battler;
+        }
         BattleScriptCall(BattleScript_FrostbiteTurnDmg);
         effect = TRUE;
     }
@@ -631,6 +748,8 @@ static bool32 HandleEndTurnNightmare(enum BattlerId battler)
     {
         if (IsAsleepOrComatose(battler, GetBattlerAbility(battler)))
         {
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
             SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 4);
             BattleScriptCall(BattleScript_NightmareTurnDmg);
             effect = TRUE;
@@ -654,6 +773,8 @@ static bool32 HandleEndTurnCurse(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         SetPassiveDamageAmount(battler, GetNonDynamaxMaxHP(battler) / 4);
         BattleScriptCall(BattleScript_CurseTurnDmg);
         effect = TRUE;
@@ -676,6 +797,9 @@ static bool32 HandleEndTurnWrap(enum BattlerId battler)
             gBattleMons[battler].volatiles.wrapTurns--;
             if (IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
                 return effect;
+
+            if (TryPaladinBlockResidual(battler))
+                return TRUE;
 
             gBattleScripting.animArg1 = gBattleMons[battler].volatiles.wrappedMove;
             gBattleScripting.animArg2 = gBattleMons[battler].volatiles.wrappedMove >> 8;
@@ -710,6 +834,8 @@ static bool32 HandleEndTurnSaltCure(enum BattlerId battler)
      && IsBattlerPresent(battler)
      && !IsAbilityAndRecord(battler, GetBattlerAbility(battler), ABILITY_MAGIC_GUARD))
     {
+        if (TryPaladinBlockResidual(battler))
+            return TRUE;
         s32 saltCureDamage = 0;
         if (IS_BATTLER_ANY_TYPE(battler, TYPE_STEEL, TYPE_WATER))
             saltCureDamage = GetNonDynamaxMaxHP(battler) / (GetConfig(B_SALT_CURE_DAMAGE) >= GEN_CHAMPIONS ? 8 : 4);
@@ -1340,6 +1466,9 @@ static bool32 HandleEndTurnThirdEventBlock(enum BattlerId battler)
         case ABILITY_MOODY:
         case ABILITY_PICKUP:
         case ABILITY_SPEED_BOOST:
+        case ABILITY_REACTOR:
+        case ABILITY_MANTHRA:
+        case ABILITY_DAWN_LIGHT:
             if (AbilityBattleEffects(ABILITYEFFECT_ENDTURN, battler, ability, MOVE_NONE, TRUE))
                 effect = TRUE;
             break;

@@ -106,7 +106,7 @@
 #define FLAG_RESCUED_BIRCH                       0x52
 #define FLAG_LEGENDARIES_IN_SOOTOPOLIS           0x53
 
-#define FLAG_UNUSED_0x054                    0x54  // Unused Flag
+#define FLAG_RECEIVED_STARTER_QOL            0x54
 #define FLAG_UNUSED_0x055                    0x55  // Unused Flag
 
 #define FLAG_HIDE_CONTEST_POKE_BALL          0x56  // Always set after new game, object it hides is added directly
@@ -1354,6 +1354,7 @@
 #define FLAG_SYS_GAME_CLEAR                          (SYSTEM_FLAGS + 0x4)
 #define FLAG_SYS_CHAT_USED                           (SYSTEM_FLAGS + 0x5)
 #define FLAG_UNLOCKED_TRENDY_SAYINGS                 (SYSTEM_FLAGS + 0x6)
+#define FLAG_CRAFTING_UNLOCKED                      (SYSTEM_FLAGS + 0x21)
 
 // Badges
 #define FLAG_BADGE01_GET                      (SYSTEM_FLAGS + 0x7)
@@ -1387,12 +1388,11 @@
 #define FLAG_IS_CHAMPION                            (SYSTEM_FLAGS + 0x1F) // Seems to be related to linking.
 #define FLAG_NURSE_UNION_ROOM_REMINDER              (SYSTEM_FLAGS + 0x20)
 
-#define FLAG_UNUSED_0x881                           (SYSTEM_FLAGS + 0x21) // Unused Flag
-#define FLAG_UNUSED_0x882                           (SYSTEM_FLAGS + 0x22) // Unused Flag
-#define FLAG_UNUSED_0x883                           (SYSTEM_FLAGS + 0x23) // Unused Flag
-#define FLAG_UNUSED_0x884                           (SYSTEM_FLAGS + 0x24) // Unused Flag
-#define FLAG_UNUSED_0x885                           (SYSTEM_FLAGS + 0x25) // Unused Flag
-#define FLAG_UNUSED_0x886                           (SYSTEM_FLAGS + 0x26) // Unused Flag
+#define FLAG_UNHOLY_EXP_SHARE_ENABLED                (SYSTEM_FLAGS + 0x22) // Exp. Share normal activado
+#define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED          (SYSTEM_FLAGS + 0x23) // Super Exp. Share activado
+#define FLAG_UNHOLY_UI_DAYLIGHT                      (SYSTEM_FLAGS + 0x24) // Persistent menu appearance.
+#define FLAG_DEFEATED_SUPER_LEAGUE                    (SYSTEM_FLAGS + 0x25)
+#define FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED     (SYSTEM_FLAGS + 0x26)
 #define FLAG_UNUSED_0x887                           (SYSTEM_FLAGS + 0x27) // Unused Flag
 
 #define FLAG_SYS_USE_FLASH                          (SYSTEM_FLAGS + 0x28)
@@ -1522,6 +1522,11 @@
 #define FLAG_UNUSED_0x8F1                           (SYSTEM_FLAGS + 0x91) // Unused Flag
 #define FLAG_UNUSED_0x8F2                           (SYSTEM_FLAGS + 0x92) // Unused Flag
 #define FLAG_UNUSED_0x8F3                           (SYSTEM_FLAGS + 0x93) // Unused Flag
+// Persistent debug toggles. Keep their IDs distinct from story and pickup flags.
+#define FLAG_UNHOLY_DEBUG_NO_COLLISION               FLAG_UNUSED_0x8F0
+#define FLAG_UNHOLY_DEBUG_NO_ENCOUNTER               FLAG_UNUSED_0x8F1
+#define FLAG_UNHOLY_DEBUG_NO_TRAINER_SEE             FLAG_UNUSED_0x8F2
+#define FLAG_UNHOLY_DEBUG_NO_CATCHING                FLAG_UNUSED_0x8F3
 #define FLAG_UNUSED_0x8F4                           (SYSTEM_FLAGS + 0x94) // Unused Flag
 #define FLAG_UNUSED_0x8F5                           (SYSTEM_FLAGS + 0x95) // Unused Flag
 #define FLAG_UNUSED_0x8F6                           (SYSTEM_FLAGS + 0x96) // Unused Flag
@@ -1545,19 +1550,19 @@
 #define FLAG_UNUSED_0x908                           (SYSTEM_FLAGS + 0xA8) // Unused Flag
 #define FLAG_UNUSED_0x909                           (SYSTEM_FLAGS + 0xA9) // Unused Flag
 #define FLAG_UNUSED_0x90A                           (SYSTEM_FLAGS + 0xAA) // Unused Flag
-#define FLAG_UNUSED_0x90B                           (SYSTEM_FLAGS + 0xAB) // Unused Flag
-#define FLAG_UNUSED_0x90C                           (SYSTEM_FLAGS + 0xAC) // Unused Flag
-#define FLAG_UNUSED_0x90D                           (SYSTEM_FLAGS + 0xAD) // Unused Flag
-#define FLAG_UNUSED_0x90E                           (SYSTEM_FLAGS + 0xAE) // Unused Flag
-#define FLAG_UNUSED_0x90F                           (SYSTEM_FLAGS + 0xAF) // Unused Flag
-#define FLAG_UNUSED_0x910                           (SYSTEM_FLAGS + 0xB0) // Unused Flag
-#define FLAG_UNUSED_0x911                           (SYSTEM_FLAGS + 0xB1) // Unused Flag
-#define FLAG_UNUSED_0x912                           (SYSTEM_FLAGS + 0xB2) // Unused Flag
-#define FLAG_UNUSED_0x913                           (SYSTEM_FLAGS + 0xB3) // Unused Flag
-#define FLAG_UNUSED_0x914                           (SYSTEM_FLAGS + 0xB4) // Unused Flag
-#define FLAG_UNUSED_0x915                           (SYSTEM_FLAGS + 0xB5) // Unused Flag
-#define FLAG_UNUSED_0x916                           (SYSTEM_FLAGS + 0xB6) // Unused Flag
-#define FLAG_UNUSED_0x917                           (SYSTEM_FLAGS + 0xB7) // Unused Flag
+#define FLAG_UNHOLY_ROUTE119_PANIC                   (SYSTEM_FLAGS + 0xAB) // New Gear pickup; independent of original Route 119 ball.
+#define FLAG_UNHOLY_ROUTE120_HOPLITA                 (SYSTEM_FLAGS + 0xAC) // Existing saves may already have the original item.
+#define FLAG_UNHOLY_ROUTE123_TUNICA                  (SYSTEM_FLAGS + 0xAD) // Preserve collectible status across upgrades.
+#define FLAG_UNHOLY_ROUTE110_LENTE_CERTEZA              (SYSTEM_FLAGS + 0xAE)
+#define FLAG_UNHOLY_ROUTE117_BATERIA_RESERVA            (SYSTEM_FLAGS + 0xAF)
+#define FLAG_UNHOLY_ROUTE111_PIEDRA_AFILAR              (SYSTEM_FLAGS + 0xB0)
+#define FLAG_UNHOLY_ROUTE115_GUANTES_COHETE             (SYSTEM_FLAGS + 0xB1)
+#define FLAG_UNHOLY_ROUTE121_BOTAS_UMBRAL               (SYSTEM_FLAGS + 0xB2)
+#define FLAG_UNHOLY_MT_PYRE_VELO_CRIPTICO               (SYSTEM_FLAGS + 0xB3)
+#define FLAG_UNHOLY_SHOAL_CAVE_PERMAFROST               (SYSTEM_FLAGS + 0xB4)
+#define FLAG_UNHOLY_UNDERWATER127_ARIETE_NAUTILO        (SYSTEM_FLAGS + 0xB5)
+#define FLAG_UNHOLY_VICTORY_ROAD_NIHIL_ENGINE           (SYSTEM_FLAGS + 0xB6)
+#define FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED           (SYSTEM_FLAGS + 0xB7) // Victory Road boss: defeat or capture.
 #define FLAG_UNUSED_0x918                           (SYSTEM_FLAGS + 0xB8) // Unused Flag
 #define FLAG_UNUSED_0x919                           (SYSTEM_FLAGS + 0xB9) // Unused Flag
 #define FLAG_UNUSED_0x91A                           (SYSTEM_FLAGS + 0xBA) // Unused Flag
@@ -1566,6 +1571,15 @@
 #define FLAG_UNUSED_0x91D                           (SYSTEM_FLAGS + 0xBD) // Unused Flag
 #define FLAG_UNUSED_0x91E                           (SYSTEM_FLAGS + 0xBE) // Unused Flag
 #define FLAG_UNUSED_0x91F                           (SYSTEM_FLAGS + 0xBF) // Unused Flag
+// Unholy World Update (permanent flags, never daily): keep event visibility
+// separate from having claimed a reward, so a future map refresh cannot
+// resurrect a collected Poké Ball.
+#define FLAG_UNHOLY_WORLD_ROUTE102_BALL_HIDE         FLAG_UNUSED_0x918
+#define FLAG_UNHOLY_WORLD_ROUTE102_BALL_CLAIMED      FLAG_UNUSED_0x919
+#define FLAG_UNHOLY_WORLD_ROUTE102_NPC_HIDE          FLAG_UNUSED_0x91A
+#define FLAG_UNHOLY_WORLD_ROUTE104_BALL_HIDE         FLAG_UNUSED_0x91B
+#define FLAG_UNHOLY_WORLD_ROUTE104_BALL_CLAIMED      FLAG_UNUSED_0x91C
+#define FLAG_UNHOLY_WORLD_ROUTE110_NPC_HIDE          FLAG_UNUSED_0x91D
 
 // Daily Flags
 // These flags are cleared once per day
@@ -1574,8 +1588,8 @@
 #define FLAG_UNUSED_0x920                           (DAILY_FLAGS_START + 0x0)  // Unused Flag
 #define FLAG_DAILY_CONTEST_LOBBY_RECEIVED_BERRY     (DAILY_FLAGS_START + 0x1)
 #define FLAG_DAILY_SECRET_BASE                      (DAILY_FLAGS_START + 0x2)
-#define FLAG_UNUSED_0x923                           (DAILY_FLAGS_START + 0x3)  // Unused Flag
-#define FLAG_UNUSED_0x924                           (DAILY_FLAGS_START + 0x4)  // Unused Flag
+#define FLAG_DAILY_HFC_RAID                         (DAILY_FLAGS_START + 0x3)
+#define FLAG_DAILY_HFC_FREQUENCY                    (DAILY_FLAGS_START + 0x4)
 #define FLAG_UNUSED_0x925                           (DAILY_FLAGS_START + 0x5)  // Unused Flag
 #define FLAG_UNUSED_0x926                           (DAILY_FLAGS_START + 0x6)  // Unused Flag
 #define FLAG_UNUSED_0x927                           (DAILY_FLAGS_START + 0x7)  // Unused Flag

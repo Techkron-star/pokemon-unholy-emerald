@@ -23,6 +23,8 @@ Debug_CheatStart::
 	givemon SPECIES_WAILMER, 20, ITEM_NONE, move1 = MOVE_SURF, move2 = MOVE_WATERFALL, move3 = MOVE_DIVE, move4 = MOVE_STRENGTH
 	givemon SPECIES_TROPIUS, 20, ITEM_NONE, move1 = MOVE_FLY, move2 = MOVE_CUT, move3 = MOVE_ROCK_SMASH, move4 = MOVE_FLASH
 	setflag FLAG_SYS_POKEDEX_GET
+	additem ITEM_POKELOCATOR, 1
+	additem ITEM_HF_POKE_WATCH, 1
 	special SetUnlockedPokedexFlags
 	setflag FLAG_RECEIVED_POKEDEX_FROM_BIRCH
 	setvar VAR_CABLE_CLUB_TUTORIAL_STATE, 2
@@ -48,6 +50,7 @@ Debug_CheatStart::
 	setflag FLAG_BADGE06_GET
 	setflag FLAG_BADGE07_GET
 	setflag FLAG_BADGE08_GET
+	setflag FLAG_CRAFTING_UNLOCKED
 	setflag FLAG_VISITED_LITTLEROOT_TOWN
 	setflag FLAG_VISITED_OLDALE_TOWN
 	setflag FLAG_VISITED_DEWFORD_TOWN
@@ -86,6 +89,8 @@ Debug_CheatStartFrlg::
 	setflag FLAG_HIDE_RIVAL_IN_LAB
 	setvar VAR_MAP_SCENE_PALLET_TOWN_OAK, 1 @ prevents Oak scene when trying to enter Route 1
 	setflag FLAG_SYS_POKEDEX_GET
+	additem ITEM_POKELOCATOR, 1
+	additem ITEM_HF_POKE_WATCH, 1
 	special SetUnlockedPokedexFlags
 	setvar VAR_MAP_SCENE_PALLET_TOWN_PROFESSOR_OAKS_LAB, 6 @ state after handing in parcel and getting pokedex
 	setvar VAR_MAP_SCENE_VIRIDIAN_CITY_MART, 2

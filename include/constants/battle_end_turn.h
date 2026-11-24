@@ -72,6 +72,7 @@ enum FirstEventBlock
     FIRST_EVENT_BLOCK_GRASSY_TERRAIN_HEAL,
     FIRST_EVENT_BLOCK_ABILITIES,
     FIRST_EVENT_BLOCK_HEAL_ITEMS,
+    FIRST_EVENT_BLOCK_GEAR_HEAL,
 };
 
 // Block that tries to remove side statuses

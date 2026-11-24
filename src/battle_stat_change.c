@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_scripts.h"
 #include "battle_util.h"
@@ -9,6 +10,7 @@
 #include "battle_ai_util.h"
 #include "item.h"
 #include "move.h"
+#include "gear.h"
 
 // Stat change
 static enum StatChangeResult CanDecreaseStat(struct BattleCalcValues *cv, struct StatChange *st);
@@ -294,6 +296,10 @@ enum StatChangeResult TryStatChange(struct BattleCalcValues *cv, struct StatChan
 
 static enum StatChangeResult CanDecreaseStat(struct BattleCalcValues *cv, struct StatChange *st)
 {
+    if (cv->abilities[cv->battlerDef] == ABILITY_MONJE
+     || (cv->abilities[cv->battlerDef] == ABILITY_WIZARD && st->stat == STAT_SPATK))
+        return STAT_CHANGE_DIDNT_WORK;
+
     if (IsMistProtected(cv, st)
      || IsIntimidateBlocked(cv, st)
      || IsFlowerVeilBlocked(cv, st)
@@ -301,6 +307,21 @@ static enum StatChangeResult CanDecreaseStat(struct BattleCalcValues *cv, struct
      || IsAbilityBlocked(cv, st)
      || IsMirrorArmorReflected(cv, st))
         return STAT_CHANGE_DIDNT_WORK;
+
+    if (cv->battlerAtk != cv->battlerDef
+     && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef)
+     && Gear_GetBattlerGear(cv->battlerDef) == GEAR_AMULETO_INQUEBRANTABLE)
+    {
+        if (Gear_GetPhase(cv->battlerDef) == GEAR_PHASE_ARMED)
+        {
+            if (!st->onlyChecking)
+                Gear_ActivateEvent(cv->battlerDef);
+            return STAT_CHANGE_DIDNT_WORK;
+        }
+        if (Gear_GetPhase(cv->battlerDef) == GEAR_PHASE_RECHARGING
+         && st->stage <= -2 && !st->onlyChecking)
+            st->stage++; // Mitigate multi-stage debuffs by one stage.
+    }
     return STAT_CHANGE_WORKED;
 }
 
@@ -448,6 +469,11 @@ static void StatChanged(struct BattleCalcValues *cv, struct StatChange *st, bool
     gBattleStruct->moveResultFlags[cv->battlerDef] |= MOVE_RESULT_STAT_CHANGED;
     gBattleScripting.battler = cv->battlerDef;
     gBattleMons[cv->battlerDef].statStages[st->stat] += st->stage;
+    if (st->stat == STAT_SPATK && st->stage < 0)
+    {
+        gBattleStruct->unholyReactorReady[cv->battlerDef] = FALSE;
+        gBattleStruct->unholyReactorStartedMax[cv->battlerDef] = FALSE;
+    }
 
     if (st->stage > 0)
     {
@@ -652,6 +678,10 @@ static bool32 IsIntimidateBlocked(struct BattleCalcValues *cv, struct StatChange
 
     switch (cv->abilities[cv->battlerDef])
     {
+    case ABILITY_BELICO:
+        PREPARE_STAT_BUFFER(gBattleTextBuff1, st->stat);
+        st->script = BattleScript_AbilityNoSpecificStatLoss;
+        break;
     case ABILITY_INNER_FOCUS:
     case ABILITY_SCRAPPY:
     case ABILITY_OWN_TEMPO:
@@ -807,6 +837,8 @@ static void AdjustStatStage(struct BattleCalcValues *cv, struct StatChange *st)
     default:
         break;
     }
+    if (st->stage > 0 && Unholy_EnemyHasAntithesis(cv->battlerDef))
+        st->stage = -st->stage;
 }
 
 static bool32 CanAbilityPreventStatLoss(enum Ability ability)
@@ -816,6 +848,7 @@ static bool32 CanAbilityPreventStatLoss(enum Ability ability)
     case ABILITY_CLEAR_BODY:
     case ABILITY_FULL_METAL_BODY:
     case ABILITY_WHITE_SMOKE:
+    case ABILITY_MONJE:
         return TRUE;
     default:
         return FALSE;
@@ -836,6 +869,8 @@ static bool32 AbilityPreventsSpecificStatDrop(enum Ability ability, enum Stat st
         return stat == STAT_ATK;
     case ABILITY_BIG_PECKS:
         return stat == STAT_DEF;
+    case ABILITY_WIZARD:
+        return stat == STAT_SPATK;
     default:
         return FALSE;
     }

@@ -372,7 +372,12 @@ u32 ScriptGiveMonParameterized(u8 side, u8 slot, struct PokemonTemplate *monTemp
     CreateMonFromTemplate(&mon, monTemplate);
 
     if (side == B_SIDE_PLAYER)
+    {
+        // Also handles scripted starters and event eggs. Do not roll for
+        // opponents generated through the same script command.
+        Pokemon_AssignSpecialOriginBadges(&mon);
         return GiveScriptedMonToPlayer(&mon, slot);
+    }
 
     assertf(slot < PARTY_SIZE, "invalid slot: %d", slot)
     {
@@ -395,6 +400,7 @@ u32 ScriptGiveMon(enum Species species, u8 level, enum Item item)
         SetMonData(&mon, MON_DATA_HELD_ITEM, heldItem);
     }
 
+    Pokemon_AssignSpecialOriginBadges(&mon);
     return GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
 }
 

@@ -39,6 +39,7 @@
 #include "party_menu.h"
 #include "pokedex.h"
 #include "pokemon.h"
+#include "gear.h"
 #include "pokemon_icon.h"
 #include "pokemon_storage_system.h"
 #include "random.h"
@@ -306,6 +307,11 @@ static void DebugAction_PCBag_Fill_PocketPokeBalls(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketTMHM(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketBerries(u8 taskId);
 static void DebugAction_PCBag_Fill_PocketKeyItems(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketBattleItems(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMedicine(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketGears(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMail(u8 taskId);
+static void DebugAction_PCBag_Fill_PocketMisc(u8 taskId);
 static void DebugAction_PCBag_ClearBag(u8 taskId);
 static void DebugAction_PCBag_ClearBoxes(u8 taskId);
 
@@ -428,7 +434,9 @@ static const struct DebugSelection sDynamicMassOutbreakSelection;
 static const struct DebugSelection sToggleFlagSelection;
 static const struct DebugSelection sSetVarSelection;
 static const struct DebugSelection sGiveItemSelection;
+static const struct DebugSelection sGiveGearSelection;
 static const struct DebugSelection sSimplePokemonSelection;
+static const struct DebugSelection sUnholyPokemonSelection;
 static const struct DebugSelection sComplexPokemonSelection;
 static const struct DebugSelection sEggPokemonSelection;
 static const struct DebugSelection sGiveDecorationSelection;
@@ -614,6 +622,11 @@ static const struct DebugMenuOption sDebugMenu_Actions_PCBag_Fill[] =
     { COMPOUND_STRING("Fill Pocket TMHM"),          DebugAction_PCBag_Fill_PocketTMHM },
     { COMPOUND_STRING("Fill Pocket Berries"),       DebugAction_PCBag_Fill_PocketBerries },
     { COMPOUND_STRING("Fill Pocket Key Items"),     DebugAction_PCBag_Fill_PocketKeyItems },
+    { COMPOUND_STRING("Fill Pocket Battle"),        DebugAction_PCBag_Fill_PocketBattleItems },
+    { COMPOUND_STRING("Fill Pocket Medicine"),      DebugAction_PCBag_Fill_PocketMedicine },
+    { COMPOUND_STRING("Llenar Artefactos"),          DebugAction_PCBag_Fill_PocketGears },
+    { COMPOUND_STRING("Fill Pocket Mail"),          DebugAction_PCBag_Fill_PocketMail },
+    { COMPOUND_STRING("Fill Pocket Misc"),          DebugAction_PCBag_Fill_PocketMisc },
     { NULL }
 };
 
@@ -655,7 +668,9 @@ static const struct DebugMenuOption sDebugMenu_Actions_Party[] =
 static const struct DebugMenuOption sDebugMenu_Actions_Give[] =
 {
     { COMPOUND_STRING("Give item XYZ…"),    DebugAction_Selection_Init, &sGiveItemSelection },
+    { COMPOUND_STRING("Equipar Artefacto"), DebugAction_Selection_Init, &sGiveGearSelection },
     { COMPOUND_STRING("Pokémon (Basic)"),   DebugAction_Selection_Init, &sSimplePokemonSelection },
+    { COMPOUND_STRING("Pokémon (Unholy)"),  DebugAction_Selection_Init, &sUnholyPokemonSelection },
     { COMPOUND_STRING("Pokémon (Complex)"), DebugAction_Selection_Init, &sComplexPokemonSelection },
     { COMPOUND_STRING("Give Egg"),          DebugAction_Selection_Init, &sEggPokemonSelection },
     { COMPOUND_STRING("Give Decoration…"),  DebugAction_Selection_Init, &sGiveDecorationSelection },
@@ -3193,6 +3208,84 @@ static const struct DebugSelection sGiveItemSelection = {
     .maxSteps = 2,
 };
 
+// Debug-only equip flow: Gears are saved in their own Pokemon slot, not bag items.
+// Select party slot 1..6 then Gear (0 removes it). Empty slots are ignored.
+static void DebugSelectionStep_UpdateGearPartySlot(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    u32 slot = gTasks[taskId].tInput;
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+
+    ConvertIntToDecimalStringN(gStringVar3, slot + 1, STR_CONV_MODE_LEFT_ALIGN, digits);
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("Party slot: {STR_VAR_3}"));
+    if (GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+        StringCopy(gStringVar2, GetSpeciesName(species));
+    else
+        StringCopy(gStringVar2, COMPOUND_STRING("Empty slot"));
+    StringCopy(gStringVar3, COMPOUND_STRING("Select a Pokemon"));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static void DebugSelectionStep_UpdateGearId(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    u32 gear = gTasks[taskId].tInput;
+
+    ConvertIntToDecimalStringN(gStringVar3, gear, STR_CONV_MODE_LEFT_ALIGN, digits);
+    StringExpandPlaceholders(gStringVar1, COMPOUND_STRING("ID Artefacto: {STR_VAR_3}"));
+    if (gear == GEAR_NONE)
+        StringCopy(gStringVar2, COMPOUND_STRING("Quitar Artefacto"));
+    else
+        StringCopy(gStringVar2, Gear_GetLocalizedName(gear));
+    StringCopy(gStringVar3, COMPOUND_STRING("Ranura Artefacto"));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static bool32 DebugSelection_EquipGear_Complete(u8 taskId)
+{
+    u32 slot = DebugSelection_GetData(taskId, 0);
+    enum Gear gear = DebugSelection_GetData(taskId, 1);
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][slot];
+
+    if (slot < PARTY_SIZE && gear < GEAR_COUNT && GetMonData(mon, MON_DATA_SANITY_HAS_SPECIES))
+    {
+        Gear_SetEquipped(mon, gear);
+        PlaySE(SE_SUCCESS);
+    }
+    else
+    {
+        PlaySE(SE_FAILURE);
+    }
+    DebugSelectionStep_ReturnToGiveMenu(taskId);
+    return TRUE;
+}
+
+static const struct DebugSelectionStep sGearPartySlotSelectionStep =
+{
+    .stepUpdate = DebugSelectionStep_UpdateGearPartySlot,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = 0,
+    .maxValue = PARTY_SIZE - 1,
+    .digits = 1,
+};
+
+static const struct DebugSelectionStep sGearIdSelectionStep =
+{
+    .stepUpdate = DebugSelectionStep_UpdateGearId,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = GEAR_NONE,
+    .maxValue = GEAR_COUNT - 1,
+    .digits = 1,
+};
+
+static const struct DebugSelection sGiveGearSelection =
+{
+    .onInit = Debug_CreateInputDisplayWindow,
+    .onCancel = DebugSelectionStep_ReturnToGiveMenu,
+    .onComplete = DebugSelection_EquipGear_Complete,
+    .steps = {&sGearPartySlotSelectionStep, &sGearIdSelectionStep},
+    .maxSteps = 2,
+};
+
 static bool32 DebugSelection_GiveSimplePokemon_OnComplete(u8 taskId)
 {
     ScriptGiveMon(DebugSelection_GetData(taskId, 0), DebugSelection_GetData(taskId, 1), ITEM_NONE);
@@ -3241,36 +3334,39 @@ static void DebugSelectionStep_UpdateShinyness(u8 taskId, u8 digits, u32 min, u3
     DebugSelectionStep_PrintGenericBooleanInput(taskId, COMPOUND_STRING("Shiny:"));
 }
 
+static u32 DebugGetAbilityOptions(enum Species species, u8 *slots)
+{
+    u32 count = 0;
+    for (u8 slot = 0; slot < NUM_ABILITY_SLOTS; slot++)
+    {
+        enum Ability ability = GetSpeciesAbility(species, slot);
+        bool32 duplicate = ability == ABILITY_NONE;
+        for (u8 i = 0; i < count; i++)
+            if (GetSpeciesAbility(species, slots[i]) == ability)
+                duplicate = TRUE;
+        if (!duplicate)
+            slots[count++] = slot;
+    }
+    return count;
+}
+
 static u32 DebugSelectionStep_GetMaxAbility(u8 taskId)
 {
-    enum Species species = DebugSelection_GetData(taskId, 0);
-    u32 max = 0;
-    if ((gSpeciesInfo[species].abilities[1] != gSpeciesInfo[species].abilities[0]) && (gSpeciesInfo[species].abilities[1] != ABILITY_NONE))
-        max++;
-    if (gSpeciesInfo[species].abilities[2] != ABILITY_NONE)
-        max++;
-    return max;
+    u8 slots[NUM_ABILITY_SLOTS];
+    u32 count = DebugGetAbilityOptions(DebugSelection_GetData(taskId, 0), slots);
+    return count > 0 ? count - 1 : 0;
 }
 
 static void DebugSelectionStep_UpdateAbility(u8 taskId, u8 digits, u32 min, u32 max)
 {
-    enum Ability abilities[NUM_ABILITY_SLOTS];
+    u8 slots[NUM_ABILITY_SLOTS];
     enum Species species = DebugSelection_GetData(taskId, 0);
-    abilities[0] = gSpeciesInfo[species].abilities[0];
-    u32 i = 1;
-    if (gSpeciesInfo[species].abilities[1] != abilities[0] && gSpeciesInfo[species].abilities[1] != ABILITY_NONE)
-    {
-        abilities[1] = gSpeciesInfo[species].abilities[1];
-        i++;
-    }
-    if (gSpeciesInfo[species].abilities[2] != ABILITY_NONE)
-    {
-        abilities[i] = gSpeciesInfo[species].abilities[2];
-    }
+    u32 count = DebugGetAbilityOptions(species, slots);
 
     ConvertIntToDecimalStringN(gStringVar3, gTasks[taskId].tInput, STR_CONV_MODE_LEADING_ZEROS, digits);
     StringCopy(gStringVar1, COMPOUND_STRING("Ability:"));
-    StringCopy(gStringVar2, gAbilitiesInfo[abilities[gTasks[taskId].tInput]].name);
+    StringCopy(gStringVar2, GetLocalizedAbilityName(count > 0 && gTasks[taskId].tInput < count
+        ? GetSpeciesAbility(species, slots[gTasks[taskId].tInput]) : ABILITY_NONE));
     StringCopy(gStringVar3, COMPOUND_STRING(""));
     DebugNativeStep_PrintWindowSelection(taskId);
 }
@@ -3278,11 +3374,10 @@ static void DebugSelectionStep_UpdateAbility(u8 taskId, u8 digits, u32 min, u32 
 static void DebugSelectionStep_AbilityConfirm(u8 taskId)
 {
     enum Species species = DebugSelection_GetData(taskId, 0);
-    if (gTasks[taskId].tInput == 1)
-    {
-        if ((gSpeciesInfo[species].abilities[1] == gSpeciesInfo[species].abilities[0]) || (gSpeciesInfo[species].abilities[1] == ABILITY_NONE))
-            gTasks[taskId].tInput++;
-    }
+    u8 slots[NUM_ABILITY_SLOTS];
+    u32 count = DebugGetAbilityOptions(species, slots);
+    if (count > 0 && gTasks[taskId].tInput < count)
+        gTasks[taskId].tInput = slots[gTasks[taskId].tInput];
     DebugSelectionStep_GenericInputConfirm(taskId);
 }
 
@@ -3355,6 +3450,83 @@ static const struct DebugSelectionStep sShinynessSelectionStep = {
     .maxValue = 1,
     .digits = 1
 };
+// One explicit YES/NO step for each known mutation; combinations are allowed.
+// This uses the existing complex Pokémon generator, not a second debug menu.
+// Keep this order aligned with the masks in completion below.
+static void DebugSelectionStep_UpdateUnholyMutation(u8 taskId, u8 digits, u32 min, u32 max)
+{
+    const u8 *const names[] =
+    {
+        COMPOUND_STRING("Alpha"),
+        COMPOUND_STRING("Super"),
+        COMPOUND_STRING("Enraged"),
+        COMPOUND_STRING("Omega"),
+        COMPOUND_STRING("Hyper"),
+        COMPOUND_STRING("Overloaded"),
+        COMPOUND_STRING("Titan"),
+        COMPOUND_STRING("Ancestral"),
+        COMPOUND_STRING("Ascended"),
+    };
+    u32 index = gTasks[taskId].tSubstep;
+    if (index >= ARRAY_COUNT(names))
+        index = 0;
+    StringCopy(gStringVar1, names[index]);
+    StringCopy(gStringVar2, gTasks[taskId].tInput ? COMPOUND_STRING("YES") : COMPOUND_STRING("NO"));
+    StringCopy(gStringVar3, COMPOUND_STRING(""));
+    DebugNativeStep_PrintWindowSelection(taskId);
+}
+
+static const struct DebugSelectionStep sUnholyMutationSelectionStep = {
+    .stepUpdate = DebugSelectionStep_UpdateUnholyMutation,
+    .stepConfirm = DebugSelectionStep_GenericInputConfirm,
+    .minValue = 0,
+    .maxValue = 1,
+    .digits = 1,
+    .substepCount = 9
+};
+
+// Short debug path: species + level + shiny + nine mutation toggles.
+// Unlike the long Complex wizard this skips manually selecting 6 IVs,
+// 6 EVs, 4 moves, abilities and secondary gimmicks.
+static bool32 DebugSelection_GiveUnholyPokemon_OnComplete(u8 taskId)
+{
+    u16 *data = (u16 *)GetWordTaskArg(taskId, STEPS_DATA_PTR_ARG);
+    static const u16 mutations[] = {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
+    };
+    struct Pokemon mon;
+    u16 badges = 0;
+
+    CreateMon(&mon, data[0], data[1], Random32(), OTID_STRUCT_PLAYER_ID);
+    SetMonData(&mon, MON_DATA_IS_SHINY, &data[2]);
+    for (u32 i = 0; i < ARRAY_COUNT(mutations); i++)
+    {
+        if (data[3 + i])
+            badges |= mutations[i];
+    }
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    CalculateMonStats(&mon);
+    GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
+    DebugSelectionStep_ReturnToGiveMenu(taskId);
+    PlaySE(SE_SUCCESS);
+    return TRUE;
+}
+
+static const struct DebugSelection sUnholyPokemonSelection = {
+    .onInit = Debug_CreateInputDisplayWindow,
+    .onCancel = DebugSelectionStep_ReturnToGiveMenu,
+    .onComplete = DebugSelection_GiveUnholyPokemon_OnComplete,
+    .steps = {
+        &sSpeciesSelectionStep,
+        &sLevelSelectionStep,
+        &sShinynessSelectionStep,
+        &sUnholyMutationSelectionStep,
+    },
+    .maxSteps = 4,
+};
+
 
 static const struct DebugSelectionStep sAbilitySelectionStep = {
     .stepUpdate = DebugSelectionStep_UpdateAbility,
@@ -3456,6 +3628,20 @@ static bool32 DebugSelection_GiveComplexPokemon_OnComplete(u8 taskId)
     SetMonData(&mon, MON_DATA_GIGANTAMAX_FACTOR, &monData[23]);
     SetMonData(&mon, MON_DATA_TERA_TYPE, &monData[24]);
 
+    // The last nine choices are individual mutation toggles. Keep full u16
+    // mask so Ascended (bit 8) is preserved, and allow combinations.
+    static const u16 mutationMasks[9] =
+    {
+        POKEMON_BADGE_ALPHA, POKEMON_BADGE_SUPER, POKEMON_BADGE_ENRAGED,
+        POKEMON_BADGE_OMEGA, POKEMON_BADGE_HYPER, POKEMON_BADGE_OVERLOADED,
+        POKEMON_BADGE_TITAN, POKEMON_BADGE_ANCESTRAL, POKEMON_BADGE_ASCENDED
+    };
+    u16 badges = 0;
+    for (u32 i = 0; i < ARRAY_COUNT(mutationMasks); i++)
+        if (monData[25 + i])
+            badges |= mutationMasks[i];
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+
     CalculateMonStats(&mon);
     GiveScriptedMonToPlayer(&mon, PARTY_SIZE);
     DebugSelectionStep_ReturnToGiveMenu(taskId);
@@ -3479,8 +3665,9 @@ static const struct DebugSelection sComplexPokemonSelection = {
         &sDynamaxLevelSelectionStep,
         &sGigantamaxFactorSelectionStep,
         &sTeraTypeSelectionStep,
+        &sUnholyMutationSelectionStep,
     },
-    .maxSteps = 12,
+    .maxSteps = 13,
 };
 
 static bool32 DebugSelection_GiveEggPokemon_OnComplete(u8 taskId)
@@ -3707,15 +3894,49 @@ static void DebugAction_PCBag_Fill_PCItemStorage(u8 taskId)
     }
 }
 
-static void DebugAction_PCBag_Fill_PocketItems(u8 taskId)
+// Debug filling uses exactly the same classification as the normal Bag view.
+// AddBagItem still writes the canonical save-backed physical pocket.
+static void Debug_PCBag_FillDisplayPocket(enum Pocket pocketId)
 {
     enum Item itemId;
+    u16 quantity = (pocketId == POCKET_KEY_ITEMS || pocketId == POCKET_GEARS)
+                 ? 1 : MAX_BAG_ITEM_CAPACITY;
 
     for (itemId = 1; itemId < ITEMS_COUNT; itemId++)
     {
-        if (GetItemPocket(itemId) == POCKET_ITEMS && CheckBagHasSpace(itemId, MAX_BAG_ITEM_CAPACITY))
-            AddBagItem(itemId, MAX_BAG_ITEM_CAPACITY);
+        if (GetItemDisplayPocket(itemId) == pocketId && CheckBagHasSpace(itemId, quantity))
+            AddBagItem(itemId, quantity);
     }
+}
+
+static void DebugAction_PCBag_Fill_PocketItems(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_ITEMS);
+}
+
+static void DebugAction_PCBag_Fill_PocketBattleItems(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_BATTLE_ITEMS);
+}
+
+static void DebugAction_PCBag_Fill_PocketMedicine(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MEDICINE);
+}
+
+static void DebugAction_PCBag_Fill_PocketGears(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_GEARS);
+}
+
+static void DebugAction_PCBag_Fill_PocketMail(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MAIL);
+}
+
+static void DebugAction_PCBag_Fill_PocketMisc(u8 taskId)
+{
+    Debug_PCBag_FillDisplayPocket(POCKET_MISC);
 }
 
 static void DebugAction_PCBag_Fill_PocketPokeBalls(u8 taskId)
@@ -3753,13 +3974,7 @@ static void DebugAction_PCBag_Fill_PocketBerries(u8 taskId)
 
 static void DebugAction_PCBag_Fill_PocketKeyItems(u8 taskId)
 {
-    enum Item itemId;
-
-    for (itemId = 1; itemId < ITEMS_COUNT; itemId++)
-    {
-        if (GetItemPocket(itemId) == POCKET_KEY_ITEMS && CheckBagHasSpace(itemId, 1))
-            AddBagItem(itemId, 1);
-    }
+    Debug_PCBag_FillDisplayPocket(POCKET_KEY_ITEMS);
 }
 
 static void DebugAction_PCBag_ClearBag(u8 taskId)
@@ -4628,9 +4843,9 @@ static void DebugAction_Party_HealParty(u8 taskId)
 void DebugNative_GetAbilityNames(void)
 {
     enum Species species = GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_SPECIES);
-    StringCopy(gStringVar1, gAbilitiesInfo[GetAbilityBySpecies(species, 0)].name);
-    StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(species, 1)].name);
-    StringCopy(gStringVar3, gAbilitiesInfo[GetAbilityBySpecies(species, 2)].name);
+    StringCopy(gStringVar1, GetLocalizedAbilityName(GetAbilityBySpecies(species, 0)));
+    StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(species, 1)));
+    StringCopy(gStringVar3, GetLocalizedAbilityName(GetAbilityBySpecies(species, 2)));
 }
 
 #define tPartyId               data[6]

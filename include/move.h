@@ -230,6 +230,8 @@ struct MoveInfo
 };
 
 extern const struct MoveInfo gMovesInfo[MOVES_COUNT_ALL];
+const u8 *GetLocalizedMoveName(enum Move moveId);
+const u8 *GetLocalizedMoveDescription(enum Move moveId);
 extern const u8 gNotDoneYetDescription[];
 extern const struct BattleMoveEffect gBattleMoveEffects[];
 
@@ -253,7 +255,7 @@ static inline enum Move SanitizeMoveId(enum Move moveId)
 
 static inline const u8 *GetMoveName(enum Move moveId)
 {
-    return gMovesInfo[SanitizeMoveId(moveId)].name;
+    return GetLocalizedMoveName(SanitizeMoveId(moveId));
 }
 
 static inline enum BattleMoveEffects GetMoveEffect(enum Move moveId)
@@ -266,7 +268,7 @@ static inline const u8 *GetMoveDescription(enum Move moveId)
     moveId = SanitizeMoveId(moveId);
     if (GetMoveEffect(moveId) == EFFECT_PLACEHOLDER)
         return gNotDoneYetDescription;
-    return gMovesInfo[moveId].description;
+    return GetLocalizedMoveDescription(moveId);
 }
 
 static inline enum Type GetMoveType(enum Move moveId)
@@ -338,7 +340,10 @@ static inline u32 IsExplosionMove(enum Move move)
 
 static inline u32 GetMoveCriticalHitStage(enum Move moveId)
 {
-    return gMovesInfo[SanitizeMoveId(moveId)].criticalHitStage;
+    // Unholy: each blade/cut gets at least +1 critical-hit stage. This
+    // includes Sacred Sword and Cut, but not the tackle Double-Edge.
+    const struct MoveInfo *info = &gMovesInfo[SanitizeMoveId(moveId)];
+    return max(info->criticalHitStage, info->slicingMove ? 1 : 0);
 }
 
 static inline bool32 MoveAlwaysCrits(enum Move moveId)

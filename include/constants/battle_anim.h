@@ -9,6 +9,8 @@
 
 // Particle ids.
 #define ANIM_SPRITES_START 10000
+// Unique palette/tile tag for the independent red six-point Omega glint.
+#define ANIM_TAG_UNHOLY_OMEGA_GLINT 65060
 
 #define ANIM_TAG_BONE                       (ANIM_SPRITES_START + 0)
 #define ANIM_TAG_SPARK                      (ANIM_SPRITES_START + 1)

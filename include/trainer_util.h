@@ -11,6 +11,11 @@ struct TrainerGenerator
     u8 name[TRAINER_NAME_LENGTH + 1];
     struct OriginalTrainerId otID;
     rng_value_t localRngState;
+    // Separate from battle/personality RNG: stable between a trainer's rematches.
+    u32 mutationSeed;
+    u16 mutationLineages[PARTY_SIZE];
+    u8 generatedMutationCount;
+    bool8 isImportantTrainer;
 };
 
 rng_value_t GeneratePartySeed(const struct Trainer *trainer);

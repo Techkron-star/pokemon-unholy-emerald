@@ -270,6 +270,7 @@ const u8 *GetItemDescription(enum Item itemId);
 u8 GetItemImportance(enum Item itemId);
 u8 GetItemConsumability(enum Item itemId);
 enum Pocket GetItemPocket(enum Item itemId);
+enum Pocket GetItemDisplayPocket(enum Item itemId);
 enum ItemType GetItemType(enum Item itemId);
 ItemUseFunc GetItemFieldFunc(enum Item itemId);
 enum EffectItem GetItemBattleUsage(enum Item itemId);

@@ -254,6 +254,8 @@ struct NPCFollower
 #include "constants/items.h"
 #define ITEM_FLAGS_COUNT ((ITEMS_COUNT / 8) + ((ITEMS_COUNT % 8) ? 1 : 0))
 
+#include "unholy_save.h"
+
 struct SaveBlock3
 {
 #if OW_USE_FAKE_RTC
@@ -272,6 +274,9 @@ struct SaveBlock3
 #if APRICORN_TREE_COUNT > 0
     u8 apricornTrees[NUM_APRICORN_TREE_BYTES];
 #endif
+    // Versioned extension: consumes the full currently-unused SaveBlock3
+    // sidecar space while preserving all preceding field offsets.
+    struct SaveBlock4 unholySave4;
 }; /* max size 1624 bytes */
 
 extern struct SaveBlock3 *gSaveBlock3Ptr;
@@ -602,7 +607,8 @@ struct SaveBlock2
              u16 optionsBattleStyle:1; // OPTIONS_BATTLE_STYLE_[SHIFT/SET]
              u16 optionsBattleSceneOff:1; // whether battle animations are disabled
              u16 regionMapZoom:1; // whether the map is zoomed in
-             //u16 padding1:4;
+             u16 optionsLanguageSpanish:1; // UI text only; unrelated to Pokémon origin language
+             //u16 padding1:3;
              //u16 padding2;
     /*0x18*/ struct Pokedex pokedex;
     /*0x90*/ u8 filler_90[0x8];
@@ -1090,6 +1096,8 @@ struct Bag
     struct ItemSlot pokeBalls[BAG_POKEBALLS_COUNT];
     struct ItemSlot TMsHMs[BAG_TMHM_COUNT];
     struct ItemSlot berries[BAG_BERRIES_COUNT];
+    struct ItemSlot battleItems[BAG_BATTLEITEMS_COUNT];
+    struct ItemSlot medicine[BAG_MEDICINE_COUNT];
 };
 
 struct SaveBlock1

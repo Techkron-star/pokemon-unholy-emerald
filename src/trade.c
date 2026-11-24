@@ -1,4 +1,5 @@
 #include "global.h"
+#include "hfc_watch_services.h"
 #include "malloc.h"
 #include "battle_anim.h"
 #include "battle_interface.h"
@@ -3068,6 +3069,7 @@ static void UpdatePokedexForReceivedMon(u8 partyIdx)
         enum NationalDexOrder dexNum = SpeciesToNationalPokedexNum(species);
         GetSetPokedexFlag(dexNum, FLAG_SET_SEEN);
         HandleSetPokedexFlag(dexNum, FLAG_SET_CAUGHT, personality);
+        HfcWatch_RegisterMutation(&mon->box);
     }
 }
 
@@ -4607,6 +4609,10 @@ static void CreateInGameTradePokemonInternal(u8 whichPlayerMon, u8 whichInGameTr
         }
     }
     CalculateMonStats(&gParties[B_TRAINER_OPPONENT_A][0]);
+
+    // NPC trades originate here; never reroll on link trades or when viewing
+    // an already-owned Pokémon.
+    Pokemon_AssignSpecialOriginBadges(pokemon);
 }
 
 static void GetInGameTradeMail(struct Mail *mail, const struct InGameTrade *trade)

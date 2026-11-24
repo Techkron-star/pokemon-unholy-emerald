@@ -66,8 +66,48 @@ PlayersHouse_2F_EventScript_WallClock::
 	call_if_eq VAR_RESULT, FEMALE, PlayersHouse_2F_EventScript_MomComesUpstairsFemale
 	playse SE_EXIT
 	removeobject VAR_0x8008
+	call PlayersHouse_EventScript_SkipIntroToBirch
 	releaseall
 	end
+
+@ Tras poner el reloj se saltan la escena de la tele, la visita a la casa del rival y su habitación:
+@ se deja el juego en el mismo estado que tras conocerlo, listo para ir directo con el profesor.
+PlayersHouse_EventScript_SkipIntroToBirch::
+	goto_if_set FLAG_RECEIVED_STARTER_QOL, PlayersHouse_EventScript_StarterQolDone
+	msgbox PlayersHouse_1F_Text_StarterQolGift, MSGBOX_DEFAULT
+	additem ITEM_EXP_SHARE
+	setflag FLAG_RECEIVED_RUNNING_SHOES
+	setflag FLAG_SYS_B_DASH
+	setflag FLAG_GOT_BICYCLE
+	setflag FLAG_RECEIVED_BIKE
+	additem ITEM_BICYCLE
+	setflag FLAG_RECEIVED_STARTER_QOL
+PlayersHouse_EventScript_StarterQolDone::
+	setvar VAR_LITTLEROOT_INTRO_STATE, 7 @ 7: Told to go meet rival
+	setflag FLAG_MET_RIVAL_MOM
+	setvar VAR_LITTLEROOT_HOUSES_STATE_BRENDAN, 2 @ 2: Met Rival's Mom
+	setvar VAR_LITTLEROOT_HOUSES_STATE_MAY, 2 @ 2: Met Rival's Mom
+	setvar VAR_LITTLEROOT_RIVAL_STATE, 3 @ 3: Met Rival
+	setvar VAR_LITTLEROOT_TOWN_STATE, 1 @ 1: Met Rival
+	setvar VAR_BIRCH_STATE, 2 @ Birch is waiting on Route 101
+	setvar VAR_ROUTE101_STATE, 1 @ Start Birch's rescue/starter sequence
+	checkplayergender
+	goto_if_eq VAR_RESULT, MALE, PlayersHouse_EventScript_SkipIntroMaysHouse
+	setflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_2F_POKE_BALL
+	clearflag FLAG_HIDE_LITTLEROOT_TOWN_BRENDANS_HOUSE_RIVAL_BEDROOM
+	goto PlayersHouse_EventScript_WarpToStarter
+
+PlayersHouse_EventScript_SkipIntroMaysHouse::
+	setflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_2F_POKE_BALL
+	clearflag FLAG_HIDE_LITTLEROOT_TOWN_MAYS_HOUSE_RIVAL_BEDROOM
+	goto PlayersHouse_EventScript_WarpToStarter
+
+PlayersHouse_EventScript_WarpToStarter::
+	@ Spawn one step SOUTH of the girl (10,1) guarding Route 101.
+	@ Never warp directly onto the Route 101 event trigger.
+	warp MAP_LITTLEROOT_TOWN, 10, 2
+	waitstate
+	return
 
 PlayersHouse_2F_EventScript_MomComesUpstairsMale::
 	setvar VAR_0x8008, LOCALID_PLAYERS_HOUSE_2F_MOM
@@ -94,6 +134,12 @@ PlayersHouse_2F_EventScript_MomComesUpstairsFemale::
 	applymovement VAR_0x8008, PlayersHouse_2F_Movement_MomExitsFemale
 	waitmovement 0
 	return
+
+PlayersHouse_1F_Text_StarterQolGift:
+	.string "MOM: Before you go, I packed a few\n"
+	.string "things to make traveling easier.\p"
+	.string "There's an EXP. SHARE, running shoes,\n"
+	.string "and a BICYCLE in your Bag.$"
 
 PlayersHouse_2F_EventScript_CheckWallClock::
 	incrementgamestat GAME_STAT_CHECKED_CLOCK
@@ -139,8 +185,33 @@ PlayersHouse_2F_Movement_MomExitsFemale:
 
 PlayersHouse_1F_EventScript_SetWatchedBroadcast::
 	setvar VAR_LITTLEROOT_INTRO_STATE, 7
+	msgbox UnholyStarters_Text_MomFavoriteType, MSGBOX_DEFAULT
+	call UnholyStarters_EventScript_SelectFavoriteType
+	msgbox UnholyStarters_Text_MomAfterFavoriteType, MSGBOX_DEFAULT
 	releaseall
 	end
+
+// Shared selection for both genders. If a player bypasses the home intro,
+// Route 101 calls the same menu before Birch's bag opens.
+UnholyStarters_EventScript_SelectFavoriteType::
+	closemessage
+UnholyStarters_EventScript_ShowTypeMenu::
+	setvar VAR_0x8004, SCROLL_MULTI_UNHOLY_STARTER_TYPES
+	special ShowScrollableMultichoice
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, UnholyStarters_EventScript_ShowTypeMenu
+	special UnholySetFavoriteStarterType
+	goto_if_eq VAR_RESULT, FALSE, UnholyStarters_EventScript_ShowTypeMenu
+	return
+
+UnholyStarters_Text_MomFavoriteType:
+	.string "MAMÁ: Oye, {PLAYER}...\p"
+	.string "¿Cuál es tu tipo de POKéMON\n"
+	.string "favorito?$"
+
+UnholyStarters_Text_MomAfterFavoriteType:
+	.string "MAMÁ: ¡Excelente elección!\p"
+	.string "Un buen compañero puede aparecer\n"
+	.string "cuando menos lo esperas.$"
 
 PlayersHouse_1F_EventScript_PetalburgGymReportMale::
 	applymovement VAR_0x8005, Common_Movement_WalkInPlaceFasterRight

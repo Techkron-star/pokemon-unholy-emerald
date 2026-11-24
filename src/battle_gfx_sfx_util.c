@@ -5,6 +5,7 @@
 #include "battle_anim.h"
 #include "constants/battle_anim.h"
 #include "battle_interface.h"
+#include "stamina_ring.h"
 #include "main.h"
 #include "menu.h"
 #include "dma3.h"
@@ -79,6 +80,14 @@ static const struct CompressedSpriteSheet sSpriteSheets_HealthBar[MAX_BATTLERS_C
     {gBlankGfxCompressed, 0x0120, TAG_HEALTHBAR_OPPONENT1_TILE},
     {gBlankGfxCompressed, 0x0100, TAG_HEALTHBAR_PLAYER2_TILE},
     {gBlankGfxCompressed, 0x0120, TAG_HEALTHBAR_OPPONENT2_TILE}
+};
+
+static const struct CompressedSpriteSheet sSpriteSheets_StaminaBar[MAX_BATTLERS_COUNT] =
+{
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_PLAYER1_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_OPPONENT1_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_PLAYER2_TILE},
+    {gBlankGfxCompressed, STAMINA_RING_COMPACT_TILE_BYTES, TAG_STAMINABAR_OPPONENT2_TILE}
 };
 
 const struct SpritePalette sSpritePalettes_HealthBoxHealthBar[2] =
@@ -759,6 +768,9 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 6));
             spriteSheet = &sSpriteSheets_HealthBar[position];
             break;
+        case 10 ... 13:
+            spriteSheet = &sSpriteSheets_StaminaBar[GetBattlerPosition((enum BattlerId)(state - 10))];
+            break;
         default:
             return TRUE;
         }
@@ -777,6 +789,10 @@ bool8 BattleLoadAllHealthBoxesGfx(u8 state)
         case 5:
             enum BattlerPosition position = GetBattlerPosition((enum BattlerId)(state - 4));
             spriteSheet = &sSpriteSheets_HealthBar[position];
+            break;
+        case 6:
+        case 7:
+            spriteSheet = &sSpriteSheets_StaminaBar[GetBattlerPosition((enum BattlerId)(state - 6))];
             break;
         default:
             return TRUE;

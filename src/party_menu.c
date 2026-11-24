@@ -1,4 +1,6 @@
 #include "global.h"
+#include "unholy_move_ui.h"
+#include "battle_stamina.h"
 #include "malloc.h"
 #include "battle.h"
 #include "battle_anim.h"
@@ -8,6 +10,7 @@
 #include "battle_pike.h"
 #include "battle_pyramid.h"
 #include "battle_pyramid_bag.h"
+#include "braille_puzzles.h"
 #include "bg.h"
 #include "contest.h"
 #include "data.h"
@@ -33,6 +36,7 @@
 #include "international_string_util.h"
 #include "item.h"
 #include "item_menu.h"
+#include "gear.h"
 #include "item_use.h"
 #include "caps.h"
 #include "link.h"
@@ -210,6 +214,7 @@ struct PartyMenuBox
 static EWRAM_DATA struct PartyMenuInternal *sPartyMenuInternal = NULL;
 EWRAM_DATA struct PartyMenu gPartyMenu = {0};
 static EWRAM_DATA struct PartyMenuBox *sPartyMenuBoxes = NULL;
+static EWRAM_DATA u8 sStaminaPromptSlot;
 static EWRAM_DATA u8 *sPartyBgGfxTilemap = NULL;
 static EWRAM_DATA u8 *sPartyBgTilemapBuffer = NULL;
 EWRAM_DATA bool8 gPartyMenuUseExitCallback = 0;
@@ -258,6 +263,7 @@ static void DisplayPartyPokemonDataForBattlePyramidHeldItem(u8);
 static bool8 DisplayPartyPokemonDataForMoveTutorOrEvolutionItem(u8);
 static void DisplayPartyPokemonData(u8);
 static void DisplayPartyPokemonNickname(struct Pokemon *, struct PartyMenuBox *, u8);
+static void DisplayPartyPokemonGear(struct Pokemon *, struct PartyMenuBox *);
 static void DisplayPartyPokemonLevelCheck(struct Pokemon *, struct PartyMenuBox *, u8);
 static void DisplayPartyPokemonGenderNidoranCheck(struct Pokemon *, struct PartyMenuBox *, u8);
 static void DisplayPartyPokemonHPCheck(struct Pokemon *, struct PartyMenuBox *, u8);
@@ -1508,6 +1514,13 @@ void Task_HandleChooseMonInput(u8 taskId)
             RefreshPartyMenu();
             break;
         }
+
+        if (gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && gPartyMenu.action == PARTY_ACTION_CHOOSE_MON
+         && gTasks[taskId].func == Task_HandleChooseMonInput && sStaminaPromptSlot != *slotPtr)
+        {
+            sStaminaPromptSlot = *slotPtr;
+            DisplayPartyMenuStdMessage(PARTY_MSG_CHOOSE_MON);
+        }
     }
 }
 
@@ -2365,6 +2378,7 @@ static enum CanMoveBeLearned CanTeachMove(struct Pokemon *mon, enum Move move)
 
 static void InitPartyMenuWindows(enum PartyMenuLayout layout)
 {
+    sStaminaPromptSlot = PARTY_SIZE;
     switch (layout)
     {
     case PARTY_LAYOUT_MULTI_SHOWCASE:
@@ -2586,6 +2600,32 @@ static void DisplayPartyPokemonBarDetailToFit(u8 windowId, const u8 *str, u8 col
     AddTextPrinterParameterized3(windowId, GetFontIdToFit(str, FONT_SMALL, 0, width), align[0], align[1], sFontColorTable[color], 0, str);
 }
 
+static void DisplayPartyPokemonGear(struct Pokemon *mon, struct PartyMenuBox *menuBox)
+{
+    // An 8x8 "A" badge for Artefacto, matching the summary and Bag.
+    static const u32 sBadge[] =
+    {
+        0x00222220,
+        0x02222222,
+        0x02233322,
+        0x02232232,
+        0x02233332,
+        0x02232232,
+        0x02232232,
+        0x00222220,
+    };
+    bool32 largeSlot = menuBox->infoRects == &sPartyBoxInfoRects[PARTY_BOX_LEFT_COLUMN];
+
+    if (GetMonData(mon, MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG
+     || GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG)
+     || Gear_GetEquipped(mon) == GEAR_NONE)
+        return;
+
+    // Keep the compact badge between the gender and the description/HP area.
+    BlitBitmapToWindow(menuBox->windowId, (const u8 *)sBadge, largeSlot ? 66 : 70,
+                       largeSlot ? 2 : 12, 8, 8);
+}
+
 static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox *menuBox, u8 c)
 {
     u8 nickname[POKEMON_NAME_LENGTH + 1];
@@ -2595,6 +2635,7 @@ static void DisplayPartyPokemonNickname(struct Pokemon *mon, struct PartyMenuBox
         if (c == 1)
             menuBox->infoRects->blitFunc(menuBox->windowId, menuBox->infoRects->dimensions[0] >> 3, menuBox->infoRects->dimensions[1] >> 3, menuBox->infoRects->dimensions[2] >> 3, menuBox->infoRects->dimensions[3] >> 3, FALSE);
         GetMonNickname(mon, nickname);
+        DisplayPartyPokemonGear(mon, menuBox);
         DisplayPartyPokemonBarDetailToFit(menuBox->windowId, nickname, 0, menuBox->infoRects->dimensions, 50);
     }
 }
@@ -2824,7 +2865,22 @@ void DisplayPartyMenuStdMessage(u32 stringId)
         }
         DrawStdFrameWithCustomTileAndPalette(*windowPtr, FALSE, 0x4F, 13);
         StringExpandPlaceholders(gStringVar4, sActionStringTable[stringId]);
-        AddTextPrinterParameterized(*windowPtr, FONT_NORMAL, gStringVar4, 0, 1, 0, 0);
+        if (gPartyMenu.menuType == PARTY_MENU_TYPE_FIELD && gPartyMenu.action == PARTY_ACTION_CHOOSE_MON
+         && gPartyMenu.slotId < gPartiesCount[B_TRAINER_PLAYER]
+         && (stringId == PARTY_MSG_CHOOSE_MON || stringId == PARTY_MSG_CHOOSE_MON_OR_CANCEL))
+        {
+            struct Pokemon *mon = GetPartyMonFromPartyMenuId(gPartyMenu.slotId);
+            if (!GetMonData(mon, MON_DATA_IS_EGG))
+            {
+                u8 *cursor = StringCopy(gStringVar4, COMPOUND_STRING("HP "));
+                cursor = ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
+                cursor = StringCopy(cursor, COMPOUND_STRING("/"));
+                cursor = ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_MAX_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
+                cursor = StringCopy(cursor, COMPOUND_STRING("  STA MAX "));
+                ConvertUIntToDecimalStringN(cursor, Stamina_CalcMaxForMon(mon), STR_CONV_MODE_LEFT_ALIGN, 3);
+            }
+        }
+        AddTextPrinterParameterized(*windowPtr, FONT_SMALL_NARROW, gStringVar4, 0, 1, 0, 0);
         ScheduleBgCopyTilemapToVram(2);
     }
 }
@@ -2950,7 +3006,6 @@ static void SetPartyMonSelectionActions(struct Pokemon *mons, u8 slotId, u8 acti
 static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
 {
     u8 i, j;
-
     sPartyMenuInternal->numActions = 0;
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_SUMMARY);
 
@@ -2979,6 +3034,7 @@ static void SetPartyMonFieldSelectionActions(struct Pokemon *mons, u8 slotId)
         else
             AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_ITEM);
     }
+
     AppendToList(sPartyMenuInternal->actions, &sPartyMenuInternal->numActions, MENU_CANCEL1);
 }
 
@@ -4116,20 +4172,23 @@ static void CursorCb_FieldMove(u8 taskId)
         case FIELD_MOVE_SOFT_BOILED:
             ChooseMonForSoftboiled(taskId);
             break;
-        case FIELD_MOVE_TELEPORT:
-            mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->lastHealLocation.mapGroup, gSaveBlock1Ptr->lastHealLocation.mapNum);
-            GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
-            StringExpandPlaceholders(gStringVar4, gText_ReturnToHealingSpot);
-            DisplayFieldMoveExitAreaMessage(taskId);
-            sPartyMenuInternal->data[0] = fieldMove;
-            break;
         case FIELD_MOVE_DIG:
-            mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->escapeWarp.mapGroup, gSaveBlock1Ptr->escapeWarp.mapNum);
-            GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
-            StringExpandPlaceholders(gStringVar4, gText_EscapeFromHere);
-            DisplayFieldMoveExitAreaMessage(taskId);
-            sPartyMenuInternal->data[0] = fieldMove;
+            if (ShouldDoBrailleDigEffect())
+            {
+                // The sealed-chamber Dig puzzle must still open its door.
+                mapHeader = Overworld_GetMapHeaderByGroupAndId(gSaveBlock1Ptr->escapeWarp.mapGroup, gSaveBlock1Ptr->escapeWarp.mapNum);
+                GetMapNameGeneric(gStringVar1, mapHeader->regionMapSectionId);
+                StringExpandPlaceholders(gStringVar4, gText_EscapeFromHere);
+                DisplayFieldMoveExitAreaMessage(taskId);
+                sPartyMenuInternal->data[0] = fieldMove;
+            }
+            else
+            {
+                gPartyMenu.exitCallback = CB2_OpenFlyMap;
+                Task_ClosePartyMenu(taskId);
+            }
             break;
+        case FIELD_MOVE_TELEPORT:
         case FIELD_MOVE_FLY:
             gPartyMenu.exitCallback = CB2_OpenFlyMap;
             Task_ClosePartyMenu(taskId);
@@ -4976,7 +5035,7 @@ void Task_AbilityCapsule(u8 taskId)
         }
         gPartyMenuUseExitCallback = TRUE;
         GetMonNickname(&gParties[B_TRAINER_PLAYER][tMonId], gStringVar1);
-        StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(tSpecies, tAbilityNum)].name);
+        StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(tSpecies, tAbilityNum)));
         StringExpandPlaceholders(gStringVar4, sText_askText);
         PlaySE(SE_SELECT);
         DisplayPartyMenuMessage(gStringVar4, 1);
@@ -5061,7 +5120,7 @@ void Task_AbilityPatch(u8 taskId)
         }
         gPartyMenuUseExitCallback = TRUE;
         GetMonNickname(&gParties[B_TRAINER_PLAYER][tMonId], gStringVar1);
-        StringCopy(gStringVar2, gAbilitiesInfo[GetAbilityBySpecies(tSpecies, tAbilityNum)].name);
+        StringCopy(gStringVar2, GetLocalizedAbilityName(GetAbilityBySpecies(tSpecies, tAbilityNum)));
         StringExpandPlaceholders(gStringVar4, sText_askText);
         PlaySE(SE_SELECT);
         DisplayPartyMenuMessage(gStringVar4, 1);
@@ -5116,14 +5175,30 @@ void Task_AbilityPatch(u8 taskId)
 void ItemUseCB_AbilityPatch(u8 taskId, TaskFunc task)
 {
     s16 *data = gTasks[taskId].data;
+    u8 currentAbilityNum;
+    bool32 firstHidden, secondHidden;
 
     tState = 0;
     tMonId = gPartyMenu.slotId;
     tSpecies = GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_SPECIES);
-    if (GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_ABILITY_NUM) == 2)
+    currentAbilityNum = GetMonData(&gParties[B_TRAINER_PLAYER][tMonId], MON_DATA_ABILITY_NUM);
+    firstHidden = GetSpeciesAbility(tSpecies, 2) != ABILITY_NONE;
+    secondHidden = GetSpeciesAbility(tSpecies, 3) != ABILITY_NONE;
+    if (currentAbilityNum == 2 && firstHidden && secondHidden)
+    {
+        // First hidden -> second hidden, without gambling on a random Patch.
+        tAbilityNum = 3;
+    }
+    else if (currentAbilityNum >= NUM_NORMAL_ABILITY_SLOTS)
+    {
+        // Last hidden -> normal; Ability Capsule still changes normal slots.
         tAbilityNum = 0;
+    }
     else
-        tAbilityNum = 2;
+    {
+        // Normal -> first available hidden. Another Patch accesses slot 3.
+        tAbilityNum = firstHidden ? 2 : (secondHidden ? 3 : 2);
+    }
     SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
     gTasks[taskId].func = Task_AbilityPatch;
 }
@@ -7096,6 +7171,41 @@ void CB2_ChooseMonToGiveItem(void)
 
 static void TryGiveItemOrMailToSelectedMon(u8 taskId)
 {
+    // EQUIP from the bag uses exactly the same Pokémon chooser as GIVE,
+    // but it must never interact with MON_DATA_HELD_ITEM or its switch prompt.
+    if (Gear_FromItem(gPartyMenu.bagItem) != GEAR_NONE)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
+        struct PartyMenuBox *menuBox = &sPartyMenuBoxes[gPartyMenu.slotId];
+        enum GearEquipResult result = Gear_TryEquipFromBag(mon, gPartyMenu.bagItem);
+        const u8 *message;
+
+        switch (result)
+        {
+        case GEAR_EQUIP_OK:
+            DisplayPartyPokemonGear(mon, menuBox);
+            CopyWindowToVram(menuBox->windowId, COPYWIN_GFX);
+            message = COMPOUND_STRING("¡ARTEFACTO EQUIPADO!");
+            break;
+        case GEAR_EQUIP_ALREADY:
+            message = COMPOUND_STRING("ALREADY EQUIPPED.");
+            break;
+        case GEAR_EQUIP_BAG_FULL:
+            message = COMPOUND_STRING("BAG FULL! NOT EQUIPPED.");
+            break;
+        case GEAR_EQUIP_NOT_OWNED:
+            message = COMPOUND_STRING("ARTEFACTO NO DISPONIBLE.");
+            break;
+        default:
+            message = COMPOUND_STRING("NO SE PUEDE EQUIPAR.");
+            break;
+        }
+
+        DisplayPartyMenuMessage(message, TRUE);
+        gTasks[taskId].func = Task_UpdateHeldItemSpriteAndClosePartyMenu;
+        return;
+    }
+
     sPartyMenuItemId = GetMonData(&gParties[B_TRAINER_PLAYER][gPartyMenu.slotId], MON_DATA_HELD_ITEM);
     if (sPartyMenuItemId == ITEM_NONE)
     {
@@ -8125,12 +8235,38 @@ static void Task_ChoosePartyMon(u8 taskId)
     }
 }
 
+static EWRAM_DATA bool8 sHorizonRelearnerActive = FALSE;
+static EWRAM_DATA bool8 sHorizonDeleterActive = FALSE;
+static EWRAM_DATA MainCallback sHorizonMoveFieldReturn = NULL;
+static void CB2_HorizonForgetSelectedMove(void);
+
 void ChooseMonForMoveRelearner(void)
 {
+    sHorizonRelearnerActive = FALSE;
+    sHorizonDeleterActive = FALSE;
+    sHorizonMoveFieldReturn = NULL;
     gRelearnMode = RELEARN_MODE_SCRIPT;
+    gMoveRelearnerState = MOVE_RELEARNER_LEVEL_UP_MOVES; // Don't inherit a stale category from a previous relearner script
     LockPlayerFieldControls();
     FadeScreen(FADE_TO_BLACK, 0);
     CreateTask(Task_ChooseMonForMoveRelearner, 10);
+}
+
+// Horizon has no event script waiting for a move-learning result.
+void ChooseMonForHorizonMoveRelearner(MainCallback fieldReturn)
+{
+    ChooseMonForMoveRelearner();
+    sHorizonRelearnerActive = TRUE;
+    sHorizonMoveFieldReturn = fieldReturn;
+}
+
+// Horizon's FORGET option reuses the existing party selection and summary
+// move picker. No script context or an NPC Move Deleter is required.
+void ChooseMonForHorizonMoveDeleter(MainCallback fieldReturn)
+{
+    ChooseMonForMoveRelearner();
+    sHorizonDeleterActive = TRUE;
+    sHorizonMoveFieldReturn = fieldReturn;
 }
 
 static void Task_ChooseMonForMoveRelearner(u8 taskId)
@@ -8143,15 +8279,86 @@ static void Task_ChooseMonForMoveRelearner(u8 taskId)
     }
 }
 
+static void CB2_ReturnToHorizonMoves(void)
+{
+    gFieldCallback2 = NULL;
+    gFieldCallback = sHorizonMoveFieldReturn;
+    sHorizonMoveFieldReturn = NULL;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
 static void CB2_ChooseMonForMoveRelearner(void)
 {
+    bool8 fromHorizon = sHorizonRelearnerActive;
+    bool8 fromHorizonDeleter = sHorizonDeleterActive;
+    sHorizonRelearnerActive = FALSE;
+    sHorizonDeleterActive = FALSE;
+
     gSpecialVar_0x8004 = GetCursorSelectionMonId();
-    if (gSpecialVar_0x8004 >= PARTY_SIZE)
+    if (gSpecialVar_0x8004 >= PARTY_SIZE
+     || gSpecialVar_0x8004 >= gPartiesCount[B_TRAINER_PLAYER]
+     || GetMonData(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], MON_DATA_IS_EGG))
     {
         gSpecialVar_0x8004 = PARTY_NOTHING_CHOSEN;
     }
+
+    if (fromHorizonDeleter && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
+    {
+        gSpecialVar_0x8005 = MAX_MON_MOVES;
+        ShowPokemonSummaryScreen(SUMMARY_MODE_SELECT_MOVE,
+                                 gParties[B_TRAINER_PLAYER],
+                                 gSpecialVar_0x8004,
+                                 gPartiesCount[B_TRAINER_PLAYER] - 1,
+                                 CB2_HorizonForgetSelectedMove);
+        return;
+    }
+
+    if (fromHorizon && gSpecialVar_0x8004 != PARTY_NOTHING_CHOSEN)
+    {
+        UnholyMoveUi_Open(&gParties[B_TRAINER_PLAYER][gSpecialVar_0x8004], gSpecialVar_0x8004, CB2_ReturnToHorizonMoves);
+        return;
+    }
+
+    if (fromHorizon || fromHorizonDeleter)
+    {
+        CB2_ReturnToHorizonMoves();
+        return;
+    }
     gFieldCallback2 = CB2_FadeFromPartyMenu;
     SetMainCallback2(CB2_ReturnToField);
+}
+
+// Summary A explicitly selects the move to forget; B returns untouched.
+// Never remove the last known move or an invalid slot, even if the summary
+// unexpectedly hands back stale script variables from a previous activity.
+static void CB2_HorizonForgetSelectedMove(void)
+{
+    u8 monSlot = gSpecialVar_0x8004;
+    u8 moveSlot = gSpecialVar_0x8005;
+
+    if (gSpecialVar_Result
+     && monSlot < gPartiesCount[B_TRAINER_PLAYER]
+     && monSlot < PARTY_SIZE
+     && moveSlot < MAX_MON_MOVES)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][monSlot];
+        u8 knownMoves = 0;
+
+        if (!GetMonData(mon, MON_DATA_IS_EGG))
+        {
+            for (u8 i = 0; i < MAX_MON_MOVES; i++)
+            {
+                if (GetMonData(mon, MON_DATA_MOVE1 + i) != MOVE_NONE)
+                    knownMoves++;
+            }
+
+            if (knownMoves > 1
+             && GetMonData(mon, MON_DATA_MOVE1 + moveSlot) != MOVE_NONE)
+                MoveDeleterForgetMove();
+        }
+    }
+
+    CB2_ReturnToHorizonMoves();
 }
 
 void DoBattlePyramidMonsHaveHeldItem(void)

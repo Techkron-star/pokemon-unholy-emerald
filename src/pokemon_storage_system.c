@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pc_search.h"
 #include "malloc.h"
 #include "bg.h"
 #include "data.h"
@@ -28,6 +29,7 @@
 #include "pokemon_icon.h"
 #include "pokemon_summary_screen.h"
 #include "pokemon_storage_system.h"
+#include "hf_pc_groups.h"
 #include "script.h"
 #include "sound.h"
 #include "string_util.h"
@@ -110,6 +112,7 @@ enum {
     MSG_ITEM_IS_HELD,
     MSG_CHANGED_TO_ITEM,
     MSG_CANT_STORE_MAIL,
+    MSG_FAVORITE_PROTECTED,
 };
 
 // IDs for how to resolve variables in the above messages
@@ -166,6 +169,20 @@ enum {
     MENU_MACHINE,
     MENU_SIMPLE,
     MENU_SELECT,
+    MENU_FAVORITE,
+    MENU_UNFAVORITE,
+    MENU_SEARCH,
+    MENU_HF_GROUP_SPECIES,
+    MENU_HF_GROUP_INITIAL,
+    MENU_HF_SORT_SPECIES,
+    MENU_HF_SORT_LEVEL,
+    MENU_HF_SORT_IV,
+    MENU_HF_SORT_CANCEL,
+    MENU_HF_BROWSE,
+    MENU_HF_PAGE_NEXT,
+    MENU_HF_BACK,
+    MENU_HF_GROUP_OPEN,
+    MENU_HF_SORT_OPEN,
 };
 #define MENU_WALLPAPER_SETS_START MENU_SCENERY_1
 #define MENU_WALLPAPERS_START MENU_FOREST
@@ -404,6 +421,9 @@ struct PokemonStorageSystemData
 {
     u8 state;
     u8 boxOption;
+    u16 searchResult;
+    u8 searchOriginSlot;
+    bool8 searchCursorHidden;
     u8 screenChangeType;
     bool8 isReopening;
     u8 taskId;
@@ -543,6 +563,7 @@ static u32 sItemIconGfxBuffer[98];
 EWRAM_DATA static u8 sPreviousBoxOption = 0;
 EWRAM_DATA static struct ChooseBoxMenu *sChooseBoxMenu = NULL;
 EWRAM_DATA static struct PokemonStorageSystemData *sStorage = NULL;
+EWRAM_DATA static struct PcSearchQuery sPcSearchQuery = {0};
 EWRAM_DATA static bool8 sInPartyMenu = 0;
 EWRAM_DATA static u8 sCurrentBoxOption = 0;
 EWRAM_DATA static u8 sDepositBoxId = 0;
@@ -552,6 +573,7 @@ EWRAM_DATA static enum Item sMovingItemId = ITEM_NONE;
 EWRAM_DATA static struct Pokemon sSavedMovingMon = {0};
 EWRAM_DATA static s8 sCursorArea = 0;
 EWRAM_DATA static s8 sCursorPosition = 0;
+EWRAM_DATA static u8 sLastCursorPos[TOTAL_BOXES_COUNT] = {0};
 EWRAM_DATA static bool8 sIsMonBeingMoved = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxId = 0;
 EWRAM_DATA static u8 sMovingMonOrigBoxPos = 0;
@@ -584,7 +606,59 @@ static void Task_TakeItemForMoving(u8);
 static void Task_ShowMarkMenu(u8);
 static void Task_ShowMonSummary(u8);
 static void Task_ReleaseMon(u8);
+static void Task_SearchPc(u8);
+static struct BoxPokemon *GetSelectedStorageMon(void);
+static bool32 IsSelectedFavorite(void);
 static void Task_ReshowPokeStorage(u8);
+// Stable ordering of complete boxed Pokémon records, preserving all metadata.
+// Empty slots are always moved to the end; eggs retain their records intact.
+static u32 GetBoxSortKey(struct BoxPokemon *mon, u8 mode)
+{
+    u32 species = GetBoxMonData(mon, MON_DATA_SPECIES);
+
+    if (species == SPECIES_NONE)
+        return 0xFFFFFFFF;
+    if (mode == BOX_SORT_LEVEL)
+        return 100 - GetLevelFromBoxMonExp(mon);
+    if (mode == BOX_SORT_IV_TOTAL)
+        return 186 - (GetBoxMonData(mon, MON_DATA_HP_IV)
+                    + GetBoxMonData(mon, MON_DATA_ATK_IV)
+                    + GetBoxMonData(mon, MON_DATA_DEF_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPEED_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPATK_IV)
+                    + GetBoxMonData(mon, MON_DATA_SPDEF_IV));
+    return species;
+}
+
+void SortCurrentBox(u8 mode)
+{
+    u8 boxId = StorageGetCurrentBox();
+    u8 i, j;
+
+    if (mode > BOX_SORT_IV_TOTAL)
+        return;
+    for (i = 1; i < IN_BOX_COUNT; i++)
+    {
+        for (j = i; j > 0; j--)
+        {
+            struct BoxPokemon *left = GetBoxedMonPtr(boxId, j - 1);
+            struct BoxPokemon *right = GetBoxedMonPtr(boxId, j);
+            struct BoxPokemon temp;
+
+            if (GetBoxSortKey(left, mode) <= GetBoxSortKey(right, mode))
+                break;
+            temp = *left;
+            *left = *right;
+            *right = temp;
+        }
+    }
+}
+
+void SortCurrentBoxBySpecies(void)
+{
+    SortCurrentBox(BOX_SORT_SPECIES);
+}
+
 static void Task_PokeStorageMain(u8);
 static void Task_JumpBox(u8);
 static void Task_HandleWallpapers(u8);
@@ -743,6 +817,7 @@ static void InitCursor(void);
 static void InitCursorOnReopen(void);
 static void GetCursorCoordsByPos(u8, u8, u16 *, u16 *);
 static bool8 UpdateCursorPos(void);
+static void SetCursorPosition(u8, u8);
 static void DoCursorNewPosUpdate(void);
 static void SetCursorInParty(void);
 static void SetCursorBoxPosition(u8);
@@ -805,6 +880,7 @@ static struct BoxPokemon *GetCursorBoxMon(void);
 // Misc
 static void CreateMainMenu(u8, s16 *);
 static void EnterPokeStorage(u8 boxOption);
+static EWRAM_DATA MainCallback sPortableStorageReturn = NULL;
 static u8 GetCurrentBoxOption(void);
 static void ScrollBackground(void);
 static void UpdateCloseBoxButtonFlash(void);
@@ -1049,6 +1125,7 @@ static const u8 gText_PkmnIsSelected[] = _("{DYNAMIC 0} is selected.");
 
 static const struct StorageMessage sMessages[] =
 {
+    [MSG_FAVORITE_PROTECTED] = {COMPOUND_STRING("Unfavorite it first."), MSG_VAR_NONE},
     [MSG_EXIT_BOX]               = {COMPOUND_STRING("Exit from the BOX?"),         MSG_VAR_NONE},
     [MSG_WHAT_YOU_DO]            = {COMPOUND_STRING("What do you want to do?"),    MSG_VAR_NONE},
     [MSG_PICK_A_THEME]           = {COMPOUND_STRING("Please pick a theme."),       MSG_VAR_NONE},
@@ -1664,8 +1741,13 @@ static void CreateMainMenu(u8 whichMenu, s16 *windowIdPtr)
 
 static void CB2_ExitPokeStorage(void)
 {
+    MainCallback returnCallback = sPortableStorageReturn;
+
+    sPortableStorageReturn = NULL;
     sPreviousBoxOption = GetCurrentBoxOption();
-    gFieldCallback = FieldTask_ReturnToPcMenu;
+    if (sCursorArea == CURSOR_AREA_IN_BOX)
+        sLastCursorPos[StorageGetCurrentBox()] = sCursorPosition;
+    gFieldCallback = returnCallback != NULL ? returnCallback : FieldTask_ReturnToPcMenu;
     SetMainCallback2(CB2_ReturnToField);
 }
 
@@ -1974,6 +2056,7 @@ static void CB2_PokeStorage(void)
 static void EnterPokeStorage(u8 boxOption)
 {
     ResetTasks();
+    memset(&sPcSearchQuery, 0, sizeof(sPcSearchQuery));
     sCurrentBoxOption = boxOption;
     sStorage = Alloc(sizeof(*sStorage));
     if (sStorage == NULL)
@@ -1986,6 +2069,7 @@ static void EnterPokeStorage(u8 boxOption)
     else
     {
         sStorage->boxOption = boxOption;
+        sStorage->searchOriginSlot = 0;
         sStorage->isReopening = FALSE;
         sMovingItemId = ITEM_NONE;
         sStorage->state = 0;
@@ -1995,13 +2079,19 @@ static void EnterPokeStorage(u8 boxOption)
     }
 }
 
+void OpenPokemonStorageFromField(MainCallback returnCallback)
+{
+    sPortableStorageReturn = returnCallback;
+    EnterPokeStorage(OPTION_MOVE_MONS);
+}
+
 static void CB2_ReturnToPokeStorage(void)
 {
     ResetTasks();
     sStorage = Alloc(sizeof(*sStorage));
     if (sStorage == NULL)
     {
-        if (sStorage->boxOption == OPTION_SELECT_MON)
+        if (sCurrentBoxOption == OPTION_SELECT_MON)
             SetMainCallback2(CB2_ReturnToFieldContinueScript);
         else
             SetMainCallback2(CB2_ExitPokeStorage);
@@ -2009,6 +2099,7 @@ static void CB2_ReturnToPokeStorage(void)
     else
     {
         sStorage->boxOption = sCurrentBoxOption;
+        sStorage->searchOriginSlot = 0;
         sStorage->isReopening = TRUE;
         sStorage->state = 0;
         sStorage->taskId = CreateTask(Task_InitPokeStorage, 3);
@@ -2243,13 +2334,268 @@ enum {
     MSTATE_MULTIMOVE_RUN_MOVED,
     MSTATE_SCROLL_BOX_ITEM,
     MSTATE_WAIT_ITEM_ANIM,
+    MSTATE_HF_SORT_MENU,
+    MSTATE_HF_FOLDER_MENU,
+    MSTATE_HF_MEMBERS_MENU,
+    MSTATE_HF_GROUP_CHOICES,
+    MSTATE_HF_SORT_CHOICES,
 };
+
+// Two START presses within 20 frames open the non-destructive grouping/sort menu.
+// Do not rearrange boxes while a Pokémon or multi-selection is being moved.
+static void InitBoxMonSprites(u8 boxId);
+static void DestroyBoxMonIconAtPosition(u8 boxPosition);
+
+static u8 sHfSortStartTimer;
+
+// Keep PC browsing indexes in EWRAM. IWRAM also holds the boot-time stack,
+// and the large folder/member buffers leave too little space for startup.
+EWRAM_DATA static u8 sHfPcGroupMode = HF_PC_GROUP_SPECIES;
+EWRAM_DATA static u16 sHfPcFolderCount;
+EWRAM_DATA static u16 sHfPcFolderPage;
+EWRAM_DATA static u16 sHfPcMemberPage;
+EWRAM_DATA static u32 sHfPcSelectedKey;
+EWRAM_DATA static u32 sHfPcFolderKeys[HF_PC_GROUP_COUNT];
+EWRAM_DATA static struct HfPcMonRef sHfPcMembers[HF_PC_GROUP_COUNT];
+EWRAM_DATA static u8 sHfPcFolderLabels[5][32];
+EWRAM_DATA static u8 sHfPcMemberLabels[5][32];
+
+
+static void HfPc_AddFolderRow(const u8 *label, u8 id)
+{
+    u8 length;
+    // Never write past the seven-entry PC menu; malformed labels must not
+    // create an invalid window or corrupt the menu's backing storage.
+    if (label == NULL || sStorage->menuItemsCount >= ARRAY_COUNT(sStorage->menuItems))
+        return;
+    length = StringLength(label);
+    struct StorageMenu *item = &sStorage->menuItems[sStorage->menuItemsCount++];
+    item->text = label;
+    item->textId = id;
+    if (length > sStorage->menuWidth)
+        sStorage->menuWidth = length;
+}
+
+static void HfPc_OpenFolderPage(void)
+{
+    u16 i, index;
+    InitMenu();
+    for (i = 0; i < 5 && sHfPcFolderPage * 5 + i < sHfPcFolderCount; i++)
+    {
+        index = sHfPcFolderPage * 5 + i;
+        if (sHfPcGroupMode == HF_PC_GROUP_SPECIES)
+            StringCopy(sHfPcFolderLabels[i], GetSpeciesName(sHfPcFolderKeys[index]));
+        else
+        {
+            sHfPcFolderLabels[i][0] = sHfPcFolderKeys[index];
+            sHfPcFolderLabels[i][1] = EOS;
+        }
+        HfPc_AddFolderRow(sHfPcFolderLabels[i], i);
+    }
+    SetMenuText(MENU_HF_PAGE_NEXT);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_FOLDER_MENU;
+}
+
+static void HfPc_OpenMemberPage(void)
+{
+    u16 i, index, count = HfPcGroup_List(sHfPcGroupMode, sHfPcSelectedKey,
+                                         sHfPcMembers, ARRAY_COUNT(sHfPcMembers));
+    InitMenu();
+    for (i = 0; i < 5 && sHfPcMemberPage * 5 + i < count; i++)
+    {
+        index = sHfPcMemberPage * 5 + i;
+        StringCopy(sHfPcMemberLabels[i],
+                   GetSpeciesName(GetBoxMonDataAt(sHfPcMembers[index].box,
+                                                  sHfPcMembers[index].slot, MON_DATA_SPECIES)));
+        HfPc_AddFolderRow(sHfPcMemberLabels[i], i);
+    }
+    SetMenuText(MENU_HF_PAGE_NEXT);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_MEMBERS_MENU;
+}
+
+static void HfPc_BrowseFolders(void)
+{
+    sHfPcFolderCount = HfPcGroup_CollectKeys(sHfPcGroupMode, sHfPcFolderKeys,
+                                              ARRAY_COUNT(sHfPcFolderKeys));
+    sHfPcFolderPage = 0;
+    HfPc_OpenFolderPage();
+}
+
+static void HfPc_HandleFolderMenu(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_B_PRESSED || choice == MENU_HF_BACK)
+        sStorage->state = MSTATE_HANDLE_INPUT;
+    else if (choice == MENU_HF_PAGE_NEXT)
+    {
+        sHfPcFolderPage = (sHfPcFolderPage + 1) * 5 < sHfPcFolderCount ? sHfPcFolderPage + 1 : 0;
+        HfPc_OpenFolderPage();
+    }
+    else if (choice >= 0 && choice < 5)
+    {
+        sHfPcSelectedKey = sHfPcFolderKeys[sHfPcFolderPage * 5 + choice];
+        sHfPcMemberPage = 0;
+        HfPc_OpenMemberPage();
+    }
+}
+
+static void HfPc_HandleMemberMenu(void)
+{
+    s16 choice = HandleMenuInput();
+    u16 count;
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_B_PRESSED || choice == MENU_HF_BACK)
+        HfPc_OpenFolderPage();
+    else if (choice == MENU_HF_PAGE_NEXT)
+    {
+        count = HfPcGroup_Count(sHfPcGroupMode, sHfPcSelectedKey);
+        sHfPcMemberPage = (sHfPcMemberPage + 1) * 5 < count ? sHfPcMemberPage + 1 : 0;
+        HfPc_OpenMemberPage();
+    }
+    else if (choice >= 0 && choice < 5)
+    {
+        // Listing only: do not pretend the classic box cursor has moved.
+        PlaySE(SE_SELECT);
+        HfPc_OpenMemberPage();
+    }
+}
+
+static void HfPc_OpenSortMenu(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_GROUP_OPEN);
+    SetMenuText(MENU_HF_SORT_OPEN);
+    SetMenuText(MENU_HF_BROWSE);
+    SetMenuText(MENU_HF_SORT_CANCEL);
+    AddMenu();
+    sStorage->state = MSTATE_HF_SORT_MENU;
+}
+
+static void HfPc_OpenGroupChoices(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_GROUP_SPECIES);
+    SetMenuText(MENU_HF_GROUP_INITIAL);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_GROUP_CHOICES;
+}
+
+static void HfPc_OpenSortChoices(void)
+{
+    InitMenu();
+    SetMenuText(MENU_HF_SORT_SPECIES);
+    SetMenuText(MENU_HF_SORT_LEVEL);
+    SetMenuText(MENU_HF_SORT_IV);
+    SetMenuText(MENU_HF_BACK);
+    AddMenu();
+    sStorage->state = MSTATE_HF_SORT_CHOICES;
+}
+
+
+static void HfPc_RefreshSortedBox(void)
+{
+    u8 i;
+    for (i = 0; i < IN_BOX_COUNT; i++)
+        DestroyBoxMonIconAtPosition(i);
+    InitBoxMonSprites(StorageGetCurrentBox());
+    RefreshDisplayMon();
+}
+
+static bool8 HfWatch_HandleBoxSortShortcut(void)
+{
+    if (sHfSortStartTimer != 0)
+        sHfSortStartTimer--;
+    if (!JOY_NEW(START_BUTTON))
+        return FALSE;
+    if (sHfSortStartTimer == 0)
+    {
+        sHfSortStartTimer = 20;
+        return FALSE;
+    }
+    sHfSortStartTimer = 0;
+    if (sIsMonBeingMoved || sStorage->inBoxMovingMode != MOVE_MODE_NORMAL
+     || sStorage->boxOption == OPTION_SELECT_MON || sStorage->boxOption == OPTION_MOVE_ITEMS)
+        return FALSE;
+    HfPc_OpenSortMenu();
+    PlaySE(SE_SELECT);
+    return TRUE;
+}
+
+static void HfPc_HandleSortMenu(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_HF_GROUP_OPEN)
+        HfPc_OpenGroupChoices();
+    else if (choice == MENU_HF_SORT_OPEN)
+        HfPc_OpenSortChoices();
+    else if (choice == MENU_HF_BROWSE)
+        HfPc_BrowseFolders();
+    else
+        sStorage->state = MSTATE_HANDLE_INPUT;
+}
+
+static void HfPc_HandleGroupChoices(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_HF_GROUP_SPECIES || choice == MENU_HF_GROUP_INITIAL)
+    {
+        sHfPcGroupMode = choice == MENU_HF_GROUP_SPECIES ? HF_PC_GROUP_SPECIES : HF_PC_GROUP_INITIAL;
+        HfPc_BrowseFolders();
+    }
+    else
+        HfPc_OpenSortMenu();
+}
+
+static void HfPc_HandleSortChoices(void)
+{
+    s16 choice = HandleMenuInput();
+    if (choice == MENU_NOTHING_CHOSEN)
+        return;
+    if (choice == MENU_HF_SORT_SPECIES || choice == MENU_HF_SORT_LEVEL || choice == MENU_HF_SORT_IV)
+    {
+        SortCurrentBox(choice == MENU_HF_SORT_SPECIES ? BOX_SORT_SPECIES
+                     : choice == MENU_HF_SORT_LEVEL ? BOX_SORT_LEVEL : BOX_SORT_IV_TOTAL);
+        HfPc_RefreshSortedBox();
+        sStorage->state = MSTATE_HANDLE_INPUT;
+    }
+    else
+        HfPc_OpenSortMenu();
+}
 
 static void Task_PokeStorageMain(u8 taskId)
 {
     switch (sStorage->state)
     {
+    case MSTATE_HF_SORT_MENU:
+        HfPc_HandleSortMenu();
+        break;
+    case MSTATE_HF_GROUP_CHOICES:
+        HfPc_HandleGroupChoices();
+        break;
+    case MSTATE_HF_SORT_CHOICES:
+        HfPc_HandleSortChoices();
+        break;
+    case MSTATE_HF_FOLDER_MENU:
+        HfPc_HandleFolderMenu();
+        break;
+    case MSTATE_HF_MEMBERS_MENU:
+        HfPc_HandleMemberMenu();
+        break;
     case MSTATE_HANDLE_INPUT:
+        if (HfWatch_HandleBoxSortShortcut())
+            break;
         switch (HandleInput())
         {
         case INPUT_MOVE_CURSOR:
@@ -2637,7 +2983,13 @@ static void Task_OnSelectedMon(u8 taskId)
             }
             break;
         case MENU_RELEASE:
-            if (IsRemovingLastPartyMon())
+            if (IsSelectedFavorite())
+            {
+                PlaySE(SE_FAILURE);
+                PrintMessage(MSG_FAVORITE_PROTECTED);
+                sStorage->state = 6;
+            }
+            else if (IsRemovingLastPartyMon())
             {
                 sStorage->state = 3;
             }
@@ -2663,6 +3015,24 @@ static void Task_OnSelectedMon(u8 taskId)
             PlaySE(SE_SELECT);
             SetPokeStorageTask(Task_ShowMonSummary);
             break;
+        case MENU_FAVORITE:
+        case MENU_UNFAVORITE:
+        {
+            struct BoxPokemon *mon = GetSelectedStorageMon();
+            u8 favorite = !IsSelectedFavorite();
+            if (mon != NULL && GetBoxMonData(mon, MON_DATA_SANITY_HAS_SPECIES)
+             && !GetBoxMonData(mon, MON_DATA_SANITY_IS_BAD_EGG))
+            {
+                SetBoxMonData(mon, MON_DATA_IS_FAVORITE, &favorite);
+                PlaySE(SE_SELECT);
+            }
+            else
+                PlaySE(SE_FAILURE);
+            ClearBottomWindow();
+            RefreshDisplayMon();
+            SetPokeStorageTask(Task_PokeStorageMain);
+            break;
+        }
         case MENU_MARK:
             PlaySE(SE_SELECT);
             SetPokeStorageTask(Task_ShowMarkMenu);
@@ -2921,6 +3291,13 @@ static void Task_ReleaseMon(u8 taskId)
     switch (sStorage->state)
     {
     case 0:
+        if (IsSelectedFavorite())
+        {
+            PlaySE(SE_FAILURE);
+            PrintMessage(MSG_FAVORITE_PROTECTED);
+            sStorage->state = 14;
+            break;
+        }
         PrintMessage(MSG_RELEASE_POKE);
         ShowYesNoWindow(1);
         sStorage->state++;
@@ -3037,6 +3414,7 @@ static void Task_ReleaseMon(u8 taskId)
             sStorage->state++;
         }
         break;
+    case 14:
     case 13:
         if (JOY_NEW(A_BUTTON | B_BUTTON | DPAD_ANY))
         {
@@ -3414,6 +3792,11 @@ static void Task_HandleBoxOptions(u8 taskId)
             ClearBottomWindow();
             SetPokeStorageTask(Task_HandleWallpapers);
             break;
+        case MENU_SEARCH:
+            PlaySE(SE_SELECT);
+            ClearBottomWindow();
+            SetPokeStorageTask(Task_SearchPc);
+            break;
         case MENU_JUMP:
             PlaySE(SE_SELECT);
             ClearBottomWindow();
@@ -3504,6 +3887,76 @@ static void Task_HandleWallpapers(u8 taskId)
         {
             SetWallpaperForCurrentBox(sStorage->wallpaperId);
             sStorage->state = 5;
+        }
+        break;
+    }
+}
+
+static void ReturnFromPcSearch(u16 result)
+{
+    sStorage->searchResult = result;
+    sStorage->state = 2;
+}
+
+static void Task_SearchPc(u8 taskId)
+{
+    switch (sStorage->state)
+    {
+    case 0:
+    {
+        u8 slot = min(sStorage->searchOriginSlot, IN_BOX_COUNT - 1);
+        u16 species = GetBoxMonDataAt(StorageGetCurrentBox(), slot, MON_DATA_SPECIES_OR_EGG);
+        if (species == SPECIES_EGG)
+            species = SPECIES_NONE;
+        sStorage->searchCursorHidden = sStorage->cursorSprite->invisible;
+        sStorage->cursorSprite->invisible = TRUE;
+        sStorage->state = 1;
+        if (!PcSearch_Open(&sPcSearchQuery, species,
+            StorageGetCurrentBox() * IN_BOX_COUNT + slot, ReturnFromPcSearch))
+        {
+            sStorage->cursorSprite->invisible = sStorage->searchCursorHidden;
+            AnimateBoxScrollArrows(TRUE);
+            PlaySE(SE_FAILURE);
+            SetPokeStorageTask(Task_PokeStorageMain);
+        }
+        break;
+    }
+    case 1:
+        break; // Search task owns input; do not process PC moves simultaneously.
+    case 2:
+        if (sStorage->searchResult >= TOTAL_BOXES_COUNT * IN_BOX_COUNT)
+        {
+            sStorage->cursorSprite->invisible = sStorage->searchCursorHidden;
+            AnimateBoxScrollArrows(TRUE);
+            SetPokeStorageTask(Task_PokeStorageMain);
+            break;
+        }
+        sStorage->newCurrBoxId = sStorage->searchResult / IN_BOX_COUNT;
+        if (sStorage->newCurrBoxId != StorageGetCurrentBox())
+        {
+            SetUpScrollToBox(sStorage->newCurrBoxId);
+            sStorage->state = 3;
+            break;
+        }
+        SetCursorPosition(CURSOR_AREA_IN_BOX, sStorage->searchResult % IN_BOX_COUNT);
+        sStorage->state = 4;
+        break;
+    case 3:
+        if (!ScrollToBox())
+        {
+            SetCurrentBox(sStorage->newCurrBoxId);
+            SetCursorPosition(CURSOR_AREA_IN_BOX, sStorage->searchResult % IN_BOX_COUNT);
+            sStorage->state = 4;
+        }
+        break;
+    case 4:
+        if (!UpdateCursorPos())
+        {
+            sStorage->cursorSprite->invisible = sStorage->searchCursorHidden;
+            RefreshDisplayMon();
+            StartDisplayMonMosaicEffect();
+            AnimateBoxScrollArrows(TRUE);
+            SetPokeStorageTask(Task_PokeStorageMain);
         }
         break;
     }
@@ -4023,10 +4476,18 @@ static void LoadDisplayMonGfx(enum Species species, u32 pid, bool32 isEgg)
 
 static void PrintDisplayMonInfo(void)
 {
+    u8 favoriteName[64];
+    const u8 *name = sStorage->displayMonNameText;
+    if (sStorage->displayMonSpecies != SPECIES_NONE && IsSelectedFavorite())
+    {
+        StringCopy(favoriteName, COMPOUND_STRING("{STAR} "));
+        StringAppend(favoriteName, name);
+        name = favoriteName;
+    }
     FillWindowPixelBuffer(WIN_DISPLAY_INFO, PIXEL_FILL(1));
     if (sStorage->boxOption != OPTION_MOVE_ITEMS)
     {
-        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonNameText, FONT_NORMAL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonNameText, 6, 0, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(name, FONT_NORMAL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), name, 6, 0, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonNameText, FONT_SHORT, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 12), sStorage->displayMonSpeciesName, 6, 15, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, FONT_SHORT, sStorage->displayMonGenderLvlText, 10, 29, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonItemName, FONT_SMALL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonItemName, 6, 43, TEXT_SKIP_DRAW, NULL);
@@ -4034,7 +4495,7 @@ static void PrintDisplayMonInfo(void)
     else
     {
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonItemName, FONT_SMALL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonItemName, 6, 0, TEXT_SKIP_DRAW, NULL);
-        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonNameText, FONT_NORMAL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), sStorage->displayMonNameText, 6, 13, TEXT_SKIP_DRAW, NULL);
+        AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(name, FONT_NORMAL, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 6), name, 6, 13, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, GetFontIdToFit(sStorage->displayMonSpeciesName, FONT_SHORT, 0, WindowWidthPx(WIN_DISPLAY_INFO) - 12), sStorage->displayMonSpeciesName, 6, 28, TEXT_SKIP_DRAW, NULL);
         AddTextPrinterParameterized(WIN_DISPLAY_INFO, FONT_SHORT, sStorage->displayMonGenderLvlText, 10, 42, TEXT_SKIP_DRAW, NULL);
     }
@@ -5879,7 +6340,16 @@ static void InitCursor(void)
     else
         sCursorArea = CURSOR_AREA_IN_PARTY;
 
-    sCursorPosition = 0;
+    if (sStorage->boxOption != OPTION_DEPOSIT)
+    {
+        sCursorPosition = sLastCursorPos[StorageGetCurrentBox()];
+        if (sCursorPosition >= IN_BOX_COUNT)
+            sCursorPosition = 0;
+    }
+    else
+    {
+        sCursorPosition = 0;
+    }
     sIsMonBeingMoved = FALSE;
     sMovingMonOrigBoxId = 0;
     sMovingMonOrigBoxPos = 0;
@@ -6078,6 +6548,8 @@ static void InitCursorMove(void)
 
 static void SetCursorPosition(u8 newCursorArea, u8 newCursorPosition)
 {
+    if (sCursorArea == CURSOR_AREA_IN_BOX)
+        sStorage->searchOriginSlot = sCursorPosition;
     InitNewCursorPos(newCursorArea, newCursorPosition);
     InitCursorMove();
     if (sStorage->boxOption != OPTION_MOVE_ITEMS)
@@ -6636,7 +7108,7 @@ static void GetRestrictedReleaseMoves(u16 *moves)
 
 static void InitCanReleaseMonVars(void)
 {
-    if (!AtLeastThreeUsableMons())
+    if (IsSelectedFavorite() || !AtLeastThreeUsableMons())
     {
         // The player only has 1 or 2 usable
         // Pokémon, this one can't be released
@@ -7754,6 +8226,9 @@ static void AddBoxOptionsMenu(void)
     SetMenuText(MENU_JUMP);
     SetMenuText(MENU_WALLPAPER);
     SetMenuText(MENU_NAME);
+    if (!sInPartyMenu && !sIsMonBeingMoved && sStorage->inBoxMovingMode == MOVE_MODE_NORMAL
+     && sStorage->boxOption != OPTION_MOVE_ITEMS && sStorage->boxOption != OPTION_SELECT_MON)
+        SetMenuText(MENU_SEARCH);
     SetMenuText(MENU_CANCEL);
 }
 
@@ -7822,7 +8297,10 @@ static bool8 SetMenuTexts_Mon(void)
 
     SetMenuText(MENU_MARK);
     if (sStorage->boxOption != OPTION_SELECT_MON)
+    {
+        SetMenuText(IsSelectedFavorite() ? MENU_UNFAVORITE : MENU_FAVORITE);
         SetMenuText(MENU_RELEASE);
+    }
     SetMenuText(MENU_CANCEL);
     return TRUE;
 }
@@ -8118,6 +8596,20 @@ static const u8 *const sMenuTexts[] =
     [MENU_MACHINE]    = COMPOUND_STRING("MACHINE"),
     [MENU_SIMPLE]     = COMPOUND_STRING("SIMPLE"),
     [MENU_SELECT]     = COMPOUND_STRING("SELECT"),
+    [MENU_FAVORITE]   = COMPOUND_STRING("FAVORITE"),
+    [MENU_UNFAVORITE] = COMPOUND_STRING("UNFAVORITE"),
+    [MENU_SEARCH]     = COMPOUND_STRING("SEARCH"),
+    [MENU_HF_GROUP_SPECIES] = COMPOUND_STRING("FOLDERS: SPECIES"),
+    [MENU_HF_GROUP_INITIAL] = COMPOUND_STRING("FOLDERS: INITIAL"),
+    [MENU_HF_SORT_SPECIES] = COMPOUND_STRING("SORT: SPECIES"),
+    [MENU_HF_SORT_LEVEL] = COMPOUND_STRING("SORT: LEVEL"),
+    [MENU_HF_SORT_IV] = COMPOUND_STRING("SORT: IV TOTAL"),
+    [MENU_HF_SORT_CANCEL] = COMPOUND_STRING("CANCEL"),
+    [MENU_HF_BROWSE] = COMPOUND_STRING("FOLDERS"),
+    [MENU_HF_PAGE_NEXT] = COMPOUND_STRING("NEXT PAGE"),
+    [MENU_HF_BACK] = COMPOUND_STRING("BACK"),
+    [MENU_HF_GROUP_OPEN] = COMPOUND_STRING("GROUP"),
+    [MENU_HF_SORT_OPEN] = COMPOUND_STRING("SORT"),
 };
 
 static void SetMenuText(u8 textId)
@@ -9544,6 +10036,23 @@ static void SetCurrentBox(u8 boxId)
 {
     if (boxId < TOTAL_BOXES_COUNT)
         gPokemonStoragePtr->currentBox = boxId;
+}
+
+static struct BoxPokemon *GetSelectedStorageMon(void)
+{
+    if (sIsMonBeingMoved)
+        return &sStorage->movingMon.box;
+    if (sCursorArea == CURSOR_AREA_IN_PARTY && (u8)sCursorPosition < PARTY_SIZE)
+        return &gParties[B_TRAINER_PLAYER][sCursorPosition].box;
+    if (sCursorArea == CURSOR_AREA_IN_BOX && (u8)sCursorPosition < IN_BOX_COUNT)
+        return GetBoxedMonPtr(StorageGetCurrentBox(), sCursorPosition);
+    return NULL;
+}
+
+static bool32 IsSelectedFavorite(void)
+{
+    struct BoxPokemon *mon = GetSelectedStorageMon();
+    return mon != NULL && GetBoxMonData(mon, MON_DATA_IS_FAVORITE);
 }
 
 static struct BoxPokemon *GetCursorBoxMon(void)

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "mutation_icons.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_anim_scripts.h"
@@ -560,7 +561,11 @@ bool32 TryLoadGfx(u32 tag)
     {
         if (StoreGfxTag(tag))
         {
-            LoadCompressedSpriteSheetUsingHeap(&gBattleAnimTable[GET_TRUE_SPRITE_INDEX(tag)].pic);
+            const struct CompressedSpriteSheet *sheet = &gBattleAnimTable[GET_TRUE_SPRITE_INDEX(tag)].pic;
+            if (!gTestRunnerEnabled && !IsContest()
+             && !CanAllocSpriteTiles((sheet->size + TILE_SIZE_4BPP - 1) / TILE_SIZE_4BPP))
+                MutationIcon_ClearBattle();
+            LoadCompressedSpriteSheetUsingHeap(sheet);
             return TRUE;
         }
         else

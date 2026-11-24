@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_ui.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_arena.h"
@@ -21,6 +22,7 @@
 #include "party_menu.h"
 #include "pokeball.h"
 #include "pokemon.h"
+#include "unholy_exp_share.h"
 #include "random.h"
 #include "recorded_battle.h"
 #include "reshow_battle_screen.h"
@@ -47,7 +49,12 @@
 #include "pokemon_summary_screen.h"
 #include "type_icons.h"
 #include "pokedex.h"
+#include "battle_chain.h"
+#include "battle_stamina.h"
 #include "test/battle.h"
+
+static void ClearChainPreview(void);
+static void DrawChainPreview(enum BattlerId battler);
 
 static void PlayerHandleLoadMonSprite(enum BattlerId battler);
 static void PlayerHandleDrawTrainerPic(enum BattlerId battler);
@@ -76,10 +83,13 @@ static void PlayerHandleEndLinkBattle(enum BattlerId battler);
 static void PlayerHandleBattleDebug(enum BattlerId battler);
 
 static void PlayerBufferRunCommand(enum BattlerId battler);
+
+
 static void MoveSelectionDisplayPPNumber(enum BattlerId battler);
 static void MoveSelectionDisplayPPString(enum BattlerId battler);
 static void MoveSelectionDisplayMoveType(enum BattlerId battler);
 static void MoveSelectionDisplayMoveNames(enum BattlerId battler);
+static void MoveSelectionDisplaySwapHelp(void);
 static void TryMoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void MoveSelectionDisplayMoveDescription(enum BattlerId battler);
 static void WaitForMonSelection(enum BattlerId battler);
@@ -382,12 +392,22 @@ static void HandleInputChooseAction(enum BattlerId battler)
         }
         else if (B_QUICK_MOVE_CURSOR_TO_RUN)
         {
-            if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER)) // If wild battle, pressing B moves cursor to "Run".
+            if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER) && JOY_NEW(B_BUTTON))
             {
                 PlaySE(SE_SELECT);
-                ActionSelectionDestroyCursorAt(gActionSelectionCursor[battler]);
-                gActionSelectionCursor[battler] = 3;
-                ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
+                if (gActionSelectionCursor[battler] == 3)
+                {
+                    // First B highlights Run; the next B confirms it.
+                    TryHideLastUsedBall();
+                    BtlController_EmitTwoReturnValues(battler, B_COMM_TO_ENGINE, B_ACTION_RUN, 0);
+                    BtlController_Complete(battler);
+                }
+                else
+                {
+                    ActionSelectionDestroyCursorAt(gActionSelectionCursor[battler]);
+                    gActionSelectionCursor[battler] = 3;
+                    ActionSelectionCreateCursorAt(gActionSelectionCursor[battler], 0);
+                }
             }
         }
     }
@@ -459,7 +479,9 @@ void HandleInputChooseTarget(enum BattlerId battler)
             gBattleStruct->zmove.viewing = TRUE;
             ReloadMoveNames(battler);
         }
-        TryToAddMoveInfoWindow();
+        // The old floating L hint covers the battler sprites in double battles.
+        // Move controls are now displayed in the move panel itself.
+        TryToHideMoveInfoWindow();
         DoBounceEffect(battler, BOUNCE_HEALTHBOX, 7, 1);
         DoBounceEffect(battler, BOUNCE_MON, 7, 1);
         EndBounceEffect(gMultiUsePlayerCursor, BOUNCE_HEALTHBOX);
@@ -684,7 +706,9 @@ void HandleInputChooseMove(enum BattlerId battler)
     else
         gPlayerDpadHoldFrames = 0;
 
-    if (JOY_NEW(A_BUTTON) && !gBattleStruct->descriptionSubmenu)
+    // In the L=A option, the input layer also marks A as newly pressed when L
+    // is pressed. Give the explicit chain binding priority in the FIGHT menu.
+    if (JOY_NEW(A_BUTTON) && !JOY_NEW(B_CHAIN_SELECT_BUTTON) && !gBattleStruct->descriptionSubmenu)
     {
         TryToHideMoveInfoWindow();
         PlaySE(SE_SELECT);
@@ -745,6 +769,30 @@ void HandleInputChooseMove(enum BattlerId battler)
             }
         }
 
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            // L marks the first move; A confirms the second.
+            u8 first = gBattleStruct->chainFirstPos[battler] - 1;
+
+            if (first == gMoveSelectionCursor[battler]
+             || canSelectTarget != 0
+             || moveInfo->currentPP[gMoveSelectionCursor[battler]] == 0
+             || (CheckMoveLimitations(battler, 0, MOVE_LIMITATIONS_ALL) & (1u << gMoveSelectionCursor[battler]))
+             || gBattleStruct->gimmick.playerSelect
+             || !Chain_IsPairAllowed(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]])
+             || !Chain_CanAfford(battler, moveInfo->moves[first], moveInfo->moves[gMoveSelectionCursor[battler]]))
+            {
+                PlaySE(SE_FAILURE);
+                return;
+            }
+
+            gBattleStruct->chainSecondPos[battler] = gMoveSelectionCursor[battler] + 1;
+            gMoveSelectionCursor[battler] = first; // se envía el 1º; el 2º queda guardado
+            gMultiUsePlayerCursor = GetDefaultSelectionTarget(battler, GetMoveTarget(moveInfo->moves[first]));
+        }
+
+        ClearChainPreview();
+
         switch (canSelectTarget)
         {
         case 0:
@@ -779,9 +827,38 @@ void HandleInputChooseMove(enum BattlerId battler)
             break;
         }
     }
+    else if (JOY_NEW(B_CHAIN_SELECT_BUTTON) && Chain_IsAvailable(battler) && !gBattleStruct->zmove.viewing
+          && !gBattleStruct->descriptionSubmenu && !gBattleStruct->gimmick.playerSelect)
+    {
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            gBattleStruct->chainFirstPos[battler] = 0;
+            PlaySE(SE_SELECT);
+            MoveSelectionDisplayPPString(battler);
+        }
+        else if (gNumberOfMovesToChoose >= 2
+              && moveInfo->currentPP[gMoveSelectionCursor[battler]] != 0
+              && Chain_IsMoveChainable(moveInfo->moves[gMoveSelectionCursor[battler]]))
+        {
+            gBattleStruct->chainFirstPos[battler] = gMoveSelectionCursor[battler] + 1;
+            PlaySE(SE_SELECT);
+            MoveSelectionDisplayPPString(battler);
+        }
+        else
+        {
+            PlaySE(SE_FAILURE);
+        }
+    }
     else if ((JOY_NEW(B_BUTTON) || gPlayerDpadHoldFrames > 59)  && !gBattleStruct->descriptionSubmenu)
     {
         PlaySE(SE_SELECT);
+        if (gBattleStruct->chainFirstPos[battler] != 0)
+        {
+            gBattleStruct->chainFirstPos[battler] = 0;
+            MoveSelectionDisplayPPString(battler);
+            return;
+        }
+        ClearChainPreview();
         gBattleStruct->gimmick.playerSelect = FALSE;
         if (gBattleStruct->zmove.viewing)
         {
@@ -862,10 +939,13 @@ void HandleInputChooseMove(enum BattlerId battler)
             TryChangeZTrigger(battler, gMoveSelectionCursor[battler]);
         }
     }
-    else if (B_MOVE_REARRANGEMENT_IN_BATTLE < GEN_4 && JOY_NEW(SELECT_BUTTON) && !gBattleStruct->zmove.viewing && !gBattleStruct->descriptionSubmenu)
+    else if (B_MOVE_REARRANGEMENT_IN_BATTLE < GEN_4 && JOY_NEW(SELECT_BUTTON)
+          && !gBattleStruct->zmove.viewing && !gBattleStruct->descriptionSubmenu
+          && !gBattleStruct->gimmick.playerSelect)
     {
         if (gNumberOfMovesToChoose > 1 && !(gBattleTypeFlags & BATTLE_TYPE_LINK))
         {
+            gBattleStruct->chainFirstPos[battler] = 0;
             MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 29);
 
             if (gMoveSelectionCursor[battler] != 0)
@@ -874,7 +954,7 @@ void HandleInputChooseMove(enum BattlerId battler)
                 gMultiUsePlayerCursor = gMoveSelectionCursor[battler] + 1;
 
             MoveSelectionCreateCursorAt(gMultiUsePlayerCursor, 27);
-            BattlePutTextOnWindow(gText_BattleSwitchWhich, B_WIN_SWITCH_PROMPT);
+            MoveSelectionDisplaySwapHelp();
             gBattlerControllerFuncs[battler] = HandleMoveSwitching;
         }
     }
@@ -899,19 +979,20 @@ void HandleInputChooseMove(enum BattlerId battler)
             MoveSelectionDisplayMoveType(battler);
         }
     }
-    else if (JOY_NEW(B_MOVE_DESCRIPTION_BUTTON) &&
+    else if (B_SHOW_MOVE_DESCRIPTION && JOY_NEW(B_MOVE_DESCRIPTION_BUTTON) &&
         !(B_MOVE_DESCRIPTION_BUTTON == L_BUTTON && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_L_EQUALS_A))
     {
         gBattleStruct->descriptionSubmenu = TRUE;
         TryMoveSelectionDisplayMoveDescription(battler);
     }
-    else if (JOY_NEW(START_BUTTON))
+    else if (JOY_NEW(B_GIMMICK_SELECT_BUTTON))
     {
         if (gBattleStruct->gimmick.usableGimmick[battler] != GIMMICK_NONE
             && !HasTrainerUsedGimmick(battler, gBattleStruct->gimmick.usableGimmick[battler])
             && !(gBattleStruct->gimmick.usableGimmick[battler] == GIMMICK_Z_MOVE
                  && GetUsableZMove(battler, moveInfo->moves[gMoveSelectionCursor[battler]]) == MOVE_NONE))
         {
+            gBattleStruct->chainFirstPos[battler] = 0;
             gBattleStruct->gimmick.playerSelect ^= 1;
             ReloadMoveNames(battler);
             ChangeGimmickTriggerSprite(gBattleStruct->gimmick.triggerSpriteId, gBattleStruct->gimmick.playerSelect);
@@ -1003,7 +1084,6 @@ void HandleMoveSwitching(enum BattlerId battler)
 
         if (gMoveSelectionCursor[battler] != gMultiUsePlayerCursor)
         {
-            struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
             s32 i;
 
             // swap moves and pp
@@ -1019,11 +1099,11 @@ void HandleMoveSwitching(enum BattlerId battler)
             moveInfo->maxPP[gMoveSelectionCursor[battler]] = moveInfo->maxPP[gMultiUsePlayerCursor];
             moveInfo->maxPP[gMultiUsePlayerCursor] = i;
 
-            if (gBattleMons[battler].volatiles.mimickedMoves & (1u << gMoveSelectionCursor[battler]))
-            {
-                gBattleMons[battler].volatiles.mimickedMoves &= ~(1u << gMoveSelectionCursor[battler]);
-                gBattleMons[battler].volatiles.mimickedMoves |= 1u << gMultiUsePlayerCursor;
-            }
+            u32 sourceBit = 1u << gMoveSelectionCursor[battler];
+            u32 targetBit = 1u << gMultiUsePlayerCursor;
+            u32 mimickedMoves = gBattleMons[battler].volatiles.mimickedMoves;
+            if (!!(mimickedMoves & sourceBit) != !!(mimickedMoves & targetBit))
+                gBattleMons[battler].volatiles.mimickedMoves ^= sourceBit | targetBit;
 
             MoveSelectionDisplayMoveNames(battler);
 
@@ -1098,13 +1178,13 @@ void HandleMoveSwitching(enum BattlerId battler)
         MoveSelectionDisplayMoveType(battler);
         AssignUsableZMoves(battler, moveInfo->moves);
     }
-    else if (JOY_NEW(B_BUTTON | SELECT_BUTTON))
+    else if (JOY_NEW(B_BUTTON))
     {
         PlaySE(SE_SELECT);
         MoveSelectionDestroyCursorAt(gMultiUsePlayerCursor);
         MoveSelectionCreateCursorAt(gMoveSelectionCursor[battler], 0);
 
-        if (gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+        if (IS_FRLG && gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
             gBattlerControllerFuncs[battler] = OakOldManHandleInputChooseMove;
         else
             gBattlerControllerFuncs[battler] = HandleInputChooseMove;
@@ -1419,6 +1499,8 @@ static void Task_GiveExpToMon(u8 taskId)
         {
             SetMonData(mon, MON_DATA_EXP, (B_LEVEL_UP_NOTIFICATION >= GEN_9) ? &expAfterGain : &nextLvlExp);
 
+            if (UnholyExpShare_GetActiveItem() == ITEM_OVERLOADED_EXP_SHARE)
+                UnholyExpShare_TrainIvs(mon, level);
             CalculateMonStats(mon);
 
             // Reapply Dynamax HP multiplier after stats are recalculated.
@@ -1505,6 +1587,8 @@ static void Task_GiveExpWithExpBar(u8 taskId)
                 else
                     SetMonData(mon, MON_DATA_EXP, &expOnNextLvl);
 
+                if (UnholyExpShare_GetActiveItem() == ITEM_OVERLOADED_EXP_SHARE)
+                    UnholyExpShare_TrainIvs(mon, level);
                 CalculateMonStats(mon);
 
                 // Reapply Dynamax HP multiplier after stats are recalculated.
@@ -1671,10 +1755,98 @@ static void MoveSelectionDisplayMoveNames(enum BattlerId battler)
     }
 }
 
+static void ClearChainPreview(void)
+{
+    ClearWindowTilemap(B_WIN_DUMMY);
+    ClearWindowTilemap(B_WIN_CHAIN_HELP);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_MAP);
+    CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_MAP);
+}
+
+static void PrintChainSlot(u8 x, u8 number, const u8 *name)
+{
+    const u8 colors[] = {14, 13, 15};
+    u8 text[64];
+    ConvertIntToDecimalStringN(text, number, STR_CONV_MODE_LEFT_ALIGN, 1);
+    StringAppend(text, COMPOUND_STRING(" "));
+    StringAppend(text, name);
+    while (GetStringWidth(FONT_SMALL_NARROW, text, 0) > 51 && StringLength(text) > 2)
+        text[StringLength(text) - 1] = EOS;
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, x, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+}
+
+static void MoveSelectionDisplaySwapHelp(void)
+{
+    const u8 colors[] = {14, 13, 15};
+    FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
+    FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
+    AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 1, 1, 0, 0, colors, TEXT_SKIP_DRAW,
+        COMPOUND_STRING("A:SWAP   B:CANCEL"));
+    PutWindowTilemap(B_WIN_DUMMY);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
+}
+
+static void DrawChainPreview(enum BattlerId battler)
+{
+    struct ChooseMoveStruct *info = (struct ChooseMoveStruct *)&gBattleResources->bufferA[battler][4];
+    u8 selected = gMoveSelectionCursor[battler];
+    u8 marked = gBattleStruct->chainFirstPos[battler];
+    u8 first = marked ? marked - 1 : selected;
+    bool32 pairAllowed = Chain_IsPairAllowed(battler, info->moves[first], info->moves[selected]);
+    bool8 secondValid = marked && selected != first && info->currentPP[selected] != 0
+                     && Chain_IsMoveChainable(info->moves[selected])
+                     && pairAllowed;
+    u32 cost = Stamina_GetMoveCost(battler, info->moves[first]);
+    const u8 colors[] = {14, 13, 15};
+    u8 text[32];
+    if (gBattleStruct->descriptionSubmenu || gBattleStruct->zmove.viewing)
+    { ClearChainPreview(); return; }
+    if (secondValid) cost += Stamina_GetActionCost(battler, info->moves[selected], TRUE);
+    FillWindowPixelBuffer(B_WIN_DUMMY, PIXEL_FILL(14));
+    if (Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect && marked)
+    {
+        FillWindowPixelRect(B_WIN_DUMMY, PIXEL_FILL(15), 0, 15, 144, 1);
+        PrintChainSlot(1, 1, GetMoveName(info->moves[first]));
+        PrintChainSlot(55, 2, secondValid ? GetMoveName(info->moves[selected]) : COMPOUND_STRING("--"));
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 108, 1, 0, 0, colors, TEXT_SKIP_DRAW, COMPOUND_STRING("L"));
+    }
+    else
+    {
+        // Keep a readable header even when the selected Pokémon cannot chain.
+        // A transparent/cleared window exposes a black strip in the menu art.
+        bool32 chainAvailable = Chain_IsAvailable(battler) && !gBattleStruct->gimmick.playerSelect;
+        bool32 canChain = chainAvailable && Chain_IsMoveChainable(info->moves[selected]);
+        const u8 *hint = canChain ? COMPOUND_STRING("L:CHAIN SEL:SORT")
+                                  : COMPOUND_STRING("A:MOVE SEL:SORT");
+        if (GetStringWidth(FONT_SMALL_NARROW, hint, 0) > 142)
+            hint = canChain ? COMPOUND_STRING("L:CHAIN") : COMPOUND_STRING("A:MOVE");
+        if (chainAvailable && !canChain)
+            hint = COMPOUND_STRING("SINGLE MOVE - NO CHAIN");
+        AddTextPrinterParameterized4(B_WIN_DUMMY, FONT_SMALL_NARROW, 2, 1, 0, 0, colors, TEXT_SKIP_DRAW, hint);
+    }
+    PutWindowTilemap(B_WIN_DUMMY);
+    CopyWindowToVram(B_WIN_DUMMY, COPYWIN_FULL);
+    FillWindowPixelBuffer(B_WIN_CHAIN_HELP, PIXEL_FILL(14));
+    StringCopy(text, COMPOUND_STRING("STA "));
+    ConvertUIntToDecimalStringN(text + StringLength(text), cost, STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(text, COMPOUND_STRING("/"));
+    ConvertUIntToDecimalStringN(text + StringLength(text), Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    if (cost > Stamina_GetCurrent(battler)) StringAppend(text, COMPOUND_STRING("!"));
+    if (gBattleStruct->shackleTurns[battler] != 0)
+        StringCopy(text, COMPOUND_STRING("CHAINED"));
+    else if (Chain_IsAvailable(battler) && !marked && !Chain_IsMoveChainable(info->moves[selected]))
+        StringCopy(text, COMPOUND_STRING("SINGLE MOVE"));
+    else if (marked && selected != first && !pairAllowed)
+        StringCopy(text, COMPOUND_STRING("CAN'T CHAIN"));
+    AddTextPrinterParameterized4(B_WIN_CHAIN_HELP, FONT_SMALL_NARROW, 0, 1, 0, 0, colors, TEXT_SKIP_DRAW, text);
+    PutWindowTilemap(B_WIN_CHAIN_HELP);
+    CopyWindowToVram(B_WIN_CHAIN_HELP, COPYWIN_FULL);
+}
+
 static void MoveSelectionDisplayPPString(enum BattlerId battler)
 {
-    StringCopy(gDisplayedStringBattle, gText_MoveInterfacePP);
-    BattlePutTextOnWindow(gDisplayedStringBattle, B_WIN_PP);
+    BattlePutTextOnWindow(gText_MoveInterfacePP, B_WIN_PP);
+    DrawChainPreview(battler);
 }
 
 static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
@@ -1685,6 +1857,7 @@ static void MoveSelectionDisplayPPNumber(enum BattlerId battler)
     if (gBattleResources->bufferA[battler][2] == TRUE) // check if we didn't want to display PP number
         return;
 
+    MoveSelectionDisplayPPString(battler);
     SetPPNumbersPaletteInMoveSelection(battler);
     moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
     txtPtr = ConvertIntToDecimalStringN(gDisplayedStringBattle, moveInfo->currentPP[gMoveSelectionCursor[battler]], STR_CONV_MODE_RIGHT_ALIGN, 2);
@@ -1749,6 +1922,7 @@ static void TryMoveSelectionDisplayMoveDescription(enum BattlerId battler)
 
 static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
 {
+    ClearChainPreview();
     struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct*)(&gBattleResources->bufferA[battler][4]);
     enum Move move = moveInfo->moves[gMoveSelectionCursor[battler]];
     u16 pwr = GetMovePower(move);
@@ -1762,7 +1936,12 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
         acc = 0;
     }
 
-    u8 pwr_num[3], acc_num[3];
+    u8 pwr_num[3], acc_num[3], sta_num[4], current_sta_num[4], max_sta_num[4];
+    u8 sta_desc[7] = _("STA: ");
+    u8 current_sta_desc[7] = _("NOW: ");
+    u8 current_sta_separator[] = _("/");
+    u8 sta_start[] = _("{CLEAR_TO 3}");
+    u8 current_sta_start[] = _("{CLEAR_TO 78}");
     u8 cat_desc[7] = _("CAT: ");
     u8 pwr_desc[7] = _("PWR: ");
     u8 acc_desc[7] = _("ACC: ");
@@ -1787,6 +1966,18 @@ static void MoveSelectionDisplayMoveDescription(enum BattlerId battler)
     StringAppend(gDisplayedStringBattle, acc_start);
     StringAppend(gDisplayedStringBattle, acc_desc);
     StringAppend(gDisplayedStringBattle, acc_num);
+    StringAppend(gDisplayedStringBattle, gText_NewLine);
+    ConvertIntToDecimalStringN(sta_num, Stamina_GetMoveCost(battler, moveInfo->moves[gMoveSelectionCursor[battler]]), STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(gDisplayedStringBattle, sta_start);
+    StringAppend(gDisplayedStringBattle, sta_desc);
+    StringAppend(gDisplayedStringBattle, sta_num);
+    ConvertIntToDecimalStringN(current_sta_num, Stamina_GetCurrent(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    ConvertIntToDecimalStringN(max_sta_num, Stamina_GetMax(battler), STR_CONV_MODE_LEFT_ALIGN, 3);
+    StringAppend(gDisplayedStringBattle, current_sta_start);
+    StringAppend(gDisplayedStringBattle, current_sta_desc);
+    StringAppend(gDisplayedStringBattle, current_sta_num);
+    StringAppend(gDisplayedStringBattle, current_sta_separator);
+    StringAppend(gDisplayedStringBattle, max_sta_num);
     u8 *descStart = StringAppend(gDisplayedStringBattle, gText_NewLine);
     u8 *descEnd = StringAppend(gDisplayedStringBattle, GetMoveDescription(move));
     WrapFontIdToFit(descStart, descEnd, FONT_NORMAL, WindowWidthPx(B_WIN_MOVE_DESCRIPTION));
@@ -1806,7 +1997,7 @@ void MoveSelectionCreateCursorAt(u8 cursorPosition, u8 baseTileNum)
     src[0] = baseTileNum + 1;
     src[1] = baseTileNum + 2;
 
-    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 55 + (cursorPosition & 2), 1, 2, 0x11);
+    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 56 + (cursorPosition & 2), 1, 2, 0x11);
     CopyBgTilemapBufferToVram(0);
 }
 
@@ -1816,7 +2007,7 @@ void MoveSelectionDestroyCursorAt(u8 cursorPosition)
     src[0] = 0x1016;
     src[1] = 0x1016;
 
-    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 55 + (cursorPosition & 2), 1, 2, 0x11);
+    CopyToBgTilemapBufferRect_ChangePalette(0, src, 9 * (cursorPosition & 1) + 1, 56 + (cursorPosition & 2), 1, 2, 0x11);
     CopyBgTilemapBufferToVram(0);
 }
 
@@ -2109,8 +2300,10 @@ void PlayerHandleChooseMove(enum BattlerId battler)
         struct ChooseMoveStruct *moveInfo = (struct ChooseMoveStruct *)(&gBattleResources->bufferA[battler][4]);
 
         InitMoveSelectionsVarsAndStrings(battler);
+        gBattleStruct->chainFirstPos[battler] = 0;
+        gBattleStruct->chainSecondPos[battler] = 0;
         gBattleStruct->gimmick.playerSelect = FALSE;
-        TryToAddMoveInfoWindow();
+        TryToHideMoveInfoWindow();
 
         AssignUsableZMoves(battler, moveInfo->moves);
         gBattleStruct->zmove.viable = (gBattleStruct->zmove.possibleZMoves[battler] & (1u << gMoveSelectionCursor[battler])) != 0;

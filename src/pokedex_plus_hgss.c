@@ -25,6 +25,7 @@
 #include "pokedex.h"
 #include "pokedex_common.h"
 #include "pokedex_plus_hgss.h"
+#include "pokedex_variants.h"
 #include "pokedex_area_screen.h"
 #include "pokedex_cry_screen.h"
 #include "pokemon_icon.h"
@@ -1353,6 +1354,9 @@ bool32 Task_TryLoadInfoScreen_HGSS(u8 taskId)
             gTasks[taskId].tMonSpriteId = (u16)CreateMonSpriteFromNationalDexNumber(sPokedexListItem->dexNum, MON_PAGE_X, MON_PAGE_Y, 0);
             gSprites[gTasks[taskId].tMonSpriteId].oam.priority = 0;
         }
+        // Reserve a line under the portrait for the variants action.
+        if (gTasks[taskId].tMonSpriteId < MAX_SPRITES)
+            gSprites[gTasks[taskId].tMonSpriteId].y = 48;
         gMain.state++;
         break;
     case 6:
@@ -1405,6 +1409,14 @@ bool32 TryHandleInfoScreenInput_HGSS(u8 taskId)
 {
     if (!POKEDEX_PLUS_HGSS)
         return FALSE;
+
+    if (JOY_NEW(A_BUTTON | SELECT_BUTTON))
+    {
+        bool32 opened = sPokedexListItem->owned
+            && PokedexVariants_Open(NationalPokedexNumToSpeciesForm(sPokedexListItem->dexNum), taskId);
+        PlaySE(opened ? SE_SELECT : SE_FAILURE);
+        return TRUE;
+    }
 
     if (POKEDEX_PLUS_HGSS && ((JOY_NEW(DPAD_RIGHT) || (JOY_NEW(R_BUTTON) && gSaveBlock2Ptr->optionsButtonMode == OPTIONS_BUTTON_MODE_LR))))
     {
@@ -1665,6 +1677,18 @@ static void PrintStatsScreenTextSmallNarrower(u8 windowId, const u8* str, u8 lef
 
     AddTextPrinterParameterized4(windowId, FONT_SMALL_NARROWER, left, top, 0, 0, color, 0, str);
 }
+// Descriptions need two readable lines in the 18-tile Ability panel.
+// Persistent buffers matter because text printers can outlive this function.
+static EWRAM_DATA u8 sAbilityDexDescriptions[2][160] = {0};
+
+static void PrintStatsAbilityDescription(u8 slot, enum Ability ability, u8 left, u8 top)
+{
+    u8 *text = sAbilityDexDescriptions[slot];
+    u8 *end = StringCopyN(text, GetLocalizedAbilityDescription(ability), sizeof(sAbilityDexDescriptions[slot]) - 1);
+    *end = EOS;
+    WrapFontIdToFit(text, end, FONT_SMALL_NARROWER, 134);
+    PrintStatsScreenTextSmallNarrower(WIN_STATS_ABILITIES, text, left, top);
+}
 static void PrintStatsScreenTextSmallWhite(u8 windowId, const u8* str, u8 left, u8 top)
 {
     u8 color[3];
@@ -1785,6 +1809,8 @@ static void PrintMonInfo(u32 num, u32 value, u32 owned, u32 newEntry)
     //Type Icon(s)
     if (owned)
         PrintCurrentSpeciesTypeInfo(newEntry, species);
+    if (!newEntry)
+        PrintInfoScreenTextSmall(owned ? COMPOUND_STRING("A: VARIANTS") : COMPOUND_STRING("CAPTURE FOR VARIANTS"), FONT_SMALL_NARROW, 4, 79);
 }
 
 #define MALE_PERSONALITY 0xFE
@@ -2937,21 +2963,21 @@ static void PrintStatsScreen_Abilities(u8 taskId)
     if (gTasks[taskId].data[5] == 0)
     {
         ability0 = sPokedexView->sPokemonStats.ability0;
-        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[ability0].name, abilities_x, abilities_y);
-        PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[ability0].description, abilities_x, abilities_y + 14);
+        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(ability0), abilities_x, abilities_y);
+        PrintStatsAbilityDescription(0, ability0, abilities_x, abilities_y + 14);
 
         ability1 = sPokedexView->sPokemonStats.ability1;
         if (ability1 != ABILITY_NONE && ability1 != ability0)
         {
-            PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[ability1].name, abilities_x, abilities_y + 30);
-            PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[ability1].description, abilities_x, abilities_y + 44);
+            PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(ability1), abilities_x, abilities_y + 30);
+            PrintStatsAbilityDescription(1, ability1, abilities_x, abilities_y + 44);
         }
     }
     else //Hidden abilities
     {
         abilityHidden = sPokedexView->sPokemonStats.abilityHidden;
-        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, gAbilitiesInfo[abilityHidden].name, abilities_x, abilities_y);
-        PrintStatsScreenTextSmall(WIN_STATS_ABILITIES, gAbilitiesInfo[abilityHidden].description, abilities_x, abilities_y + 14);
+        PrintStatsScreenTextSmallWhite(WIN_STATS_ABILITIES, GetLocalizedAbilityName(abilityHidden), abilities_x, abilities_y);
+        PrintStatsAbilityDescription(0, abilityHidden, abilities_x, abilities_y + 14);
     }
 }
 

@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_anim.h"
 #include "battle_ai_main.h"
@@ -9,6 +10,9 @@
 #include "battle_hold_effects.h"
 #include "battle_interface.h"
 #include "battle_main.h"
+#include "battle_stamina.h"
+#include "gear.h"
+#include "battle_chain.h"
 #include "battle_message.h"
 #include "battle_pyramid.h"
 #include "battle_scripts.h"
@@ -600,7 +604,7 @@ static void CB2_InitBattleInternal(void)
 
     if (!(gBattleTypeFlags & BATTLE_TYPE_TRAINER))
     {
-        if (!(gBattleTypeFlags & (BATTLE_TYPE_LEGENDARY | BATTLE_TYPE_PYRAMID | BATTLE_TYPE_PIKE)))
+        if (!(gBattleTypeFlags & (BATTLE_TYPE_LEGENDARY | BATTLE_TYPE_PYRAMID | BATTLE_TYPE_PIKE | BATTLE_TYPE_RAID)))
             SetWildMonHeldItem();
         TryFormChange(&gParties[B_TRAINER_OPPONENT_A][0], FORM_CHANGE_BEGIN_WILD_ENCOUNTER, B_TRAINER_OPPONENT_A);
         if (IsDoubleBattle())
@@ -2953,6 +2957,11 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
 {
     enum BattleMoveEffects effect = GetMoveEffect(gCurrentMove);
 
+    Chain_InvalidateFollowUps();
+    gBattleStruct->shackleTurns[battler] = 0;
+    gBattleStruct->survivalGuardMask &= ~(1u << battler);
+    gBattleStruct->survivalUsedThisMoveMask &= ~(1u << battler);
+
     // Data cleared both on switch and faint
     ClearSetDataOnLeave(battler);
 
@@ -3018,6 +3027,13 @@ void SwitchInClearSetData(enum BattlerId battler, struct Volatiles *volatilesCop
         gBattleMons[battler].volatiles.substituteHP = volatilesCopy->substituteHP;
     }
 
+    gBattleStruct->unholyReactorReady[battler] = FALSE;
+    gBattleStruct->unholyReactorStartedMax[battler] = FALSE;
+    gBattleStruct->unholyDoubledMicleMask &= ~(1u << battler);
+    gBattleStruct->unholyEnvyConsumedItem[battler] = ITEM_NONE;
+    gBattleStruct->unholyEnvySourceOwner[battler] = 0;
+    memset(&gBattleStruct->unholyEnvyGearCycle[battler], 0, sizeof(struct GearCycle));
+    gBattleStruct->unholySamuraiCharges[battler] = 0;
     gBattleStruct->battlerState[battler].notOnField = FALSE;
     gBattleMons[battler].volatiles.truantSwitchInHack = volatilesCopy->truantSwitchInHack;
 
@@ -3142,6 +3158,7 @@ static void DoBattleIntro(void)
                 memset(&gBattleMons[battler].volatiles, 0, sizeof(struct Volatiles));
                 for (i = 0; i < NUM_BATTLE_STATS; i++)
                     gBattleMons[battler].statStages[i] = DEFAULT_STAT_STAGE;
+                UnholyWildBoss_ApplyBattleBonuses(battler);
                 #if TESTING
                 if (gTestRunnerEnabled)
                 {
@@ -3409,6 +3426,17 @@ static void DoBattleIntro(void)
                     statusesOpponentB = GetTrainerStartingStatusFromId(TRAINER_BATTLE_PARAM.opponentB);
             }
             STARTING_STATUS_DEFINITIONS(UNPACK_STARTING_STATUS_TO_BATTLE);
+
+            // Birch's emergency lesson now plays over the live battle field,
+            // after both Pokemon have appeared and before the first turn.
+            // BATTLE_TYPE_FIRST_BATTLE also labels some early rival fights;
+            // restrict this tutorial to the Route 101 wild rescue battle.
+            if ((gBattleTypeFlags & BATTLE_TYPE_FIRST_BATTLE)
+             && !(gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_LINK)))
+            {
+                PrepareStringBattle(STRINGID_FIRST_BATTLE_CHAIN_TUTORIAL,
+                                    GetBattlerAtPosition(B_POSITION_PLAYER_LEFT));
+            }
             gBattleMainFunc = TryDoEventsBeforeFirstTurn;
         }
         break;
@@ -3635,6 +3663,11 @@ bool32 EndTurnEvents(void) // Called from Battle Script
 
     for (enum BattlerId battler = 0; battler < gBattlersCount; battler++)
     {
+        if (IsBattlerAlive(battler))
+            Gear_EndOfTurn(battler);
+        gBattleStruct->paladinWeakenedChainTarget[battler] = 0;
+        if (gBattleStruct->shackleTurns[battler] != 0)
+            gBattleStruct->shackleTurns[battler]--;
         gChosenActionByBattler[battler] = B_ACTION_NONE;
         gChosenMoveByBattler[battler] = MOVE_NONE;
         gBattleStruct->monToSwitchIntoId[battler] = PARTY_SIZE;
@@ -3646,6 +3679,8 @@ bool32 EndTurnEvents(void) // Called from Battle Script
         if (gBattleStruct->battlerState[battler].stompingTantrumTimer > 0)
             gBattleStruct->battlerState[battler].stompingTantrumTimer--;
     }
+
+    gBattleStruct->paladinTurnSerial++;
 
     for (u32 i = 0; i < NUM_BATTLE_SIDES; i++)
     {
@@ -4378,7 +4413,7 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
     speed *= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][0];
     speed /= gStatStageRatios[gBattleMons[battler].statStages[STAT_SPEED]][1];
 
-    u32 weather = GetWeather();
+    u32 weather = Gear_WeatherBonusesSuppressed(battler) ? B_WEATHER_NONE : GetWeather();
     // weather abilities
     if (ability == ABILITY_SWIFT_SWIM       && holdEffect != HOLD_EFFECT_UTILITY_UMBRELLA && weather  & B_WEATHER_RAIN)
         speed *= 2;
@@ -4422,12 +4457,19 @@ u32 GetBattlerTotalSpeedStat(enum BattlerId battler, enum Ability ability, enum 
         speed *= 2;
 
     // various effects
-    if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_TAILWIND)
+    if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_TAILWIND
+     || Unholy_SideHasAbility(battler, ABILITY_HYPERBARIC))
         speed *= 2;
 
     // paralysis drop
     if (gBattleMons[battler].status1 & STATUS1_PARALYSIS && ability != ABILITY_QUICK_FEET)
-        speed /= GetConfig(B_PARALYSIS_SPEED) >= GEN_7 ? 2 : 4;
+    {
+        u32 factor = GetConfig(B_PARALYSIS_SPEED) >= GEN_7 ? 2 : 4;
+        if (Unholy_SideHasAbility(battler, ABILITY_ANTITHESIS))
+            speed *= factor;
+        else
+            speed /= factor;
+    }
 
     if (gSideStatuses[GetBattlerSide(battler)] & SIDE_STATUS_SWAMP)
         speed /= 4;
@@ -4491,6 +4533,12 @@ s32 GetBattleMovePriority(enum BattlerId battler, enum Ability ability, enum Mov
     {
         priority += 3;
     }
+
+    if (ability == ABILITY_MALVADO)
+        priority += Unholy_MalvadoPriority(battler, move);
+
+    if (Gear_GetBattlerGear(battler) == GEAR_GUANTES_COHETE && IsPunchingMove(move))
+        priority++;
 
     return priority;
 }
@@ -4626,6 +4674,7 @@ s32 GetWhichBattlerFaster(struct BattleCalcValues *calcValues, bool32 ignoreChos
 
 static void SetActionsAndBattlersTurnOrder(void)
 {
+    Unholy_PrepareTurn();
     s32 turnOrderId = 0;
     enum BattlerId battler, battler2;
 
@@ -4742,6 +4791,13 @@ static void SetActionsAndBattlersTurnOrder(void)
 
 static void TurnValuesCleanUp(bool32 endTurn)
 {
+    if (!endTurn)
+    {
+        Chain_Reset();
+        gBattleStruct->survivalGuardMask = 0;
+        gBattleStruct->survivalUsedThisMoveMask = 0;
+    }
+
     for (enum BattlerId i = 0; i < gBattlersCount; i++)
     {
         if (endTurn)
@@ -4753,6 +4809,8 @@ static void TurnValuesCleanUp(bool32 endTurn)
         }
         else
         {
+            gBattleStruct->unholyMalvadoPriority[i] = 0;
+            gBattleStruct->unholySamuraiCharges[i] = 0;
             memset(&gProtectStructs[i], 0, sizeof(struct ProtectStruct));
 
             if (gBattleStruct->battlerState[i].isFirstTurn)
@@ -4760,6 +4818,9 @@ static void TurnValuesCleanUp(bool32 endTurn)
 
             if (gBattleMons[i].volatiles.rechargeTimer)
                 gBattleMons[i].volatiles.rechargeTimer--;
+
+            if (IsBattlerAlive(i))
+                Stamina_EndOfTurn(i);
 
             gBattleStruct->battlerState[i].canPickupItem = FALSE;
             gBattleStruct->battlerState[i].wasAboveHalfHp = FALSE;
@@ -4772,6 +4833,7 @@ static void TurnValuesCleanUp(bool32 endTurn)
             gBattleStruct->battlerState[i].commandingDondozo = FALSE;
 
         gSpecialStatuses[i].parentalBondState = PARENTAL_BOND_OFF;
+        gSpecialStatuses[i].stormStaffStrike = FALSE;
         gBattleStruct->battlerState[i].usedEjectItem = FALSE;
         gProtectStructs[i].lashOutAffected = FALSE;
         gBattleMons[i].volatiles.endured = FALSE;
@@ -5005,6 +5067,8 @@ static void CheckChangingTurnOrderEffects(void)
         }
     }
 
+    Chain_ExpandTurnOrder();
+
     gCurrentTurnActionNumber = 0;
     gCurrentActionFuncId = gActionsByTurnOrder[0];
     gBattleStruct->dynamicMoveType = 0;
@@ -5026,6 +5090,10 @@ static void CheckChangingTurnOrderEffects(void)
 
 static void RunTurnActionsFunctions(void)
 {
+    // Tras cualquier KO, ninguna acción ya encolada puede atacar al sustituto.
+    if (gCurrentActionFuncId == B_ACTION_USE_MOVE && Chain_WasInterrupted())
+        gCurrentActionFuncId = B_ACTION_FINISHED;
+
     if (gBattleOutcome != 0)
         gCurrentActionFuncId = B_ACTION_FINISHED;
 
@@ -5048,12 +5116,14 @@ static void RunTurnActionsFunctions(void)
     }
 
     // Z-move slides appear right before move instead of at the beginning of turn like other gimmicks
-    if (GetActiveGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]) == GIMMICK_Z_MOVE && TryTrainerSlideGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]))
+    if (gCurrentActionFuncId == B_ACTION_USE_MOVE
+     && GetActiveGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]) == GIMMICK_Z_MOVE
+     && TryTrainerSlideGimmick(gBattlerByTurnOrder[gCurrentTurnActionNumber]))
         return;
 
     sTurnActionsFuncsTable[gCurrentActionFuncId]();
 
-    if (gCurrentTurnActionNumber >= gBattlersCount) // everyone did their actions, turn finished
+    if (gCurrentTurnActionNumber >= Chain_GetNumTurnActions()) // everyone did their actions, turn finished
         gBattleMainFunc = sEndTurnFuncsTable[gBattleOutcome & 0x7F];
 }
 
@@ -5777,7 +5847,11 @@ void SetTypeBeforeUsingMove(enum Move move, enum BattlerId battler, enum Ability
     if (moveType != TYPE_NONE)
         gBattleStruct->dynamicMoveType = moveType;
 
-    moveType = GetBattleMoveType(move);
+    moveType = Unholy_ConvertMoveType(move, ability, GetBattleMoveType(move));
+    if (ability == ABILITY_GODHAND && !IsBattleMoveStatus(move))
+        moveType = Unholy_BestAttackType(battler, gBattleStruct->moveTarget[battler], move);
+    if (moveType != GetMoveType(move))
+        gBattleStruct->dynamicMoveType = moveType;
     if ((gFieldStatuses & STATUS_FIELD_ION_DELUGE && moveType == TYPE_NORMAL)
      || gBattleMons[battler].volatiles.electrified)
         gBattleStruct->dynamicMoveType = TYPE_ELECTRIC;
@@ -5814,6 +5888,8 @@ void ScriptSetTotemBoost(struct ScriptContext *ctx)
 
 bool32 IsWildMonSmart(void)
 {
+    if (gBattleTypeFlags & BATTLE_TYPE_RAID)
+        return TRUE;
 #if WE_SMART_WILD_AI_FLAG != 0
     return (FlagGet(WE_SMART_WILD_AI_FLAG));
 #else

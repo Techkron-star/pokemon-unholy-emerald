@@ -125,19 +125,40 @@ enum MonData {
     MON_DATA_GIGANTAMAX_FACTOR,
     MON_DATA_TERA_TYPE,
     MON_DATA_EVOLUTION_TRACKER,
+    MON_DATA_SPECIAL_BADGES,
+    MON_DATA_GEAR,
+    MON_DATA_IS_FAVORITE,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
+
+enum PokemonBadge
+{
+    POKEMON_BADGE_ALPHA   = 1 << 0,
+    POKEMON_BADGE_SUPER   = 1 << 1,
+    POKEMON_BADGE_ENRAGED = 1 << 2,
+    POKEMON_BADGE_OMEGA      = 1 << 3,
+    POKEMON_BADGE_HYPER      = 1 << 4,
+    POKEMON_BADGE_OVERLOADED = 1 << 5,
+    POKEMON_BADGE_TITAN      = 1 << 6,
+    POKEMON_BADGE_ANCESTRAL  = 1 << 7,
+    POKEMON_BADGE_ASCENDED   = 1 << 8,
+    POKEMON_BADGES_ALL = (1 << 9) - 1,
+};
+
+struct Pokemon;
+struct BoxPokemon;
 
 struct PokemonSubstruct0
 {
     enum Species species:11; // 2047 species.
     enum Type teraType:5; // 30 types.
     enum Item heldItem:10; // 1023 items.
-    u16 unused_02:6;
+    u16 specialBadges:4; // Keep legacy bits 0-3 in their exact original position.
+    u16 mutationExtraLow:2; // Bits 4-5, repurposed padding.
     u32 experience:21;
     u32 nickname11:8; // 11th character of nickname.
-    u32 unused_04:3;
+    u32 mutationExtraHigh:3; // Bits 6-8, repurposed padding.
     u8 ppBonuses;
     u8 friendship;
     u16 pokeball:6; // 63 balls.
@@ -152,9 +173,9 @@ struct PokemonSubstruct1
     enum Move move2:11; // 2047 moves.
     u16 evolutionTracker2:5;
     enum Move move3:11; // 2047 moves.
-    u16 unused_04:5;
+    u16 gear:5; // Low bits of Gear ID (0-31); do not change physical offset.
     enum Move move4:11; // 2047 moves.
-    u16 unused_06:3;
+    u16 gearHigh:3; // Upper bits of Gear ID (32-255), formerly unused padding.
     u16 hyperTrainedHP:1;
     u16 hyperTrainedAttack:1;
     u8 pp1:7; // 127 PP.
@@ -229,6 +250,15 @@ struct PokemonSubstruct3
     u32 modernFatefulEncounter:1;
 };
 
+bool32 Pokemon_HasBadge(struct Pokemon *mon, enum PokemonBadge badge);
+void Pokemon_SetBadge(struct Pokemon *mon, enum PokemonBadge badge);
+void Pokemon_ClearBadge(struct Pokemon *mon, enum PokemonBadge badge);
+bool32 BoxPokemon_HasBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+void BoxPokemon_SetBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+void BoxPokemon_ClearBadge(struct BoxPokemon *mon, enum PokemonBadge badge);
+s32 Pokemon_GetMutationStatBonusPercent(struct Pokemon *mon, u32 statIndex);
+s32 Pokemon_GetMutationStaminaBonusPercent(struct Pokemon *mon);
+
 // Number of bytes in the largest Pokémon substruct.
 // They are assumed to be the same size, and will be padded to
 // the largest size by the union.
@@ -267,7 +297,7 @@ struct BoxPokemon
     u8 isEgg:1;
     u8 blockBoxRS:1; // Unused, but Pokémon Box Ruby & Sapphire will refuse to deposit a Pokémon with this flag set.
     u8 daysSinceFormChange:3; // 7 days.
-    u8 unused_13:1;
+    u8 isFavorite:1; // PC favorite/protection; formerly unused, same save layout.
     u8 otName[PLAYER_NAME_LENGTH];
     u8 markings:4;
     u8 compressedStatus:4;
@@ -373,6 +403,7 @@ struct BattlePokemon
     u8 metLevel:7;
     u8 isShiny:1;
     u8 affectionHearts;
+    u16 specialBadges;
 };
 
 struct EvolutionParam
@@ -417,7 +448,7 @@ struct SpeciesInfo /*0xC4*/
     u8 friendship;
     u8 growthRate;
     enum EggGroup eggGroups[EGG_GROUPS_PER_MON];
-    enum Ability abilities[NUM_ABILITY_SLOTS]; // 3 abilities, no longer u8 because we have over 255 abilities now.
+    enum Ability abilities[NUM_ABILITY_SLOTS]; // 2 normal + 2 hidden; enum needed for more than 255 abilities.
     u8 safariZoneFleeRate;
 
     // Pokédex data
@@ -849,6 +880,8 @@ bool8 IsPokemonStorageFull(void);
 const u8 *GetSpeciesName(enum Species species);
 const u8 *GetSpeciesCategory(enum Species species);
 const u8 *GetSpeciesPokedexDescription(enum Species species);
+const u8 *GetLocalizedAbilityName(enum Ability ability);
+const u8 *GetLocalizedAbilityDescription(enum Ability ability);
 u32 GetSpeciesHeight(enum Species species);
 u32 GetSpeciesWeight(enum Species species);
 enum Type GetSpeciesType(enum Species species, u8 slot);
@@ -873,6 +906,9 @@ void RemoveMonPPBonus(struct Pokemon *mon, u8 moveIndex);
 void RemoveBoxMonPPBonus(struct BoxPokemon *mon, u8 moveIndex);
 void RemoveBattleMonPPBonus(struct BattlePokemon *mon, u8 moveIndex);
 void PokemonToBattleMon(struct Pokemon *src, struct BattlePokemon *dst);
+void Pokemon_AssignEncounterBadges(struct Pokemon *mon, bool32 trainerEncounter);
+void Pokemon_AssignFrequencyBadges(struct Pokemon *mon, u8 lowTierBoostPercent);
+void Pokemon_AssignSpecialOriginBadges(struct Pokemon *mon);
 bool8 ExecuteTableBasedItemEffect(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex);
 bool8 PokemonUseItemEffects(struct Pokemon *mon, enum Item item, u8 partyIndex, u8 moveIndex, u8 usedByAI);
 bool8 HealStatusConditions(struct Pokemon *mon, u32 healMask, enum BattlerId battler);
@@ -902,7 +938,7 @@ u8 GetTrainerEncounterMusicId(u16 trainerOpponentId);
 u16 ModifyStatByNature(u8 nature, u16 stat, enum Stat statIndex);
 void AdjustFriendship(struct Pokemon *mon, u8 event);
 s32 CalculateFriendshipBonuses(struct Pokemon *mon, s32 modifier, enum HoldEffect itemHoldEffect);
-void MonGainEVs(struct Pokemon *mon, enum Species defeatedSpecies);
+void MonGainEVs(struct Pokemon *mon, enum Species defeatedSpecies, bool32 overloaded);
 u16 GetMonEVCount(struct Pokemon *mon);
 bool8 TryIncrementMonLevel(struct Pokemon *mon);
 bool32 CanLearnTeachableMove(enum Species species, enum Move move);

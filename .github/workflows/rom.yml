@@ -1,0 +1,45 @@
+name: Compilar ROM
+
+on:
+  push:
+    branches:
+      - 'feat/**'
+      - 'dev/**'
+  workflow_dispatch:
+
+# Si lanzas una build nueva en la misma rama, cancela la anterior en curso.
+concurrency:
+  group: rom-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GAME_REVISION: 0
+  GAME_LANGUAGE: ENGLISH
+  GAME_VERSION: EMERALD
+  COMPARE: 0
+
+jobs:
+  build-rom:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar sprites y paletas Unholy
+        run: python3 tools/unholy/validate_relic_assets.py
+
+      - name: Instalar toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
+
+      - name: Compilar
+        run: make -j$(nproc) -O all
+
+      - name: Subir ROM
+        uses: actions/upload-artifact@v4
+        with:
+          name: pokeemerald-rom
+          path: pokeemerald.gba
+          retention-days: 1
+          if-no-files-found: error

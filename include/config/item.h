@@ -28,13 +28,14 @@
 // Exp. Share config
 // To use this feature, replace the 0 with the flag ID you're assigning it to.
 // Eg: Replace with FLAG_UNUSED_0x264 so you can use that flag to toggle the feature.
-#define I_EXP_SHARE_FLAG        0           // If this flag is set, every Pokémon in the party will gain experience, regardless if they participated in the battle or not.
-#define I_EXP_SHARE_ITEM        GEN_5       // In Gen6+, the Exp. Share is a Key item that toggles the effect described above.
+#define I_EXP_SHARE_FLAG        FLAG_UNHOLY_EXP_SHARE_ENABLED // El Repartir Exp. se enciende y apaga desde Objetos Clave.
+#define I_EXP_SHARE_ITEM        GEN_6       // Objeto clave con interruptor, no objeto equipado.
 
 // Repel/Lure config
 // These two settings are both independent and complementary.
-#define VAR_LAST_REPEL_LURE_USED    0       // If this var has been assigned, the last Repel/Lure used will be saved and the player will be prompted with the vanilla repel YES/NO option, unless I_REPEL_LURE_MENU is set to TRUE.
+#define VAR_LAST_REPEL_LURE_USED    0x404E  // Saves the last Repel/Lure used for renewal and menu cursor selection.
 #define I_REPEL_LURE_MENU           TRUE    // If set to TRUE, the player is able to choose which Repel/Lure to use once the previous one runs out. Cursor position is saved by VAR_LAST_REPEL_LURE_USED if not 0.
+#define I_REPEL_AUTO_RENEW          TRUE    // If set to TRUE, automatically reuses the last available Repel/Lure when its effect expires.
 
 // Vs. Seeker
 #define I_VS_SEEKER_CHARGING        0                     // If this flag is assigned, the Vs. Seeker functionality will be enabled. When the player has the Vs. Seeker, Match Call rematch functions will stop working. Documentation for the Vs. Seeker can be found in docs/tutorials/vs_seeker.md.

@@ -98,6 +98,10 @@ enum BattleSide
 #define BIT_FLANK       2
 
 // Battle Type Flags
+// Unholy scripted wild bosses. These are encounter IDs, not battle type flags.
+#define UNHOLY_WILD_BOSS_NONE          0
+#define UNHOLY_WILD_BOSS_AEGIS         1
+
 #define BATTLE_TYPE_DOUBLE             (1 << 0)
 #define BATTLE_TYPE_LINK               (1 << 1)
 #define BATTLE_TYPE_IS_MASTER          (1 << 2) // In not-link battles, it's always set.
@@ -597,6 +601,7 @@ enum BattleEnvironments
 #define B_WIN_MOVE_DESCRIPTION   24
 #define B_WIN_OAK_OLD_MAN        25
 #define B_CATCH_OR_NOT           26
+#define B_WIN_CHAIN_HELP        27
 
 // The following are duplicate id values for windows that Battle Arena uses differently.
 #define ARENA_WIN_PLAYER_NAME      15

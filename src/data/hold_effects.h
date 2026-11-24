@@ -127,6 +127,10 @@ const struct HoldEffectInfo gHoldEffectsInfo[HOLD_EFFECT_COUNT] =
     {
     },
 
+    [HOLD_EFFECT_EXP_SHARE_PLUS] =
+    {
+    },
+
     [HOLD_EFFECT_QUICK_CLAW] =
     {
     },

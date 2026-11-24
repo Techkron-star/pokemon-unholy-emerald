@@ -4,6 +4,7 @@
 #include "constants/moves.h"
 #include "constants/trainers.h"
 #include "constants/battle.h"
+#include "constants/gears.h"
 #include "constants/pokeball.h"
 #include "difficulty.h"
 #include "debug.h"
@@ -83,6 +84,7 @@ struct TrainerMon
     u8 padding1:1;
     u8 dynamaxLevel:4;
     u8 padding2:4;
+    enum Gear gear:8;
     u32 tags;
 };
 

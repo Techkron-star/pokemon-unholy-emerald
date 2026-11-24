@@ -1,4 +1,5 @@
 #include "global.h"
+#include "mutation_icons.h"
 #include "sprite.h"
 #include "main.h"
 #include "overworld.h"
@@ -1647,6 +1648,9 @@ u32 LoadSpritePalette(const struct SpritePalette *palette)
 
     if (index == 0xFF)
     {
+        if (gMain.inBattle && !gTestRunnerEnabled && !MutationIcon_IsPaletteTag(palette->tag)
+         && MutationIcon_ReleaseBattlePalette())
+            index = IndexOfSpritePaletteTag(TAG_NONE);
         if (gMain.callback2 == CB2_Overworld)
         {
             u32 count = GetNumberOfActiveOWEs(OWE_GENERATED);

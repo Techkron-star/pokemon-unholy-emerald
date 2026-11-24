@@ -11,6 +11,8 @@ extern const u32 gBallGfx_Strange[];
 extern const u16 gBallPal_Strange[];
 extern const u32 gBallGfx_Poke[];
 extern const u16 gBallPal_Poke[];
+extern const u32 gBattleAnimSpriteGfx_OmegaGlint[];
+extern const u16 gBattleAnimSpritePal_OmegaGlint[];
 extern const u32 gBallGfx_Great[];
 extern const u16 gBallPal_Great[];
 extern const u32 gBallGfx_Ultra[];
@@ -366,6 +368,10 @@ extern const u32 gItemIcon_StrangeBall[];
 extern const u16 gItemIconPalette_StrangeBall[];
 extern const u32 gItemIcon_PokeBall[];
 extern const u16 gItemIconPalette_PokeBall[];
+extern const u32 gItemIcon_OmegaBall[];
+extern const u16 gItemIconPalette_OmegaBall[];
+extern const u32 gItemIcon_InfinityBall[];
+extern const u16 gItemIconPalette_InfinityBall[];
 extern const u32 gItemIcon_GreatBall[];
 extern const u16 gItemIconPalette_GreatBall[];
 extern const u32 gItemIcon_UltraBall[];
@@ -1268,6 +1274,64 @@ extern const u32 gItemIcon_InBattleHerb[];
 extern const u16 gItemIconPalette_WhiteHerb[];
 extern const u32 gItemIcon_ExpShare[];
 extern const u16 gItemIconPalette_ExpShare[];
+extern const u32 gItemIcon_SuperExpShare[];
+extern const u16 gItemIconPalette_SuperExpShare[];
+extern const u32 gItemIcon_OverloadedExpShare[];
+extern const u16 gItemIconPalette_OverloadedExpShare[];
+extern const u32 gItemIcon_Pokelocator[];
+extern const u16 gItemIconPalette_Pokelocator[];
+extern const u32 gItemIcon_VisorCosmico[];
+extern const u16 gItemIconPalette_VisorCosmico[];
+extern const u32 gItemIcon_CorazonTitan[];
+extern const u16 gItemIconPalette_CorazonTitan[];
+extern const u32 gItemIcon_SkiMask[];
+extern const u16 gItemIconPalette_SkiMask[];
+extern const u32 gItemIcon_CetroSiniestro[];
+extern const u16 gItemIconPalette_CetroSiniestro[];
+extern const u32 gItemIcon_ImpulsoCosmico[];
+extern const u16 gItemIconPalette_ImpulsoCosmico[];
+extern const u32 gItemIcon_PermafrostFragment[];
+extern const u16 gItemIconPalette_PermafrostFragment[];
+extern const u32 gItemIcon_BloodVial[];
+extern const u32 gItemIcon_StormStaff[];
+extern const u16 gItemIconPalette_StormStaff[];
+extern const u32 gItemIcon_Shackle[];
+extern const u16 gItemIconPalette_Shackle[];
+#define RECENT_GEAR(id, gfx, path, name, description) \
+    extern const u32 gItemIcon_##gfx[]; \
+    extern const u16 gItemIconPalette_##gfx[];
+#include "constants/recent_gears.h"
+#undef RECENT_GEAR
+#define NEW_GEAR(id, gfx, name, description) \
+    extern const u32 gItemIcon_##gfx[]; \
+    extern const u16 gItemIconPalette_##gfx[];
+#include "constants/gear_batch8.h"
+#undef NEW_GEAR
+#define UNHOLY_ARTIFACT_ICON(name) \
+    extern const u32 gItemIcon_##name[]; \
+    extern const u16 gItemIconPalette_##name[];
+UNHOLY_ARTIFACT_ICON(ArmaduraMeteorica)
+UNHOLY_ARTIFACT_ICON(EscudoPaladin)
+UNHOLY_ARTIFACT_ICON(EstandarteGuerra)
+UNHOLY_ARTIFACT_ICON(TorreVigilancia)
+UNHOLY_ARTIFACT_ICON(Faro)
+UNHOLY_ARTIFACT_ICON(Rompeolas)
+UNHOLY_ARTIFACT_ICON(RedSilos)
+UNHOLY_ARTIFACT_ICON(TableroTrifasico)
+UNHOLY_ARTIFACT_ICON(CRT)
+UNHOLY_ARTIFACT_ICON(Deshumidificador)
+UNHOLY_ARTIFACT_ICON(BombaAriete)
+UNHOLY_ARTIFACT_ICON(Glicerina)
+UNHOLY_ARTIFACT_ICON(Abono)
+#undef UNHOLY_ARTIFACT_ICON
+extern const u32 gItemIcon_BloodFire[];
+extern const u32 gItemIcon_BloodDragon[];
+extern const u32 gItemIcon_BloodDark[];
+extern const u32 gItemIcon_BloodFairy[];
+#define GEAR_BLOOD_VARIANT(type, name, moveTypeName, bagIcon) extern const u16 gItemIconPalette_Blood_##type[];
+#include "constants/blood_gears.h"
+#undef GEAR_BLOOD_VARIANT
+
 extern const u32 gItemIcon_QuickClaw[];
 extern const u16 gItemIconPalette_QuickClaw[];
 extern const u32 gItemIcon_SootheBell[];

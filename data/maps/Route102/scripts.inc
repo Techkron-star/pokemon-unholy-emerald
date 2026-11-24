@@ -5,6 +5,38 @@ Route102_EventScript_LittleBoy::
 	msgbox Route102_Text_ImNotVeryTall, MSGBOX_NPC
 	end
 
+// Added by World Update V1. Claim is separate from the event hide flag, so
+// revisiting the route or updating the ROM cannot respawn a taken reward.
+Route102_EventScript_WorldUpdateGreatBall::
+	lock
+	giveitem ITEM_GREAT_BALL
+	goto_if_eq VAR_RESULT, FALSE, Route102_EventScript_WorldUpdateBagFull
+#if !IS_FRLG
+	setflag FLAG_UNHOLY_WORLD_ROUTE102_BALL_CLAIMED
+#endif
+	removeobject VAR_LAST_TALKED
+	release
+	end
+
+Route102_EventScript_WorldUpdateBagFull::
+	msgbox gText_TooBadBagIsFull, MSGBOX_DEFAULT
+	release
+	end
+
+Route102_EventScript_WorldUpdateResearcher::
+	lock
+	faceplayer
+	msgbox Route102_Text_WorldUpdateResearcher, MSGBOX_DEFAULT
+	special OpenUnholyInjectorMenu
+	end
+
+Route102_Text_WorldUpdateResearcher:
+	.string "INVESTIGADORA: Tengo los 18\n"
+	.string "inyectores de tipo disponibles.\p"
+	.string "Cada uno cuesta 3.000, un\n"
+	.string "Polvoestelar y una gema del tipo.\p"
+	.string "¿Cuál te interesa?$"
+
 Route102_EventScript_RouteSignOldale::
 	msgbox Route102_Text_RouteSignOldale, MSGBOX_SIGN
 	end

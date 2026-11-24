@@ -1,5 +1,7 @@
 #include "global.h"
 #include "item.h"
+#include "gear.h"
+#include "mail.h"
 #include "berry.h"
 #include "pokeball.h"
 #include "string_util.h"
@@ -100,6 +102,11 @@ struct ItemSlot NONNULL BagPocket_GetSlotData(struct BagPocket *pocket, u32 pock
     case POCKET_POKE_BALLS:
     case POCKET_TM_HM:
     case POCKET_BERRIES:
+    case POCKET_BATTLE_ITEMS:
+    case POCKET_MEDICINE:
+    case POCKET_GEARS:
+    case POCKET_MAIL:
+    case POCKET_MISC:
         return BagPocket_GetSlotDataGeneric(pocket, pocketPos);
     case POCKET_DUMMY:
         return BagPocket_GetSlotDataPC(pocket, pocketPos);
@@ -123,6 +130,11 @@ void NONNULL BagPocket_SetSlotData(struct BagPocket *pocket, u32 pocketPos, stru
     case POCKET_POKE_BALLS:
     case POCKET_TM_HM:
     case POCKET_BERRIES:
+    case POCKET_BATTLE_ITEMS:
+    case POCKET_MEDICINE:
+    case POCKET_GEARS:
+    case POCKET_MAIL:
+    case POCKET_MISC:
         BagPocket_SetSlotDataGeneric(pocket, pocketPos, newSlot);
         break;
     case POCKET_DUMMY:
@@ -135,7 +147,8 @@ void ApplyNewEncryptionKeyToBagItems(u32 newKey)
 {
     enum Pocket pocketId;
     enum Item item;
-    for (pocketId = 0; pocketId < POCKETS_COUNT; pocketId++)
+    // Do not encrypt EWRAM-only category views a second time.
+    for (pocketId = 0; pocketId < POCKET_GEARS; pocketId++)
     {
         for (item = ITEM_NONE; item < gBagPockets[pocketId].capacity; item++)
             ApplyNewEncryptionKeyToHword(&(gBagPockets[pocketId].itemSlots[item].quantity), newKey);
@@ -163,6 +176,23 @@ void SetBagItemsPointers(void)
     gBagPockets[POCKET_BERRIES].itemSlots = gSaveBlock1Ptr->bag.berries;
     gBagPockets[POCKET_BERRIES].capacity = BAG_BERRIES_COUNT;
     gBagPockets[POCKET_BERRIES].id = POCKET_BERRIES;
+
+    gBagPockets[POCKET_BATTLE_ITEMS].itemSlots = gSaveBlock1Ptr->bag.battleItems;
+    gBagPockets[POCKET_BATTLE_ITEMS].capacity = BAG_BATTLEITEMS_COUNT;
+    gBagPockets[POCKET_BATTLE_ITEMS].id = POCKET_BATTLE_ITEMS;
+
+    gBagPockets[POCKET_MEDICINE].itemSlots = gSaveBlock1Ptr->bag.medicine;
+    gBagPockets[POCKET_MEDICINE].capacity = BAG_MEDICINE_COUNT;
+    gBagPockets[POCKET_MEDICINE].id = POCKET_MEDICINE;
+
+    // These are populated only while the Bag UI is open and never written
+    // directly into a SaveBlock. The physical item storage remains unchanged.
+    for (u32 i = POCKET_GEARS; i < POCKETS_COUNT; i++)
+    {
+        gBagPockets[i].itemSlots = NULL;
+        gBagPockets[i].capacity = 0;
+        gBagPockets[i].id = i;
+    }
 }
 
 u8 *CopyItemName(enum Item itemId, u8 *dst)
@@ -191,7 +221,7 @@ u8 *CopyItemNameHandlePlural(enum Item itemId, u8 *dst, u32 quantity)
 
 bool32 IsBagPocketNonEmpty(enum Pocket pocketId)
 {
-    u8 i;
+    u32 i;
 
     for (i = 0; i < gBagPockets[pocketId].capacity; i++)
     {
@@ -812,7 +842,16 @@ static enum Item SanitizeBagItemId(enum Item itemId)
 
 const u8 *GetItemName(enum Item itemId)
 {
-    const u8 *name = gItemsInfo[SanitizeItemId(itemId)].name;
+    enum Gear gear;
+    const u8 *name;
+
+    itemId = SanitizeItemId(itemId);
+    gear = itemId >= ITEM_GEAR_VISOR_COSMICO && itemId <= ITEM_GEAR_ARMADURA_METEORICA
+         ? Gear_FromItem(itemId) : GEAR_NONE;
+    if (gear != GEAR_NONE)
+        return Gear_GetLocalizedName(gear);
+
+    name = gItemsInfo[itemId].name;
 
     return name == NULL ? gQuestionMarksItemName : name;
 }
@@ -863,7 +902,14 @@ u32 GetItemHoldEffectParam(enum Item itemId)
 
 const u8 *GetItemDescription(enum Item itemId)
 {
-    return gItemsInfo[SanitizeItemId(itemId)].description;
+    enum Gear gear;
+
+    itemId = SanitizeItemId(itemId);
+    gear = itemId >= ITEM_GEAR_VISOR_COSMICO && itemId <= ITEM_GEAR_ARMADURA_METEORICA
+         ? Gear_FromItem(itemId) : GEAR_NONE;
+    if (gear != GEAR_NONE)
+        return Gear_GetLocalizedDescription(gear);
+    return gItemsInfo[itemId].description;
 }
 
 u8 GetItemImportance(enum Item itemId)
@@ -879,6 +925,37 @@ u8 GetItemConsumability(enum Item itemId)
 enum Pocket GetItemPocket(enum Item itemId)
 {
     return gItemsInfo[SanitizeItemId(itemId)].pocket;
+}
+
+// Single source of truth for the visible Bag category. Item creation, removal
+// and debug insertion continue using GetItemPocket for save-backed storage.
+enum Pocket GetItemDisplayPocket(enum Item itemId)
+{
+    enum Item validItem = SanitizeItemId(itemId);
+    enum Pocket storagePocket = GetItemPocket(validItem);
+
+    if (storagePocket == POCKET_KEY_ITEMS && Gear_FromItem(validItem) != GEAR_NONE)
+        return POCKET_GEARS;
+
+    if (storagePocket == POCKET_ITEMS)
+    {
+        if (ItemIsMail(validItem))
+            return POCKET_MAIL;
+
+        switch (gItemsInfo[validItem].sortType)
+        {
+        case ITEM_TYPE_UNCATEGORIZED:
+        case ITEM_TYPE_SHARD:
+        case ITEM_TYPE_SELLABLE:
+        case ITEM_TYPE_RELIC:
+        case ITEM_TYPE_FOSSIL:
+            return POCKET_MISC;
+        default:
+            break;
+        }
+    }
+
+    return storagePocket;
 }
 
 enum ItemType GetItemType(enum Item itemId)

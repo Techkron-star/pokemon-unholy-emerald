@@ -25,10 +25,14 @@
 #include "fldeff_misc.h"
 #include "follower_npc.h"
 #include "gym_leader_rematch.h"
+#include "hfc_watch.h"
+#include "hfc_watch_services.h"
+#include "unholy_qol.h"
 #include "item.h"
 #include "load_save.h"
 #include "malloc.h"
 #include "metatile_behavior.h"
+#include "pokemon.h"
 #include "mirage_tower.h"
 #include "palette.h"
 #include "random.h"
@@ -53,6 +57,7 @@
 #include "constants/battle_frontier.h"
 #include "constants/battle_special.h"
 #include "constants/event_objects.h"
+#include "constants/flags.h"
 #include "constants/game_stat.h"
 #include "constants/items.h"
 #include "constants/songs.h"
@@ -74,6 +79,7 @@ static void DoSafariBattle(void);
 static void DoGhostBattle(void);
 static void DoStandardWildBattle(bool32 isDouble);
 static void CB2_EndWildBattle(void);
+static void CB2_EndHfcRaidBattle(void);
 static void CB2_EndScriptedWildBattle(void);
 static void CB2_EndMarowakBattle(void);
 static void TryUpdateGymLeaderRematchFromWild(void);
@@ -100,6 +106,41 @@ EWRAM_DATA u16 gPartnerTrainerId = 0;
 EWRAM_DATA static u8 *sTrainerBattleEndScript = NULL;
 EWRAM_DATA static bool8 sShouldCheckTrainerBScript = FALSE;
 EWRAM_DATA static u8 sNoOfPossibleTrainerRetScripts = 0;
+// Not saved: a scripted boss encounter lives only until its battle ends.
+EWRAM_DATA static u8 sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
+
+void UnholyWildBoss_Arm(void)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_OPPONENT_A][0];
+    u16 badges;
+
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
+    if (gSpecialVar_0x8004 != UNHOLY_WILD_BOSS_AEGIS
+     || GetMonData(mon, MON_DATA_SPECIES) != SPECIES_REGISTEEL)
+        return;
+
+    // The real mutation belongs to the catchable mon and survives capture.
+    // Preserve any additional naturally rolled mutation rather than replacing it.
+    badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES) | POKEMON_BADGE_ALPHA;
+    SetMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
+    CalculateMonStats(mon);
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_AEGIS;
+}
+
+void UnholyWildBoss_ApplyBattleBonuses(u8 battler)
+{
+    if (sUnholyWildBossId != UNHOLY_WILD_BOSS_AEGIS
+     || (gBattleTypeFlags & (BATTLE_TYPE_TRAINER | BATTLE_TYPE_DOUBLE | BATTLE_TYPE_LINK))
+     || GetBattlerPosition(battler) != B_POSITION_OPPONENT_LEFT
+     || gBattleMons[battler].species != SPECIES_REGISTEEL)
+        return;
+
+    // Battle-only stat stages. Never set these on gParties or the caught mon.
+    gBattleMons[battler].statStages[STAT_ATK] = DEFAULT_STAT_STAGE + 2;
+    gBattleMons[battler].statStages[STAT_DEF] = DEFAULT_STAT_STAGE + 3;
+    gBattleMons[battler].statStages[STAT_SPDEF] = DEFAULT_STAT_STAGE + 3;
+    gBattleMons[battler].statStages[STAT_SPEED] = DEFAULT_STAT_STAGE + 1;
+}
 
 // The first transition is used if the enemy Pokémon are lower level than our Pokémon.
 // Otherwise, the second transition is used.
@@ -417,6 +458,35 @@ static void DoStandardWildBattle(bool32 isDouble)
     TryUpdateGymLeaderRematchFromWild();
 }
 
+void BattleSetup_StartHfcRaid(bool32 isDouble, u8 bossBoost)
+{
+    LockPlayerFieldControls();
+    FreezeObjectEvents();
+    StopPlayerAvatar();
+    gMain.savedCallback = CB2_EndHfcRaidBattle;
+    gBattleTypeFlags = BATTLE_TYPE_RAID | (isDouble ? BATTLE_TYPE_DOUBLE : 0);
+    TRAINER_BATTLE_PARAM.opponentA = TRAINER_NONE;
+    memset(gQueuedStatBoosts, 0, sizeof(gQueuedStatBoosts));
+    if (bossBoost != 0)
+    {
+        struct QueuedStatBoost *boosts = &gQueuedStatBoosts[B_BATTLER_1];
+        boosts->stats = (1 << STAT_ATK) | (1 << STAT_DEF) | (1 << STAT_SPATK) | (1 << STAT_SPDEF);
+        boosts->statChanges[STAT_ATK] = bossBoost;
+        boosts->statChanges[STAT_DEF] = bossBoost;
+        boosts->statChanges[STAT_SPATK] = bossBoost;
+        boosts->statChanges[STAT_SPDEF] = bossBoost;
+        if (bossBoost > 1)
+        {
+            boosts->stats |= 1 << STAT_SPEED;
+            boosts->statChanges[STAT_SPEED] = 1;
+        }
+    }
+    CreateBattleStartTask(GetWildBattleTransition(), 0);
+    IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
+    IncrementGameStat(GAME_STAT_WILD_BATTLES);
+    IncrementDailyWildBattles();
+}
+
 void DoStandardWildBattle_Debug(void)
 {
     LockPlayerFieldControls();
@@ -689,6 +759,19 @@ static void DowngradeBadPoison(void)
     }
 }
 
+static void TryUnholyAutoHealAfterBattle(void)
+{
+    // The watch is a field convenience, never a way to refill between raid
+    // rounds or during Battle Frontier / Pyramid / Pike challenges.
+    if (IsPlayerDefeated(gBattleOutcome)
+     || (gBattleTypeFlags & (BATTLE_TYPE_RAID | BATTLE_TYPE_FRONTIER))
+     || InBattlePike()
+     || CurrentBattlePyramidLocation() != PYRAMID_LOCATION_NONE
+     || InTrainerHillChallenge())
+        return;
+    UnholyQolAutoHealAfterBattle();
+}
+
 static void CB2_EndWildBattle(void)
 {
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
@@ -703,6 +786,9 @@ static void CB2_EndWildBattle(void)
             HealPlayerParty();
     }
 
+    TryUnholyAutoHealAfterBattle();
+    gBattleTypeFlags &= ~BATTLE_TYPE_RAID;
+
     if (IsPlayerDefeated(gBattleOutcome) == TRUE && CurrentBattlePyramidLocation() == PYRAMID_LOCATION_NONE && !InBattlePike())
     {
         SetMainCallback2(CB2_WhiteOut);
@@ -715,10 +801,22 @@ static void CB2_EndWildBattle(void)
     }
 }
 
+static void CB2_EndHfcRaidBattle(void)
+{
+    HfcWatch_OnRaidBattleEnd(gBattleOutcome);
+    CB2_EndWildBattle();
+    if (IsPlayerDefeated(gBattleOutcome))
+        HfcWatch_ResetRaid();
+    else
+        gFieldCallback = HfcWatch_OpenRaidAfterBattle;
+}
+
 static void CB2_EndScriptedWildBattle(void)
 {
+    sUnholyWildBossId = UNHOLY_WILD_BOSS_NONE;
     CpuFill16(0, (void *)(BG_PLTT), BG_PLTT_SIZE);
     ResetOamRange(0, 128);
+    TryUnholyAutoHealAfterBattle();
 
     if (IsPlayerDefeated(gBattleOutcome) == TRUE)
     {
@@ -1583,6 +1681,8 @@ static void CB2_EndTrainerBattle(void)
             HealPlayerParty();
     }
 
+    TryUnholyAutoHealAfterBattle();
+
     if (TRAINER_BATTLE_PARAM.earlyRival)
     {
         if (IsPlayerDefeated(gBattleOutcome) == TRUE)
@@ -1632,6 +1732,7 @@ static void CB2_EndTrainerBattle(void)
 
 static void CB2_EndRematchBattle(void)
 {
+    TryUnholyAutoHealAfterBattle();
     if (TRAINER_BATTLE_PARAM.opponentA == TRAINER_SECRET_BASE)
     {
         DowngradeBadPoison();
@@ -2188,10 +2289,49 @@ void SetMultiTrainerBattle(struct ScriptContext *ctx)
     gPartnerTrainerId = TRAINER_PARTNER(ScriptReadHalfword(ctx));
 };
 
+
+// The cap is taken from the latest badge obtained, never from the player's
+// strongest Pokemon. Index zero means no badge: no rematch scaling available.
+static u8 GetLastEarnedBadgeLevelCap(void)
+{
+    static const u8 sBadgeLevelCaps[NUM_BADGES + 1] = {0, 15, 19, 24, 29, 31, 33, 42, 46};
+    u8 highestBadge = 0;
+    u8 i;
+
+    for (i = 0; i < NUM_BADGES; i++)
+        if (FlagGet(FLAG_BADGE01_GET + i))
+            highestBadge = i + 1;
+
+    return sBadgeLevelCaps[highestBadge];
+}
+
+static void ScaleGymRematchMonToBadgeCap(struct Pokemon *mon, u8 level)
+{
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+    u32 experience = gExperienceTables[gSpeciesInfo[species].growthRate][level];
+    u32 fullHp;
+
+    // CalculateMonStats obtains the level from EXP: setting only MON_DATA_LEVEL
+    // would be reverted on recalculation.
+    SetMonData(mon, MON_DATA_EXP, &experience);
+    CalculateMonStats(mon);
+    fullHp = GetMonData(mon, MON_DATA_MAX_HP);
+    SetMonData(mon, MON_DATA_HP, &fullHp);
+}
+
 void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Trainer *trainer)
 {
     s32 i;
     u8 monsCount;
+    u8 badgeRematchCap = 0;
+
+    // Keep the initial gym encounter untouched. Only explicit rematches are
+    // normalized, and every member is scaled to the same badge ceiling.
+    if ((gBattleTypeFlags & BATTLE_TYPE_TRAINER)
+     && TRAINER_BATTLE_PARAM.isRematch
+     && trainer->trainerClass == TRAINER_CLASS_LEADER
+     && party != gParties[B_TRAINER_PLAYER])
+        badgeRematchCap = GetLastEarnedBadgeLevelCap();
 
     ZeroPartyMons(party);
 
@@ -2211,6 +2351,8 @@ void CreateNPCTrainerPartyFromTrainer(struct Pokemon *party, const struct Traine
     {
         u32 monIndex = monIndices[i];
         GenerateMonFromTrainerMon(&party[i], &trainer->party[monIndex], trainerGen);
+        if (badgeRematchCap != 0)
+            ScaleGymRematchMonToBadgeCap(&party[i], badgeRematchCap);
     }
     Free(trainerGen);
 }

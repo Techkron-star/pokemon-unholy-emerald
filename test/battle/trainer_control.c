@@ -3,6 +3,7 @@
 #include "battle.h"
 #include "battle_setup.h"
 #include "data.h"
+#include "gear.h"
 #include "malloc.h"
 #include "random.h"
 #include "string_util.h"
@@ -38,6 +39,8 @@ TEST("CreateNPCTrainerPartyForTrainer generates customized Pokémon")
 
     EXPECT(GetMonData(&testParty[0], MON_DATA_HELD_ITEM, 0) == ITEM_ASSAULT_VEST);
     EXPECT(GetMonData(&testParty[1], MON_DATA_HELD_ITEM, 0) == ITEM_NONE);
+    EXPECT_EQ(Gear_GetEquipped(&testParty[0]), GEAR_IMPULSO_COSMICO);
+    EXPECT_EQ(Gear_GetEquipped(&testParty[1]), GEAR_NONE);
 
     EXPECT(GetMonData(&testParty[0], MON_DATA_HP_IV, 0) == 25);
     EXPECT(GetMonData(&testParty[0], MON_DATA_ATK_IV, 0) == 26);

@@ -175,6 +175,8 @@ gSpecials::
 	def_special StartWallClock, waitstate=1
 	def_special Special_ViewWallClock, waitstate=1
 	def_special ChooseStarter, waitstate=1
+	def_special UnholySetFavoriteStarterType
+	def_special UnholyStarterOptionsReady
 	def_special StartWallyTutorialBattle, waitstate=1
 	def_special ChangePokemonNickname, waitstate=1
 	def_special ChoosePartyMon, waitstate=1
@@ -199,6 +201,7 @@ gSpecials::
 	def_special GabbyAndTyGetLastBattleTrivia
 	def_special GetGabbyAndTyLocalIds
 	def_special GetBattleOutcome
+	def_special UnholyWildBoss_Arm
 	def_special GetDaycareMonNicknames
 	def_special GetDaycareState
 	def_special RejectEggFromDayCare
@@ -545,6 +548,7 @@ gSpecials::
 	def_special GetNumberSprayStrength
 	def_special GetSprayId
 	def_special GetLastUsedSprayType
+	def_special UnholyQolGetScriptSetting
 	def_special TrySkyBattle
 	def_special VsSeekerResetObjectMovementAfterChargeComplete
 	def_special VsSeekerFreezeObjectsAfterChargeComplete
@@ -638,3 +642,4 @@ gSpecials::
 	def_special UpdateTrainerCardPhotoIcons
 	def_special StickerManGetBragFlags
 	def_special CheckAddCoins
+	def_special OpenUnholyInjectorMenu

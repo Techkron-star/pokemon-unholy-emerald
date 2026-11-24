@@ -101,7 +101,8 @@
 #define VAR_LOTAD_SIZE_RECORD                            0x404F
 #define VAR_LITTLEROOT_TOWN_STATE                        0x4050
 #define VAR_OLDALE_TOWN_STATE                            0x4051
-#define VAR_DEWFORD_TOWN_STATE                           0x4052 // Unused Var
+#define VAR_DEWFORD_TOWN_STATE                           0x4052 // Unused in Emerald
+#define VAR_UNHOLY_DEBUG_NO_BAG_USE                      VAR_DEWFORD_TOWN_STATE // Reserved debug var; no save layout change
 #define VAR_LAVARIDGE_TOWN_STATE                         0x4053
 #define VAR_CURRENT_SECRET_BASE                          0x4054 // was probably allocated for VAR_FALLARBOR_TOWN_STATE at one point
 #define VAR_VERDANTURF_TOWN_STATE                        0x4055 // Unused Var
@@ -116,14 +117,24 @@
 #define VAR_SOOTOPOLIS_CITY_STATE                        0x405E
 #define VAR_EVER_GRANDE_CITY_STATE                       0x405F // Unused Var
 #define VAR_ROUTE101_STATE                               0x4060
-#define VAR_ROUTE102_STATE                               0x4061 // Unused Var
+#define VAR_ROUTE102_STATE                               0x4061 // Reserved: VAR_POKELOCATOR_TARGET in Emerald
 #define VAR_ROUTE103_STATE                               0x4062 // Unused Var
 #define VAR_ROUTE104_STATE                               0x4063
 #define VAR_ROUTE105_STATE                               0x4064 // Unused Var
 #define VAR_ROUTE106_STATE                               0x4065 // Unused Var
 #define VAR_ROUTE107_STATE                               0x4066 // Unused Var
 #define VAR_ROUTE108_STATE                               0x4067 // Unused Var
+// Unholy Better Starter: four unused Hoenn route-state vars hold the selected
+// type (+1 sentinel) and three persisted species. No SaveBlock format change.
+// These vars have no native script users; FRLG never activates this feature.
+#define VAR_UNHOLY_STARTER_TYPE                          VAR_ROUTE105_STATE
+#define VAR_UNHOLY_STARTER_OFFER_0                       VAR_ROUTE106_STATE
+#define VAR_UNHOLY_STARTER_OFFER_1                       VAR_ROUTE107_STATE
+#define VAR_UNHOLY_STARTER_OFFER_2                       VAR_ROUTE108_STATE
 #define VAR_ROUTE109_STATE                               0x4068 // Unused Var
+// Version of the Unholy world-event manifest last reconciled with this save.
+// Old saves read zero, and existing map pickup flags are never reset.
+#define VAR_UNHOLY_WORLD_VERSION                          VAR_ROUTE109_STATE
 #define VAR_ROUTE110_STATE                               0x4069
 #define VAR_ROUTE111_STATE                               0x406A // Unused Var
 #define VAR_ROUTE112_STATE                               0x406B // Unused Var
@@ -151,6 +162,14 @@
 #define VAR_ROUTE134_STATE                               0x4081 // Unused Var
 #define VAR_LITTLEROOT_HOUSES_STATE_MAY                  0x4082
 #define VAR_UNUSED_0x4083                                0x4083 // Unused Var
+#define VAR_REPEL_AUTO_RENEW                             VAR_UNUSED_0x4083
+// Persist menu toggles without extending the SaveBlock. Keep these distinct
+// from the Horizon market and PokéLocator reservations.
+#if IS_FRLG
+#define VAR_UNHOLY_QOL_FLAGS                             VAR_0x40F6
+#else
+#define VAR_UNHOLY_QOL_FLAGS                             VAR_ROUTE132_STATE
+#endif
 #define VAR_BIRCH_LAB_STATE                              0x4084
 #define VAR_PETALBURG_GYM_STATE                          0x4085 // 0-1: Wally tutorial, 2-6: 0-4 badges, 7: Defeated Norman, 8: Rematch Norman
 #define VAR_CONTEST_HALL_STATE                           0x4086
@@ -158,13 +177,17 @@
 #define VAR_CONTEST_TYPE                                 0x4088
 #define VAR_SECRET_BASE_INITIALIZED                      0x4089
 #define VAR_CONTEST_PRIZE_PICKUP                         0x408A
-#define VAR_UNUSED_0x408B                                0x408B // Unused Var
+#if IS_FRLG
+#define VAR_UNHOLY_EGG_EXP                              VAR_0x4093
+#else
+#define VAR_UNHOLY_EGG_EXP                              0x408B
+#endif
 #define VAR_LITTLEROOT_HOUSES_STATE_BRENDAN              0x408C
 #define VAR_LITTLEROOT_RIVAL_STATE                       0x408D
 #define VAR_BOARD_BRINEY_BOAT_STATE                      0x408E
 #define VAR_DEVON_CORP_3F_STATE                          0x408F
 #define VAR_BRINEY_HOUSE_STATE                           0x4090
-#define VAR_UNUSED_0x4091                                0x4091 // Unused Var
+#define VAR_HFC_FREQUENCY_MAP                            0x4091 // map group and number
 #define VAR_LITTLEROOT_INTRO_STATE                       0x4092
 #define VAR_MAUVILLE_GYM_STATE                           0x4093
 #define VAR_LILYCOVE_MUSEUM_2F_STATE                     0x4094
@@ -174,9 +197,9 @@
 #define VAR_PETALBURG_WOODS_STATE                        0x4098
 #define VAR_LILYCOVE_CONTEST_LOBBY_STATE                 0x4099
 #define VAR_RUSTURF_TUNNEL_STATE                         0x409A
-#define VAR_UNUSED_0x409B                                0x409B // Unused Var
+#define VAR_HFC_FREQUENCY_CHARGE                         0x409B // boost in the high byte, encounters in the low byte
 #define VAR_ELITE_4_STATE                                0x409C
-#define VAR_UNUSED_0x409D                                0x409D // Unused Var
+#define VAR_HFC_ARCHIVE_MUTATIONS                        0x409D // registered mutation mask
 #define VAR_MOSSDEEP_SPACE_CENTER_STAIR_GUARD_STATE      0x409E
 #define VAR_MOSSDEEP_SPACE_CENTER_STATE                  0x409F
 #define VAR_SLATEPORT_HARBOR_STATE                       0x40A0
@@ -275,6 +298,33 @@
 #define VAR_UNUSED_0x40FD                                0x40FD // Unused Var
 #define VAR_UNUSED_0x40FE                                0x40FE // Unused Var
 #define VAR_UNUSED_0x40FF                                0x40FF // Unused Var
+
+// Unholy Horizon Shop: persistent stock in reserved, existing 16-bit vars.
+// No SaveBlock layout changes. Never repurpose these slots for other features.
+#define VAR_HORIZON_MARKET_DAY                         VAR_UNUSED_0x40F7
+#define VAR_HORIZON_MARKET_PERIOD                      VAR_UNUSED_0x40F8
+#define VAR_HORIZON_MARKET_SPECIES_0                   VAR_UNUSED_0x40F9
+#define VAR_HORIZON_MARKET_SPECIES_1                   VAR_UNUSED_0x40FA
+#define VAR_HORIZON_MARKET_MUTATIONS_0                 VAR_UNUSED_0x40FB
+#define VAR_HORIZON_MARKET_STATUS                      VAR_UNUSED_0x40FC // sold bits 0..5; seen bit 6
+#define VAR_HORIZON_MARKET_VERSION                     VAR_UNUSED_0x40FD
+#define VAR_HORIZON_MARKET_BADGES                      VAR_UNUSED_0x40FE
+#define VAR_HORIZON_MARKET_SPECIES_2                   VAR_UNUSED_0x40FF
+#define VAR_HORIZON_MARKET_SPECIES_3                   VAR_UNUSED_0x40DB
+#define VAR_HORIZON_MARKET_SPECIES_4                   VAR_UNUSED_0x40DC
+#define VAR_HORIZON_MARKET_SPECIES_5                   VAR_UNUSED_0x40E5
+#define VAR_HORIZON_MARKET_MUTATIONS_1                 VAR_UNUSED_0x40A1
+#define VAR_HORIZON_EGG_QUALITIES                      VAR_UNUSED_0x40A8 // five 2-bit grades + five sold flags
+#define VAR_HORIZON_GOODS_SEED_A                       VAR_UNUSED_0x40B8 // rotated item/TM stock, low seed
+#define VAR_HORIZON_GOODS_SEED_B                       VAR_UNUSED_0x40BB // rotated item/TM stock, high seed
+
+// Registered locator target: species (11 bits), method (3), format marker (2).
+// These slots have no native story consumers in their respective games.
+#if GAME_VERSION == VERSION_EMERALD
+#define VAR_POKELOCATOR_TARGET VAR_ROUTE102_STATE
+#else
+#define VAR_POKELOCATOR_TARGET VAR_0x40F2
+#endif
 
 #define VARS_END                                         0x40FF
 #define VARS_COUNT                                       (VARS_END - VARS_START + 1)

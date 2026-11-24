@@ -4,9 +4,13 @@ EventScript_UseSurf::
 	bufferpartymonnick STR_VAR_1, VAR_RESULT
 	setfieldeffectargument 0, VAR_RESULT
 	lockall
+	setvar VAR_0x8000, 5 @ UQOL_AUTO_SURF
+	specialvar VAR_RESULT, UnholyQolGetScriptSetting
+	goto_if_eq VAR_RESULT, TRUE, EventScript_AutoUseSurf
 	msgbox gText_WantToUseSurf, MSGBOX_YESNO
 	goto_if_eq VAR_RESULT, NO, EventScript_ReleaseUseSurf
 	msgbox gText_PlayerUsedSurf, MSGBOX_DEFAULT
+EventScript_AutoUseSurf:
 	dofieldeffect FLDEFF_USE_SURF
 EventScript_ReleaseUseSurf::
 	releaseall

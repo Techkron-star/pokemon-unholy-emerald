@@ -2,6 +2,7 @@
 #include "pokemon.h"
 #include "battle.h"
 #include "daycare.h"
+#include "unholy_exp_share.h"
 #include "string_util.h"
 #include "caps.h"
 #include "mail.h"
@@ -744,9 +745,10 @@ void InheritAbility(struct Pokemon *egg, struct DayCare *daycare)
         return;
 
     u32 hiddenAbilityPercentChance = (GetConfig(ABILITY_INHERITANCE) == GEN_5) ? 80 : 60;
-    if (inheritAbility == 2 && !RandomPercentage(RNG_DAYCARE_ABILITY_INHERITANCE, hiddenAbilityPercentChance))
+    // Both hidden slots obey the same inheritance probability.
+    if (inheritAbility >= NUM_NORMAL_ABILITY_SLOTS && !RandomPercentage(RNG_DAYCARE_ABILITY_INHERITANCE, hiddenAbilityPercentChance))
         return;
-    if (inheritAbility < 2 && !RandomPercentage(RNG_DAYCARE_ABILITY_INHERITANCE, 80))
+    if (inheritAbility < NUM_NORMAL_ABILITY_SLOTS && !RandomPercentage(RNG_DAYCARE_ABILITY_INHERITANCE, 80))
         return;
     SetMonData(egg, MON_DATA_ABILITY_NUM, &inheritAbility);
 }
@@ -1019,6 +1021,10 @@ static void _GiveEggFromDaycare(struct DayCare *daycare)
     BuildEggMoveset(&egg, &daycare->mons[parentSlots[1]].mon, &daycare->mons[parentSlots[0]].mon);
     InheritAbility(&egg, daycare);
 
+    // Roll once when receiving this specific egg, after inheritance and
+    // before hatching. The hatched Pokémon keeps the stored mutation bits.
+    Pokemon_AssignSpecialOriginBadges(&egg);
+
     isEgg = TRUE;
     SetMonData(&egg, MON_DATA_IS_EGG, &isEgg);
     gParties[B_TRAINER_PLAYER][PARTY_SIZE - 1] = egg;
@@ -1174,6 +1180,8 @@ static bool32 TryToHatchEgg(struct DayCare *daycare)
 
 bool8 ShouldEggHatch(void)
 {
+    if (UnholyExpShare_FindReadyEgg())
+        return TRUE;
     return TryToHatchEgg(&gSaveBlock1Ptr->daycare);
 }
 

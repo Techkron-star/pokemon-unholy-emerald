@@ -1266,7 +1266,7 @@ bool32 TextPrinterWaitWithDownArrow(struct TextPrinter *textPrinter)
     {
         result = TextPrinterWaitAutoMode(textPrinter);
 
-        if (AUTO_SCROLL_TEXT)
+        if (AUTO_SCROLL_TEXT || gTextFlags.autoScroll)
             SetResultWithButtonPress(&result);
     }
     else
@@ -1284,7 +1284,7 @@ bool32 TextPrinterWait(struct TextPrinter *textPrinter)
     {
         result = TextPrinterWaitAutoMode(textPrinter);
 
-        if (AUTO_SCROLL_TEXT)
+        if (AUTO_SCROLL_TEXT || gTextFlags.autoScroll)
             SetResultWithButtonPress(&result);
     }
     else

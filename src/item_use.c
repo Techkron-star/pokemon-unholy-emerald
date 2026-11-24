@@ -36,6 +36,8 @@
 #include "party_menu.h"
 #include "pokeblock.h"
 #include "pokemon.h"
+#include "pokelocator.h"
+#include "hfc_watch.h"
 #include "script.h"
 #include "sound.h"
 #include "strings.h"
@@ -64,6 +66,8 @@ static void Task_AccessPokemonBoxLink(u8);
 static void ItemUseOnFieldCB_Bike(u8);
 static void ItemUseOnFieldCB_Rod(u8);
 static void ItemUseOnFieldCB_Itemfinder(u8);
+static void ItemUseOnFieldCB_Pokelocator(u8);
+static void ItemUseOnFieldCB_HfcWatch(u8);
 static void ItemUseOnFieldCB_Berry(u8);
 static void ItemUseOnFieldCB_WailmerPailBerry(u8);
 static void ItemUseOnFieldCB_WailmerPailSudowoodo(u8);
@@ -250,7 +254,12 @@ STATIC_ASSERT(I_EXP_SHARE_ITEM < GEN_6 || I_EXP_SHARE_FLAG > TEMP_FLAGS_END, You
 void ItemUseOutOfBattle_ExpShare(u8 taskId)
 {
 #if I_EXP_SHARE_ITEM >= GEN_6
-    if (IsGen6ExpShareEnabled())
+    u16 toggleFlag = I_EXP_SHARE_FLAG;
+    if (gSpecialVar_ItemId == ITEM_SUPER_EXP_SHARE)
+        toggleFlag = FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED;
+    else if (gSpecialVar_ItemId == ITEM_OVERLOADED_EXP_SHARE)
+        toggleFlag = FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED;
+    if (FlagGet(toggleFlag))
     {
         PlaySE(SE_PC_OFF);
         if (!gTasks[taskId].data[2]) // to account for pressing select in the overworld
@@ -266,7 +275,7 @@ void ItemUseOutOfBattle_ExpShare(u8 taskId)
         else
             DisplayItemMessage(taskId, FONT_NORMAL, gText_ExpShareOn, CloseItemMessage);
     }
-    FlagToggle(I_EXP_SHARE_FLAG);
+    FlagToggle(toggleFlag);
 #else
     DisplayDadsAdviceCannotUseItemMessage(taskId, gTasks[taskId].tUsingRegisteredKeyItem);
 #endif
@@ -310,7 +319,7 @@ static void ItemUseOnFieldCB_Bike(u8 taskId)
     DestroyTask(taskId);
 }
 
-static bool32 CanFish(void)
+bool32 CanFishFromCurrentPosition(void)
 {
     s16 x, y;
     u16 tileBehavior;
@@ -342,7 +351,7 @@ static bool32 CanFish(void)
 
 void ItemUseOutOfBattle_Rod(u8 taskId)
 {
-    if (CanFish() == TRUE)
+    if (CanFishFromCurrentPosition() == TRUE)
     {
         sItemUseOnFieldCB = ItemUseOnFieldCB_Rod;
         SetUpItemUseOnFieldCallback(taskId);
@@ -357,6 +366,33 @@ static void ItemUseOnFieldCB_Rod(u8 taskId)
 {
     StartFishing(GetItemSecondaryId(gSpecialVar_ItemId));
     DestroyTask(taskId);
+}
+
+void ItemUseOutOfBattle_Pokelocator(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_Pokelocator;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// Same field-use pattern as the Itemfinder: the bag/registered-item task is closed
+// here and the Pokelocator screen takes over, locking and later unlocking the player.
+static void ItemUseOnFieldCB_Pokelocator(u8 taskId)
+{
+    DestroyTask(taskId);
+    Pokelocator_OpenFromField(NULL);
+}
+
+void ItemUseOutOfBattle_HfcWatch(u8 taskId)
+{
+    sItemUseOnFieldCB = ItemUseOnFieldCB_HfcWatch;
+    SetUpItemUseOnFieldCallback(taskId);
+}
+
+// Same pattern as the Pokelocator: close the bag/registered task, the hub takes over.
+static void ItemUseOnFieldCB_HfcWatch(u8 taskId)
+{
+    DestroyTask(taskId);
+    HfcWatch_OpenHub(FALSE);
 }
 
 void ItemUseOutOfBattle_Itemfinder(u8 var)
@@ -1128,7 +1164,7 @@ static u32 GetBallThrowableState(void)
         return BALL_THROW_UNABLE_NO_ROOM;
     else if (GetConfig(B_SEMI_INVULNERABLE_CATCH) >= GEN_4 &&  IsSemiInvulnerable(GetCatchingBattler(), CHECK_ALL))
         return BALL_THROW_UNABLE_SEMI_INVULNERABLE;
-    else if (FlagGet(WE_FLAG_NO_CATCHING) || !IsAllowedToUseBag())
+    else if ((gBattleTypeFlags & BATTLE_TYPE_RAID) || FlagGet(WE_FLAG_NO_CATCHING) || !IsAllowedToUseBag())
         return BALL_THROW_UNABLE_DISABLED_FLAG;
 
     return BALL_THROW_ABLE;

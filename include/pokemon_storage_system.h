@@ -1,6 +1,8 @@
 #ifndef GUARD_POKEMON_STORAGE_SYSTEM_H
 #define GUARD_POKEMON_STORAGE_SYSTEM_H
 
+#include "unholy_save.h"
+
 #define TOTAL_BOXES_COUNT       14
 #define IN_BOX_ROWS             5 // Number of rows, 6 Pokémon per row
 #define IN_BOX_COLUMNS          6 // Number of columns, 5 Pokémon per column
@@ -24,6 +26,9 @@ struct PokemonStorage
     /*0x8344*/ u8 boxNames[TOTAL_BOXES_COUNT][BOX_NAME_LENGTH + 1];
     /*0x83C2*/ u8 boxWallpapers[TOTAL_BOXES_COUNT];
     /*0x8432*/ struct Pokemon fusions[MAX_FUSION_STORAGE];
+    // Second Unholy logical extension. Existing boxed Pokémon and fusions
+    // retain their original offsets; stored in unused sector 13 tail space.
+    struct SaveBlock5 unholySave5;
 };
 
 extern struct PokemonStorage *gPokemonStoragePtr;
@@ -36,9 +41,16 @@ u16 CountPartyAliveNonEggMons_IgnoreVar0x8004Slot(void);
 u8 CountPartyMons(void);
 u8 *StringCopyAndFillWithSpaces(u8 *dst, const u8 *src, u16 n);
 void ShowPokemonStorageSystemPC(void);
+void OpenPokemonStorageFromField(void (*returnCallback)(void));
 void ResetPokemonStorageSystem(void);
 s16 CompactPartySlots(void);
 u8 StorageGetCurrentBox(void);
+#define BOX_SORT_SPECIES 0
+#define BOX_SORT_LEVEL 1
+#define BOX_SORT_IV_TOTAL 2
+
+void SortCurrentBox(u8 mode);
+void SortCurrentBoxBySpecies(void);
 u32 GetBoxMonDataAt(u8 boxId, u8 boxPosition, s32 request);
 void SetBoxMonDataAt(u8 boxId, u8 boxPosition, s32 request, const void *value);
 u32 GetCurrentBoxMonData(u8 boxPosition, s32 request);

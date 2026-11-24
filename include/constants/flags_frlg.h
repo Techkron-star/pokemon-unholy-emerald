@@ -905,6 +905,8 @@
 #define FLAG_0x392               0x392
 #define FLAG_0x393               0x393
 #define FLAG_0x394               0x394
+#define FLAG_DAILY_HFC_RAID      FLAG_0x393
+#define FLAG_DAILY_HFC_FREQUENCY FLAG_0x394
 #define FLAG_0x395               0x395
 #define FLAG_0x396               0x396
 #define FLAG_0x397               0x397
@@ -1351,6 +1353,16 @@
 #define FLAG_SYS_PC_LANETTE                                         (SYS_FLAGS + 0x34)
 #define FLAG_0x835                                                  (SYS_FLAGS + 0x35)
 #define FLAG_0x836                                                  (SYS_FLAGS + 0x36)
+// Unholy-only persistent flags: FRLG used previously unassigned system slots.
+// Keep these distinct from Emerald's layout; no existing FRLG flags are moved.
+#define FLAG_UNHOLY_EXP_SHARE_ENABLED                                FLAG_0x82A
+#define FLAG_UNHOLY_SUPER_EXP_SHARE_ENABLED                          FLAG_0x82B
+#define FLAG_UNHOLY_UI_DAYLIGHT                                      FLAG_0x82E
+#define FLAG_CRAFTING_UNLOCKED                                       FLAG_0x831
+#define FLAG_DEFEATED_SUPER_LEAGUE                                   FLAG_0x833
+#define FLAG_UNHOLY_OVERLOADED_EXP_SHARE_ENABLED                       FLAG_0x835
+// Starter gift script used by Unholy: keep a dedicated persistent unused FRLG flag.
+#define FLAG_RECEIVED_STARTER_QOL                                     FLAG_0x832
 #define FLAG_SYS_RESET_RTC_ENABLE                                   (SYS_FLAGS + 0x37)
 #define FLAG_0x838                                                  (SYS_FLAGS + 0x38) // Set, never read
 #define FLAG_SYS_MYSTERY_GIFT_ENABLE                                (SYS_FLAGS + 0x39)
@@ -2628,9 +2640,9 @@
 #define FLAG_UNUSED_0x908                           0
 #define FLAG_UNUSED_0x909                           0
 #define FLAG_UNUSED_0x90A                           0
-#define FLAG_UNUSED_0x90B                           0
-#define FLAG_UNUSED_0x90C                           0
-#define FLAG_UNUSED_0x90D                           0
+#define FLAG_UNHOLY_ROUTE119_PANIC                   0
+#define FLAG_UNHOLY_ROUTE120_HOPLITA                 0
+#define FLAG_UNHOLY_ROUTE123_TUNICA                  0
 #define FLAG_UNUSED_0x90E                           0
 #define FLAG_UNUSED_0x90F                           0
 #define FLAG_UNUSED_0x910                           0
@@ -2641,6 +2653,7 @@
 #define FLAG_UNUSED_0x915                           0
 #define FLAG_UNUSED_0x916                           0
 #define FLAG_UNUSED_0x917                           0
+#define FLAG_UNHOLY_WILD_BOSS_AEGIS_CLEARED          0 // Emerald-only map event; never allocate an FRLG save flag.
 #define FLAG_UNUSED_0x918                           0
 #define FLAG_UNUSED_0x919                           0
 #define FLAG_UNUSED_0x91A                           0

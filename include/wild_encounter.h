@@ -66,6 +66,7 @@ bool8 IsAbilityAllowingEncounter(u8 level);
 bool8 TryDoDoubleWildBattle(void);
 u32 CalculateChainFishingShinyRolls(void);
 void CreateWildMon(enum Species species, u8 level);
+void CreateWildMonWithFrequency(enum Species species, u8 level, u8 boost);
 bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPokemonArea area, u8 flags);
 bool8 AreLegendariesInSootopolisPreventingEncounters(void);
 u16 GetCurrentMapWildMonHeaderId(void);
@@ -76,6 +77,12 @@ u32 ChooseWildMonIndex_Rocks(void);
 u32 ChooseHiddenMonIndex(void);
 bool32 MapHasNoEncounterData(void);
 enum TimeOfDay GetTimeOfDayForEncounters(u32 headerId, enum WildPokemonArea area);
+
+// Read-only slot data for UI tools (Pokélocator). None of these call Random().
+// A weight of 0 means "not computable" (invalid slot, or hidden encounters).
+u8 GetWildEncounterSlotCount(enum WildPokemonArea area);
+u8 GetWildEncounterSlotWeight(enum WildPokemonArea area, u8 slot);
+u8 GetWildEncounterSlotGroupTotal(enum WildPokemonArea area, u8 slot);
 
 u8 GetLandEncounterSlotForMatchCall(void);
 u8 GetWaterEncounterSlotForMatchCall(void);

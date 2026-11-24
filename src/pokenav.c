@@ -312,12 +312,33 @@ static void Task_RunLoopedTask_LinkMode(u8 taskId)
     }
 }
 
+static EWRAM_DATA MainCallback sPokeNavFieldReturn = NULL;
+
+void OpenPokeNavWithFieldReturn(void (*fieldReturn)(void))
+{
+    sPokeNavFieldReturn = fieldReturn;
+    SetMainCallback2(CB2_InitPokeNav);
+}
+
+static void ReturnFromPokeNav(void)
+{
+    if (sPokeNavFieldReturn == NULL)
+    {
+        SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
+        return;
+    }
+
+    gFieldCallback = sPokeNavFieldReturn;
+    sPokeNavFieldReturn = NULL;
+    SetMainCallback2(CB2_ReturnToField);
+}
+
 void CB2_InitPokeNav(void)
 {
     gPokenavResources = Alloc(sizeof(*gPokenavResources));
     if (gPokenavResources == NULL)
     {
-        SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
+        ReturnFromPokeNav();
     }
     else
     {
@@ -495,7 +516,7 @@ static void Task_Pokenav(u8 taskId)
             if (calledFromScript)
                 SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
             else
-                SetMainCallback2(CB2_ReturnToFieldWithOpenMenu);
+                ReturnFromPokeNav();
         }
         break;
     }

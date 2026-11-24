@@ -112,6 +112,9 @@ struct StatStages
 // Cleared at the start of HandleAction_ActionFinished
 struct SpecialStatus
 {
+    u8 unholyEffectTargets;
+    u8 unholyPunchRaised;
+    u8 unholySamuraiParried;
     u8 neutralizingGasRemoved:1;
     u8 berryReduced:1;
     u8 mindBlownRecoil:1;
@@ -137,7 +140,7 @@ struct SpecialStatus
     u8 multiHitOn:1;
     u8 teraShellAbilityDone:1;
     u8 backUpTarget:3;
-    u8 padding1:1;
+    u8 stormStaffStrike:1;
     // End of byte
     enum QueuedSwitch queuedSwitch;
     struct StatStages statStageQueue[NUM_BATTLE_STATS];
@@ -582,9 +585,32 @@ struct EventStates
     enum StatChangeResolution resolution:8;
 };
 
+struct GearCycle
+{
+    u8 gear;
+    u8 phase;
+    u8 turns;
+    u8 activations; // Per-Pokemon lifetime limit (not cleared on switch).
+    u16 paladinLastBlockTurn; // 1-based full-turn serial; zero means never.
+};
+
 // Cleared at the beginning of the battle. Fields need to be cleared when needed manually otherwise.
 struct BattleStruct
 {
+    // Transient state: never serialized into a save or Pokemon.
+    u8 unholyStatusHealingMask;
+    u8 unholyHpAdjustedMask;
+    u8 unholyDoubledMicleMask;
+    enum Item unholyEnvyConsumedItem[MAX_BATTLERS_COUNT];
+    u8 unholyEnvySourceOwner[MAX_BATTLERS_COUNT];
+    struct GearCycle unholyEnvyGearCycle[MAX_BATTLERS_COUNT];
+    s32 unholySamuraiDamage[MAX_BATTLERS_COUNT];
+    u8 unholySamuraiCharges[MAX_BATTLERS_COUNT];
+    u8 unholyMalvadoPriority[MAX_BATTLERS_COUNT];
+    u8 unholyReactorReady[MAX_BATTLERS_COUNT];
+    u8 unholyReactorStartedMax[MAX_BATTLERS_COUNT];
+    u8 unholyOriginalTarget[MAX_BATTLERS_COUNT];
+
     struct BattlerState battlerState[MAX_BATTLERS_COUNT];
     struct PartyState partyState[MAX_BATTLE_TRAINERS][PARTY_SIZE];
     struct EventStates eventState;
@@ -745,6 +771,44 @@ struct BattleStruct
     u8 intimidateActivated:1;
     u8 allowPartingShot:1;
     u8 adrenalineOrbActivated:1; // prevents looping after an adrenaline stat changed
+    // Sistema de stamina (ver src/battle_stamina.c)
+    u16 stamina[MAX_BATTLERS_COUNT];
+    u16 maxStamina[MAX_BATTLERS_COUNT];
+    u8 staminaOwner[MAX_BATTLERS_COUNT]; // índice de equipo + 1 del Pokémon dueño de la stamina
+    u8 staminaExhausted[MAX_BATTLERS_COUNT];
+    // Sistema de Gears (ver src/gear.c)
+    u8 gearOwner[MAX_BATTLERS_COUNT];        // entrenador × PARTY_SIZE + índice de equipo + 1
+    u8 gearActivations[MAX_BATTLERS_COUNT];  // serial de activación para el HUD
+    u8 artifactLastAnnounced[MAX_BATTLERS_COUNT]; // Avoid repeating notices per hit.
+    u8 gearHazardGuard[MAX_BATTLERS_COUNT]; // Umbral protects the entire current switch-in
+    u16 gearSnapshotMove[MAX_BATTLERS_COUNT]; // movimiento en ejecución con bonificación fijada
+    u16 gearSnapshotPercent[MAX_BATTLERS_COUNT];
+    u8 meteorArmorPending[MAX_BATTLERS_COUNT]; // 0 = none; 1-3 = lethal overkill tier
+    u16 paladinTurnSerial; // Increments once per completed full battle turn.
+    u8 paladinWeakenedChainTarget[MAX_BATTLERS_COUNT]; // Target + 1; only next chained move.
+    u8 artifactReplicaTotal[MAX_BATTLERS_COUNT]; // Number of extra strikes; 0 = vanilla multihit.
+    u8 artifactReplicaKind[MAX_BATTLERS_COUNT]; // 1 = silos, 2 = water ram, 3 = electric arc.
+    u16 faroSuppressionTurn[NUM_BATTLE_SIDES]; // 1-based full-turn serial for target side.
+    u32 warBannerInitialStatus[MAX_BATTLERS_COUNT];
+    u8 warBannerInitialStages[MAX_BATTLERS_COUNT][NUM_BATTLE_STATS];
+    u8 warBannerInitialFlinch[MAX_BATTLERS_COUNT];
+    u8 warBannerInitialConfusion[MAX_BATTLERS_COUNT];
+    u32 warBannerInitialControlMask[MAX_BATTLERS_COUNT];
+    // La fase sigue al Pokémon dentro del combate, incluso al cambiar de lado en dobles.
+    struct GearCycle gearCycles[MAX_BATTLE_TRAINERS][PARTY_SIZE];
+    // Encadenado de movimientos (ver src/battle_chain.c)
+    u8 chainFirstPos[MAX_BATTLERS_COUNT];  // marcado en el menú: posición del 1er movimiento + 1 (0 = nada)
+    u8 chainSecondPos[MAX_BATTLERS_COUNT]; // posición del 2º movimiento + 1 (0 = sin cadena)
+    u8 chainSpecialMask;
+    u8 chainOpeningMask;
+    bool8 chainFollowUpsInvalid;
+    u8 survivalGuardMask;
+    u8 survivalUsedThisMoveMask;
+    u8 shackleTurns[MAX_BATTLERS_COUNT];
+    bool8 shackleTriedThisMove;
+    u8 turnActionRole[MAX_BATTLERS_COUNT]; // por acción del turno: 1 = usa el 2º movimiento de la cadena
+    u8 numTurnActions;                     // 0 = el normal (gBattlersCount)
+    u8 chainTurnInterrupted;               // un KO cancela las acciones pendientes de esta cadena
 };
 
 struct AiBattleData

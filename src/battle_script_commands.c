@@ -1,4 +1,5 @@
 #include "global.h"
+#include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_hold_effects.h"
 #include "battle_message.h"
@@ -13,10 +14,12 @@
 #include "battle_z_move.h"
 #include "battle_stat_change.h"
 #include "battle_move_resolution.h"
+#include "gear.h"
 #include "item.h"
 #include "item_menu.h"
 #include "util.h"
 #include "pokemon.h"
+#include "unholy_exp_share.h"
 #include "random.h"
 #include "battle_controllers.h"
 #include "battle_interface.h"
@@ -72,6 +75,7 @@
 #include "battle_util.h"
 #include "constants/pokemon.h"
 #include "config/battle.h"
+#include "config/special_badges.h"
 #include "data/battle_move_effects.h"
 #include "test/battle.h"
 #include "follower_npc.h"
@@ -1208,6 +1212,7 @@ static void Cmd_healthbarupdate(void)
     if (gBattleControllerExecFlags)
         return;
 
+    Unholy_AdjustHealing(battler);
     BtlController_EmitHealthBarUpdate(battler, B_COMM_TO_CONTROLLER, min(gBattleStruct->passiveHpUpdate[battler], 10000));
     MarkBattlerForControllerExec(battler);
     gBattlescriptCurrInstr = cmd->nextInstr;
@@ -1240,6 +1245,8 @@ static void Cmd_datahpupdate(void)
     }
 
     gBattleStruct->passiveHpUpdate[battler] = 0;
+    gBattleStruct->unholyStatusHealingMask &= ~(1u << battler);
+    gBattleStruct->unholyHpAdjustedMask &= ~(1u << battler);
 
     if (gBattleMons[battler].hp > gBattleMons[battler].maxHP / 2)
         gBattleStruct->battlerState[battler].wasAboveHalfHp = TRUE;
@@ -1620,6 +1627,7 @@ bool32 TrySetReflect(enum BattlerId battler)
             gSideTimers[side].reflectTimer = 8;
         else
             gSideTimers[side].reflectTimer = 5;
+        Gear_OnScreenSet(battler, &gSideTimers[side].reflectTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, battler) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SET_REFLECT_DOUBLE;
@@ -1641,6 +1649,7 @@ bool32 TrySetLightScreen(enum BattlerId battler)
             gSideTimers[side].lightscreenTimer = 8;
         else
             gSideTimers[side].lightscreenTimer = 5;
+        Gear_OnScreenSet(battler, &gSideTimers[side].lightscreenTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, battler) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = B_MSG_SET_LIGHTSCREEN_DOUBLE;
@@ -1753,7 +1762,7 @@ void SetNonVolatileStatus(enum BattlerId battlerAtk, enum BattlerId effectBattle
 
 static bool32 CanApplyAdditionalEffect(const struct AdditionalEffect *additionalEffect)
 {
-    if (additionalEffect->preAttackEffect)
+    if (additionalEffect->preAttackEffect || Gear_SuppressesAdditionalEffect(gBattlerAttacker, gCurrentMove, additionalEffect))
         return FALSE;
 
     if (additionalEffect->pledgeCombo && gBattleStruct->pledgeState != PLEDGE_COMBO_ATTACK)
@@ -1816,21 +1825,35 @@ static void Cmd_setadditionaleffects(void)
             const struct AdditionalEffect *additionalEffect = GetMoveAdditionalEffectById(gCurrentMove, gBattleStruct->additionalEffectsCounter);
 
             // Various checks for if this move effect can be applied this turn
-            if (CanApplyAdditionalEffect(additionalEffect))
+            if (CanApplyAdditionalEffect(additionalEffect)
+             && !(additionalEffect->chance != 0 && !additionalEffect->self
+               && IsSoundMove(gCurrentMove) && Gear_GetBattlerGear(cv.battlerDef) == GEAR_HEADPHONES))
             {
                 percentChance = CalcSecondaryEffectChance(gBattlerAttacker, cv.abilities[cv.battlerAtk], additionalEffect);
+
+                // Velo Criptico only protects against secondary effects aimed
+                // at its wearer. Primary effects, damage and self-buffs stay.
+                bool32 veilTarget = percentChance != 0 && !additionalEffect->self
+                                 && !IsBattlerAlly(cv.battlerAtk, cv.battlerDef)
+                                 && Gear_GetBattlerGear(cv.battlerDef) == GEAR_VELO_CRIPTICO;
+                if (veilTarget && percentChance < 100
+                 && Gear_GetPhase(cv.battlerDef) == GEAR_PHASE_RECHARGING)
+                    percentChance = percentChance * 75 / 100;
 
                 // Activate effect if it's primary (chance == 0) or if RNGesus says so
                 if ((percentChance == 0) || RandomPercentage(RNG_SECONDARY_EFFECT + gBattleStruct->additionalEffectsCounter, percentChance))
                 {
-                    se.additionalEffect = additionalEffect;
-                    se.moveEffect = additionalEffect->moveEffect;
-                    se.script = gBattlescriptCurrInstr;
-                    se.effectBattler = additionalEffect->self ? cv.battlerAtk : cv.battlerDef;
-                    se.primary = percentChance == 0;
-                    se.certain = percentChance >= 100;
-                    se.onSide = additionalEffect->onSide; // TODO
-                    SetMoveEffect(&cv, &se);
+                    if (!veilTarget || !Gear_ActivateEvent(cv.battlerDef))
+                    {
+                        se.additionalEffect = additionalEffect;
+                        se.moveEffect = additionalEffect->moveEffect;
+                        se.script = gBattlescriptCurrInstr;
+                        se.effectBattler = additionalEffect->self ? cv.battlerAtk : cv.battlerDef;
+                        se.primary = percentChance == 0;
+                        se.certain = percentChance >= 100;
+                        se.onSide = additionalEffect->onSide; // TODO
+                        SetMoveEffect(&cv, &se);
+                    }
                 }
             }
 
@@ -2113,6 +2136,12 @@ static bool32 BattleTypeAllowsExp(void)
         return TRUE;
 }
 
+static bool32 IsExpShareHoldEffect(enum HoldEffect holdEffect)
+{
+    return holdEffect == HOLD_EFFECT_EXP_SHARE
+        || holdEffect == HOLD_EFFECT_EXP_SHARE_PLUS;
+}
+
 static enum HoldEffect GetMonHoldEffect(struct Pokemon *mon)
 {
     enum Item item = GetMonData(mon, MON_DATA_HELD_ITEM);
@@ -2173,6 +2202,8 @@ static void Cmd_getexp(void)
             u32 *exp = &gBattleStruct->expValue;
             u32 sentInBits = gSentPokesToOpponent[(gBattlerFainted & 2) >> 1];
             u32 expShareBits = 0;
+            enum Item share = UnholyExpShare_GetActiveItem();
+            bool32 hasExpSharePlus = share == ITEM_SUPER_EXP_SHARE || share == ITEM_OVERLOADED_EXP_SHARE;
             s32 viaSentIn = 0;
             s32 viaExpShare = 0;
 
@@ -2184,10 +2215,12 @@ static void Cmd_getexp(void)
                     viaSentIn++;
 
                 holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][i]);
-                if (holdEffect == HOLD_EFFECT_EXP_SHARE || IsGen6ExpShareEnabled())
+                if (IsExpShareHoldEffect(holdEffect) || share != ITEM_NONE)
                 {
                     expShareBits |= 1u << i;
                     viaExpShare++;
+                    if (holdEffect == HOLD_EFFECT_EXP_SHARE_PLUS)
+                        hasExpSharePlus = TRUE;
                 }
             }
             // Get order of mons getting exp: 1. all mons via sent in, 2. all mons via exp share
@@ -2213,17 +2246,28 @@ static void Cmd_getexp(void)
             if (GetConfig(B_TRAINER_EXP_MULTIPLIER) <= GEN_7 && gBattleTypeFlags & BATTLE_TYPE_TRAINER)
                 calculatedExp = (calculatedExp * 150) / 100;
 
+            if (share == ITEM_OVERLOADED_EXP_SHARE)
+                UnholyExpShare_AdvanceEggs(calculatedExp);
+
             if (GetConfig(B_SPLIT_EXP) < GEN_6)
             {
                 if (viaExpShare) // at least one mon is getting exp via exp share
                 {
-                    *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);
-                    if (*exp == 0)
-                        *exp = 1;
+                    if (hasExpSharePlus)
+                    {
+                        *exp = calculatedExp;
+                        gBattleStruct->expShareExpValue = calculatedExp;
+                    }
+                    else
+                    {
+                        *exp = SAFE_DIV(calculatedExp / 2, viaSentIn);
+                        if (*exp == 0)
+                            *exp = 1;
 
-                    gBattleStruct->expShareExpValue = calculatedExp / 2 / viaExpShare;
-                    if (gBattleStruct->expShareExpValue == 0)
-                        gBattleStruct->expShareExpValue = 1;
+                        gBattleStruct->expShareExpValue = (share == ITEM_EXP_SHARE ? calculatedExp * 3 / 4 : calculatedExp / 2) / viaExpShare;
+                        if (gBattleStruct->expShareExpValue == 0)
+                            gBattleStruct->expShareExpValue = 1;
+                    }
                 }
                 else
                 {
@@ -2236,7 +2280,7 @@ static void Cmd_getexp(void)
             else
             {
                 *exp = calculatedExp;
-                gBattleStruct->expShareExpValue = calculatedExp / 2;
+                gBattleStruct->expShareExpValue = hasExpSharePlus ? calculatedExp : share == ITEM_EXP_SHARE ? calculatedExp * 3 / 4 : calculatedExp / 2;
                 if (gBattleStruct->expShareExpValue == 0)
                     gBattleStruct->expShareExpValue = 1;
             }
@@ -2250,11 +2294,20 @@ static void Cmd_getexp(void)
     case 2: // set exp value to the poke in expgetter_id and print message
         if (gBattleControllerExecFlags == 0)
         {
+            if (*expMonId >= PARTY_SIZE)
+            {
+                gBattleScripting.getexpState = 6;
+                break;
+            }
             bool32 wasSentOut = (gBattleStruct->expSentInMons & (1u << *expMonId)) != 0;
-            holdEffect = GetMonHoldEffect(&gParties[B_TRAINER_PLAYER][*expMonId]);
+            struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][*expMonId];
+            enum Item share = UnholyExpShare_GetActiveItem();
+            bool32 overloaded = share == ITEM_OVERLOADED_EXP_SHARE;
+            bool32 fullShare = share == ITEM_SUPER_EXP_SHARE || overloaded;
+            holdEffect = GetMonHoldEffect(mon);
 
-            if ((holdEffect != HOLD_EFFECT_EXP_SHARE && !wasSentOut && !IsGen6ExpShareEnabled())
-             || GetMonData(&gParties[B_TRAINER_PLAYER][*expMonId], MON_DATA_SPECIES_OR_EGG) == SPECIES_EGG)
+            if (!IsValidForBattle(mon)
+             || (!IsExpShareHoldEffect(holdEffect) && !wasSentOut && share == ITEM_NONE))
             {
                 gBattleScripting.getexpState = 5;
                 gBattleStruct->battlerExpReward = 0;
@@ -2264,7 +2317,7 @@ static void Cmd_getexp(void)
                 gBattleScripting.getexpState = 5;
                 gBattleStruct->battlerExpReward = 0;
                 if (B_MAX_LEVEL_EV_GAINS >= GEN_5)
-                    MonGainEVs(&gParties[B_TRAINER_PLAYER][*expMonId], faintedSpecies);
+                    MonGainEVs(mon, faintedSpecies, overloaded);
             }
             else
             {
@@ -2287,13 +2340,15 @@ static void Cmd_getexp(void)
                     else
                         gBattleStruct->battlerExpReward = 0;
 
-                    if ((holdEffect == HOLD_EFFECT_EXP_SHARE || IsGen6ExpShareEnabled())
-                        && (B_SPLIT_EXP < GEN_6 || gBattleStruct->battlerExpReward == 0)) // only give exp share bonus in later gens if the mon wasn't sent out
+                    if ((IsExpShareHoldEffect(holdEffect) || share != ITEM_NONE)
+                        && ((GetConfig(B_SPLIT_EXP) < GEN_6 && !fullShare) || !wasSentOut))
                     {
                         gBattleStruct->battlerExpReward += GetSoftLevelCapExpValue(gParties[B_TRAINER_PLAYER][*expMonId].level, gBattleStruct->expShareExpValue);
                     }
 
                     ApplyExperienceMultipliers(&gBattleStruct->battlerExpReward, *expMonId, gBattlerFainted);
+                    if (overloaded)
+                        gBattleStruct->battlerExpReward += gBattleStruct->battlerExpReward * OVERLOADED_EXP_BONUS_PERCENT / 100;
 
                     if (B_EXP_CAP_TYPE == EXP_CAP_HARD && gBattleStruct->battlerExpReward != 0)
                     {
@@ -2321,18 +2376,18 @@ static void Cmd_getexp(void)
                     PREPARE_STRING_BUFFER(gBattleTextBuff2, stringId);
                     PREPARE_WORD_NUMBER_BUFFER(gBattleTextBuff3, 6, gBattleStruct->battlerExpReward);
 
-                    if (wasSentOut || holdEffect == HOLD_EFFECT_EXP_SHARE)
+                    if (wasSentOut || IsExpShareHoldEffect(holdEffect))
                     {
                         PrepareStringBattle(STRINGID_PKMNGAINEDEXP, 0);
                     }
-                    else if (IsGen6ExpShareEnabled() && !gBattleStruct->teamGotExpMsgPrinted) // Print 'the rest of your team got exp' message once, when all of the sent-in mons were given experience
+                    else if (share != ITEM_NONE && !gBattleStruct->teamGotExpMsgPrinted)
                     {
-                        gLastUsedItem = ITEM_EXP_SHARE;
+                        gLastUsedItem = share;
                         PrepareStringBattle(STRINGID_TEAMGAINEDEXP, 0);
                         gBattleStruct->teamGotExpMsgPrinted = TRUE;
                     }
 
-                    MonGainEVs(&gParties[B_TRAINER_PLAYER][*expMonId], faintedSpecies);
+                    MonGainEVs(mon, faintedSpecies, overloaded);
                 }
                 gBattleScripting.getexpState++;
             }
@@ -4389,6 +4444,13 @@ static void Cmd_removeitem(void)
     enum Item itemId = gBattleMons[battler].item;
     bool32 scriptQueued;
 
+    if (GetBattlerAbility(battler) == ABILITY_ENVY
+     && gLastUsedItem == Unholy_EffectiveItem(battler) && Unholy_ConsumeCopiedItem(battler))
+    {
+        gBattlescriptCurrInstr = cmd->nextInstr;
+        return;
+    }
+
     if (gBattleStruct->flungItem == FLUNG_ITEM_REMOVE)
     {
         gBattleStruct->flungItem = FLUNG_ITEM_REMOVED;
@@ -5138,6 +5200,11 @@ static void Cmd_setprotectlike(void)
     }
 
     gBattleMons[gBattlerAttacker].volatiles.consecutiveMoveUses++;
+    if (GetMoveEffect(gCurrentMove) == EFFECT_PROTECT)
+    {
+        Gear_OnProtectSuccess(gBattlerAttacker);
+        Gear_OnProtectExtended(gBattlerAttacker);
+    }
     gBattlescriptCurrInstr = cmd->nextInstr;
 }
 
@@ -7854,7 +7921,9 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
 
     if (gSpeciesInfo[battleMon->species].isUltraBeast)
     {
-        if (ballId == BALL_BEAST)
+        if (ballId == BALL_INFINITY)
+            ball->guaranteedCapture = TRUE;
+        else if (ballId == BALL_BEAST)
             ball->multiplier = 500;
         else
         {
@@ -7872,6 +7941,12 @@ static void ComputeBallData(u32 wildMonBattler, u32 playerBattler, struct BallDa
         ball->multiplier = 200;
         break;
     case BALL_MASTER:
+        ball->guaranteedCapture = TRUE;
+        break;
+    case BALL_OMEGA:
+        ball->multiplier = 300;
+        break;
+    case BALL_INFINITY:
         ball->guaranteedCapture = TRUE;
         break;
     case BALL_NET:
@@ -8059,11 +8134,12 @@ static u32 GetBattleMonCatchRate(struct BattlePokemon *battleMon)
 static u32 ComputeCaptureOdds(u32 wildMonBattler, u32 playerBattler)
 {
     struct BallData ball;
+    struct BattlePokemon *battleMon = &gBattleMons[wildMonBattler];
+    enum PokeBall ballId = ItemIdToBallId(gLastUsedItem);
     ComputeBallData(wildMonBattler, playerBattler, &ball);
 
-    if (ball.guaranteedCapture)
+    if (ball.guaranteedCapture && (ballId == BALL_INFINITY || battleMon->specialBadges == 0))
         return CAPTURE_GUARANTEED;
-    struct BattlePokemon *battleMon = &gBattleMons[wildMonBattler];
     u32 odds = (battleMon->maxHP * 3 -  battleMon->hp * 2);
     s32 catchRate;
 
@@ -8078,6 +8154,15 @@ static u32 ComputeCaptureOdds(u32 wildMonBattler, u32 playerBattler)
 
     odds = odds * catchRate / (battleMon->maxHP * 3);
     odds = odds * ball.multiplier / ball.divider;
+
+    if (battleMon->specialBadges & POKEMON_BADGE_OMEGA)
+        odds = odds * SPECIAL_BADGE_OMEGA_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_ENRAGED)
+        odds = odds * SPECIAL_BADGE_ENRAGED_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_SUPER)
+        odds = odds * SPECIAL_BADGE_SUPER_CAPTURE_PERCENT / 100;
+    else if (battleMon->specialBadges & POKEMON_BADGE_ALPHA)
+        odds = odds * SPECIAL_BADGE_ALPHA_CAPTURE_PERCENT / 100;
 
     u8 badgeCount = 0;
     for (u32 i = FLAG_BADGE01_GET; i < FLAG_BADGE01_GET + NUM_BADGES; i++)
@@ -11658,6 +11743,7 @@ void BS_SetAuroraVeil(void)
             gSideTimers[GetBattlerSide(gBattlerAttacker)].auroraVeilTimer = 8;
         else
             gSideTimers[GetBattlerSide(gBattlerAttacker)].auroraVeilTimer = 5;
+        Gear_OnScreenSet(gBattlerAttacker, &gSideTimers[side].auroraVeilTimer);
 
         if (IsDoubleBattle() && CountAliveMonsInBattle(BATTLE_ALIVE_SIDE, gBattlerAttacker) == 2)
             gBattleCommunication[MULTISTRING_CHOOSER] = 5;
@@ -12231,7 +12317,7 @@ void BS_HandleFailedVictoryCatch(void)
     }
     else
     {
-        u8 hp = 0;
+        u16 hp = 0;
         gBattleMons[gBattlerTarget].hp = hp;
         SetMonData(GetBattlerMon(gBattlerTarget), MON_DATA_HP, &hp);
         gBattleStruct->victoryCatchState = VICTORY_CATCH_FAINTED;

@@ -1,0 +1,18 @@
+// The 15 approved inventory/battle sprites from November 15, 2026.
+// RECENT_GEAR(identifier, graphicsSymbol, assetDirectory, displayName, shortDescription)
+// Deliberately keep this catalog append-only: both Gear and Item IDs are saved.
+RECENT_GEAR(ESCUDO_AEGIS, EscudoAegis, "escudo_aegis", "Escudo de Aegis", "Las subidas de ambas\nDefensas cuentan doble.")
+RECENT_GEAR(ARIETE_NAUTILO, ArieteNautilo, "ariete_nautilo", "Ariete Nautilo", "Los golpes de contacto\ncon daño bajan Def. -1.")
+RECENT_GEAR(GUANTES_COHETE, GuantesCohete, "guantes_cohete", "Guantes Cohete", "Puñetazos: +1 de\nprioridad al atacar.")
+RECENT_GEAR(TUNICA_RUNICA, TunicaRunica, "tunica_runica", "Túnica Rúnica", "Protege del clima\ny trampas de entrada.")
+RECENT_GEAR(CARTEL_BUSQUEDA, CartelBusqueda, "cartel_busqueda", "Cartel de Búsqueda", "+5% daño por nivel\npositivo rival; máx. 60%.")
+RECENT_GEAR(NIHIL_ENGINE, NihilEngine, "nihil_engine", "Nihil Engine", "Quita una trampa rival\ncada 3 turnos activos.")
+RECENT_GEAR(ANILLO_FEERICO, AnilloFeerico, "anillo_feerico", "Anillo Feérico", "Tipo Hada: -25% del\ndaño directo Veneno.")
+RECENT_GEAR(PIEDRA_AFILAR, PiedraAfilar, "piedra_afilar", "Piedra de Afilar", "Movimientos de corte\nsuben Ataque en +1.")
+RECENT_GEAR(BATERIA_RESERVA, BateriaReserva, "bateria_reserva", "Batería de Reserva", "Bajo 50% Stamina: +20%;\n+4% durante recarga.")
+RECENT_GEAR(BOTAS_UMBRAL, BotasUmbral, "botas_umbral", "Botas del Umbral", "Evita trampas al entrar;\nrecarga en 3 turnos.")
+RECENT_GEAR(VELO_CRIPTICO, VeloCriptico, "velo_criptico", "Velo Críptico", "Anula un efecto extra;\nrecarga en 3 turnos.")
+RECENT_GEAR(AMULETO_INQUEBRANTABLE, AmuletoInquebrantable, "amuleto_inquebrantable", "Amul. Inquebrant.", "Evita una reducción de\nstats; recarga 3 turnos.")
+RECENT_GEAR(CRISOL_ESPIRITUAL, CrisolEspiritual, "crisol_espiritual", "Crisol Espiritual", "Cura un estado alterado;\nrecarga en 3 turnos.")
+RECENT_GEAR(LENTE_CERTEZA, LenteCerteza, "lente_certeza", "Lente de Certeza", "El próximo ataque ignora\nevasión; recarga 3 turnos.")
+RECENT_GEAR(MODULO_VECTORIAL, ModuloVectorial, "modulo_vectorial", "Módulo Vectorial", "Ataques de pivote gastan\n25%/8% menos Stamina.")

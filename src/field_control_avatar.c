@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pokelocator.h"
 #include "battle_setup.h"
 #include "bike.h"
 #include "coord_event_weather.h"
@@ -26,6 +27,7 @@
 #include "match_call.h"
 #include "metatile_behavior.h"
 #include "overworld.h"
+#include "party_menu.h"
 #include "pokemon.h"
 #include "safari_zone.h"
 #include "script.h"
@@ -37,9 +39,11 @@
 #include "vs_seeker.h"
 #include "wild_encounter.h"
 #include "wild_encounter_ow.h"
+#include "unholy_qol.h"
 #include "constants/event_bg.h"
 #include "constants/event_objects.h"
 #include "constants/field_poison.h"
+#include "constants/items.h"
 #include "constants/layouts.h"
 #include "constants/metatile_behaviors.h"
 #include "constants/songs.h"
@@ -53,7 +57,9 @@ COMMON_DATA u8 gSelectedObjectEvent = 0;
 static void GetInFrontOfPlayerPosition(struct MapPosition *);
 static u16 GetPlayerCurMetatileBehavior(int);
 static bool8 TryStartInteractionScript(struct MapPosition *, u16, enum Direction);
-static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction);
+static const u8 *GetVisibleItemBallScript(struct MapPosition *, enum Direction);
+static bool8 TryAutoFieldMove(struct MapPosition *, u16, enum Direction);
+static const u8 *GetInteractionScript(struct MapPosition *, u8, enum Direction, bool8 *);
 static const u8 *GetInteractedObjectEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedBackgroundEventScript(struct MapPosition *, u8, enum Direction);
 static const u8 *GetInteractedMetatileScript(struct MapPosition *, u8, enum Direction);
@@ -96,7 +102,7 @@ void FieldClearPlayerInput(struct FieldInput *input)
     input->tookStep = FALSE;
     input->pressedBButton = FALSE;
     input->pressedRButton = FALSE;
-    input->input_field_1_1 = FALSE;
+    input->pressedLButton = FALSE;
     input->input_field_1_2 = FALSE;
     input->input_field_1_3 = FALSE;
     input->dpadDirection = 0;
@@ -122,6 +128,8 @@ void FieldGetPlayerInput(struct FieldInput *input, u16 newKeys, u16 heldKeys)
                 input->pressedBButton = TRUE;
             if (newKeys & R_BUTTON)
                 input->pressedRButton = TRUE;
+            if (newKeys & L_BUTTON)
+                input->pressedLButton = TRUE;
         }
 
         if (heldKeys & (DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT))
@@ -178,6 +186,12 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     if (TryRunOnFrameMapScript() == TRUE)
         return TRUE;
 
+    if (input->pressedLButton)
+    {
+        ScriptContext_SetupScript(EventScript_UnholyQolMenu);
+        return TRUE;
+    }
+
     if (input->pressedBButton && TrySetupDiveEmergeScript() == TRUE)
         return TRUE;
     if (input->tookStep)
@@ -213,6 +227,11 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     if (input->heldDirection && (input->dpadDirection == playerDirection) && (TrySetUpWalkIntoSignpostScript(&position, metatileBehavior, playerDirection) == TRUE))
         return TRUE;
 
+    // Holding the direction towards a field obstacle acts like A only for
+    // explicitly enabled HMs. NPCs and unrelated interactions remain manual.
+    if (input->heldDirection2 && input->dpadDirection == playerDirection && TryAutoFieldMove(&position, metatileBehavior, playerDirection))
+        return TRUE;
+
     if (input->pressedAButton && TryStartInteractionScript(&position, metatileBehavior, playerDirection) == TRUE)
         return TRUE;
 
@@ -235,6 +254,9 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
         return TRUE;
 
     if (input->pressedSelectButton && UseRegisteredKeyItemOnField() == TRUE)
+        return TRUE;
+
+    if (input->pressedRButton && !input->tookStep && !input->heldDirection && Pokelocator_TryQuickSearch())
         return TRUE;
 
     if (input->pressedRButton && TryStartDexNavSearch())
@@ -285,8 +307,19 @@ static u16 GetPlayerCurMetatileBehavior(int runningState)
 
 static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
 {
-    const u8 *script = GetInteractionScript(position, metatileBehavior, direction);
-    if (script == NULL || Script_HasNoEffect(script))
+    bool8 isItemBall = FALSE;
+    // Item balls are ordinary overworld objects, not background signs. Resolve
+    // them directly before the optional script-effect preflight; it must not
+    // prevent a visible pickup from responding to A.
+    const u8 *script = GetVisibleItemBallScript(position, direction);
+    if (script != NULL)
+        isItemBall = TRUE;
+    else
+        script = GetInteractionScript(position, metatileBehavior, direction, &isItemBall);
+    // Native pickups, scripted gifts and disguised wild encounters all use the
+    // item-ball sprite. Their scripts must run even if effect preflight misses
+    // an effect behind a conditional or a special command.
+    if (script == NULL || (!isItemBall && script != Common_EventScript_FindItem && Script_HasNoEffect(script)))
         return FALSE;
 
     // Don't play interaction sound for certain scripts.
@@ -304,11 +337,103 @@ static bool8 TryStartInteractionScript(struct MapPosition *position, u16 metatil
     return TRUE;
 }
 
-static const u8 *GetInteractionScript(struct MapPosition *position, u8 metatileBehavior, enum Direction direction)
+static const u8 *GetVisibleItemBallScript(struct MapPosition *position, enum Direction direction)
+{
+    u8 i;
+    u8 tileElevation = MapGridGetElevationAt(position->x, position->y);
+
+    for (i = 0; i < OBJECT_EVENTS_COUNT; i++)
+    {
+        const struct ObjectEvent *objectEvent = &gObjectEvents[i];
+        const struct ObjectEventTemplate *template;
+        const u8 *script;
+
+        if (!objectEvent->active
+         || objectEvent->graphicsId != OBJ_EVENT_GFX_ITEM_BALL
+         || objectEvent->currentCoords.x != position->x
+         || objectEvent->currentCoords.y != position->y
+         || IsOverworldWildEncounter(&gObjectEvents[i], OWE_ANY))
+            continue;
+
+        // Bridges and slopes can report a ground elevation different from the
+        // sprite's elevation. Accept either matching surface; never reach an
+        // item visible on another floor across a bridge.
+        if (position->elevation != ELEVATION_TRANSITION
+         && tileElevation != ELEVATION_TRANSITION
+         && objectEvent->currentElevation != ELEVATION_TRANSITION
+         && tileElevation != position->elevation
+         && objectEvent->currentElevation != position->elevation)
+            continue;
+
+        template = GetObjectEventTemplateByLocalIdAndMap(
+            objectEvent->localId, objectEvent->mapNum, objectEvent->mapGroup);
+        if (template == NULL || (template->flagId != 0 && FlagGet(template->flagId)))
+            continue;
+
+        script = template->script;
+        if (script == NULL
+         && template->trainerRange_berryTreeId > ITEM_NONE
+         && template->trainerRange_berryTreeId < ITEMS_COUNT)
+            script = Common_EventScript_FindItem;
+        if (script == NULL)
+            continue;
+
+        gSelectedObjectEvent = i;
+        gSpecialVar_LastTalked = objectEvent->localId;
+        gSpecialVar_Facing = direction;
+        // Preserve the same map-local RAM script overrides as the ordinary
+        // interaction path (e.g. generated item balls on special floors).
+        return GetRamScript(gSpecialVar_LastTalked, script);
+    }
+    return NULL;
+}
+
+static bool8 TryAutoFieldMove(struct MapPosition *position, u16 metatileBehavior, enum Direction direction)
+{
+    const u8 *script;
+    enum FieldMove move;
+
+    if (!UnholyQolIsEnabled(UQOL_AUTO_CUT)
+     && !UnholyQolIsEnabled(UQOL_AUTO_ROCK_SMASH)
+     && !UnholyQolIsEnabled(UQOL_AUTO_STRENGTH)
+     && !UnholyQolIsEnabled(UQOL_AUTO_SURF))
+        return FALSE;
+
+    script = GetInteractedObjectEventScript(position, metatileBehavior, direction);
+    if (script == EventScript_CutTree && UnholyQolIsEnabled(UQOL_AUTO_CUT))
+        move = FIELD_MOVE_CUT;
+    else if (script == EventScript_RockSmash && UnholyQolIsEnabled(UQOL_AUTO_ROCK_SMASH))
+        move = FIELD_MOVE_ROCK_SMASH;
+    else if (script == EventScript_StrengthBoulder && UnholyQolIsEnabled(UQOL_AUTO_STRENGTH) && !FlagGet(FLAG_SYS_USE_STRENGTH))
+        move = FIELD_MOVE_STRENGTH;
+    else if (script == NULL && UnholyQolIsEnabled(UQOL_AUTO_SURF)
+          && GetInteractedWaterScript(position, metatileBehavior, direction) == EventScript_UseSurf)
+    {
+        script = EventScript_UseSurf;
+        move = FIELD_MOVE_SURF;
+    }
+    else
+        return FALSE;
+
+    if (!UnholyQolAutoFieldMoveAvailable(move))
+        return FALSE;
+
+    ScriptContext_SetupScript(script);
+    return TRUE;
+}
+
+static const u8 *GetInteractionScript(struct MapPosition *position, u8 metatileBehavior, enum Direction direction, bool8 *isItemBall)
 {
     const u8 *script = GetInteractedObjectEventScript(position, metatileBehavior, direction);
+    *isItemBall = FALSE;
     if (script != NULL)
+    {
+        // Only an actual interacted object can identify a pickup. Background
+        // events must not inherit a stale gSelectedObjectEvent from earlier.
+        *isItemBall = gSelectedObjectEvent < OBJECT_EVENTS_COUNT
+                   && gObjectEvents[gSelectedObjectEvent].graphicsId == OBJ_EVENT_GFX_ITEM_BALL;
         return script;
+    }
 
     script = GetInteractedBackgroundEventScript(position, metatileBehavior, direction);
     if (script != NULL)
@@ -412,6 +537,20 @@ static const u8 *GetInteractedObjectEventScript(struct MapPosition *position, u8
         script = GetTrainerHillTrainerScript();
     else
         script = GetObjectEventScriptPointerByObjectEventId(objectEventId);
+
+    // Recover a pickup whose script pointer was lost while rebuilding or
+    // modifying map templates. Scripted set pieces with no item stay inert.
+    if (script == NULL && gObjectEvents[objectEventId].graphicsId == OBJ_EVENT_GFX_ITEM_BALL)
+    {
+        const struct ObjectEventTemplate *template = GetObjectEventTemplateByLocalIdAndMap(
+            gObjectEvents[objectEventId].localId,
+            gObjectEvents[objectEventId].mapNum,
+            gObjectEvents[objectEventId].mapGroup);
+
+        if (template != NULL && template->trainerRange_berryTreeId > ITEM_NONE
+         && template->trainerRange_berryTreeId < ITEMS_COUNT)
+            script = Common_EventScript_FindItem;
+    }
 
     script = GetRamScript(gSpecialVar_LastTalked, script);
     return script;
@@ -640,7 +779,9 @@ static const u8 *GetInteractedWaterScript(struct MapPosition *unused1, u8 metati
 {
     if (MetatileBehavior_IsFastWater(metatileBehavior) == TRUE && !TestPlayerAvatarFlags(PLAYER_AVATAR_FLAG_SURFING))
         return EventScript_CurrentTooFast;
-    if (IsFieldMoveUnlocked(FIELD_MOVE_SURF) && PartyHasMonWithSurf() == TRUE && IsPlayerFacingSurfableFishableWater() == TRUE
+    if (IsFieldMoveUnlocked(FIELD_MOVE_SURF)
+     && (PartyHasMonWithSurf() || UnholyQolAutoFieldMoveAvailable(FIELD_MOVE_SURF))
+     && IsPlayerFacingSurfableFishableWater() == TRUE
      && CheckFollowerNPCFlag(FOLLOWER_NPC_FLAG_CAN_SURF)
      )
         return EventScript_UseSurf;

@@ -7,6 +7,11 @@ on:
       - upcoming
   pull_request:
 
+# Avoid parallel obsolete PR builds while retaining a distinct gate per PR.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   GAME_REVISION: 0
   GAME_LANGUAGE: ENGLISH
@@ -17,7 +22,7 @@ env:
 jobs:
   build-emerald:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,9 +57,19 @@ jobs:
           GAME_VERSION: EMERALD
         run: make -j$(nproc) -O all
 
+      # Attach the actual testable ROM for Pizza Boy Pro QA. This is the
+      # experimental PR head, NOT a release of master.
+      - name: Subir ROM de prueba Unholy Emerald
+        uses: actions/upload-artifact@v4
+        with:
+          name: unholy-emerald-test-rom
+          path: pokeemerald.gba
+          retention-days: 3
+          if-no-files-found: error
+
   build-firered:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,7 +104,7 @@ jobs:
 
   build-leafgreen:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -124,7 +139,7 @@ jobs:
 
   release:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -161,7 +176,7 @@ jobs:
 
   test:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -203,7 +218,7 @@ jobs:
   # Passes only when all parallel build/test jobs succeed.
   build:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build-emerald, build-firered, build-leafgreen, release, test]
     steps:
       - name: All builds passed
@@ -211,7 +226,7 @@ jobs:
 
   docs_validate:
     if: github.actor != 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -219,9 +234,44 @@ jobs:
       - name: Check that SUMMARY.md includes markdown doc files
         run: .github/docs_validate/inclusive_summary.py
 
+      # No apt, ARM compiler or network setup: catches save-schema C errors
+      # even when Ubuntu package mirrors are temporarily unavailable.
+      - name: Native Unholy save-schema smoke test
+        run: sh tools/unholy/host_save_schema.sh
+
+      - name: Native PC search checks
+        run: sh tools/unholy/host_pc_search.sh
+
+      - name: Mutation badge asset validation
+        run: python3 tools/unholy/validate_mutation_badges.py
+
+      - name: Validate all visible item-ball scripts and Gear pickups
+        run: python3 tools/validate_unholy_pickups.py
+
+      - name: Validate the first Hoenn encounter expansion
+        run: python3 tools/unholy/hoenn_ecology_wave1.py
+
+      - name: Validate encounters on the remaining Hoenn routes
+        run: python3 tools/unholy/hoenn_ecology_remaining.py
+
+      - name: Validate Hoenn cave biome encounters
+        run: python3 tools/unholy/hoenn_ecology_caves.py
+
+      - name: Validate advanced Hoenn dungeon encounters
+        run: python3 tools/unholy/hoenn_ecology_endgame.py
+
+      - name: Validate New Mauville and other secondary habitats
+        run: python3 tools/unholy/hoenn_ecology_side_areas.py
+
+      - name: Validate Better Starter pools and introduction flow
+        run: python3 tools/unholy/validate_better_starters.py
+
+      - name: Validate World Update versioning and progressive map events
+        run: python3 tools/unholy/validate_world_updates.py
+
   allcontributors:
     if: github.actor == 'allcontributors[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: []
     steps:
       - name: Automatically pass for allcontributors

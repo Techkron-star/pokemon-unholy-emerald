@@ -1,6 +1,7 @@
 #include "global.h"
 #include "pokemon.h"
 #include "egg_hatch.h"
+#include "hfc_watch_services.h"
 #include "pokedex.h"
 #include "constants/items.h"
 #include "script.h"
@@ -316,6 +317,7 @@ static void AddHatchedMonToParty(u8 id)
 
     bool32 isEgg = FALSE;
     SetMonData(mon, MON_DATA_IS_EGG, &isEgg);
+    HfcWatch_RegisterMutation(&mon->box);
 
     species = GetMonData(mon, MON_DATA_SPECIES);
     StringCopy(name, GetSpeciesName(species));
