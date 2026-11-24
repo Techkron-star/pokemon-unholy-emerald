@@ -793,4 +793,52 @@ Probar Hachazo frente a Planta puro/dual, cambios de tipo, barreras, inmunidad a
 
 ---
 
-*Última actualización: 23 de noviembre de 2026. Secciones 17–18: movimientos y once habilidades documentados como especificaciones de diseño, con distinción entre decisiones del autor y propuestas aún no aprobadas.*
+*Actualización del 23 de noviembre de 2026: secciones 17–18 documentan movimientos y once habilidades como propuestas de diseño.*
+
+
+---
+
+## 19. Campos elementales: Campo Dracónico y Campo Férreo (23-11-2026)
+
+> **Estado:** diseño aprobado a nivel conceptual, pendiente de programación, animaciones y QA. En Unholy se contempla un campo por cada uno de los 18 tipos y **Campo Cero** como campo especial neutralizador. La intención es que **cada campo tenga una mecánica singular y fácil de entender**, no una colección de bonificaciones de daño.
+
+### 19.1. Campo Dracónico (tipo Dragón) — versión simplificada
+
+- **Tipo:** Dragón.
+- **Duración base:** **5 turnos**.
+- **Efecto único:** mientras está activo, **los Pokémon de tipo Dragón no pueden sufrir reducciones de estadísticas provocadas por enemigos**.
+- **Alcance:** **ambos equipos**, según la elegibilidad del terreno.
+- **Lo que NO hace:** no acumula cargas de Dominio, no rompe pantallas, no aumenta el daño, no prolonga su duración por KOs y no proporciona bonificaciones extras de Velocidad u otras estadísticas.
+- **Motivación:** representar la firmeza de los dragones mediante una sola regla legible. Sustituye expresamente todas las versiones más complejas de Campo Dracónico propuestas antes.
+
+**Interpretación de implementación:** inmunizar ante intentos de reducir Ataque, Defensa, Ataque Especial, Defensa Especial, Velocidad, Precisión y Evasión **originados en un rival** (movimientos o habilidades). No bloquear reducciones provocadas por el propio usuario, por aliados ni por costes voluntarios de movimientos, salvo decisión posterior. Si existen transformaciones de tipo durante el turno, comprobar el tipo actual en el momento de aplicar la bajada. Verificar los mecanismos generales de terreno y la interacción con Pokémon no conectados al suelo antes de cerrar esta regla.
+
+### 19.2. Campo Férreo (tipo Acero) — nombre corregido
+
+- **Nombre canónico:** **Campo Férreo**, no «Campo Magnético».
+- **Tipo:** Acero.
+- **Duración base propuesta:** **5 turnos**.
+- **Efecto propuesto, sencillo:** mientras dura, impide que movimientos o habilidades **enemigas** roben, intercambien o retiren los **objetos equipados y artefactos** de Pokémon afectados.
+- **Alcance propuesto:** ambos equipos.
+- Esta protección **no** bloquea cambios voluntarios de equipamiento fuera del combate ni implica inmunidad a daño, reducción de estadísticas u otros efectos no mencionados.
+
+### 19.3. Convenciones del catálogo de campos
+
+- **Campo Maligno = Siniestro**; **Campo Terror = Fantasma**; **Campo Dracónico = Dragón**; **Campo Férreo = Acero**.
+- **Campo Cero** es el campo especial fuera de los 18 tipos, destinado a neutralizar terrenos; su diseño completo permanece separado.
+- De manera general, solo puede mantenerse **un campo activo** al mismo tiempo. Duración propuesta de 5 turnos para los campos elementales, ampliable a 8 cuando corresponda con Extensor de Terreno.
+- Los terrenos oficiales **Campo de Hierba, Campo Eléctrico, Campo Psíquico y Campo de Niebla** mantienen su identidad mecánica.
+- Los otros campos deben tener una característica distinguible en combate (curación, inmunidad, control, interacción con equipamiento, etc.); **evitar diseños basados únicamente en porcentajes de daño**.
+- El resto del catálogo discutido verbalmente es **provisional** hasta su aprobación individual; esta sección registra únicamente la versión simplificada de Campo Dracónico, el nombre Campo Férreo y los principios compartidos.
+
+### 19.4. Pruebas de aceptación pendientes
+
+1. Bajo Campo Dracónico, un Dragón no pierde estadísticas debido a Intimidación ni a reducciones provocadas por movimientos enemigos; un Pokémon no Dragón conserva el comportamiento normal.
+2. Las bajadas autoinfligidas o de un aliado deben seguir funcionando según la regla elegida; un cambio temporal de tipo actualiza correctamente la elegibilidad.
+3. Ambos equipos reciben el mismo efecto; el terreno caduca sin dejar una inmunidad residual.
+4. Campo Férreo bloquea los efectos hostiles de robo/intercambio/eliminación de objeto o artefacto, sin crear objetos duplicados ni afectar la integridad de los guardados.
+5. Los mensajes y la interfaz muestran el nombre **Campo Férreo** en español; no debe reutilizarse «Campo Magnético» como nombre de este terreno.
+
+---
+
+*Última actualización: 23 de noviembre de 2026. Sección 19: Campo Dracónico simplificado y nombre Campo Férreo asentados como diseño; implementación pendiente.*
