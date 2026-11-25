@@ -231,8 +231,9 @@ TEST("Cofradia mixed credit refunds only own contribution and repays principal o
     UnholySave4_Reset();
     SetMoney(&gSaveBlock1Ptr->money, 100000);
     EXPECT_EQ(CofradiaBeginCredit(0, 5000, 5001), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaBeginCredit(0, 50001, 50001), COFRADIA_INVALID);
     EXPECT_EQ(CofradiaBeginCredit(0, 200000, 50000), COFRADIA_NO_MONEY);
-    EXPECT_EQ(CofradiaBeginCredit(0, 100000, 60000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 60000);
     EXPECT(CofradiaArm());
     EXPECT(CofradiaDisarm());
@@ -240,11 +241,11 @@ TEST("Cofradia mixed credit refunds only own contribution and repays principal o
     EXPECT(CofradiaGetView(&view));
     EXPECT_EQ(view.borrowed, 0);
     EXPECT_EQ(view.debt, 0);
-    EXPECT_EQ(CofradiaBeginCredit(0, 100000, 60000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
     EXPECT(CofradiaArm());
     EXPECT(CofradiaResolve(TRUE));
     EXPECT_EQ(CofradiaCashOut(), COFRADIA_OK);
-    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 101000);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 103000);
     EXPECT(CofradiaGetView(&view));
     EXPECT_EQ(view.debt, 0);
     EXPECT_EQ(view.borrowed, 0);
@@ -261,7 +262,7 @@ TEST("Cofradia defeat creates only principal debt and permits installments")
     struct CofradiaView view;
     UnholySave4_Reset();
     SetMoney(&gSaveBlock1Ptr->money, 100000);
-    EXPECT_EQ(CofradiaBeginCredit(0, 100000, 60000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
     EXPECT(CofradiaArm());
     EXPECT(CofradiaResolve(TRUE));
     EXPECT(CofradiaArm());
