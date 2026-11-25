@@ -2786,8 +2786,8 @@ static void LoadTradeMonPic(struct Pokemon *mon, u8 state)
         {
             u32 palNum = LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), TAG_TRADE_MON_PALETTE_BASE + whichParty);
             if (palNum != 0xFF)
-                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palNum), personality, GetMonData(mon, MON_DATA_OT_ID),
-                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG));
+                NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(palNum), personality, GetMonData(mon, MON_DATA_OT_ID),
+                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG), GetMonData(mon, MON_DATA_CHROMATIC_V2));
         }
         sTradeAnim->monSpecies[whichParty] = species;
         sTradeAnim->monPersonalities[whichParty] = personality;

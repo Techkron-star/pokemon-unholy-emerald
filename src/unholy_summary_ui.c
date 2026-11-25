@@ -143,6 +143,7 @@ static void Cleanup(void);
 static bool32 QolInput(u8 taskId);
 static void DrawQol(void);
 static bool32 EquipmentInput(void);
+static bool32 EditableParty(void);
 
 static void Print(u16 x, u16 y, u16 width, const u8 *text)
 {
@@ -234,8 +235,8 @@ static void CreatePortrait(enum Species species, s16 x, s16 y)
         // This new UI bypasses the classic summary palette-loading path.
         // Use the same individual identity so INFO, battles and evolution
         // previews display the exact same chromatic variant.
-        NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(sprite->oam.paletteNum), pid,
-            GetMonData(mon, MON_DATA_OT_ID), isShiny, isEgg);
+        NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(sprite->oam.paletteNum), pid,
+            GetMonData(mon, MON_DATA_OT_ID), isShiny, isEgg, GetMonData(mon, MON_DATA_CHROMATIC_V2));
         sprite->data[0] = picSpecies;
         sprite->data[2] = isEgg;
         sprite->callback = SpriteCB_StartPortraitAnimation;
@@ -298,6 +299,8 @@ static void Info(void)
     cursor = StringCopy(cursor, COMPOUND_STRING("/"));
     ConvertUIntToDecimalStringN(cursor, GetMonData(mon, MON_DATA_MAX_HP), STR_CONV_MODE_LEFT_ALIGN, 4);
     Print(9, 111, 104, text);
+    Print(115, 116, 101, GetMonData(mon, MON_DATA_CHROMATIC_V2)
+        ? COMPOUND_STRING("COLOR V2") : COMPOUND_STRING("COLOR V1"));
 }
 
 static void InfoDetails(void)
@@ -546,7 +549,9 @@ static void Render(void)
                    : sSummary->page == PAGE_GEAR && sSummary->detail == 1 ? COMPOUND_STRING("L/R:VISTA A:SIG B:ATRAS")
                    : sSummary->page == PAGE_GEAR ? COMPOUND_STRING("L/R:VISTA START:TOOLS B:ATRAS")
                    : sSummary->showDetails ? COMPOUND_STRING("A/B:BACK  START:TOOLS")
-                   : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
+                   : sSummary->page == PAGE_INFO && !GetMonData(&sSummary->mon, MON_DATA_IS_EGG) && (IsBox() || EditableParty())
+                     ? COMPOUND_STRING("A:DETAIL SEL:COLOR START:TOOLS")
+                     : COMPOUND_STRING("<>:TAB A:DETAIL START:TOOLS B:BACK");
     UnholyUi_Print(sSummary->window, FONT_SMALL_NARROW, 7, 131, 210, help);
     PutWindowTilemap(sSummary->window);
     CopyWindowToVram(sSummary->window, COPYWIN_FULL);
@@ -575,6 +580,23 @@ static void Input(u8 taskId)
     if (gPaletteFade.active)
         return;
     if (QolInput(taskId)) return;
+    if (JOY_NEW(SELECT_BUTTON) && sSummary->page == PAGE_INFO && !sSummary->showDetails
+        && !GetMonData(&sSummary->mon, MON_DATA_IS_EGG)
+        && !GetMonData(&sSummary->mon, MON_DATA_SANITY_IS_BAD_EGG)
+        && GetMonData(&sSummary->mon, MON_DATA_SPECIES) != SPECIES_NONE
+        && (IsBox() || EditableParty()))
+    {
+        u8 v2 = !GetMonData(&sSummary->mon, MON_DATA_CHROMATIC_V2);
+        if (IsBox())
+            SetBoxMonData(&((struct BoxPokemon *)sSummary->mons)[sSummary->index], MON_DATA_CHROMATIC_V2, &v2);
+        else
+            SetMonData(&((struct Pokemon *)sSummary->mons)[sSummary->index], MON_DATA_CHROMATIC_V2, &v2);
+        ReadMon();
+        DestroyPortrait();
+        PlaySE(SE_SELECT);
+        Render();
+        return;
+    }
     if (sSummary->showDetails && JOY_NEW(B_BUTTON))
     {
         sSummary->showDetails = FALSE;

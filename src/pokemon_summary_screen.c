@@ -4728,7 +4728,7 @@ static u8 LoadMonGfxAndSprite(struct Pokemon *mon, s16 *state)
             if (palSlot != 0xFF)
             {
                 LoadPalette(basePalette, OBJ_PLTT_ID(palSlot), PLTT_SIZE_4BPP);
-                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palSlot), summary->pid, GetMonData(mon, MON_DATA_OT_ID), summary->isShiny, summary->isEgg);
+                NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(palSlot), summary->pid, GetMonData(mon, MON_DATA_OT_ID), summary->isShiny, summary->isEgg, GetMonData(mon, MON_DATA_CHROMATIC_V2));
             }
         }
         SetMultiuseSpriteTemplateToPokemon(summary->species2, B_POSITION_OPPONENT_LEFT);

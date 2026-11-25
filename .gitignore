@@ -69,3 +69,6 @@ __pycache__
 
 # Worktrees locales de herramientas (agentes)
 .claude/
+
+# Generated spatial palette roles for Unholy
+/src/data/unholy_chromatic_regions.generated.h

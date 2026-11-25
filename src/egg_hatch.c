@@ -389,8 +389,8 @@ static u8 EggHatchCreateMonSprite(u8 useAlt, u8 state, u8 partyId, enum Species 
                                      species, pid, FALSE);
             u32 palNum = LoadSpritePaletteWithTag(GetMonFrontSpritePal(mon), species);
             if (palNum != 0xFF)
-                NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palNum), pid, GetMonData(mon, MON_DATA_OT_ID),
-                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG));
+                NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(palNum), pid, GetMonData(mon, MON_DATA_OT_ID),
+                                               GetMonData(mon, MON_DATA_IS_SHINY), GetMonData(mon, MON_DATA_IS_EGG), GetMonData(mon, MON_DATA_CHROMATIC_V2));
             *speciesLoc = species;
         }
         break;

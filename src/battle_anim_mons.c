@@ -2057,7 +2057,8 @@ u8 CreateAdditionalMonSpriteForMoveAnim(enum Species species, bool32 isBackpic, 
     }
     // Temporary effect sprites use the same identity as their battler.
     if (battler < MAX_BATTLERS_COUNT)
-        NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palette), gBattleMons[battler].personality, gBattleMons[battler].otId, isShiny, FALSE);
+        NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(palette), gBattleMons[battler].personality, gBattleMons[battler].otId, isShiny, FALSE,
+            !IsContest() && GetMonData(GetBattlerMon(battler), MON_DATA_CHROMATIC_V2));
     else
         NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(palette), personality, 0, isShiny, FALSE);
 

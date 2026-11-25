@@ -129,6 +129,7 @@ enum MonData {
     MON_DATA_GEAR,
     MON_DATA_IS_FAVORITE,
     MON_DATA_HAS_BEEN_EXILED,
+    MON_DATA_CHROMATIC_V2,
 };
 
 #define BLOCK_AI_DYNAMAX 15 // Used as dynamax level value by the AI to indicate this mon shouldn't dynamax
@@ -165,7 +166,7 @@ struct PokemonSubstruct0
     u16 pokeball:6; // 63 balls.
     u16 nickname12:8; // 12th character of nickname.
     u16 hasBeenExiled:1; // Lifetime immunity, previously zeroed padding.
-    u16 unused_0A:1;
+    u16 chromaticV2:1; // Former zeroed padding; zero keeps V1.
 };
 
 struct PokemonSubstruct1

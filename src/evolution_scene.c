@@ -266,7 +266,7 @@ void EvolutionScene(struct Pokemon *mon, enum Species postEvoSpecies, bool32 can
                         personality,
                         TRUE);
     LoadPalette(GetMonSpritePalFromSpeciesAndPersonality(currSpecies, isShiny, personality), OBJ_PLTT_ID(1), PLTT_SIZE_4BPP);
-    NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(1), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(1), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
 
     SetMultiuseSpriteTemplateToPokemon(currSpecies, B_POSITION_OPPONENT_LEFT);
     gMultiuseSpriteTemplate.affineAnims = gDummySpriteAffineAnimTable;
@@ -282,7 +282,7 @@ void EvolutionScene(struct Pokemon *mon, enum Species postEvoSpecies, bool32 can
                         personality,
                         TRUE);
     LoadPalette(GetMonSpritePalFromSpeciesAndPersonality(postEvoSpecies, isShiny, personality), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
-    NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
 
     SetMultiuseSpriteTemplateToPokemon(postEvoSpecies, B_POSITION_OPPONENT_RIGHT);
     gMultiuseSpriteTemplate.affineAnims = gDummySpriteAffineAnimTable;
@@ -360,7 +360,7 @@ static void CB2_EvolutionSceneLoadGraphics(void)
                         personality,
                         TRUE);
     LoadPalette(GetMonSpritePalFromSpeciesAndPersonality(postEvoSpecies, isShiny, personality), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
-    NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
 
     SetMultiuseSpriteTemplateToPokemon(postEvoSpecies, B_POSITION_OPPONENT_RIGHT);
     gMultiuseSpriteTemplate.affineAnims = gDummySpriteAffineAnimTable;
@@ -435,7 +435,7 @@ static void CB2_TradeEvolutionSceneLoadGraphics(void)
                                 personality,
                                 TRUE);
             LoadPalette(GetMonSpritePalFromSpeciesAndPersonality(postEvoSpecies, isShiny, personality), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
-            NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+            NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
             gMain.state++;
         }
         break;
@@ -502,7 +502,7 @@ void TradeEvolutionScene(struct Pokemon *mon, enum Species postEvoSpecies, u8 pr
 
     LoadPalette(GetMonSpritePalFromSpeciesAndPersonality(postEvoSpecies, isShiny, personality), OBJ_PLTT_ID(2), PLTT_SIZE_4BPP);
 
-    NaturalTone_ApplyLoadedPalette(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPaletteVersion(OBJ_PLTT_ID(2), personality, GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
 
     SetMultiuseSpriteTemplateToPokemon(postEvoSpecies, B_POSITION_OPPONENT_LEFT);
     gMultiuseSpriteTemplate.affineAnims = gDummySpriteAffineAnimTable;

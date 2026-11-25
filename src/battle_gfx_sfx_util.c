@@ -678,8 +678,8 @@ void BattleLoadMonSpriteGfx(struct Pokemon *mon, enum BattlerId battler)
     LoadPalette(paletteData, BG_PLTT_ID(8) + BG_PLTT_ID(battler), PLTT_SIZE_4BPP);
     // Keep the actor's own hue identity even when Transform changes the
     // displayed species/personality.
-    NaturalTone_ApplyLoadedPalette(paletteOffset, GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
-    NaturalTone_ApplyLoadedPalette(BG_PLTT_ID(8) + BG_PLTT_ID(battler), GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE);
+    NaturalTone_ApplyLoadedPaletteVersion(paletteOffset, GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
+    NaturalTone_ApplyLoadedPaletteVersion(BG_PLTT_ID(8) + BG_PLTT_ID(battler), GetMonData(mon, MON_DATA_PERSONALITY), GetMonData(mon, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(mon, MON_DATA_CHROMATIC_V2));
 
     // transform's pink color
     if (gBattleMons[battler].volatiles.transformed)
@@ -977,7 +977,7 @@ void HandleSpeciesGfxDataChange(enum BattlerId battlerAtk, enum BattlerId battle
     if (IsContest())
         NaturalTone_ApplyLoadedPalette(paletteOffset, personalityValue, 0, isShiny, FALSE);
     else
-        NaturalTone_ApplyLoadedPalette(paletteOffset, GetMonData(monAtk, MON_DATA_PERSONALITY), GetMonData(monAtk, MON_DATA_OT_ID), isShiny, FALSE);
+        NaturalTone_ApplyLoadedPaletteVersion(paletteOffset, GetMonData(monAtk, MON_DATA_PERSONALITY), GetMonData(monAtk, MON_DATA_OT_ID), isShiny, FALSE, GetMonData(monAtk, MON_DATA_CHROMATIC_V2));
 
     if (changeType == SPECIES_GFX_CHANGE_GHOST_UNVEIL)
     {
