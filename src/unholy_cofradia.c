@@ -46,6 +46,9 @@ struct CofradiaRecord
     u32 borrowed;
     u32 debt;
     u8 collectionPending; // processed in the lobby, after party restoration
+    // Zero-price optional keys/artifacts can be reacquired; only accept each
+    // special item ID once per save as permanent payment, not as custody.
+    u8 specialPaymentUsed[(ITEMS_COUNT + 7) / 8];
 };
 STATIC_ASSERT(UNHOLY_SAVE4_COFRADIA_OFFSET + sizeof(struct CofradiaRecord) <= UNHOLY_SAVE4_PAYLOAD_BYTES, CofradiaFitsSave4);
 
@@ -325,10 +328,32 @@ bool32 CofradiaProcessDefault(void)
     return TRUE;
 }
 
+static bool32 IsSpecialPayment(enum Item item)
+{
+    return GetItemDisplayPocket(item) == POCKET_GEARS
+        || GetItemPocket(item) == POCKET_KEY_ITEMS;
+}
+
+static u32 PaymentUnit(const struct CofradiaRecord *r, enum Item item)
+{
+    if (r == NULL || item == ITEM_NONE || item >= ITEMS_COUNT)
+        return 0;
+    u32 value = CofradiaAppraiseItem(item);
+    if (IsSpecialPayment(item))
+    {
+        if (r->specialPaymentUsed[item / 8] & (1u << (item % 8)))
+            return 0;
+        // Keep collateral appraisal separate from permanent payment.
+        // A conservative one-time credit avoids repeated zero-price redemptions.
+        return min(value, 5000u);
+    }
+    return min(value, GetItemSellPrice(item));
+}
+
 enum CofradiaResult CofradiaRepayItem(enum Item item, u16 count)
 {
     struct CofradiaRecord *r = GetRecord();
-    u32 unit = CofradiaAppraiseItem(item);
+    u32 unit = PaymentUnit(r, item);
     u64 value = (u64)unit * count;
     if (r == NULL || !unit || !count || value > r->debt)
         return COFRADIA_INVALID;
@@ -336,9 +361,11 @@ enum CofradiaResult CofradiaRepayItem(enum Item item, u16 count)
         return COFRADIA_BUSY;
     if (!CheckBagHasItem(item, count))
         return COFRADIA_INVALID;
-    if (GetItemPocket(item) == POCKET_KEY_ITEMS && count != 1)
+    if (IsSpecialPayment(item) && count != 1)
         return COFRADIA_INVALID;
     struct CofradiaRecord old = *r;
+    if (IsSpecialPayment(item))
+        r->specialPaymentUsed[item / 8] |= 1u << (item % 8);
     r->debt -= (u32)value;
     if (!r->debt)
         r->collectionPending = FALSE;
@@ -1120,12 +1147,12 @@ static EWRAM_DATA u16 sPayCount = 0;
 
 static u16 ItemPaymentMax(enum Item item)
 {
-    struct CofradiaView ledger;
-    u32 unit = CofradiaAppraiseItem(item);
-    if (!unit || !CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE)
+    struct CofradiaRecord *r = GetRecord();
+    u32 unit = PaymentUnit(r, item);
+    if (!unit || r->state != COFRADIA_IDLE)
         return 0;
-    u32 count = min(ledger.debt / unit, CountTotalItemQuantityInBag(item));
-    if (GetItemPocket(item) == POCKET_KEY_ITEMS)
+    u32 count = min(r->debt / unit, CountTotalItemQuantityInBag(item));
+    if (IsSpecialPayment(item))
         count = min(count, 1u);
     return count;
 }
@@ -1142,8 +1169,8 @@ void CofradiaItemPaymentMenu(void)
     u8 names[COFRADIA_PAYMENT_PAGE][48];
     const u8 *labels[COFRADIA_PAYMENT_PAGE + 2];
     sPayItemRows = 0;
-    struct CofradiaView ledger;
-    if (!CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE || !ledger.debt)
+    struct CofradiaRecord *r = GetRecord();
+    if (r == NULL || r->state != COFRADIA_IDLE || !r->debt)
     {
         Message(C_TEXT("No payment available.", "No hay pago disponible."), FALSE);
         return;
@@ -1151,8 +1178,8 @@ void CofradiaItemPaymentMenu(void)
     u16 id = sPayPageStart;
     for (; id < ITEMS_COUNT && sPayItemRows < COFRADIA_PAYMENT_PAGE; id++)
     {
-        u32 unit = CofradiaAppraiseItem(id);
-        if (!unit || unit > ledger.debt || !CheckBagHasItem(id, 1))
+        u32 unit = PaymentUnit(r, id);
+        if (!unit || unit > r->debt || !CheckBagHasItem(id, 1))
             continue;
         CopyItemName(id, names[sPayItemRows]);
         labels[sPayItemRows] = names[sPayItemRows];
@@ -1198,7 +1225,7 @@ void CofradiaItemPaymentQuote(void)
     sPayCount = gSpecialVar_0x8004 == 0 ? 1 : maxCount;
     u8 *p = CopyItemName(sPayItem, gStringVar4);
     p = Number(StringCopy(p, C_TEXT("\nQuantity: ", "\nCantidad: ")), sPayCount);
-    p = Number(StringCopy(p, C_TEXT("\pDebt reduction: ¥", "\pAbono: ¥")), CofradiaAppraiseItem(sPayItem) * sPayCount);
+    p = Number(StringCopy(p, C_TEXT("\pDebt reduction: ¥", "\pAbono: ¥")), PaymentUnit(GetRecord(), sPayItem) * sPayCount);
     StringCopy(p, C_TEXT("\nPermanent payment, no return.\pConfirm?", "\nPago definitivo, sin devolución.\p¿Confirmas?"));
     gSpecialVar_Result = TRUE;
 }
