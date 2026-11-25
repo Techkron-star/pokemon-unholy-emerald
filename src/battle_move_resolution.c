@@ -3639,6 +3639,9 @@ static enum MoveEndResult MoveEndGearOnHit(struct BattleCalcValues *cv)
      && IsBattlerTurnDamaged(cv->battlerDef, EXCLUDING_SUBSTITUTES)
      && !IsBattlerUnaffectedByMove(cv->battlerDef))
     {
+        if (gSpecialStatuses[cv->battlerDef].criticalHit
+         && !IsBattlerAlly(cv->battlerAtk, cv->battlerDef))
+            Gear_OnCriticalHit(cv->battlerAtk);
         Gear_OnFireMoveHit(cv->battlerAtk, cv->battlerDef, cv->move);
         Gear_OnExtraStrike(cv->battlerAtk, cv->battlerDef, cv->move);
     }
