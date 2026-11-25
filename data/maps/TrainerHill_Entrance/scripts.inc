@@ -652,13 +652,24 @@ Cofradia_Text_Manager:
 	.string "Bienvenido a la Cofradía.\p"
 	.string "La prueba clásica sigue disponible\n"
 	.string "tras superar la Liga.\p"
-	.string "La sala de apuestas aún no abre.$"
+	.string "La sala de apuestas está abierta.$"
 
 Cofradia_Text_Clerk:
 	.string "Contratos, cuentas y suministros.\n"
 	.string "Hoy solo gestiono suministros.$"
 
 @ Cofradia cash-only wager loop. All battles run from the lobby in this phase.
+Cofradia_EntryTrigger::
+	lock
+	msgbox Cofradia_Text_ChooseActivity, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, YES, Cofradia_WagerLobby
+	release
+	goto TrainerHill_Entrance_EventScript_EntryTrigger
+
+Cofradia_Text_ChooseActivity:
+	.string "¿Sala de apuestas?\n"
+	.string "NO: prueba clásica.$"
+
 Cofradia_WagerLobby::
 	callnative CofradiaStatusScript
 	switch VAR_RESULT
@@ -706,7 +717,10 @@ Cofradia_WagerContinue::
 	msgbox Cofradia_Text_WagerCashOut, MSGBOX_YESNO
 	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
 	callnative CofradiaCashOutScript
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
 	msgbox gStringVar4, MSGBOX_DEFAULT
+	msgbox Cofradia_Text_SavePayout, MSGBOX_DEFAULT
+	call Common_EventScript_SaveGame
 	goto Cofradia_WagerExit
 
 Cofradia_WagerFight::
@@ -763,3 +777,6 @@ Cofradia_Text_WagerCancelled:
 Cofradia_Text_WagerLost:
 	.string "La casa se queda con el fondo.\p"
 	.string "Tu equipo ha sido restaurado.$"
+
+Cofradia_Text_SavePayout:
+	.string "Guarda para conservar el cobro.$"
