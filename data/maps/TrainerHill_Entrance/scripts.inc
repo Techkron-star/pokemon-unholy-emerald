@@ -119,7 +119,7 @@ TrainerHill_Entrance_EventScript_Attendant::
 	goto TrainerHill_Entrance_EventScript_AttendantEnd
 
 TrainerHill_Entrance_EventScript_ThanksForPlaying::
-	msgbox Cofradia_Text_Manager, MSGBOX_DEFAULT
+	goto Cofradia_WagerLobby
 TrainerHill_Entrance_EventScript_AttendantEnd::
 	release
 	end
@@ -220,9 +220,8 @@ TrainerHill_Entrance_Movement_PlayerExitElevator:
 
 TrainerHill_Entrance_EventScript_Records::
 	lockall
-	fadescreen FADE_TO_BLACK
-	setvar VAR_0x8004, 0
-	special ShowTrainerHillRecords
+	callnative CofradiaRecordsScript
+	msgbox gStringVar4, MSGBOX_DEFAULT
 	releaseall
 	end
 
@@ -658,3 +657,109 @@ Cofradia_Text_Manager:
 Cofradia_Text_Clerk:
 	.string "Contratos, cuentas y suministros.\n"
 	.string "Hoy solo gestiono suministros.$"
+
+@ Cofradia cash-only wager loop. All battles run from the lobby in this phase.
+Cofradia_WagerLobby::
+	callnative CofradiaStatusScript
+	switch VAR_RESULT
+	case 1, Cofradia_WagerContinue
+	case 2, Cofradia_WagerUnstarted
+	case 3, Cofradia_WagerMessage
+	case 4, Cofradia_WagerMessage
+	msgbox Cofradia_Text_WagerWelcome, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
+	closemessage
+	callnative CofradiaDifficultyMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerExit
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_WagerExit
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaChooseDifficulty
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
+
+Cofradia_WagerStake::
+	callnative CofradiaStakeMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerExit
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_WagerExit
+	goto_if_eq VAR_RESULT, 0, Cofradia_WagerConfirm
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaAdjustStake
+	goto Cofradia_WagerStake
+
+Cofradia_WagerConfirm::
+	msgbox Cofradia_Text_WagerRisk, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
+	callnative CofradiaBeginScript
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
+	goto Cofradia_WagerFight
+
+Cofradia_WagerUnstarted::
+	msgbox Cofradia_Text_WagerUnstarted, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, YES, Cofradia_WagerFight
+	callnative CofradiaCancelSaveScript
+	goto Cofradia_WagerExit
+
+Cofradia_WagerContinue::
+	msgbox gStringVar4, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, YES, Cofradia_WagerFight
+	msgbox Cofradia_Text_WagerCashOut, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
+	callnative CofradiaCashOutScript
+	msgbox gStringVar4, MSGBOX_DEFAULT
+	goto Cofradia_WagerExit
+
+Cofradia_WagerFight::
+	callnative CofradiaArmScript
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
+	closemessage
+	msgbox Cofradia_Text_WagerSave, MSGBOX_DEFAULT
+	call Common_EventScript_SaveGame
+	goto_if_eq VAR_RESULT, FALSE, Cofradia_WagerSaveCancelled
+	callnative CofradiaStartBattleScript
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
+	waitstate
+	callnative CofradiaStatusScript
+	goto_if_eq VAR_RESULT, 1, Cofradia_WagerContinue
+	goto_if_eq VAR_RESULT, 3, Cofradia_WagerMessage
+	msgbox Cofradia_Text_WagerLost, MSGBOX_DEFAULT
+	goto Cofradia_WagerExit
+
+Cofradia_WagerSaveCancelled::
+	callnative CofradiaCancelSaveScript
+	msgbox Cofradia_Text_WagerCancelled, MSGBOX_DEFAULT
+	goto Cofradia_WagerExit
+
+Cofradia_WagerMessage::
+	msgbox gStringVar4, MSGBOX_DEFAULT
+Cofradia_WagerExit::
+	release
+	end
+
+Cofradia_Text_WagerWelcome:
+	.string "Bienvenido a la sala de apuestas.\p"
+	.string "¿Quieres desafiar a la Cofradía?$"
+
+Cofradia_Text_WagerRisk:
+	.string "Si pierdes o reinicias durante\n"
+	.string "el combate, pierdes todo el fondo.\p"
+	.string "No se permite usar la mochila.\n"
+	.string "¿Confirmas la apuesta?$"
+
+Cofradia_Text_WagerUnstarted:
+	.string "Hay una apuesta sin comenzar.\n"
+	.string "¿Jugar? NO devuelve tu apuesta.$"
+
+Cofradia_Text_WagerSave:
+	.string "Guarda antes de combatir.$"
+
+Cofradia_Text_WagerCashOut:
+	.string "¿Retirar el fondo y terminar\n"
+	.string "la racha?$"
+
+Cofradia_Text_WagerCancelled:
+	.string "Ronda cancelada. No hay derrota.$"
+
+Cofradia_Text_WagerLost:
+	.string "La casa se queda con el fondo.\p"
+	.string "Tu equipo ha sido restaurado.$"
