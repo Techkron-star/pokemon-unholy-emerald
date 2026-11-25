@@ -27,6 +27,8 @@ bool32 CofradiaDisarm(void);
 bool32 CofradiaResolve(bool32 won);
 enum CofradiaResult CofradiaCashOut(void);
 bool32 CofradiaBattleActive(void);
+u8 CofradiaBattleDifficulty(void);
+void CofradiaScaleEnemyParty(void);
 bool32 CofradiaPrepareBattle(void);
 void CofradiaBattleEnded(u8 outcome);
 void CofradiaStatusScript(void);
