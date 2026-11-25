@@ -812,7 +812,7 @@ static void HorizonDrawRootPreview(u8 panel)
 
     if (sHorizonSelectedTab == 0)
     {
-        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
+        for (u8 slot = 0; slot < min(6, HorizonMarketGetVisibleOfferCount()); slot++)
         {
             u8 col = slot % 3;
             u8 row = slot / 3;
@@ -893,10 +893,11 @@ static void HorizonDrawInfo(void)
 
         // Six offers occupy a native 3x2 grid instead of a cramped vertical
         // list. Every slot retains its persistent state, price and rare badge.
-        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
+        u8 first = sHorizonPokemonSelection / 6 * 6;
+        for (u8 slot = first; slot < min(first + 6, HorizonMarketGetVisibleOfferCount()); slot++)
         {
-            u8 x = 5 + (slot % 3) * 70;
-            u8 y = 28 + (slot / 3) * 28;
+            u8 x = 5 + ((slot - first) % 3) * 70;
+            u8 y = 28 + ((slot - first) / 3) * 28;
             const enum Species species = HorizonMarketGetSpecies(slot);
             bool8 sold = HorizonMarketOfferSold(slot);
 
@@ -1202,7 +1203,9 @@ static void Task_ShopMenu(u8 taskId)
         }
         if (JOY_REPEAT(DPAD_ANY))
         {
-            if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+            if (JOY_REPEAT(DPAD_UP))
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + HorizonMarketGetVisibleOfferCount() - 3) % HorizonMarketGetVisibleOfferCount();
+            else if (JOY_REPEAT(DPAD_DOWN))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HorizonMarketGetVisibleOfferCount();
             else if (JOY_REPEAT(DPAD_LEFT))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + HorizonMarketGetVisibleOfferCount() - 1) % HorizonMarketGetVisibleOfferCount();
@@ -1649,268 +1652,15 @@ static u32 GetShopPurchasePrice(enum Item item)
     u32 price = GetItemPrice(item);
     u16 map = (gSaveBlock1Ptr->location.mapGroup << 8) | gSaveBlock1Ptr->location.mapNum;
 
-    if (sHorizonActive || (map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_2F
+    if (sHorizonActive)
+        return HorizonGoodsReferencePrice(item);
+    if (map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_2F
                        && map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_3F
                        && map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_4F
-                       && map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_5F))
+                       && map != MAP_LILYCOVE_CITY_DEPARTMENT_STORE_5F)
         return price >> IsPokeNewsActive(POKENEWS_SLATEPORT);
 
-    switch (item)
-    {
-    case ITEM_VENUSAURITE: price = 50000; break;
-    case ITEM_CHARIZARDITE_X: price = 50000; break;
-    case ITEM_CHARIZARDITE_Y: price = 50000; break;
-    case ITEM_BLASTOISINITE: price = 50000; break;
-    case ITEM_BEEDRILLITE: price = 50000; break;
-    case ITEM_PIDGEOTITE: price = 50000; break;
-    case ITEM_ALAKAZITE: price = 50000; break;
-    case ITEM_SLOWBRONITE: price = 50000; break;
-    case ITEM_GENGARITE: price = 50000; break;
-    case ITEM_KANGASKHANITE: price = 50000; break;
-    case ITEM_PINSIRITE: price = 50000; break;
-    case ITEM_GYARADOSITE: price = 50000; break;
-    case ITEM_AERODACTYLITE: price = 50000; break;
-    case ITEM_MEWTWONITE_X: price = 120000; break;
-    case ITEM_MEWTWONITE_Y: price = 120000; break;
-    case ITEM_AMPHAROSITE: price = 50000; break;
-    case ITEM_STEELIXITE: price = 50000; break;
-    case ITEM_SCIZORITE: price = 50000; break;
-    case ITEM_HERACRONITE: price = 50000; break;
-    case ITEM_HOUNDOOMINITE: price = 50000; break;
-    case ITEM_TYRANITARITE: price = 50000; break;
-    case ITEM_SCEPTILITE: price = 50000; break;
-    case ITEM_BLAZIKENITE: price = 50000; break;
-    case ITEM_SWAMPERTITE: price = 50000; break;
-    case ITEM_GARDEVOIRITE: price = 50000; break;
-    case ITEM_SABLENITE: price = 50000; break;
-    case ITEM_MAWILITE: price = 50000; break;
-    case ITEM_AGGRONITE: price = 50000; break;
-    case ITEM_MEDICHAMITE: price = 50000; break;
-    case ITEM_MANECTITE: price = 50000; break;
-    case ITEM_SHARPEDONITE: price = 50000; break;
-    case ITEM_CAMERUPTITE: price = 50000; break;
-    case ITEM_ALTARIANITE: price = 50000; break;
-    case ITEM_BANETTITE: price = 50000; break;
-    case ITEM_ABSOLITE: price = 50000; break;
-    case ITEM_GLALITITE: price = 50000; break;
-    case ITEM_SALAMENCITE: price = 50000; break;
-    case ITEM_METAGROSSITE: price = 50000; break;
-    case ITEM_LATIASITE: price = 120000; break;
-    case ITEM_LATIOSITE: price = 120000; break;
-    case ITEM_LOPUNNITE: price = 50000; break;
-    case ITEM_GARCHOMPITE: price = 50000; break;
-    case ITEM_LUCARIONITE: price = 50000; break;
-    case ITEM_ABOMASITE: price = 50000; break;
-    case ITEM_GALLADITE: price = 50000; break;
-    case ITEM_AUDINITE: price = 50000; break;
-    case ITEM_DIANCITE: price = 120000; break;
-    case ITEM_CLEFABLITE: price = 50000; break;
-    case ITEM_VICTREEBELITE: price = 50000; break;
-    case ITEM_STARMINITE: price = 50000; break;
-    case ITEM_DRAGONINITE: price = 50000; break;
-    case ITEM_MEGANIUMITE: price = 50000; break;
-    case ITEM_FERALIGITE: price = 50000; break;
-    case ITEM_SKARMORITE: price = 50000; break;
-    case ITEM_FROSLASSITE: price = 50000; break;
-    case ITEM_EMBOARITE: price = 50000; break;
-    case ITEM_EXCADRITE: price = 50000; break;
-    case ITEM_SCOLIPITE: price = 50000; break;
-    case ITEM_SCRAFTINITE: price = 50000; break;
-    case ITEM_EELEKTROSSITE: price = 50000; break;
-    case ITEM_CHANDELURITE: price = 50000; break;
-    case ITEM_CHESNAUGHTITE: price = 50000; break;
-    case ITEM_DELPHOXITE: price = 50000; break;
-    case ITEM_GRENINJITE: price = 50000; break;
-    case ITEM_PYROARITE: price = 50000; break;
-    case ITEM_FLOETTITE: price = 50000; break;
-    case ITEM_MALAMARITE: price = 50000; break;
-    case ITEM_BARBARACITE: price = 50000; break;
-    case ITEM_DRAGALGITE: price = 50000; break;
-    case ITEM_HAWLUCHANITE: price = 50000; break;
-    case ITEM_ZYGARDITE: price = 120000; break;
-    case ITEM_DRAMPANITE: price = 50000; break;
-    case ITEM_FALINKSITE: price = 50000; break;
-    case ITEM_HEATRANITE: price = 120000; break;
-    case ITEM_DARKRANITE: price = 120000; break;
-    case ITEM_ZERAORITE: price = 120000; break;
-    case ITEM_RAICHUNITE_X: price = 50000; break;
-    case ITEM_RAICHUNITE_Y: price = 50000; break;
-    case ITEM_CHIMECHITE: price = 50000; break;
-    case ITEM_ABSOLITE_Z: price = 80000; break;
-    case ITEM_STARAPTITE: price = 50000; break;
-    case ITEM_GARCHOMPITE_Z: price = 80000; break;
-    case ITEM_LUCARIONITE_Z: price = 80000; break;
-    case ITEM_GOLURKITE: price = 50000; break;
-    case ITEM_MEOWSTICITE: price = 50000; break;
-    case ITEM_CRABOMINITE: price = 50000; break;
-    case ITEM_GOLISOPITE: price = 50000; break;
-    case ITEM_MAGEARNITE: price = 120000; break;
-    case ITEM_SCOVILLAINITE: price = 50000; break;
-    case ITEM_BAXCALIBRITE: price = 50000; break;
-    case ITEM_TATSUGIRINITE: price = 50000; break;
-    case ITEM_GLIMMORANITE: price = 50000; break;
-    case ITEM_NORMALIUM_Z: price = 25000; break;
-    case ITEM_FIRIUM_Z: price = 25000; break;
-    case ITEM_WATERIUM_Z: price = 25000; break;
-    case ITEM_ELECTRIUM_Z: price = 25000; break;
-    case ITEM_GRASSIUM_Z: price = 25000; break;
-    case ITEM_ICIUM_Z: price = 25000; break;
-    case ITEM_FIGHTINIUM_Z: price = 25000; break;
-    case ITEM_POISONIUM_Z: price = 25000; break;
-    case ITEM_GROUNDIUM_Z: price = 25000; break;
-    case ITEM_FLYINIUM_Z: price = 25000; break;
-    case ITEM_PSYCHIUM_Z: price = 25000; break;
-    case ITEM_BUGINIUM_Z: price = 25000; break;
-    case ITEM_ROCKIUM_Z: price = 25000; break;
-    case ITEM_GHOSTIUM_Z: price = 25000; break;
-    case ITEM_DRAGONIUM_Z: price = 25000; break;
-    case ITEM_DARKINIUM_Z: price = 25000; break;
-    case ITEM_STEELIUM_Z: price = 25000; break;
-    case ITEM_FAIRIUM_Z: price = 25000; break;
-    case ITEM_PIKANIUM_Z: price = 60000; break;
-    case ITEM_EEVIUM_Z: price = 60000; break;
-    case ITEM_SNORLIUM_Z: price = 60000; break;
-    case ITEM_MEWNIUM_Z: price = 100000; break;
-    case ITEM_DECIDIUM_Z: price = 60000; break;
-    case ITEM_INCINIUM_Z: price = 60000; break;
-    case ITEM_PRIMARIUM_Z: price = 60000; break;
-    case ITEM_LYCANIUM_Z: price = 60000; break;
-    case ITEM_MIMIKIUM_Z: price = 60000; break;
-    case ITEM_KOMMONIUM_Z: price = 60000; break;
-    case ITEM_TAPUNIUM_Z: price = 60000; break;
-    case ITEM_SOLGANIUM_Z: price = 100000; break;
-    case ITEM_LUNALIUM_Z: price = 100000; break;
-    case ITEM_MARSHADIUM_Z: price = 100000; break;
-    case ITEM_ALORAICHIUM_Z: price = 60000; break;
-    case ITEM_PIKASHUNIUM_Z: price = 60000; break;
-    case ITEM_ULTRANECROZIUM_Z: price = 100000; break;
-    case ITEM_LONELY_MINT: price = 15000; break;
-    case ITEM_ADAMANT_MINT: price = 15000; break;
-    case ITEM_NAUGHTY_MINT: price = 15000; break;
-    case ITEM_BRAVE_MINT: price = 15000; break;
-    case ITEM_BOLD_MINT: price = 15000; break;
-    case ITEM_IMPISH_MINT: price = 15000; break;
-    case ITEM_LAX_MINT: price = 15000; break;
-    case ITEM_RELAXED_MINT: price = 15000; break;
-    case ITEM_MODEST_MINT: price = 15000; break;
-    case ITEM_MILD_MINT: price = 15000; break;
-    case ITEM_RASH_MINT: price = 15000; break;
-    case ITEM_QUIET_MINT: price = 15000; break;
-    case ITEM_CALM_MINT: price = 15000; break;
-    case ITEM_GENTLE_MINT: price = 15000; break;
-    case ITEM_CAREFUL_MINT: price = 15000; break;
-    case ITEM_SASSY_MINT: price = 15000; break;
-    case ITEM_TIMID_MINT: price = 15000; break;
-    case ITEM_HASTY_MINT: price = 15000; break;
-    case ITEM_JOLLY_MINT: price = 15000; break;
-    case ITEM_NAIVE_MINT: price = 15000; break;
-    case ITEM_SERIOUS_MINT: price = 15000; break;
-    case ITEM_EXP_CANDY_XS: price = 300; break;
-    case ITEM_EXP_CANDY_S: price = 1000; break;
-    case ITEM_EXP_CANDY_M: price = 3000; break;
-    case ITEM_EXP_CANDY_L: price = 9000; break;
-    case ITEM_EXP_CANDY_XL: price = 24000; break;
-    case ITEM_ABILITY_CAPSULE: price = 60000; break;
-    case ITEM_ABILITY_PATCH: price = 150000; break;
-    case ITEM_BOTTLE_CAP: price = 25000; break;
-    case ITEM_GOLD_BOTTLE_CAP: price = 100000; break;
-    case ITEM_ESCAPE_ROPE: price = 1000; break;
-    case ITEM_DYNAMAX_CANDY: price = 4000; break;
-    case ITEM_MAX_MUSHROOMS: price = 15000; break;
-    case ITEM_MAX_HONEY: price = 12000; break;
-    case ITEM_WISHING_PIECE: price = 8000; break;
-    case ITEM_ARMORITE_ORE: price = 3000; break;
-    case ITEM_DYNITE_ORE: price = 5000; break;
-    case ITEM_DNA_SPLICERS: price = 120000; break;
-    case ITEM_N_SOLARIZER: price = 120000; break;
-    case ITEM_N_LUNARIZER: price = 120000; break;
-    case ITEM_REINS_OF_UNITY: price = 100000; break;
-    case ITEM_PRISON_BOTTLE: price = 75000; break;
-    case ITEM_ZYGARDE_CUBE: price = 75000; break;
-    case ITEM_ROTOM_CATALOG: price = 20000; break;
-    case ITEM_GRACIDEA: price = 20000; break;
-    case ITEM_REVEAL_GLASS: price = 50000; break;
-    case ITEM_RED_ORB: price = 120000; break;
-    case ITEM_BLUE_ORB: price = 120000; break;
-    case ITEM_GRISEOUS_CORE: price = 100000; break;
-    case ITEM_SOUL_DEW: price = 80000; break;
-    case ITEM_BOOSTER_ENERGY: price = 15000; break;
-    case ITEM_BUG_TERA_SHARD: price = 2500; break;
-    case ITEM_DARK_TERA_SHARD: price = 2500; break;
-    case ITEM_DRAGON_TERA_SHARD: price = 2500; break;
-    case ITEM_ELECTRIC_TERA_SHARD: price = 2500; break;
-    case ITEM_FAIRY_TERA_SHARD: price = 2500; break;
-    case ITEM_FIGHTING_TERA_SHARD: price = 2500; break;
-    case ITEM_FIRE_TERA_SHARD: price = 2500; break;
-    case ITEM_FLYING_TERA_SHARD: price = 2500; break;
-    case ITEM_GHOST_TERA_SHARD: price = 2500; break;
-    case ITEM_GRASS_TERA_SHARD: price = 2500; break;
-    case ITEM_GROUND_TERA_SHARD: price = 2500; break;
-    case ITEM_ICE_TERA_SHARD: price = 2500; break;
-    case ITEM_NORMAL_TERA_SHARD: price = 2500; break;
-    case ITEM_POISON_TERA_SHARD: price = 2500; break;
-    case ITEM_PSYCHIC_TERA_SHARD: price = 2500; break;
-    case ITEM_ROCK_TERA_SHARD: price = 2500; break;
-    case ITEM_STEEL_TERA_SHARD: price = 2500; break;
-    case ITEM_WATER_TERA_SHARD: price = 2500; break;
-    case ITEM_STELLAR_TERA_SHARD: price = 8000; break;
-    case ITEM_LEVEL_BALL: price = 4000; break;
-    case ITEM_LURE_BALL: price = 4000; break;
-    case ITEM_MOON_BALL: price = 4000; break;
-    case ITEM_FRIEND_BALL: price = 4000; break;
-    case ITEM_LOVE_BALL: price = 4000; break;
-    case ITEM_FAST_BALL: price = 4000; break;
-    case ITEM_HEAVY_BALL: price = 4000; break;
-    case ITEM_DREAM_BALL: price = 4000; break;
-    case ITEM_BEAST_BALL: price = 4000; break;
-    case ITEM_FIRE_STONE: price = 5000; break;
-    case ITEM_WATER_STONE: price = 5000; break;
-    case ITEM_THUNDER_STONE: price = 5000; break;
-    case ITEM_LEAF_STONE: price = 5000; break;
-    case ITEM_ICE_STONE: price = 5000; break;
-    case ITEM_SUN_STONE: price = 5000; break;
-    case ITEM_MOON_STONE: price = 5000; break;
-    case ITEM_SHINY_STONE: price = 5000; break;
-    case ITEM_DUSK_STONE: price = 5000; break;
-    case ITEM_DAWN_STONE: price = 5000; break;
-    case ITEM_SWEET_APPLE: price = 12000; break;
-    case ITEM_TART_APPLE: price = 12000; break;
-    case ITEM_CRACKED_POT: price = 12000; break;
-    case ITEM_CHIPPED_POT: price = 12000; break;
-    case ITEM_GALARICA_CUFF: price = 12000; break;
-    case ITEM_GALARICA_WREATH: price = 12000; break;
-    case ITEM_DRAGON_SCALE: price = 12000; break;
-    case ITEM_UPGRADE: price = 12000; break;
-    case ITEM_PROTECTOR: price = 12000; break;
-    case ITEM_ELECTIRIZER: price = 12000; break;
-    case ITEM_MAGMARIZER: price = 12000; break;
-    case ITEM_DUBIOUS_DISC: price = 12000; break;
-    case ITEM_REAPER_CLOTH: price = 12000; break;
-    case ITEM_PRISM_SCALE: price = 12000; break;
-    case ITEM_WHIPPED_DREAM: price = 12000; break;
-    case ITEM_SACHET: price = 12000; break;
-    case ITEM_OVAL_STONE: price = 5000; break;
-    case ITEM_EVERSTONE: price = 5000; break;
-    case ITEM_LINKING_CORD: price = 12000; break;
-    case ITEM_METAL_COAT: price = 12000; break;
-    case ITEM_KINGS_ROCK: price = 12000; break;
-    case ITEM_BLACK_AUGURITE: price = 12000; break;
-    case ITEM_HEALTH_FEATHER: price = 500; break;
-    case ITEM_MUSCLE_FEATHER: price = 500; break;
-    case ITEM_RESIST_FEATHER: price = 500; break;
-    case ITEM_GENIUS_FEATHER: price = 500; break;
-    case ITEM_CLEVER_FEATHER: price = 500; break;
-    case ITEM_SWIFT_FEATHER: price = 500; break;
-    case ITEM_HP_UP: price = 5000; break;
-    case ITEM_PROTEIN: price = 5000; break;
-    case ITEM_IRON: price = 5000; break;
-    case ITEM_CALCIUM: price = 5000; break;
-    case ITEM_ZINC: price = 5000; break;
-    case ITEM_CARBOS: price = 5000; break;
-    default: break;
-    }
-    // Unpriced legacy items cannot become free purchases. Never undercut resale.
-    return max(max(1, price), GetItemSellPrice(item) + 1);
+    return HorizonGoodsReferencePrice(item);
 }
 
 static void BuyMenuPrintPriceInList(u8 windowId, u32 itemId, u8 y)
@@ -2012,20 +1762,40 @@ static void BuyMenuDrawHorizonGoods(void)
             FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 1, 20);
             FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x + 51, y, 1, 20);
             HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(item), x + 3, y + 1, 47, FONT_SMALL_NARROW, colors);
-            if (GetItemImportance(item) && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
+            const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, index);
+            if (offer == NULL || HorizonGoodsOfferSold(sHorizonSelectedTab == 1, index))
                 StringCopy(text, gText_SoldOut);
             else
-                ConvertUIntToDecimalStringN(text, GetShopPurchasePrice(item),
-                    STR_CONV_MODE_LEFT_ALIGN, 6);
+            {
+                u8 *p = ConvertUIntToDecimalStringN(text, offer->price, STR_CONV_MODE_LEFT_ALIGN, 6);
+                if (offer->quantity > 1)
+                {
+                    p = StringAppend(p, COMPOUND_STRING(" x"));
+                    ConvertUIntToDecimalStringN(p, offer->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+                }
+                if (offer->grade == HORIZON_DEAL_CHROMATIC)
+                    FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(13), x + 48, y + 2, 3, 3);
+            }
             HorizonPrintFitStyle(WIN_ITEM_LIST, text, x + 3, y + 10, 47, FONT_SMALL_NARROW, colors);
         }
     }
 
     if (count != 0)
+    {
+        const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, sHorizonGoodsSelection);
         HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]),
-            6, 88, 108, FONT_SMALL, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 103, 107, FONT_SMALL_NARROW, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 115, 106, FONT_SMALL_NARROW, colors);
+            6, 85, 108, FONT_SMALL, colors);
+        if (offer != NULL && !HorizonGoodsOfferSold(sHorizonSelectedTab == 1, sHorizonGoodsSelection))
+        {
+            u8 detail[32];
+            u8 *p = StringCopy(detail, offer->grade == HORIZON_DEAL_CHROMATIC ? COMPOUND_STRING("CHROMATIC x")
+                : offer->grade == HORIZON_DEAL_PROMO ? COMPOUND_STRING("PROMO x") : COMPOUND_STRING("OFFER x"));
+            ConvertUIntToDecimalStringN(p, offer->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+            HorizonPrintFitStyle(WIN_ITEM_LIST, detail, 6, 96, 108, FONT_SMALL_NARROW, colors);
+        }
+    }
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 108, 107, FONT_SMALL_NARROW, colors);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 118, 106, FONT_SMALL_NARROW, colors);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }
@@ -2415,6 +2185,24 @@ static void Task_BuyMenu(u8 taskId)
             BuyMenuRemoveScrollIndicatorArrows();
             BuyMenuPrintCursor(tListTaskId, COLORID_GRAY_CURSOR);
 
+            if (sHorizonActive)
+            {
+                const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, sHorizonGoodsSelection);
+                if (offer == NULL || HorizonGoodsOfferSold(sHorizonSelectedTab == 1, sHorizonGoodsSelection))
+                    BuyMenuDisplayMessage(taskId, gText_ThatItemIsSoldOut, BuyMenuReturnToItemList);
+                else if (!IsEnoughMoney(&gSaveBlock1Ptr->money, offer->price))
+                    BuyMenuDisplayMessage(taskId, gText_YouDontHaveMoney, BuyMenuReturnToItemList);
+                else
+                {
+                    tItemCount = offer->quantity;
+                    sShopData->totalCost = offer->price;
+                    CopyItemName(itemId, gStringVar1);
+                    ConvertIntToDecimalStringN(gStringVar2, tItemCount, STR_CONV_MODE_LEFT_ALIGN, MAX_ITEM_DIGITS);
+                    ConvertIntToDecimalStringN(gStringVar3, offer->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
+                    BuyMenuDisplayMessage(taskId, gText_Var1AndYouWantedVar2, BuyMenuConfirmPurchase);
+                }
+                break;
+            }
             if (sMartInfo.martType == MART_TYPE_NORMAL)
                 sShopData->totalCost = (GetShopPurchasePrice(itemId));
             else
@@ -2543,6 +2331,28 @@ static void BuyMenuTryMakePurchase(u8 taskId)
     s16 *data = gTasks[taskId].data;
 
     PutWindowTilemap(WIN_ITEM_LIST);
+
+    if (sHorizonActive)
+    {
+        enum HorizonMarketPurchaseResult result = HorizonGoodsPurchase(sHorizonSelectedTab == 1,
+            sHorizonGoodsSelection, tItemId, sShopData->totalCost);
+        if (result == HORIZON_MARKET_PURCHASE_OK)
+        {
+            GetSetItemObtained(tItemId, FLAG_SET_ITEM_OBTAINED);
+            RecordItemPurchase(taskId);
+            IncrementGameStat(GAME_STAT_SHOPPED);
+            PlaySE(SE_SHOP);
+            PrintMoneyAmountInMoneyBox(WIN_MONEY, GetMoney(&gSaveBlock1Ptr->money), 0);
+            BuyMenuDisplayMessage(taskId, gText_HereYouGoThankYou, BuyMenuReturnToItemList);
+        }
+        else if (result == HORIZON_MARKET_PURCHASE_NO_MONEY)
+            BuyMenuDisplayMessage(taskId, gText_YouDontHaveMoney, BuyMenuReturnToItemList);
+        else if (result == HORIZON_MARKET_PURCHASE_NO_SPACE)
+            BuyMenuDisplayMessage(taskId, gText_NoMoreRoomForThis, BuyMenuReturnToItemList);
+        else
+            BuyMenuDisplayMessage(taskId, gText_ThatItemIsSoldOut, BuyMenuReturnToItemList);
+        return;
+    }
 
     if (sMartInfo.martType == MART_TYPE_NORMAL)
     {

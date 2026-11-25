@@ -306,7 +306,7 @@
 #define VAR_HORIZON_MARKET_SPECIES_0                   VAR_UNUSED_0x40F9
 #define VAR_HORIZON_MARKET_SPECIES_1                   VAR_UNUSED_0x40FA
 #define VAR_HORIZON_MARKET_MUTATIONS_0                 VAR_UNUSED_0x40FB
-#define VAR_HORIZON_MARKET_STATUS                      VAR_UNUSED_0x40FC // sold bits 0..5; seen bit 6
+#define VAR_HORIZON_MARKET_STATUS                      VAR_UNUSED_0x40FC // V2 sold bits 0..11; seen bit 12; tier bits 13..14
 #define VAR_HORIZON_MARKET_VERSION                     VAR_UNUSED_0x40FD
 #define VAR_HORIZON_MARKET_BADGES                      VAR_UNUSED_0x40FE
 #define VAR_HORIZON_MARKET_SPECIES_2                   VAR_UNUSED_0x40FF

@@ -3,13 +3,14 @@
 
 #include "pokemon.h"
 
-#define HORIZON_MARKET_OFFER_COUNT 6
+#define HORIZON_MARKET_OFFER_COUNT 12
 
 // The same daily stock exposes more slots as the watch evolves. These pure
 // policies also apply to Horizon's purchases and mutation rolls.
 u8 HorizonMarketOfferCountForTier(u8 watchTier);
 u8 HorizonMarketMutationGradeForTier(u8 watchTier);
 u8 HorizonMarketGetVisibleOfferCount(void);
+u8 HorizonMarketGetRotationTier(void);
 
 enum HorizonMarketPurchaseResult
 {
