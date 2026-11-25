@@ -1,4 +1,5 @@
 #include "global.h"
+#include "event_data.h"
 #include "battle.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -115,6 +116,41 @@ TEST("Cofradia vault preserves original PC bytes and returns mixed bag collatera
     EXPECT_EQ(view.totalValue, 0);
     EXPECT(UnholySave5_Validate(&gPokemonStoragePtr->unholySave5));
     *slot = oldBox;
+    gSaveBlock3Ptr->unholySave4 = old4;
+    gPokemonStoragePtr->unholySave5 = old5;
+    SetMoney(&gSaveBlock1Ptr->money, oldCash);
+}
+
+TEST("Cofradia item settlement reduces principal only and rejects protected or excessive payment")
+{
+    struct SaveBlock4 old4 = gSaveBlock3Ptr->unholySave4;
+    struct SaveBlock5 old5 = gPokemonStoragePtr->unholySave5;
+    u32 oldCash = GetMoney(&gSaveBlock1Ptr->money);
+    struct CofradiaView ledger;
+    UnholySave4_Reset();
+    UnholySave5_Reset();
+    SetMoney(&gSaveBlock1Ptr->money, 50000);
+    u16 before = CountTotalItemQuantityInBag(ITEM_POTION);
+    EXPECT(AddBagItem(ITEM_POTION, 2));
+    u32 unit = CofradiaAppraiseItem(ITEM_POTION);
+    EXPECT(unit > 0);
+    EXPECT_EQ(CofradiaBeginCredit(0, 5000, 5000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_POTION, 1), COFRADIA_INVALID);
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaResolve(FALSE));
+    CofradiaStatusScript();
+    EXPECT_EQ(gSpecialVar_Result, 5);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_MACH_BIKE, 1), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_POTION, 0), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_POTION, 65535), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_POTION, 2), COFRADIA_OK);
+    EXPECT_EQ(CountTotalItemQuantityInBag(ITEM_POTION), before);
+    EXPECT(CofradiaGetView(&ledger));
+    EXPECT_EQ(ledger.debt, 5000 - 2 * unit);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 50000);
+    EXPECT_EQ(CofradiaRepay(ledger.debt), COFRADIA_OK);
+    EXPECT(!CofradiaProcessDefault());
+    EXPECT(UnholySave4_Validate(&gSaveBlock3Ptr->unholySave4));
     gSaveBlock3Ptr->unholySave4 = old4;
     gPokemonStoragePtr->unholySave5 = old5;
     SetMoney(&gSaveBlock1Ptr->money, oldCash);
