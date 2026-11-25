@@ -1,6 +1,7 @@
 # Summary
 
 - [README](./README.md)
+- [Unholy Emerald · Economía negra y Cofradía](./BLACK_ECONOMY.md)
 - [Unholy Emerald · IA y revanchas de jefes](./IA_JEFES_REVANCHAS_Y_MUTACIONES.md)
 - [Unholy Emerald · Horizon Nebula UI](./UI_HORIZON_NEBULA.md)
 - [Unholy Emerald · Interfaz nativa 240 × 160](./UI_NATIVE_240.md)
