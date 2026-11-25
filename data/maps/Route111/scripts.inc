@@ -711,7 +711,7 @@ Route111_Text_MauvilleUncleToldMeToTakeRockSmash:
 	.string "the bike shop in MAUVILLE.$"
 
 Route111_Text_TrainerHillSign:
-	.string "{RIGHT_ARROW} TRAINER HILL ENTRANCE\p"
-	.string "“Scale the heights, you hot-blooded\n"
-	.string "TRAINERS!”$"
+	.string "{RIGHT_ARROW} TORRE DE LA COFRADÍA\p"
+	.string "La fortuna favorece a quienes\n"
+	.string "saben cuándo retirarse.$"
 
