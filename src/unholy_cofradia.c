@@ -1138,10 +1138,17 @@ void CofradiaItemPaymentMenu(void)
     u8 names[COFRADIA_PAYMENT_PAGE][48];
     const u8 *labels[COFRADIA_PAYMENT_PAGE + 2];
     sPayItemRows = 0;
+    struct CofradiaView ledger;
+    if (!CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE || !ledger.debt)
+    {
+        Message(C_TEXT("No payment available.", "No hay pago disponible."), FALSE);
+        return;
+    }
     u16 id = sPayPageStart;
     for (; id < ITEMS_COUNT && sPayItemRows < COFRADIA_PAYMENT_PAGE; id++)
     {
-        if (!ItemPaymentMax(id))
+        u32 unit = CofradiaAppraiseItem(id);
+        if (!unit || unit > ledger.debt || !CheckBagHasItem(id, 1))
             continue;
         CopyItemName(id, names[sPayItemRows]);
         labels[sPayItemRows] = names[sPayItemRows];
