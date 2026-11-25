@@ -812,7 +812,7 @@ static void HorizonDrawRootPreview(u8 panel)
 
     if (sHorizonSelectedTab == 0)
     {
-        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
+        for (u8 slot = 0; slot < min(6, HorizonMarketGetVisibleOfferCount()); slot++)
         {
             u8 col = slot % 3;
             u8 row = slot / 3;
@@ -893,10 +893,11 @@ static void HorizonDrawInfo(void)
 
         // Six offers occupy a native 3x2 grid instead of a cramped vertical
         // list. Every slot retains its persistent state, price and rare badge.
-        for (u8 slot = 0; slot < HorizonMarketGetVisibleOfferCount(); slot++)
+        u8 first = sHorizonPokemonSelection / 6 * 6;
+        for (u8 slot = first; slot < min(first + 6, HorizonMarketGetVisibleOfferCount()); slot++)
         {
-            u8 x = 5 + (slot % 3) * 70;
-            u8 y = 28 + (slot / 3) * 28;
+            u8 x = 5 + ((slot - first) % 3) * 70;
+            u8 y = 28 + ((slot - first) / 3) * 28;
             const enum Species species = HorizonMarketGetSpecies(slot);
             bool8 sold = HorizonMarketOfferSold(slot);
 
@@ -1202,7 +1203,9 @@ static void Task_ShopMenu(u8 taskId)
         }
         if (JOY_REPEAT(DPAD_ANY))
         {
-            if (JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+            if (JOY_REPEAT(DPAD_UP))
+                sHorizonPokemonSelection = (sHorizonPokemonSelection + HorizonMarketGetVisibleOfferCount() - 3) % HorizonMarketGetVisibleOfferCount();
+            else if (JOY_REPEAT(DPAD_DOWN))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + 3) % HorizonMarketGetVisibleOfferCount();
             else if (JOY_REPEAT(DPAD_LEFT))
                 sHorizonPokemonSelection = (sHorizonPokemonSelection + HorizonMarketGetVisibleOfferCount() - 1) % HorizonMarketGetVisibleOfferCount();
