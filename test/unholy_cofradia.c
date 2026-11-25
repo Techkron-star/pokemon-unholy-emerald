@@ -1,5 +1,8 @@
 #include "global.h"
 #include "money.h"
+#include "pokemon.h"
+#include "constants/moves.h"
+#include "constants/species.h"
 #include "data.h"
 #include "constants/trainers.h"
 #include "unholy_save.h"
@@ -171,4 +174,51 @@ TEST("Cofradia gym blueprints are reproducible, varied and preserve a gym anchor
         }
         EXPECT(varied);
     }
+}
+
+TEST("Cofradia scouts distinct living party slots reproducibly, at most two")
+{
+    struct Pokemon party[PARTY_SIZE] = {0};
+    CreateRandomMon(&party[0], SPECIES_PIKACHU, 50);
+    CreateRandomMon(&party[2], SPECIES_CHARIZARD, 50);
+    CreateRandomMon(&party[4], SPECIES_BLASTOISE, 50);
+    u16 hp = 0;
+    SetMonData(&party[4], MON_DATA_HP, &hp);
+    bool32 varied = FALSE;
+    u8 first[COFRADIA_MAX_COUNTERS];
+    CofradiaPickCounterTargets(party, 1, 5, first);
+    for (u32 seed = 1; seed <= 64; seed++)
+    {
+        u8 slots[COFRADIA_MAX_COUNTERS], again[COFRADIA_MAX_COUNTERS];
+        u8 count = CofradiaPickCounterTargets(party, seed, 5, slots);
+        EXPECT(count >= 1 && count <= COFRADIA_MAX_COUNTERS);
+        EXPECT_EQ(count, CofradiaPickCounterTargets(party, seed, 5, again));
+        for (u8 i = 0; i < count; i++)
+        {
+            EXPECT(slots[i] == 0 || slots[i] == 2);
+            EXPECT_EQ(slots[i], again[i]);
+            if (i)
+                EXPECT(slots[i] != slots[0]);
+        }
+        varied |= slots[0] != first[0];
+    }
+    EXPECT(varied);
+    ZeroPartyMons(party);
+    EXPECT_EQ(CofradiaPickCounterTargets(party, 1, 5, first), 0);
+}
+
+TEST("Cofradia counters need real damaging coverage rather than typing alone")
+{
+    struct Pokemon attacker, defender;
+    CreateRandomMon(&attacker, SPECIES_BLASTOISE, 50);
+    CreateRandomMon(&defender, SPECIES_CHARIZARD, 50);
+    for (u8 i = 0; i < MAX_MON_MOVES; i++)
+        SetMonMoveSlot(&attacker, MOVE_NONE, i);
+    SetMonMoveSlot(&attacker, MOVE_TACKLE, 0);
+    EXPECT_EQ(CofradiaCounterScore(&attacker, &defender), 0);
+    SetMonMoveSlot(&attacker, MOVE_RAIN_DANCE, 0);
+    EXPECT_EQ(CofradiaCounterScore(&attacker, &defender), 0);
+    SetMonMoveSlot(&attacker, MOVE_SURF, 0);
+    EXPECT(CofradiaCounterScore(&attacker, &defender) > 0);
+    EXPECT_EQ(CofradiaCounterScore(NULL, &defender), 0);
 }
