@@ -1771,6 +1771,7 @@ void BattleSetup_StartCofradiaBattle(u16 trainer)
     gBattleTypeFlags = BATTLE_TYPE_TRAINER;
     gMain.savedCallback = CB2_EndCofradiaBattle;
     DoTrainerBattle();
+    CofradiaScaleEnemyParty();
 }
 
 static void CB2_EndBountyBattle(void)
