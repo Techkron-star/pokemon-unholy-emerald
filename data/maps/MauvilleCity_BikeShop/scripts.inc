@@ -25,16 +25,49 @@ MauvilleCity_BikeShop_EventScript_ChooseBike::
 	switch VAR_RESULT
 	case 0, MauvilleCity_BikeShop_EventScript_GetMachBike
 	case 1, MauvilleCity_BikeShop_EventScript_GetAcroBike
+	release
 	end
 
 MauvilleCity_BikeShop_EventScript_NotFar::
 	setflag FLAG_DECLINED_BIKE
-	msgbox MauvilleCity_BikeShop_Text_GuessYouDontNeedBike, MSGBOX_DEFAULT
+	msgbox MauvilleCity_BikeShop_Text_PaidOffer, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, MauvilleCity_BikeShop_EventScript_KeepBike
+	checkmoney 1000000
+	goto_if_eq VAR_RESULT, FALSE, MauvilleCity_BikeShop_EventScript_NoMoney
+	message MauvilleCity_BikeShop_Text_PaidChoose
+	waitmessage
+	multichoice 21, 8, MULTI_BIKE, FALSE
+	switch VAR_RESULT
+	case 0, MauvilleCity_BikeShop_EventScript_BuyMach
+	case 1, MauvilleCity_BikeShop_EventScript_BuyAcro
+	release
+	end
+
+MauvilleCity_BikeShop_EventScript_BuyMach::
+	checkitemspace ITEM_MACH_BIKE, 1
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	giveitem ITEM_MACH_BIKE
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	goto MauvilleCity_BikeShop_EventScript_PaidComplete
+
+MauvilleCity_BikeShop_EventScript_BuyAcro::
+	checkitemspace ITEM_ACRO_BIKE, 1
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	giveitem ITEM_ACRO_BIKE
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	goto MauvilleCity_BikeShop_EventScript_PaidComplete
+
+MauvilleCity_BikeShop_EventScript_PaidComplete::
+	removemoney 1000000
+	setflag FLAG_RECEIVED_BIKE
+	goto MauvilleCity_BikeShop_EventScript_ComeBackToSwitchBikes
+
+MauvilleCity_BikeShop_EventScript_NoMoney::
+	msgbox MauvilleCity_BikeShop_Text_NoMoney, MSGBOX_DEFAULT
 	release
 	end
 
 MauvilleCity_BikeShop_EventScript_YesFar::
-	setflag FLAG_RECEIVED_BIKE
 	goto MauvilleCity_BikeShop_EventScript_ChooseBike
 	end
 
@@ -42,6 +75,7 @@ MauvilleCity_BikeShop_EventScript_GetMachBike::
 	msgbox MauvilleCity_BikeShop_Text_ChoseMachBike, MSGBOX_DEFAULT
 	giveitem ITEM_MACH_BIKE
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_BIKE
 	goto MauvilleCity_BikeShop_EventScript_ComeBackToSwitchBikes
 	end
 
@@ -49,6 +83,7 @@ MauvilleCity_BikeShop_EventScript_GetAcroBike::
 	msgbox MauvilleCity_BikeShop_Text_ChoseAcroBike, MSGBOX_DEFAULT
 	giveitem ITEM_ACRO_BIKE
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_RECEIVED_BIKE
 	goto MauvilleCity_BikeShop_EventScript_ComeBackToSwitchBikes
 	end
 
@@ -320,3 +355,14 @@ MauvilleCity_BikeShop_Text_Jumps:
 	.string "change directions while jumping.\p"
 	.string "Want to read a different page?$"
 
+
+MauvilleCity_BikeShop_Text_PaidOffer:
+	.string "RYDEL: I can sell you a BIKE\n"
+	.string "for $1,000,000. Interested?$"
+
+MauvilleCity_BikeShop_Text_PaidChoose:
+	.string "Which BIKE would you like?$"
+
+MauvilleCity_BikeShop_Text_NoMoney:
+	.string "You don't have enough money.\p"
+	.string "My offer still stands.$"

@@ -773,7 +773,7 @@ static void UnholyCraftRenderMenu(void)
     {
         u8 money[24];
         u8 *end = StringCopy(money, COMPOUND_STRING("$"));
-        ConvertUIntToDecimalStringN(end, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, 6);
+        ConvertUIntToDecimalStringN(end, GetMoney(&gSaveBlock1Ptr->money), STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
         UnholyUi_Print(sUnholyCraftWindowId, FONT_SMALL_NARROW, 145, 3, 56, money);
     }
     else
