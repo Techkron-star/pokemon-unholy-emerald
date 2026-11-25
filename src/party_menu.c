@@ -6221,6 +6221,103 @@ void Task_DynamaxCandy(u8 taskId)
     }
 }
 
+// Edit only the persistent individual factor/type, preserving PID, OT and mutations.
+static enum Type UnholyTeraShardType(enum Item item)
+{
+    switch (item)
+    {
+    case ITEM_BUG_TERA_SHARD: return TYPE_BUG;
+    case ITEM_DARK_TERA_SHARD: return TYPE_DARK;
+    case ITEM_DRAGON_TERA_SHARD: return TYPE_DRAGON;
+    case ITEM_ELECTRIC_TERA_SHARD: return TYPE_ELECTRIC;
+    case ITEM_FAIRY_TERA_SHARD: return TYPE_FAIRY;
+    case ITEM_FIGHTING_TERA_SHARD: return TYPE_FIGHTING;
+    case ITEM_FIRE_TERA_SHARD: return TYPE_FIRE;
+    case ITEM_FLYING_TERA_SHARD: return TYPE_FLYING;
+    case ITEM_GHOST_TERA_SHARD: return TYPE_GHOST;
+    case ITEM_GRASS_TERA_SHARD: return TYPE_GRASS;
+    case ITEM_GROUND_TERA_SHARD: return TYPE_GROUND;
+    case ITEM_ICE_TERA_SHARD: return TYPE_ICE;
+    case ITEM_NORMAL_TERA_SHARD: return TYPE_NORMAL;
+    case ITEM_POISON_TERA_SHARD: return TYPE_POISON;
+    case ITEM_PSYCHIC_TERA_SHARD: return TYPE_PSYCHIC;
+    case ITEM_ROCK_TERA_SHARD: return TYPE_ROCK;
+    case ITEM_STEEL_TERA_SHARD: return TYPE_STEEL;
+    case ITEM_WATER_TERA_SHARD: return TYPE_WATER;
+    case ITEM_STELLAR_TERA_SHARD: return TYPE_STELLAR;
+    default: return TYPE_MYSTERY;
+    }
+}
+
+static bool32 UnholyTransformationTargetValid(struct Pokemon *mon)
+{
+    return GetMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE
+        && !GetMonData(mon, MON_DATA_IS_EGG);
+}
+
+static void UnholyTransformationMessage(u8 taskId, bool32 success, const u8 *message)
+{
+    gPartyMenuUseExitCallback = success;
+    PlaySE(success ? SE_USE_ITEM : SE_SELECT);
+    DisplayPartyMenuMessage(message, TRUE);
+    ScheduleBgCopyTilemapToVram(2);
+    gTasks[taskId].func = Task_ClosePartyMenuAfterText;
+}
+
+void ItemUseCB_MaxSoup(u8 taskId, TaskFunc task)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+    bool32 honey = GET_BASE_SPECIES_ID(species) == SPECIES_URSHIFU;
+    if (!UnholyTransformationTargetValid(mon) || !CheckBagHasItem(ITEM_DYNAMAX_BAND, 1)
+     || !DoesSpeciesHaveFormChangeMethod(species, FORM_CHANGE_BATTLE_GIGANTAMAX)
+     || !CheckBagHasItem(ITEM_MAX_SOUP, 1) || (honey && !CheckBagHasItem(ITEM_MAX_HONEY, 1)))
+    {
+        UnholyTransformationMessage(taskId, FALSE, UnholyLocalize(
+            COMPOUND_STRING("Check form, band and\nMax Honey for Urshifu."),
+            COMPOUND_STRING("Revisa forma, pulsera y\nmiel para Urshifu.")));
+        return;
+    }
+    if (!RemoveBagItem(ITEM_MAX_SOUP, 1))
+    {
+        UnholyTransformationMessage(taskId, FALSE, gText_WontHaveEffect);
+        return;
+    }
+    if (honey && !RemoveBagItem(ITEM_MAX_HONEY, 1))
+    {
+        AddBagItem(ITEM_MAX_SOUP, 1);
+        UnholyTransformationMessage(taskId, FALSE, gText_WontHaveEffect);
+        return;
+    }
+    bool32 factor = !GetMonData(mon, MON_DATA_GIGANTAMAX_FACTOR);
+    SetMonData(mon, MON_DATA_GIGANTAMAX_FACTOR, &factor);
+    UnholyTransformationMessage(taskId, TRUE, factor
+        ? UnholyLocalize(COMPOUND_STRING("Gigantamax factor acquired!"), COMPOUND_STRING("¡Factor Gigamax adquirido!"))
+        : UnholyLocalize(COMPOUND_STRING("Gigantamax factor removed!"), COMPOUND_STRING("¡Factor Gigamax retirado!")));
+}
+
+void ItemUseCB_TeraShard(u8 taskId, TaskFunc task)
+{
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
+    enum Item item = gSpecialVar_ItemId;
+    enum Type type = UnholyTeraShardType(item);
+    enum Species species = GET_BASE_SPECIES_ID(GetMonData(mon, MON_DATA_SPECIES));
+    // Preserve fixed tera identities.
+    if (!UnholyTransformationTargetValid(mon) || !CheckBagHasItem(ITEM_TERA_ORB, 1)
+     || type == TYPE_MYSTERY || species == SPECIES_TERAPAGOS || species == SPECIES_OGERPON
+     || GetMonData(mon, MON_DATA_TERA_TYPE) == type || !CheckBagHasItem(item, 10)
+     || !RemoveBagItem(item, 10))
+    {
+        UnholyTransformationMessage(taskId, FALSE, UnholyLocalize(
+            COMPOUND_STRING("Need Tera Orb, 10 shards\nand a compatible Pokémon."),
+            COMPOUND_STRING("Necesitas orbe, 10 teralitos\ny un Pokémon compatible.")));
+        return;
+    }
+    SetMonData(mon, MON_DATA_TERA_TYPE, &type);
+    UnholyTransformationMessage(taskId, TRUE, UnholyLocalize(
+        COMPOUND_STRING("Tera type changed!"), COMPOUND_STRING("¡Teratipo cambiado!")));
+}
+
 void ItemUseCB_DynamaxCandy(u8 taskId, TaskFunc task)
 {
     s16 *data = gTasks[taskId].data;
