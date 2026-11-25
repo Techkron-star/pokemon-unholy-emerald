@@ -60,6 +60,8 @@ static const struct CofradiaDifficulty sDifficulties[] =
 };
 static EWRAM_DATA struct Pokemon sPartyBackup[PARTY_SIZE] = {0};
 static EWRAM_DATA bool8 sActive = FALSE;
+static EWRAM_DATA u8 sBattleDifficulty = 0;
+static EWRAM_DATA u32 sBattleWins = 0;
 static EWRAM_DATA u32 sCashBackup = 0;
 static EWRAM_DATA u8 sDifficulty = 0;
 static EWRAM_DATA u32 sStake = 0;
@@ -228,6 +230,47 @@ static u16 PickOpponent(const struct CofradiaRecord *r)
 }
 
 bool32 CofradiaBattleActive(void) { return sActive; }
+u8 CofradiaBattleDifficulty(void) { return sBattleDifficulty; }
+
+void CofradiaScaleEnemyParty(void)
+{
+    if (!sActive)
+        return;
+    static const s8 offsets[] = {-5, -2, 0, 2, 4, 7};
+    u8 playerLevel = 1;
+    for (u8 i = 0; i < PARTY_SIZE; i++)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][i];
+        if (GetMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE && !GetMonData(mon, MON_DATA_IS_EGG))
+            playerLevel = max(playerLevel, GetMonData(mon, MON_DATA_LEVEL));
+    }
+    bool32 boss = sBattleWins % 5 == 4;
+    s32 target = (s32)playerLevel + offsets[sBattleDifficulty] + (s32)min(sBattleWins / 5, 15u) + (boss ? 2 : 0);
+    target = max(1, min(MAX_LEVEL, target));
+    for (u8 i = 0; i < PARTY_SIZE; i++)
+    {
+        struct Pokemon *mon = &gParties[B_TRAINER_OPPONENT_A][i];
+        enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+        if (species == SPECIES_NONE)
+            continue;
+        u8 level = max(GetMonData(mon, MON_DATA_LEVEL), target);
+        u32 exp = gExperienceTables[gSpeciesInfo[species].growthRate][level];
+        SetMonData(mon, MON_DATA_EXP, &exp);
+        u16 badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+        if (sBattleDifficulty >= 2 && (boss || sBattleWins >= 9))
+            badges |= POKEMON_BADGE_ALPHA;
+        if (sBattleDifficulty >= 3 && sBattleWins >= 14 && (boss || i % 2 == 0))
+            badges |= POKEMON_BADGE_HYPER;
+        if (sBattleDifficulty >= 4 && sBattleWins >= 24 && (boss || i % 2 == 0))
+            badges |= POKEMON_BADGE_ANCESTRAL;
+        if (sBattleDifficulty == 5 && sBattleWins >= 49 && boss && i == 0)
+            badges |= POKEMON_BADGE_OMEGA;
+        SetMonData(mon, MON_DATA_SPECIAL_BADGES, &badges);
+        CalculateMonStats(mon);
+        u16 hp = GetMonData(mon, MON_DATA_MAX_HP);
+        SetMonData(mon, MON_DATA_HP, &hp);
+    }
+}
 
 bool32 CofradiaPrepareBattle(void)
 {
@@ -237,6 +280,8 @@ bool32 CofradiaPrepareBattle(void)
         return FALSE;
     memcpy(sPartyBackup, gParties[B_TRAINER_PLAYER], sizeof(sPartyBackup));
     sCashBackup = GetMoney(&gSaveBlock1Ptr->money);
+    sBattleDifficulty = r->difficulty;
+    sBattleWins = r->wins;
     sActive = TRUE;
     BattleSetup_StartCofradiaBattle(PickOpponent(r));
     return TRUE;
