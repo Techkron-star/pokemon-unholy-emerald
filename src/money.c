@@ -122,6 +122,7 @@ void SubtractMoneyFromVar0x8005(void)
 
 void PrintMoneyAmountInMoneyBox(u8 windowId, u32 amount, u8 speed)
 {
+    FillWindowPixelBuffer(windowId, PIXEL_FILL(1));
     PrintMoneyAmount(windowId, CalculateMoneyTextHorizontalPosition(amount), 1, amount, speed);
 }
 
@@ -155,7 +156,7 @@ void ChangeAmountInMoneyBox(u32 amount)
 
 u32 CalculateMoneyTextHorizontalPosition(u32 amount)
 {
-    return (CountDigits(amount) > 8) ? 18 : 26;
+    return amount >= 100000000u ? 18 : 26;
 }
 
 void DrawMoneyBox(u32 amount, u8 x, u8 y)
