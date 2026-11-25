@@ -215,17 +215,17 @@ TEST("Auto Heal consumes real medicine without reviving a fainted teammate")
 TEST("Horizon offers and mutation grades grow with Watch hardware, never above Ancestral")
 {
     EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_POKE), 3);
-    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_SUPER), 4);
-    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_HF), 6);
+    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_SUPER), 6);
+    EXPECT_EQ(HorizonMarketOfferCountForTier(HFC_WATCH_TIER_HF), 12);
     EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_POKE), 0);
     EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_SUPER), 1);
     EXPECT_EQ(HorizonMarketMutationGradeForTier(HFC_WATCH_TIER_HF), 2);
     EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_POKE), 5);
-    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_SUPER), 7);
-    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_HF), 9);
+    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_SUPER), 8);
+    EXPECT_EQ(HorizonGoodsItemCountForTier(HFC_WATCH_TIER_HF), 12);
     EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_POKE), 3);
-    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_SUPER), 4);
-    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_HF), 6);
+    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_SUPER), 6);
+    EXPECT_EQ(HorizonGoodsDiscCountForTier(HFC_WATCH_TIER_HF), 12);
 }
 
 TEST("HFC Watch Raid unlocks four difficulties and varies capture odds to hundredths")
