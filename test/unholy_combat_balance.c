@@ -176,3 +176,22 @@ TEST("Unholy chains use two rounds with only selected follow-ups and cancel on c
     Free(gBattleStruct);
     gBattleStruct = previousBattleStruct;
 }
+
+TEST("Unholy affection never contributes critical hit stages")
+{
+    struct BattlePokemon oldMon = gBattleMons[B_BATTLER_0];
+    struct DamageContext ctx = {
+        .battlerAtk = B_BATTLER_0, .battlerDef = B_BATTLER_1,
+        .move = MOVE_DRAGON_CLAW,
+    };
+    u32 side = GetBattlerSide(B_BATTLER_1);
+    u32 oldStatus = gSideStatuses[side];
+    gSideStatuses[side] = 0;
+    gBattleMons[B_BATTLER_0] = (struct BattlePokemon){0};
+    gBattleMons[B_BATTLER_0].affectionHearts = 5;
+    EXPECT_EQ(CalcCritChanceStage(&ctx), 1);
+    gBattleMons[B_BATTLER_0].affectionHearts = 0;
+    EXPECT_EQ(CalcCritChanceStage(&ctx), 1);
+    gBattleMons[B_BATTLER_0] = oldMon;
+    gSideStatuses[side] = oldStatus;
+}

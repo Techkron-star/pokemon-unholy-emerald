@@ -8191,7 +8191,6 @@ s32 CalcCritChanceStage(struct DamageContext *ctx)
                     + (gBattleMons[ctx->battlerAtk].volatiles.dragonCheer != 0 ? 1 : 0)
                     + GetMoveCriticalHitStage(ctx->move)
                     + GetHoldEffectCritChanceIncrease(ctx->battlerAtk, ctx->holdEffects[ctx->battlerAtk])
-                    + ((B_AFFECTION_MECHANICS == TRUE && GetBattlerAffectionHearts(ctx->battlerAtk) == AFFECTION_FIVE_HEARTS) ? 2 : 0)
                     + (ctx->abilities[ctx->battlerAtk] == ABILITY_SUPER_LUCK ? 1 : 0)
                     + gBattleMons[ctx->battlerAtk].volatiles.bonusCritStages
                     + (ctx->abilities[ctx->battlerAtk] == ABILITY_SLAYER && IsSlicingMove(ctx->move) ? 1 : 0);
@@ -8295,6 +8294,11 @@ static bool32 IsCriticalHit(struct DamageContext *ctx)
         isCrit = RandomChance(RNG_CRITICAL_HIT, critChance, 256);
     else if (GetConfig(B_CRIT_CHANCE) == GEN_2)
         isCrit = RandomChance(RNG_CRITICAL_HIT, GetCriticalHitOdds(critChance), 256);
+    // Unholy: every slicing move has 25% base crit chance in the modern
+    // battle rules. Explicit boosts still use the standard higher stages.
+    // Affection does not contribute to crit stages for either side.
+    else if (IsSlicingMove(ctx->move) && critChance == 1)
+        isCrit = RandomChance(RNG_CRITICAL_HIT, 1, 4);
     else
         isCrit = RandomChance(RNG_CRITICAL_HIT, 1, GetCriticalHitOdds(critChance));
 

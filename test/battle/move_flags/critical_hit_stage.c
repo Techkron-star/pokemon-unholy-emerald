@@ -1,13 +1,14 @@
 #include "global.h"
 #include "test/battle.h"
 
-SINGLE_BATTLE_TEST("criticalHitStage set to 1 increases critical hits occur at a 1/8 rate (Gen 2+) or x8 times more likely (Gen 1)")
+SINGLE_BATTLE_TEST("Slicing moves have 25 percent base critical chance in Gen 3+ rules")
 {
     u32 j, genConfig = 0, passes = 0, trials = 0;
 
     PARAMETRIZE { genConfig = GEN_1; passes = 1; trials = 2; }     // 50% with Wobbuffet's base speed
-    for (j = GEN_2; j <= GEN_9; j++) {
-        PARAMETRIZE { genConfig = GEN_2; passes = 1; trials = 8; }
+    PARAMETRIZE { genConfig = GEN_2; passes = 32; trials = 256; }
+    for (j = GEN_3; j <= GEN_9; j++) {
+        PARAMETRIZE { genConfig = j; passes = 1; trials = 4; }
     }
     PASSES_RANDOMLY(passes, trials, RNG_CRITICAL_HIT);
     GIVEN {
@@ -46,6 +47,21 @@ DOUBLE_BATTLE_TEST("Critical hits mention each affected target")
         MESSAGE("A critical hit on Wobbuffet!");
         MESSAGE("A critical hit on the opposing Wobbuffet!");
         // Dazzling Gleam against one target
+        MESSAGE("A critical hit!");
+    }
+}
+
+SINGLE_BATTLE_TEST("Unholy Dragon Claw has 25 percent base critical chance")
+{
+    PASSES_RANDOMLY(1, 4, RNG_CRITICAL_HIT);
+    GIVEN {
+        WITH_CONFIG(B_CRIT_CHANCE, GEN_9);
+        ASSUME(IsSlicingMove(MOVE_DRAGON_CLAW));
+        PLAYER(SPECIES_GABITE);
+        OPPONENT(SPECIES_WOBBUFFET);
+    } WHEN {
+        TURN { MOVE(player, MOVE_DRAGON_CLAW); }
+    } SCENE {
         MESSAGE("A critical hit!");
     }
 }
