@@ -77,7 +77,7 @@ static EWRAM_DATA u32 sBattleSeed = 0;
 static EWRAM_DATA u32 sCashBackup = 0;
 static EWRAM_DATA u8 sDifficulty = 0;
 static EWRAM_DATA u32 sStake = 0;
-static EWRAM_DATA u32 sStep = 1000;
+static EWRAM_DATA u32 sStep = 0;
 static EWRAM_DATA u8 sFunding = 0; // cash, shortfall credit, full credit
 static EWRAM_DATA u32 sPayment = 0;
 static EWRAM_DATA u8 sVaultSelection = 0;
@@ -1138,8 +1138,8 @@ void CofradiaVaultEntryReturn(void)
 }
 
 #define COFRADIA_PAYMENT_PAGE 8
-static EWRAM_DATA u16 sPayPageStart = 1;
-static EWRAM_DATA u16 sPayPageNext = 1;
+static EWRAM_DATA u16 sPayPageStart = 0;
+static EWRAM_DATA u16 sPayPageNext = 0;
 static EWRAM_DATA u16 sPayItemIds[COFRADIA_PAYMENT_PAGE] = {0};
 static EWRAM_DATA u8 sPayItemRows = 0;
 static EWRAM_DATA enum Item sPayItem = ITEM_NONE;
@@ -1160,6 +1160,7 @@ static u16 ItemPaymentMax(enum Item item)
 void CofradiaItemPaymentReset(void)
 {
     sPayPageStart = 1;
+    sPayPageNext = 1;
     sPayItem = ITEM_NONE;
     sPayCount = 0;
 }
