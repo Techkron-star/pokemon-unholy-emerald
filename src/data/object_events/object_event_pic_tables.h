@@ -2494,3 +2494,28 @@ static const struct SpriteFrameImage sPicTable_MomFrlg[] = {
 };
 
 #endif // IS_FRLG
+
+static const struct SpriteFrameImage sPicTable_CofradiaNurse[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaNurse, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaGambler[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaGambler, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaVeteran[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaVeteran, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaClerk[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaClerk, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaManager[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaManager, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaGuard[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaGuard, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaWorker[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaWorker, 2, 4),
+};
+static const struct SpriteFrameImage sPicTable_CofradiaFather[] = {
+    overworld_ascending_frames(gObjectEventPic_CofradiaFather, 2, 4),
+};
