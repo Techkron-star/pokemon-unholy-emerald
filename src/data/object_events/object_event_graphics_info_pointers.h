@@ -401,7 +401,23 @@ extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_UnusedMauvi
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_UnusedMauvilleOldMan2;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_ApricornTree;
 
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaNurse;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaGambler;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaVeteran;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaClerk;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaManager;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaGuard;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaWorker;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaFather;
 const struct ObjectEventGraphicsInfo *const gObjectEventGraphicsInfoPointers[NUM_OBJ_EVENT_GFX] = {
+    [OBJ_EVENT_GFX_COFRADIA_NURSE] = &gObjectEventGraphicsInfo_CofradiaNurse,
+    [OBJ_EVENT_GFX_COFRADIA_GAMBLER] = &gObjectEventGraphicsInfo_CofradiaGambler,
+    [OBJ_EVENT_GFX_COFRADIA_VETERAN] = &gObjectEventGraphicsInfo_CofradiaVeteran,
+    [OBJ_EVENT_GFX_COFRADIA_CLERK] = &gObjectEventGraphicsInfo_CofradiaClerk,
+    [OBJ_EVENT_GFX_COFRADIA_MANAGER] = &gObjectEventGraphicsInfo_CofradiaManager,
+    [OBJ_EVENT_GFX_COFRADIA_GUARD] = &gObjectEventGraphicsInfo_CofradiaGuard,
+    [OBJ_EVENT_GFX_COFRADIA_WORKER] = &gObjectEventGraphicsInfo_CofradiaWorker,
+    [OBJ_EVENT_GFX_COFRADIA_FATHER] = &gObjectEventGraphicsInfo_CofradiaFather,
     [OBJ_EVENT_GFX_BRENDAN_NORMAL] =           &gObjectEventGraphicsInfo_BrendanNormal,
     [OBJ_EVENT_GFX_BRENDAN_MACH_BIKE] =        &gObjectEventGraphicsInfo_BrendanMachBike,
     [OBJ_EVENT_GFX_BRENDAN_SURFING] =          &gObjectEventGraphicsInfo_BrendanSurfing,

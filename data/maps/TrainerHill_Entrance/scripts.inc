@@ -97,10 +97,16 @@ TrainerHill_Entrance_EventScript_EndExitChallenge::
 	end
 
 TrainerHill_Entrance_EventScript_Nurse::
-	setvar VAR_0x800B, LOCALID_TRAINER_HILL_NURSE
-	call Common_EventScript_PkmnCenterNurse
-	waitmessage
-	waitbuttonpress
+	lock
+	faceplayer
+	msgbox Cofradia_Text_NurseAsk, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, Cofradia_NurseDone
+	special HealPlayerParty
+	callnative UpdateFollowingPokemon
+	playfanfare MUS_HEAL
+	waitfanfare
+	msgbox Cofradia_Text_NurseDone, MSGBOX_DEFAULT
+Cofradia_NurseDone::
 	release
 	end
 
@@ -113,7 +119,7 @@ TrainerHill_Entrance_EventScript_Attendant::
 	goto TrainerHill_Entrance_EventScript_AttendantEnd
 
 TrainerHill_Entrance_EventScript_ThanksForPlaying::
-	msgbox TrainerHill_Entrance_Text_ThankYouForPlaying, MSGBOX_DEFAULT
+	msgbox Cofradia_Text_Manager, MSGBOX_DEFAULT
 TrainerHill_Entrance_EventScript_AttendantEnd::
 	release
 	end
@@ -221,28 +227,17 @@ TrainerHill_Entrance_EventScript_Records::
 	end
 
 TrainerHill_Entrance_EventScript_Man::
-	goto_if_unset FLAG_SYS_GAME_CLEAR, TrainerHill_Entrance_EventScript_ManTrainerHillClosed
-	msgbox TrainerHill_Entrance_Text_WhatSortOfTrainersAreAhead, MSGBOX_NPC
-	end
-
-TrainerHill_Entrance_EventScript_ManTrainerHillClosed::
-	msgbox TrainerHill_Entrance_Text_CantWaitToTestTheWaters, MSGBOX_NPC
+	goto TrainerHill_Entrance_EventScript_CofradiaGambler
 	end
 
 TrainerHill_Entrance_EventScript_Girl::
-	goto_if_unset FLAG_SYS_GAME_CLEAR, TrainerHill_Entrance_EventScript_GirlTrainerHillClosed
-	msgbox TrainerHill_Entrance_Text_FriendsTryingToReachTimeBoardTop, MSGBOX_NPC
-	end
-
-TrainerHill_Entrance_EventScript_GirlTrainerHillClosed::
-	msgbox TrainerHill_Entrance_Text_DoYouKnowWhenTheyOpen, MSGBOX_NPC
+	goto TrainerHill_Entrance_EventScript_CofradiaVeteran
 	end
 
 TrainerHill_Entrance_EventScript_Clerk::
 	lock
 	faceplayer
-	message gText_HowMayIServeYou
-	waitmessage
+	msgbox Cofradia_Text_Clerk, MSGBOX_DEFAULT
 	goto_if_set FLAG_SYS_GAME_CLEAR, TrainerHill_Entrance_EventScript_ExpandedPokemart
 	pokemart TrainerHill_Entrance_Pokemart_Basic
 	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
@@ -448,3 +443,218 @@ TrainerHill_Entrance_Text_DoYouKnowWhenTheyOpen:
 TrainerHill_Elevator_Text_ReturnToReception:
 	.string "Would you like to return to\n"
 	.string "the reception counter?$"
+
+TrainerHill_Entrance_EventScript_CofradiaGambler::
+	lock
+	faceplayer
+	random 4
+	switch VAR_RESULT
+	case 0, Cofradia_Gambler_0
+	case 1, Cofradia_Gambler_1
+	case 2, Cofradia_Gambler_2
+	case 3, Cofradia_Gambler_3
+	goto Cofradia_Gambler_0
+
+Cofradia_Gambler_0::
+	msgbox Cofradia_Gambler_Text0, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Gambler_Text0:
+	.string "Perdí tres veces seguidas.\nLa cuarta será la buena.$"
+
+Cofradia_Gambler_1::
+	msgbox Cofradia_Gambler_Text1, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Gambler_Text1:
+	.string "La gente dice que hay que retirarse\na tiempo. Qué aburridos.$"
+
+Cofradia_Gambler_2::
+	msgbox Cofradia_Gambler_Text2, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Gambler_Text2:
+	.string "Mi estrategia es sencilla:\nno perder. Funciona a veces.$"
+
+Cofradia_Gambler_3::
+	msgbox Cofradia_Gambler_Text3, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Gambler_Text3:
+	.string "No apuestes lo que no puedas perder.\pEso me dijeron ayer.$"
+
+TrainerHill_Entrance_EventScript_CofradiaVeteran::
+	lock
+	faceplayer
+	random 4
+	switch VAR_RESULT
+	case 0, Cofradia_Veteran_0
+	case 1, Cofradia_Veteran_1
+	case 2, Cofradia_Veteran_2
+	case 3, Cofradia_Veteran_3
+	goto Cofradia_Veteran_0
+
+Cofradia_Veteran_0::
+	msgbox Cofradia_Veteran_Text0, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Veteran_Text0:
+	.string "El dinero es fácil de recuperar.\nUn mal hábito cuesta más.$"
+
+Cofradia_Veteran_1::
+	msgbox Cofradia_Veteran_Text1, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Veteran_Text1:
+	.string "Un equipo poderoso no sustituye\na una buena estrategia.$"
+
+Cofradia_Veteran_2::
+	msgbox Cofradia_Veteran_Text2, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Veteran_Text2:
+	.string "He visto campeones perder aquí.\nLa torre no distingue apellidos.$"
+
+Cofradia_Veteran_3::
+	msgbox Cofradia_Veteran_Text3, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Veteran_Text3:
+	.string "Saber retirarse también es una\nforma de victoria.$"
+
+TrainerHill_Entrance_EventScript_CofradiaGuard::
+	lock
+	faceplayer
+	random 3
+	switch VAR_RESULT
+	case 0, Cofradia_Guard_0
+	case 1, Cofradia_Guard_1
+	case 2, Cofradia_Guard_2
+	goto Cofradia_Guard_0
+
+Cofradia_Guard_0::
+	msgbox Cofradia_Guard_Text0, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Guard_Text0:
+	.string "La enfermería es gratuita.\nLas malas decisiones, no.$"
+
+Cofradia_Guard_1::
+	msgbox Cofradia_Guard_Text1, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Guard_Text1:
+	.string "La salida está detrás de ti.\nPuedes usarla cuando quieras.$"
+
+Cofradia_Guard_2::
+	msgbox Cofradia_Guard_Text2, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Guard_Text2:
+	.string "Respeta a los trabajadores.\nNo hay excepciones.$"
+
+TrainerHill_Entrance_EventScript_CofradiaWorker::
+	lock
+	faceplayer
+	random 4
+	switch VAR_RESULT
+	case 0, Cofradia_Worker_0
+	case 1, Cofradia_Worker_1
+	case 2, Cofradia_Worker_2
+	case 3, Cofradia_Worker_3
+	goto Cofradia_Worker_0
+
+Cofradia_Worker_0::
+	msgbox Cofradia_Worker_Text0, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Worker_Text0:
+	.string "Otra vez dejaron fichas en el suelo.\nNo me pagan suficiente.$"
+
+Cofradia_Worker_1::
+	msgbox Cofradia_Worker_Text1, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Worker_Text1:
+	.string "Si ves una gotera, no es un evento\nsecreto. Avísame.$"
+
+Cofradia_Worker_2::
+	msgbox Cofradia_Worker_Text2, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Worker_Text2:
+	.string "El Gran Padre nunca derrama nada.\nPor eso es mi cliente favorito.$"
+
+Cofradia_Worker_3::
+	msgbox Cofradia_Worker_Text3, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Worker_Text3:
+	.string "Todas las quejas son atendidas\n"
+	.string "personalmente por nuestro\l"
+	.string "departamento.$"
+
+TrainerHill_Entrance_EventScript_Portrait::
+	msgbox Cofradia_Text_Portrait, MSGBOX_SIGN
+	end
+
+@ ponytail: sin pantalla para escribir la reclamación (diseño.md §10.5); añadirla cuando el motor admita entrada de texto libre
+@ ponytail: reutiliza SE_BREAKABLE_DOOR como trituradora; sustituir por un recurso propio y comprobar en emulador
+TrainerHill_Entrance_EventScript_ComplaintBox::
+	lockall
+	msgbox Cofradia_Text_ComplaintAsk, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, Cofradia_ComplaintDone
+	playse SE_BREAKABLE_DOOR
+	waitse
+	playse SE_BREAKABLE_DOOR
+	waitse
+	msgbox Cofradia_Text_ComplaintDone, MSGBOX_DEFAULT
+Cofradia_ComplaintDone::
+	releaseall
+	end
+
+Cofradia_Text_Portrait:
+	.string "Retrato del Gran Padre.\p"
+	.string "“La Cofradía garantiza la igualdad\n"
+	.string "de oportunidades, no la igualdad\l"
+	.string "de resultados.”$"
+
+Cofradia_Text_ComplaintAsk:
+	.string "BUZÓN DE QUEJAS\n"
+	.string "¿Desea presentar una reclamación?$"
+
+Cofradia_Text_ComplaintDone:
+	.string "Su reclamación ha sido procesada\n"
+	.string "exitosamente.$"
+
+Cofradia_Text_NurseAsk:
+	.string "¿Quieres que cure a tu equipo?$"
+
+Cofradia_Text_NurseDone:
+	.string "Están como nuevos.\p"
+	.string "Cuida de ellos. Nos veremos pronto.$"
+
+Cofradia_Text_Manager:
+	.string "Bienvenido a la Cofradía.\p"
+	.string "La prueba clásica sigue disponible\n"
+	.string "tras superar la Liga.\p"
+	.string "La sala de apuestas aún no abre.$"
+
+Cofradia_Text_Clerk:
+	.string "Contratos, cuentas y suministros.\n"
+	.string "Hoy solo gestiono suministros.$"
