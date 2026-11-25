@@ -192,3 +192,25 @@ TEST("Cofradia special item redemption is bounded and cannot be repeated after r
     gPokemonStoragePtr->unholySave5 = old5;
     SetMoney(&gSaveBlock1Ptr->money, oldCash);
 }
+
+TEST("Cofradia rejects corrupted debt and custody extensions without resetting them")
+{
+    struct SaveBlock4 old4 = gSaveBlock3Ptr->unholySave4;
+    struct SaveBlock5 old5 = gPokemonStoragePtr->unholySave5;
+    struct CofradiaView ledger;
+    struct CofradiaVaultView vault;
+    UnholySave4_Reset();
+    UnholySave5_Reset();
+    EXPECT(CofradiaGetView(&ledger));
+    EXPECT(CofradiaVaultGetView(&vault));
+    gSaveBlock3Ptr->unholySave4.payload[UNHOLY_SAVE4_COFRADIA_OFFSET] ^= 1;
+    gPokemonStoragePtr->unholySave5.payload[UNHOLY_SAVE5_COFRADIA_VAULT_OFFSET] ^= 1;
+    EXPECT(!CofradiaGetView(&ledger));
+    EXPECT(!CofradiaVaultGetView(&vault));
+    EXPECT(!CofradiaProcessDefault());
+    EXPECT(!CofradiaVaultReturnMon(0));
+    EXPECT(!UnholySave4_Validate(&gSaveBlock3Ptr->unholySave4));
+    EXPECT(!UnholySave5_Validate(&gPokemonStoragePtr->unholySave5));
+    gSaveBlock3Ptr->unholySave4 = old4;
+    gPokemonStoragePtr->unholySave5 = old5;
+}
