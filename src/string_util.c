@@ -230,8 +230,8 @@ u8 *ConvertIntToDecimalStringN(u8 *dest, s32 value, enum StringConvertMode mode,
 u8 *ConvertUIntToDecimalStringN(u8 *dest, u32 value, enum StringConvertMode mode, u8 n)
 {
     enum { WAITING_FOR_NONZERO_DIGIT, WRITING_DIGITS, WRITING_SPACES } state;
-    s32 powerOfTen;
-    s32 largestPowerOfTen = sPowersOfTen[n - 1];
+    u32 powerOfTen;
+    u32 largestPowerOfTen = sPowersOfTen[n - 1];
 
     state = WAITING_FOR_NONZERO_DIGIT;
 
@@ -244,7 +244,7 @@ u8 *ConvertUIntToDecimalStringN(u8 *dest, u32 value, enum StringConvertMode mode
     for (powerOfTen = largestPowerOfTen; powerOfTen > 0; powerOfTen /= 10)
     {
         u8 c;
-        u16 digit = value / powerOfTen;
+        u32 digit = value / powerOfTen;
         u32 temp = value - (powerOfTen * digit);
 
         if (state == WRITING_DIGITS)
