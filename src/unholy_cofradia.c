@@ -5,6 +5,10 @@
 #include "money.h"
 #include "battle_setup.h"
 #include "pokemon.h"
+#include "pokemon_storage_system.h"
+#include "script_pokemon_util.h"
+#include "list_menu.h"
+#include "script.h"
 #include "event_data.h"
 #include "follower_npc.h"
 #include "hfc_watch.h"
@@ -394,7 +398,17 @@ void CofradiaArmScript(void)
     else
         gSpecialVar_Result = TRUE;
 }
-void CofradiaCancelSaveScript(void) { CofradiaDisarm(); }
+void CofradiaCancelSaveScript(void)
+{
+    struct CofradiaRecord *r = GetRecord();
+    if (r != NULL && r->state == COFRADIA_READY && !r->wins)
+    {
+        if (CofradiaArm())
+            CofradiaDisarm();
+    }
+    else
+        CofradiaDisarm();
+}
 void CofradiaStartBattleScript(void)
 {
     if (!CofradiaPrepareBattle())
