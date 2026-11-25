@@ -17,7 +17,7 @@
   "object_events": [
     {
       "local_id": "LOCALID_TRAINER_HILL_ATTENDANT",
-      "graphics_id": "OBJ_EVENT_GFX_TEALA",
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_MANAGER",
       "x": 11,
       "y": 6,
       "elevation": 3,
@@ -31,7 +31,7 @@
     },
     {
       "local_id": "LOCALID_TRAINER_HILL_NURSE",
-      "graphics_id": "OBJ_EVENT_GFX_NURSE",
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_NURSE",
       "x": 4,
       "y": 9,
       "elevation": 3,
@@ -44,7 +44,7 @@
       "flag": "0"
     },
     {
-      "graphics_id": "OBJ_EVENT_GFX_MART_EMPLOYEE",
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_CLERK",
       "x": 14,
       "y": 9,
       "elevation": 3,
@@ -58,7 +58,7 @@
     },
     {
       "local_id": "LOCALID_TRAINER_HILL_GIRL",
-      "graphics_id": "OBJ_EVENT_GFX_GIRL_3",
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_VETERAN",
       "x": 5,
       "y": 14,
       "elevation": 3,
@@ -72,7 +72,7 @@
     },
     {
       "local_id": "LOCALID_TRAINER_HILL_MAN",
-      "graphics_id": "OBJ_EVENT_GFX_MAN_3",
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_GAMBLER",
       "x": 14,
       "y": 15,
       "elevation": 3,
@@ -82,6 +82,32 @@
       "trainer_type": "TRAINER_TYPE_NONE",
       "trainer_sight_or_berry_tree_id": "0",
       "script": "TrainerHill_Entrance_EventScript_Man",
+      "flag": "0"
+    },
+    {
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_GUARD",
+      "x": 7,
+      "y": 12,
+      "elevation": 3,
+      "movement_type": "MOVEMENT_TYPE_FACE_DOWN",
+      "movement_range_x": 1,
+      "movement_range_y": 1,
+      "trainer_type": "TRAINER_TYPE_NONE",
+      "trainer_sight_or_berry_tree_id": "0",
+      "script": "TrainerHill_Entrance_EventScript_CofradiaGuard",
+      "flag": "0"
+    },
+    {
+      "graphics_id": "OBJ_EVENT_GFX_COFRADIA_WORKER",
+      "x": 17,
+      "y": 12,
+      "elevation": 3,
+      "movement_type": "MOVEMENT_TYPE_FACE_LEFT",
+      "movement_range_x": 1,
+      "movement_range_y": 1,
+      "trainer_type": "TRAINER_TYPE_NONE",
+      "trainer_sight_or_berry_tree_id": "0",
+      "script": "TrainerHill_Entrance_EventScript_CofradiaWorker",
       "flag": "0"
     }
   ],
