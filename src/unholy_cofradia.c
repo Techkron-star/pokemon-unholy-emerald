@@ -5,6 +5,8 @@
 #include "unholy_localization.h"
 #include "money.h"
 #include "item.h"
+#include "constants/items.h"
+#include "constants/item.h"
 #include "battle_setup.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -43,6 +45,7 @@ struct CofradiaRecord
     // Append-only fields: original P5C saves have zeroed reserved bytes.
     u32 borrowed;
     u32 debt;
+    u8 collectionPending; // processed in the lobby, after party restoration
 };
 STATIC_ASSERT(UNHOLY_SAVE4_COFRADIA_OFFSET + sizeof(struct CofradiaRecord) <= UNHOLY_SAVE4_PAYLOAD_BYTES, CofradiaFitsSave4);
 
@@ -100,7 +103,8 @@ static struct CofradiaRecord *GetRecord(void)
     if (r->state != COFRADIA_IDLE && (r->stake < CofradiaMinimum(r->difficulty) || r->fund < r->stake))
         return NULL;
     if (r->borrowed > r->stake || (r->state == COFRADIA_IDLE && r->borrowed != 0)
-        || (r->borrowed && r->debt))
+        || (r->borrowed && r->debt) || r->collectionPending > 1
+        || (r->collectionPending && !r->debt))
         return NULL;
     return r;
 }
@@ -237,6 +241,8 @@ bool32 CofradiaResolve(bool32 won)
     {
         r->biggestLoss = max(r->biggestLoss, r->fund);
         // Only borrowed principal becomes debt. Own money was already paid.
+        if (r->borrowed)
+            r->collectionPending = TRUE;
         r->debt += r->borrowed;
         ClearRun(r);
     }
@@ -277,14 +283,72 @@ enum CofradiaResult CofradiaRepay(u32 amount)
         return COFRADIA_BUSY;
     if (!IsEnoughMoney(&gSaveBlock1Ptr->money, amount))
         return COFRADIA_NO_MONEY;
-    u32 oldDebt = r->debt;
+    struct CofradiaRecord old = *r;
     r->debt -= amount;
+    if (!r->debt)
+        r->collectionPending = FALSE;
     if (!UnholySave4_Commit())
     {
-        r->debt = oldDebt;
+        *r = old;
         return COFRADIA_INVALID;
     }
     RemoveMoney(&gSaveBlock1Ptr->money, amount);
+    return COFRADIA_OK;
+}
+
+// Resolve the default after the battle party is restored and before further
+// lobby choices. A partial collection is not an additional debt or sale.
+bool32 CofradiaProcessDefault(void)
+{
+    struct CofradiaRecord *r = GetRecord();
+    struct CofradiaVaultView vault;
+    if (r == NULL || !r->collectionPending || r->state != COFRADIA_IDLE || sActive)
+        return FALSE;
+    if (!CofradiaVaultGetView(&vault))
+        return FALSE;
+    CofradiaVaultCollect();
+    if (!CofradiaVaultGetView(&vault))
+        return FALSE;
+    r = GetRecord();
+    if (r == NULL)
+        return FALSE;
+    r->collectionPending = FALSE;
+    if (!UnholySave4_Commit())
+    {
+        r->collectionPending = TRUE;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+enum CofradiaResult CofradiaRepayItem(enum Item item, u16 count)
+{
+    struct CofradiaRecord *r = GetRecord();
+    u32 unit = CofradiaAppraiseItem(item);
+    u64 value = (u64)unit * count;
+    if (r == NULL || !unit || !count || value > r->debt)
+        return COFRADIA_INVALID;
+    if (r->state != COFRADIA_IDLE || sActive)
+        return COFRADIA_BUSY;
+    if (!CheckBagHasItem(item, count))
+        return COFRADIA_INVALID;
+    if (GetItemPocket(item) == POCKET_KEY_ITEMS && count != 1)
+        return COFRADIA_INVALID;
+    struct CofradiaRecord old = *r;
+    r->debt -= (u32)value;
+    if (!r->debt)
+        r->collectionPending = FALSE;
+    if (!UnholySave4_Commit())
+    {
+        *r = old;
+        return COFRADIA_INVALID;
+    }
+    if (!RemoveBagItem(item, count))
+    {
+        *r = old;
+        UnholySave4_Commit();
+        return COFRADIA_INVALID;
+    }
     return COFRADIA_OK;
 }
 
@@ -323,7 +387,12 @@ u32 CofradiaAppraisePokemon(struct Pokemon *mon)
         : info->isSubLegendary ? 75 : 25;
     u32 level = min(100u, GetMonData(mon, MON_DATA_LEVEL));
     u32 quality = 40 * training + 35 * mutation + 15 * speciesRarity + 10 * level;
-    return 1000 + quality * 25;
+    u32 value = 1000 + quality * 25;
+    // Shiny status is a real rarity signal. V2 identifies the palette format,
+    // not its probability; do not reward arbitrary color seeds as rarity.
+    if (GetMonData(mon, MON_DATA_IS_SHINY))
+        value = value * 125 / 100;
+    return value;
 }
 
 // The actual trainer database is the source of all species, moves, abilities,
@@ -635,8 +704,17 @@ void CofradiaStatusScript(void)
     }
     if (r->state == COFRADIA_FIGHTING && !sActive)
     {
-        CofradiaResolve(FALSE);
+        if (!CofradiaResolve(FALSE))
+        {
+            Message(C_TEXT("Ledger unavailable.", "Libro no disponible."), 3);
+            return;
+        }
         Message(C_TEXT("Interrupted run. Stake lost.", "Racha interrumpida. Fondo perdido."), 4);
+        return;
+    }
+    if (r->state == COFRADIA_IDLE && r->collectionPending)
+    {
+        gSpecialVar_Result = 5;
         return;
     }
     if (r->state == COFRADIA_READY && r->wins)
@@ -862,7 +940,7 @@ void CofradiaFundingQuote(void)
     p = StringCopy(p, C_TEXT("\nLoan: ¥", "\nPréstamo: ¥"));
     p = Number(p, borrowed);
     if (borrowed)
-        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. No bag in battle.\pConfirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. Sin mochila en combate.\p¿Confirmas?"));
+        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets will be held until paid.\pNo interest. No bag in battle.\pConfirm?", "\pPerder o reiniciar crea deuda.\nRetendrán bienes hasta pagar.\pSin intereses. Sin mochila en combate.\p¿Confirmas?"));
     else
         StringCopy(p, C_TEXT("\pLose or reset: fund lost.\nNo bag in battle. Confirm?", "\pSi pierdes o reinicias, pierdes\nel fondo. Sin mochila en combate.\p¿Confirmas?"));
     gSpecialVar_Result = TRUE;
@@ -888,7 +966,8 @@ void CofradiaAccountsMenu(void)
 void CofradiaRepaymentMenu(void)
 {
     const u8 *labels[] = {C_TEXT("25 percent", "25 por ciento"), C_TEXT("50 percent", "50 por ciento"),
-        C_TEXT("Full debt", "Deuda completa"), C_TEXT("Available cash", "Efectivo disponible"), C_TEXT("Back", "Volver")};
+        C_TEXT("Full debt", "Deuda completa"), C_TEXT("Available cash", "Efectivo disponible"),
+        C_TEXT("Pay with items", "Pagar con objetos"), C_TEXT("Back", "Volver")};
     gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
 }
 
@@ -1025,4 +1104,106 @@ void CofradiaVaultEntryReturn(void)
         : CofradiaVaultReturnItem(sVaultSelection - COFRADIA_VAULT_MON_CAPACITY);
     Message(ok ? C_TEXT("Asset returned.", "Bien recuperado.")
         : C_TEXT("Return blocked. Asset stays safe.", "Sin espacio o duplicado. Bien retenido."), ok);
+}
+
+#define COFRADIA_PAYMENT_PAGE 8
+static EWRAM_DATA u16 sPayPageStart = 1;
+static EWRAM_DATA u16 sPayPageNext = 1;
+static EWRAM_DATA u16 sPayItemIds[COFRADIA_PAYMENT_PAGE] = {0};
+static EWRAM_DATA u8 sPayItemRows = 0;
+static EWRAM_DATA enum Item sPayItem = ITEM_NONE;
+static EWRAM_DATA u16 sPayCount = 0;
+
+static u16 ItemPaymentMax(enum Item item)
+{
+    struct CofradiaView ledger;
+    u32 unit = CofradiaAppraiseItem(item);
+    if (!unit || !CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE)
+        return 0;
+    u32 count = min(ledger.debt / unit, CountTotalItemQuantityInBag(item));
+    if (GetItemPocket(item) == POCKET_KEY_ITEMS)
+        count = min(count, 1u);
+    return count;
+}
+
+void CofradiaItemPaymentReset(void)
+{
+    sPayPageStart = 1;
+    sPayItem = ITEM_NONE;
+    sPayCount = 0;
+}
+
+void CofradiaItemPaymentMenu(void)
+{
+    u8 names[COFRADIA_PAYMENT_PAGE][48];
+    const u8 *labels[COFRADIA_PAYMENT_PAGE + 2];
+    sPayItemRows = 0;
+    u16 id = sPayPageStart;
+    for (; id < ITEMS_COUNT && sPayItemRows < COFRADIA_PAYMENT_PAGE; id++)
+    {
+        if (!ItemPaymentMax(id))
+            continue;
+        CopyItemName(id, names[sPayItemRows]);
+        labels[sPayItemRows] = names[sPayItemRows];
+        sPayItemIds[sPayItemRows++] = id;
+    }
+    sPayPageNext = id < ITEMS_COUNT ? id : 1;
+    labels[sPayItemRows] = C_TEXT("Next / restart", "Siguiente / inicio");
+    labels[sPayItemRows + 1] = C_TEXT("Back", "Volver");
+    gSpecialVar_Result = OpenMenu(labels, sPayItemRows + 2);
+}
+
+void CofradiaItemPaymentChoose(void)
+{
+    u16 row = gSpecialVar_0x8004;
+    if (row == sPayItemRows)
+    {
+        sPayPageStart = sPayPageNext;
+        gSpecialVar_Result = 2;
+    }
+    else if (row < sPayItemRows)
+    {
+        sPayItem = sPayItemIds[row];
+        gSpecialVar_Result = ItemPaymentMax(sPayItem) != 0;
+    }
+    else
+        gSpecialVar_Result = FALSE;
+}
+
+void CofradiaItemPaymentQuantityMenu(void)
+{
+    const u8 *labels[] = {C_TEXT("One unit", "Una unidad"), C_TEXT("Maximum", "Máximo sin exceder deuda"), C_TEXT("Back", "Volver")};
+    gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
+}
+
+void CofradiaItemPaymentQuote(void)
+{
+    u16 maxCount = ItemPaymentMax(sPayItem);
+    if (!maxCount || gSpecialVar_0x8004 > 1)
+    {
+        Message(C_TEXT("No payment available.", "No hay pago disponible."), FALSE);
+        return;
+    }
+    sPayCount = gSpecialVar_0x8004 == 0 ? 1 : maxCount;
+    u8 *p = CopyItemName(sPayItem, gStringVar4);
+    p = Number(StringCopy(p, C_TEXT("\nQuantity: ", "\nCantidad: ")), sPayCount);
+    p = Number(StringCopy(p, C_TEXT("\pDebt reduction: ¥", "\pAbono: ¥")), CofradiaAppraiseItem(sPayItem) * sPayCount);
+    StringCopy(p, C_TEXT("\nPermanent payment, no return.\pConfirm?", "\nPago definitivo, sin devolución.\p¿Confirmas?"));
+    gSpecialVar_Result = TRUE;
+}
+
+void CofradiaItemPaymentApply(void)
+{
+    bool32 ok = CofradiaRepayItem(sPayItem, sPayCount) == COFRADIA_OK;
+    sPayItem = ITEM_NONE;
+    sPayCount = 0;
+    Message(ok ? C_TEXT("Item payment recorded.", "Pago con objetos registrado.")
+        : C_TEXT("Payment unavailable.", "Pago no disponible."), ok);
+}
+
+void CofradiaDefaultScript(void)
+{
+    bool32 ok = CofradiaProcessDefault();
+    Message(ok ? C_TEXT("Collateral held if available.\pInspect the vault and debt.", "Garantías retenidas si disponibles.\pConsulta la bóveda y la deuda.")
+        : C_TEXT("No new collection.", "Sin nueva retención."), ok);
 }
