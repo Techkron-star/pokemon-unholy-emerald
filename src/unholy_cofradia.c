@@ -4,6 +4,7 @@
 #include "unholy_save.h"
 #include "unholy_localization.h"
 #include "money.h"
+#include "item.h"
 #include "battle_setup.h"
 #include "pokemon.h"
 #include "pokemon_storage_system.h"
@@ -71,6 +72,11 @@ static EWRAM_DATA u32 sCashBackup = 0;
 static EWRAM_DATA u8 sDifficulty = 0;
 static EWRAM_DATA u32 sStake = 0;
 static EWRAM_DATA u32 sStep = 1000;
+static EWRAM_DATA u8 sFunding = 0; // cash, shortfall credit, full credit
+static EWRAM_DATA u32 sPayment = 0;
+static EWRAM_DATA u8 sVaultSelection = 0;
+static EWRAM_DATA u8 sVaultIds[COFRADIA_VAULT_MON_CAPACITY + COFRADIA_VAULT_ITEM_CAPACITY] = {0};
+static EWRAM_DATA u8 sVaultCount = 0;
 
 static struct CofradiaRecord *GetRecord(void)
 {
@@ -727,15 +733,29 @@ void CofradiaAdjustStake(void)
     case 4: sStake = max(cash, floor); break;
     case 5: sStake = floor; break;
     }
-    if (cash >= floor)
-        sStake = min(sStake, cash);
+    u32 limit = cash;
+    u32 credit = floor * 10; // provisional ceiling per difficulty
+    if (sFunding == 1)
+        limit = cash > MAX_MONEY - credit ? MAX_MONEY : cash + credit;
+    else if (sFunding == 2)
+        limit = credit;
+    sStake = min(sStake, max(floor, limit));
 }
 
 void CofradiaBeginScript(void)
 {
-    enum CofradiaResult result = CofradiaBegin(sDifficulty, sStake);
+    u32 cash = GetMoney(&gSaveBlock1Ptr->money);
+    u32 borrowed = sFunding == 2 ? sStake : sFunding == 1 && sStake > cash ? sStake - cash : 0;
+    if (borrowed > CofradiaMinimum(sDifficulty) * 10)
+    {
+        Message(C_TEXT("Credit limit exceeded.", "Superas el límite de crédito."), FALSE);
+        return;
+    }
+    enum CofradiaResult result = CofradiaBeginCredit(sDifficulty, sStake, borrowed);
     if (result != COFRADIA_OK)
-        Message(C_TEXT("Cannot fund this bet.", "No puedes financiar esta apuesta."), FALSE);
+        Message(result == COFRADIA_DEBT_PENDING
+            ? C_TEXT("Settle debt and reclaim assets first.", "Salda la deuda y recupera tus bienes.")
+            : C_TEXT("Cannot fund this bet.", "No puedes financiar esta apuesta."), FALSE);
     else
         gSpecialVar_Result = TRUE;
 }
@@ -776,7 +796,7 @@ void CofradiaStartBattleScript(void)
 void CofradiaCashOutScript(void)
 {
     enum CofradiaResult result = CofradiaCashOut();
-    Message(result == COFRADIA_OK ? C_TEXT("Fund paid in full.", "Fondo abonado por completo.")
+    Message(result == COFRADIA_OK ? C_TEXT("Net fund paid; loan settled.", "Fondo neto abonado. Préstamo saldado.")
         : C_TEXT("No room for payout. Use reserve.", "Sin espacio. Usa tu reserva."), result == COFRADIA_OK);
 }
 
@@ -797,4 +817,209 @@ void CofradiaRecordsScript(void)
     p = StringCopy(p, C_TEXT("\nBiggest loss: ¥", "\nMayor pérdida: ¥"));
     Number(p, view.biggestLoss);
     gSpecialVar_Result = TRUE;
+}
+
+void CofradiaLobbyMenu(void)
+{
+    const u8 *labels[] = {C_TEXT("Cash wager", "Apuesta en efectivo"),
+        C_TEXT("Mixed credit", "Crédito mixto"), C_TEXT("Full credit", "Crédito total"),
+        C_TEXT("Accounts / vault", "Cuentas / bóveda"), C_TEXT("Exit", "Salir")};
+    gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
+}
+
+void CofradiaChooseFunding(void)
+{
+    u16 choice = gSpecialVar_0x8004;
+    if (choice > 2)
+    {
+        Message(C_TEXT("Invalid choice.", "Opción inválida."), FALSE);
+        return;
+    }
+    if (choice)
+    {
+        struct CofradiaView ledger;
+        struct CofradiaVaultView vault;
+        if (!CofradiaGetView(&ledger) || !CofradiaVaultGetView(&vault)
+            || ledger.debt || vault.pokemon || vault.itemStacks)
+        {
+            Message(C_TEXT("Settle debt and reclaim assets first.", "Salda la deuda y recupera tus bienes."), FALSE);
+            return;
+        }
+    }
+    sFunding = choice;
+    gSpecialVar_Result = TRUE;
+}
+
+void CofradiaFundingQuote(void)
+{
+    u32 cash = GetMoney(&gSaveBlock1Ptr->money);
+    u32 borrowed = sFunding == 2 ? sStake : sFunding == 1 && sStake > cash ? sStake - cash : 0;
+    u8 *p = StringCopy(gStringVar4, C_TEXT("Own cash: ¥", "Tu efectivo: ¥"));
+    p = Number(p, sStake - borrowed);
+    p = StringCopy(p, C_TEXT("\nLoan: ¥", "\nPréstamo: ¥"));
+    p = Number(p, borrowed);
+    if (borrowed)
+        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. Confirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. ¿Confirmas?"));
+    else
+        StringCopy(p, C_TEXT("\pLose or reset: fund lost.\nConfirm?", "\pSi pierdes o reinicias, pierdes\nel fondo. ¿Confirmas?"));
+    gSpecialVar_Result = TRUE;
+}
+
+void CofradiaAccountsMenu(void)
+{
+    struct CofradiaView ledger;
+    struct CofradiaVaultView vault;
+    if (!CofradiaGetView(&ledger) || !CofradiaVaultGetView(&vault))
+    {
+        Message(C_TEXT("Ledger unavailable.", "Libro no disponible."), FALSE);
+        return;
+    }
+    u8 debt[40], held[40];
+    Number(StringCopy(debt, C_TEXT("Debt: ¥", "Deuda: ¥")), ledger.debt);
+    Number(StringCopy(held, C_TEXT("Held: ¥", "Retenido: ¥")), vault.totalValue);
+    const u8 *labels[] = {debt, held, C_TEXT("Repay", "Pagar deuda"),
+        C_TEXT("Secure debt", "Entregar garantías"), C_TEXT("Inspect vault", "Ver bóveda"), C_TEXT("Back", "Volver")};
+    gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
+}
+
+void CofradiaRepaymentMenu(void)
+{
+    const u8 *labels[] = {C_TEXT("25 percent", "25 por ciento"), C_TEXT("50 percent", "50 por ciento"),
+        C_TEXT("Full debt", "Deuda completa"), C_TEXT("Available cash", "Efectivo disponible"), C_TEXT("Back", "Volver")};
+    gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
+}
+
+void CofradiaRepaymentQuote(void)
+{
+    struct CofradiaView ledger;
+    u32 cash = GetMoney(&gSaveBlock1Ptr->money);
+    if (!CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE || !ledger.debt || !cash || gSpecialVar_0x8004 > 3)
+    {
+        Message(C_TEXT("No payment available.", "No hay pago disponible."), FALSE);
+        return;
+    }
+    switch (gSpecialVar_0x8004)
+    {
+    case 0: sPayment = max(1u, ledger.debt / 4); break;
+    case 1: sPayment = max(1u, ledger.debt / 2); break;
+    case 2: sPayment = ledger.debt; break;
+    default: sPayment = min(cash, ledger.debt); break;
+    }
+    if (sPayment > cash)
+    {
+        Message(C_TEXT("Not enough cash.", "Efectivo insuficiente."), FALSE);
+        return;
+    }
+    u8 *p = Number(StringCopy(gStringVar4, C_TEXT("Pay ¥", "Pagar ¥")), sPayment);
+    p = Number(StringCopy(p, C_TEXT("\nRemaining: ¥", "\nRestante: ¥")), ledger.debt - sPayment);
+    StringCopy(p, C_TEXT("\pConfirm?", "\p¿Confirmas?"));
+    gSpecialVar_Result = TRUE;
+}
+
+void CofradiaRepaymentApply(void)
+{
+    bool32 ok = CofradiaRepay(sPayment) == COFRADIA_OK;
+    sPayment = 0;
+    Message(ok ? C_TEXT("Payment recorded.", "Pago registrado.")
+        : C_TEXT("Payment unavailable.", "Pago no disponible."), ok);
+}
+
+void CofradiaCollectScript(void)
+{
+    struct CofradiaVaultView before, after;
+    if (!CofradiaVaultGetView(&before))
+    {
+        Message(C_TEXT("Vault unavailable.", "Bóveda no disponible."), FALSE);
+        return;
+    }
+    bool32 covered = CofradiaVaultCollect();
+    if (!CofradiaVaultGetView(&after))
+    {
+        Message(C_TEXT("Vault unavailable.", "Bóveda no disponible."), FALSE);
+        return;
+    }
+    bool32 changed = before.totalValue != after.totalValue || before.pokemon != after.pokemon || before.itemStacks != after.itemStacks;
+    Message(covered ? C_TEXT("Debt secured. Assets held.", "Deuda garantizada. Bienes retenidos.")
+        : C_TEXT("Coverage incomplete. Debt remains.", "Garantía parcial. La deuda continúa."), changed);
+}
+
+void CofradiaVaultMenu(void)
+{
+    u8 texts[COFRADIA_VAULT_MON_CAPACITY + COFRADIA_VAULT_ITEM_CAPACITY + 1][48];
+    const u8 *labels[ARRAY_COUNT(texts)];
+    sVaultCount = 0;
+    for (u8 i = 0; i < COFRADIA_VAULT_MON_CAPACITY; i++)
+    {
+        u8 name[POKEMON_NAME_LENGTH + 1];
+        u32 value;
+        if (CofradiaVaultDescribeMon(i, name, &value))
+        {
+            StringCopy(texts[sVaultCount], name);
+            labels[sVaultCount] = texts[sVaultCount];
+            sVaultIds[sVaultCount++] = i;
+        }
+    }
+    for (u8 i = 0; i < COFRADIA_VAULT_ITEM_CAPACITY; i++)
+    {
+        enum Item item;
+        u16 count;
+        u32 value;
+        if (CofradiaVaultDescribeItem(i, &item, &count, &value))
+        {
+            // Keep list labels short; full name/quantity/value in the detail view.
+            CopyItemName(item, texts[sVaultCount]);
+            labels[sVaultCount] = texts[sVaultCount];
+            sVaultIds[sVaultCount++] = COFRADIA_VAULT_MON_CAPACITY + i;
+        }
+    }
+    labels[sVaultCount] = C_TEXT("Back", "Volver");
+    gSpecialVar_Result = OpenMenu(labels, sVaultCount + 1);
+}
+
+void CofradiaVaultEntryQuote(void)
+{
+    if (gSpecialVar_0x8004 >= sVaultCount)
+    {
+        gSpecialVar_Result = 2;
+        return;
+    }
+    sVaultSelection = sVaultIds[gSpecialVar_0x8004];
+    u32 value;
+    u8 *p;
+    if (sVaultSelection < COFRADIA_VAULT_MON_CAPACITY)
+    {
+        u8 name[POKEMON_NAME_LENGTH + 1];
+        if (!CofradiaVaultDescribeMon(sVaultSelection, name, &value))
+        {
+            gSpecialVar_Result = 2;
+            return;
+        }
+        p = StringCopy(gStringVar4, name);
+    }
+    else
+    {
+        enum Item item;
+        u16 count;
+        if (!CofradiaVaultDescribeItem(sVaultSelection - COFRADIA_VAULT_MON_CAPACITY, &item, &count, &value))
+        {
+            gSpecialVar_Result = 2;
+            return;
+        }
+        p = CopyItemName(item, gStringVar4);
+        p = Number(StringCopy(p, C_TEXT("\nQuantity: ", "\nCantidad: ")), count);
+    }
+    p = Number(StringCopy(p, C_TEXT("\nValue: ¥", "\nValor: ¥")), value);
+    bool32 available = CofradiaVaultReturnAvailable();
+    StringCopy(p, available ? C_TEXT("\pReclaim this asset?", "\p¿Recuperar este bien?")
+        : C_TEXT("\pPay debt to reclaim.", "\pSalda la deuda para recuperar."));
+    gSpecialVar_Result = available;
+}
+
+void CofradiaVaultEntryReturn(void)
+{
+    bool32 ok = sVaultSelection < COFRADIA_VAULT_MON_CAPACITY
+        ? CofradiaVaultReturnMon(sVaultSelection)
+        : CofradiaVaultReturnItem(sVaultSelection - COFRADIA_VAULT_MON_CAPACITY);
+    Message(ok ? C_TEXT("Asset returned.", "Bien recuperado.")
+        : C_TEXT("Return blocked. Asset stays safe.", "Sin espacio o duplicado. Bien retenido."), ok);
 }
