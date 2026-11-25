@@ -117,6 +117,7 @@ void ClearTrainerFlag(u16 trainerId);
 void BattleSetup_StartTrainerBattle(void);
 void BattleSetup_StartRematchBattle(void);
 void BattleSetup_StartBountyBattle(u16 trainer);
+void BattleSetup_StartCofradiaBattle(u16 trainer);
 void ShowTrainerIntroSpeech(void);
 const u8 *BattleSetup_GetScriptAddrAfterBattle(void);
 const u8 *BattleSetup_GetTrainerPostBattleScript(void);
