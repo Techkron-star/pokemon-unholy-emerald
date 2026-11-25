@@ -677,6 +677,7 @@ Cofradia_WagerLobby::
 	case 2, Cofradia_WagerUnstarted
 	case 3, Cofradia_WagerMessage
 	case 4, Cofradia_WagerInterrupted
+	case 5, Cofradia_DefaultCollection
 Cofradia_LobbyMenu::
 	closemessage
 	callnative CofradiaLobbyMenu
@@ -745,6 +746,7 @@ Cofradia_WagerFight::
 	callnative CofradiaStatusScript
 	goto_if_eq VAR_RESULT, 1, Cofradia_WagerContinue
 	goto_if_eq VAR_RESULT, 3, Cofradia_WagerMessage
+	goto_if_eq VAR_RESULT, 5, Cofradia_DefaultCollection
 	msgbox Cofradia_Text_WagerLost, MSGBOX_DEFAULT
 	goto Cofradia_Accounts
 
@@ -792,7 +794,13 @@ Cofradia_Text_SavePayout:
 
 Cofradia_WagerInterrupted::
 	msgbox gStringVar4, MSGBOX_DEFAULT
+	callnative CofradiaStatusScript
+	goto_if_eq VAR_RESULT, 5, Cofradia_DefaultCollection
 	goto Cofradia_Accounts
+
+Cofradia_DefaultCollection::
+	callnative CofradiaDefaultScript
+	goto Cofradia_AccountTransaction
 
 Cofradia_Accounts::
 	closemessage
@@ -812,7 +820,8 @@ Cofradia_Repayment::
 	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
 	waitstate
 	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_Accounts
-	goto_if_eq VAR_RESULT, 4, Cofradia_Accounts
+	goto_if_eq VAR_RESULT, 5, Cofradia_Accounts
+	goto_if_eq VAR_RESULT, 4, Cofradia_ItemPaymentStart
 	copyvar VAR_0x8004, VAR_RESULT
 	callnative CofradiaRepaymentQuote
 	goto_if_ne VAR_RESULT, TRUE, Cofradia_AccountNotice
@@ -869,3 +878,28 @@ Cofradia_Text_CollateralConfirm:
 Cofradia_Text_SaveAccount:
 	.string "Guarda para conservar los cambios\n"
 	.string "de tu cuenta y de la bóveda.$"
+
+Cofradia_ItemPaymentStart::
+	callnative CofradiaItemPaymentReset
+Cofradia_ItemPaymentList::
+	closemessage
+	callnative CofradiaItemPaymentMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_Accounts
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaItemPaymentChoose
+	goto_if_eq VAR_RESULT, 2, Cofradia_ItemPaymentList
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	callnative CofradiaItemPaymentQuantityMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_ItemPaymentList
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_ItemPaymentList
+	goto_if_eq VAR_RESULT, 2, Cofradia_ItemPaymentList
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaItemPaymentQuote
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_AccountNotice
+	msgbox gStringVar4, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_ItemPaymentList
+	callnative CofradiaItemPaymentApply
+	goto Cofradia_AccountTransaction
