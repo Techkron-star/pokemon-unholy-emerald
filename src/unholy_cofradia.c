@@ -862,7 +862,7 @@ void CofradiaFundingQuote(void)
     p = StringCopy(p, C_TEXT("\nLoan: ¥", "\nPréstamo: ¥"));
     p = Number(p, borrowed);
     if (borrowed)
-        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. No bag in battle.\\pConfirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. Sin mochila en combate.\\p¿Confirmas?"));
+        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. No bag in battle.\pConfirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. Sin mochila en combate.\p¿Confirmas?"));
     else
         StringCopy(p, C_TEXT("\pLose or reset: fund lost.\nNo bag in battle. Confirm?", "\pSi pierdes o reinicias, pierdes\nel fondo. Sin mochila en combate.\p¿Confirmas?"));
     gSpecialVar_Result = TRUE;
