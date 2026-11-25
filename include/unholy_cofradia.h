@@ -41,6 +41,7 @@ bool32 CofradiaVaultHoldItem(enum Item item, u16 count);
 bool32 CofradiaVaultReturnMon(u8 index);
 bool32 CofradiaVaultReturnItem(u8 index);
 bool32 CofradiaVaultReturnAvailable(void);
+bool32 CofradiaVaultCollect(void);
 
 u32 CofradiaMinimum(u8 difficulty);
 u32 CofradiaCompound(u32 fund, u8 difficulty);
