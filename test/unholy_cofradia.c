@@ -146,3 +146,29 @@ TEST("Cofradia donor slots avoid repeated trainers and rematch aliases")
         }
     }
 }
+
+TEST("Cofradia gym blueprints are reproducible, varied and preserve a gym anchor")
+{
+    EXPECT_EQ(CofradiaGymPatternSource(123, 0, TRAINER_ROXANNE_1), TRAINER_ROXANNE_1);
+    EXPECT_EQ(CofradiaGymPatternSource(456, 5, TRAINER_JUAN_1), TRAINER_JUAN_1);
+    for (u8 tier = 0; tier < COFRADIA_DIFFICULTY_COUNT; tier++)
+    {
+        u16 first = CofradiaGymPatternSource(1, tier, TRAINER_NONE);
+        bool32 varied = FALSE;
+        for (u32 seed = 1; seed <= 32; seed++)
+        {
+            u16 source = CofradiaGymPatternSource(seed, tier, TRAINER_NONE);
+            EXPECT(source > TRAINER_NONE && source < TRAINERS_COUNT);
+            EXPECT_EQ(source, CofradiaGymPatternSource(seed, tier, TRAINER_NONE));
+            if (source == TRAINER_NONE || source >= TRAINERS_COUNT)
+                continue;
+            const struct Trainer *trainer = GetTrainerStructFromId(source);
+            if (trainer->overrideTrainer)
+                trainer = GetTrainerStructFromId(trainer->overrideTrainer);
+            EXPECT(trainer->party != NULL);
+            EXPECT(trainer->partySize > 0);
+            varied |= source != first;
+        }
+        EXPECT(varied);
+    }
+}
