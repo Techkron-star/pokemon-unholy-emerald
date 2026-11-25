@@ -30,6 +30,7 @@ bool32 CofradiaBattleActive(void);
 u8 CofradiaBattleDifficulty(void);
 u32 CofradiaBattleSeed(void);
 u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal);
+u16 CofradiaGymPatternSource(u32 seed, u8 difficulty, u16 primary);
 u8 CofradiaTeamSize(u8 difficulty, bool32 boss);
 u16 CofradiaBattleDonor(u8 ordinal);
 bool32 CofradiaBattleIsBoss(void);
