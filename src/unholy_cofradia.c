@@ -717,7 +717,7 @@ void CofradiaStakeMenu(void)
     p = StringCopy(plus, COMPOUND_STRING("+ ")); Number(p, sStep);
     p = StringCopy(minus, COMPOUND_STRING("- ")); Number(p, sStep);
     p = StringCopy(step, C_TEXT("Step: ", "Paso: ")); Number(p, sStep);
-    const u8 *labels[] = {value, plus, minus, step, C_TEXT("All cash", "Todo el efectivo"), C_TEXT("Minimum", "Mínimo")};
+    const u8 *labels[] = {value, plus, minus, step, sFunding == 2 ? C_TEXT("Max credit", "Crédito máximo") : sFunding == 1 ? C_TEXT("Max funding", "Financiación máxima") : C_TEXT("All cash", "Todo el efectivo"), C_TEXT("Minimum", "Mínimo")};
     gSpecialVar_Result = OpenMenu(labels, ARRAY_COUNT(labels));
 }
 
@@ -730,7 +730,10 @@ void CofradiaAdjustStake(void)
     case 1: sStake = sStep > MAX_MONEY - sStake ? MAX_MONEY : sStake + sStep; break;
     case 2: sStake = sStep > sStake - floor ? floor : sStake - sStep; break;
     case 3: sStep = sStep == 1000000000 ? 1 : sStep * 10; break;
-    case 4: sStake = max(cash, floor); break;
+    case 4:
+        sStake = sFunding == 2 ? floor * 10 : sFunding == 1
+            ? (cash > MAX_MONEY - floor * 10 ? MAX_MONEY : cash + floor * 10) : max(cash, floor);
+        break;
     case 5: sStake = floor; break;
     }
     u32 limit = cash;
@@ -859,9 +862,9 @@ void CofradiaFundingQuote(void)
     p = StringCopy(p, C_TEXT("\nLoan: ¥", "\nPréstamo: ¥"));
     p = Number(p, borrowed);
     if (borrowed)
-        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. Confirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. ¿Confirmas?"));
+        StringCopy(p, C_TEXT("\pDefeat or reset creates debt.\nAssets may be held until paid.\pNo interest. No bag in battle.\\pConfirm?", "\pPerder o reiniciar crea deuda.\nPodrán retener tus bienes.\pSin intereses. Sin mochila en combate.\\p¿Confirmas?"));
     else
-        StringCopy(p, C_TEXT("\pLose or reset: fund lost.\nConfirm?", "\pSi pierdes o reinicias, pierdes\nel fondo. ¿Confirmas?"));
+        StringCopy(p, C_TEXT("\pLose or reset: fund lost.\nNo bag in battle. Confirm?", "\pSi pierdes o reinicias, pierdes\nel fondo. Sin mochila en combate.\p¿Confirmas?"));
     gSpecialVar_Result = TRUE;
 }
 
