@@ -6,6 +6,7 @@
 #include "battle.h"
 #include "item.h"
 #include "mail.h"
+#include "string_util.h"
 #include "constants/items.h"
 #include "constants/item.h"
 
@@ -428,4 +429,28 @@ bool32 CofradiaVaultCollect(void)
             return FALSE;
     }
     return view.totalValue >= ledger.debt;
+}
+
+bool32 CofradiaVaultDescribeMon(u8 index, u8 *name, u32 *value)
+{
+    struct VaultRecord *v = GetVault();
+    if (v == NULL || index >= COFRADIA_VAULT_MON_CAPACITY
+        || !v->mons[index].origin || name == NULL || value == NULL)
+        return FALSE;
+    struct Pokemon copy = v->mons[index].mon;
+    GetMonData(&copy, MON_DATA_NICKNAME, name);
+    *value = v->mons[index].value;
+    return TRUE;
+}
+
+bool32 CofradiaVaultDescribeItem(u8 index, enum Item *item, u16 *count, u32 *value)
+{
+    struct VaultRecord *v = GetVault();
+    if (v == NULL || index >= COFRADIA_VAULT_ITEM_CAPACITY
+        || !v->items[index].count || item == NULL || count == NULL || value == NULL)
+        return FALSE;
+    *item = v->items[index].item;
+    *count = v->items[index].count;
+    *value = v->items[index].value;
+    return TRUE;
 }
