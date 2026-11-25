@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_localization.h"
 #include "item.h"
 #include "gear.h"
 #include "mail.h"
@@ -851,6 +852,8 @@ const u8 *GetItemName(enum Item itemId)
     if (gear != GEAR_NONE)
         return Gear_GetLocalizedName(gear);
 
+    if (itemId == ITEM_MAX_SOUP)
+        return UnholyLocalize(COMPOUND_STRING("Max Soup"), COMPOUND_STRING("Maxisopa"));
     name = gItemsInfo[itemId].name;
 
     return name == NULL ? gQuestionMarksItemName : name;
@@ -909,6 +912,8 @@ const u8 *GetItemDescription(enum Item itemId)
          ? Gear_FromItem(itemId) : GEAR_NONE;
     if (gear != GEAR_NONE)
         return Gear_GetLocalizedDescription(gear);
+    if (itemId == ITEM_MAX_SOUP)
+        return UnholyLocalize(gItemsInfo[itemId].description, COMPOUND_STRING("Alterna Gigamax.\nUrshifu necesita\nMiel Max."));
     return gItemsInfo[itemId].description;
 }
 
