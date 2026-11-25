@@ -345,6 +345,8 @@ u32 HorizonGoodsReferencePrice(enum Item item)
     u32 price = GetItemPrice(item);
     if (item == ITEM_MASTER_BALL)
         return 150000;
+    if (item >= ITEM_NORMAL_GEM && item <= ITEM_FAIRY_GEM && price == 0)
+        price = 2500;
     if (price == 0 && GetItemPocket(item) == POCKET_TM_HM)
         price = 4000;
     switch (item)
@@ -784,8 +786,10 @@ const struct HorizonGoodsOffer *HorizonGoodsGetOffer(bool8 discs, u8 slot)
 bool32 HorizonGoodsOfferSold(bool8 discs, u8 slot)
 {
     struct HorizonGoodsSave *save = GetStock();
-    const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(discs, slot);
-    return save == NULL || offer == NULL || (save->sold[discs != FALSE] & (1 << slot))
+    if (save == NULL || slot >= VisibleCount(discs))
+        return TRUE;
+    const struct HorizonGoodsOffer *offer = &save->offers[discs != FALSE][slot];
+    return !offer->itemId || (save->sold[discs != FALSE] & (1 << slot))
         || HorizonGoodsOwned(offer->itemId);
 }
 
