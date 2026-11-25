@@ -1762,20 +1762,40 @@ static void BuyMenuDrawHorizonGoods(void)
             FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x, y, 1, 20);
             FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(outline), x + 51, y, 1, 20);
             HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(item), x + 3, y + 1, 47, FONT_SMALL_NARROW, colors);
-            if (GetItemImportance(item) && (CheckBagHasItem(item, 1) || CheckPCHasItem(item, 1)))
+            const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, index);
+            if (offer == NULL || HorizonGoodsOfferSold(sHorizonSelectedTab == 1, index))
                 StringCopy(text, gText_SoldOut);
             else
-                ConvertUIntToDecimalStringN(text, GetShopPurchasePrice(item),
-                    STR_CONV_MODE_LEFT_ALIGN, 6);
+            {
+                u8 *p = ConvertUIntToDecimalStringN(text, offer->price, STR_CONV_MODE_LEFT_ALIGN, 6);
+                if (offer->quantity > 1)
+                {
+                    p = StringAppend(p, COMPOUND_STRING(" x"));
+                    ConvertUIntToDecimalStringN(p, offer->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+                }
+                if (offer->grade == HORIZON_DEAL_CHROMATIC)
+                    FillWindowPixelRect(WIN_ITEM_LIST, PIXEL_FILL(13), x + 48, y + 2, 3, 3);
+            }
             HorizonPrintFitStyle(WIN_ITEM_LIST, text, x + 3, y + 10, 47, FONT_SMALL_NARROW, colors);
         }
     }
 
     if (count != 0)
+    {
+        const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, sHorizonGoodsSelection);
         HorizonPrintFitStyle(WIN_ITEM_LIST, GetItemName(sMartInfo.itemList[sHorizonGoodsSelection]),
-            6, 88, 108, FONT_SMALL, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 103, 107, FONT_SMALL_NARROW, colors);
-    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 115, 106, FONT_SMALL_NARROW, colors);
+            6, 85, 108, FONT_SMALL, colors);
+        if (offer != NULL && !HorizonGoodsOfferSold(sHorizonSelectedTab == 1, sHorizonGoodsSelection))
+        {
+            u8 detail[32];
+            u8 *p = StringCopy(detail, offer->grade == HORIZON_DEAL_CHROMATIC ? COMPOUND_STRING("CHROMATIC x")
+                : offer->grade == HORIZON_DEAL_PROMO ? COMPOUND_STRING("PROMO x") : COMPOUND_STRING("OFFER x"));
+            ConvertUIntToDecimalStringN(p, offer->quantity, STR_CONV_MODE_LEFT_ALIGN, 2);
+            HorizonPrintFitStyle(WIN_ITEM_LIST, detail, 6, 96, 108, FONT_SMALL_NARROW, colors);
+        }
+    }
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsControls, 6, 108, 107, FONT_SMALL_NARROW, colors);
+    HorizonPrintFitStyle(WIN_ITEM_LIST, sHorizonGoodsBack, 6, 118, 106, FONT_SMALL_NARROW, colors);
     PutWindowTilemap(WIN_ITEM_LIST);
     CopyWindowToVram(WIN_ITEM_LIST, COPYWIN_FULL);
 }
@@ -2165,6 +2185,24 @@ static void Task_BuyMenu(u8 taskId)
             BuyMenuRemoveScrollIndicatorArrows();
             BuyMenuPrintCursor(tListTaskId, COLORID_GRAY_CURSOR);
 
+            if (sHorizonActive)
+            {
+                const struct HorizonGoodsOffer *offer = HorizonGoodsGetOffer(sHorizonSelectedTab == 1, sHorizonGoodsSelection);
+                if (offer == NULL || HorizonGoodsOfferSold(sHorizonSelectedTab == 1, sHorizonGoodsSelection))
+                    BuyMenuDisplayMessage(taskId, gText_ThatItemIsSoldOut, BuyMenuReturnToItemList);
+                else if (!IsEnoughMoney(&gSaveBlock1Ptr->money, offer->price))
+                    BuyMenuDisplayMessage(taskId, gText_YouDontHaveMoney, BuyMenuReturnToItemList);
+                else
+                {
+                    tItemCount = offer->quantity;
+                    sShopData->totalCost = offer->price;
+                    CopyItemName(itemId, gStringVar1);
+                    ConvertIntToDecimalStringN(gStringVar2, tItemCount, STR_CONV_MODE_LEFT_ALIGN, MAX_ITEM_DIGITS);
+                    ConvertIntToDecimalStringN(gStringVar3, offer->price, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
+                    BuyMenuDisplayMessage(taskId, gText_Var1AndYouWantedVar2, BuyMenuConfirmPurchase);
+                }
+                break;
+            }
             if (sMartInfo.martType == MART_TYPE_NORMAL)
                 sShopData->totalCost = (GetShopPurchasePrice(itemId));
             else
@@ -2293,6 +2331,28 @@ static void BuyMenuTryMakePurchase(u8 taskId)
     s16 *data = gTasks[taskId].data;
 
     PutWindowTilemap(WIN_ITEM_LIST);
+
+    if (sHorizonActive)
+    {
+        enum HorizonMarketPurchaseResult result = HorizonGoodsPurchase(sHorizonSelectedTab == 1,
+            sHorizonGoodsSelection, tItemId, sShopData->totalCost);
+        if (result == HORIZON_MARKET_PURCHASE_OK)
+        {
+            GetSetItemObtained(tItemId, FLAG_SET_ITEM_OBTAINED);
+            RecordItemPurchase(taskId);
+            IncrementGameStat(GAME_STAT_SHOPPED);
+            PlaySE(SE_SHOP);
+            PrintMoneyAmountInMoneyBox(WIN_MONEY, GetMoney(&gSaveBlock1Ptr->money), 0);
+            BuyMenuDisplayMessage(taskId, gText_HereYouGoThankYou, BuyMenuReturnToItemList);
+        }
+        else if (result == HORIZON_MARKET_PURCHASE_NO_MONEY)
+            BuyMenuDisplayMessage(taskId, gText_YouDontHaveMoney, BuyMenuReturnToItemList);
+        else if (result == HORIZON_MARKET_PURCHASE_NO_SPACE)
+            BuyMenuDisplayMessage(taskId, gText_NoMoreRoomForThis, BuyMenuReturnToItemList);
+        else
+            BuyMenuDisplayMessage(taskId, gText_ThatItemIsSoldOut, BuyMenuReturnToItemList);
+        return;
+    }
 
     if (sMartInfo.martType == MART_TYPE_NORMAL)
     {
