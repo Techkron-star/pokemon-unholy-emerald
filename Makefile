@@ -250,6 +250,14 @@ AUTO_GEN_TARGETS += $(DATA_SRC_SUBDIR)/wild_encounters.h
 MISC_TOOL_DIR := $(TOOLS_DIR)/misc
 AUTO_GEN_TARGETS +=  $(INCLUDE_DIRS)/constants/script_commands.h
 
+CHROMATIC_REGION_HEADER := $(DATA_SRC_SUBDIR)/unholy_chromatic_regions.generated.h
+CHROMATIC_REGION_TOOL := $(MISC_TOOL_DIR)/unholy_chromatic_regions.py
+CHROMATIC_REGION_ASSETS := $(shell find graphics/pokemon -type f \( -name 'normal.pal' -o -name 'shiny.pal' -o -name 'normal_gba.pal' -o -name 'shiny_gba.pal' -o -name 'front*.png' -o -name 'anim_front*.png' -o -name 'back*.png' \))
+AUTO_GEN_TARGETS += $(CHROMATIC_REGION_HEADER)
+
+$(CHROMATIC_REGION_HEADER): $(CHROMATIC_REGION_TOOL) $(CHROMATIC_REGION_ASSETS)
+	python3 $(CHROMATIC_REGION_TOOL) --output $@
+
 $(DATA_SRC_SUBDIR)/wild_encounters.h: $(DATA_SRC_SUBDIR)/wild_encounters.json $(WILD_ENCOUNTERS_TOOL_DIR)/wild_encounters_to_header.py $(INCLUDE_DIRS)/config/overworld.h $(INCLUDE_DIRS)/config/dexnav.h
 	python3 $(WILD_ENCOUNTERS_TOOL_DIR)/wild_encounters_to_header.py
 
@@ -464,6 +472,8 @@ $(C_BUILDDIR)/graphics.o: override CFLAGS += -Wno-missing-braces
 # Have to be explicit or else missing files won't be reported.
 $(C_BUILDDIR)/move_relearner.o: $(C_SUBDIR)/move_relearner.c $(DATA_SRC_SUBDIR)/tutor_moves.h
 $(C_BUILDDIR)/pokemon.o: $(C_SUBDIR)/pokemon.c $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h
+$(C_BUILDDIR)/unholy_natural_tones.o: $(C_SUBDIR)/unholy_natural_tones.c $(CHROMATIC_REGION_HEADER)
+$(C_BUILDDIR)/unholy_natural_tones.d: $(C_SUBDIR)/unholy_natural_tones.c $(CHROMATIC_REGION_HEADER)
 
 # As a side effect, they're evaluated immediately instead of when the rule is invoked.
 # It doesn't look like $(shell) can be deferred so there might not be a better way (Icedude_907: there is soon).

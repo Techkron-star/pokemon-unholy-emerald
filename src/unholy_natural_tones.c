@@ -409,6 +409,37 @@ u32 NaturalTone_GetCuratedRoleMask(const u16 *base)
     return 0;
 }
 
+// Generated once on the host; a binary search does not inspect sprite pixels on GBA.
+struct GeneratedChromaticRole
+{
+    u32 keyA, keyB, roles;
+};
+#include "data/unholy_chromatic_regions.generated.h"
+
+u32 NaturalTone_GetGeneratedRoleMask(const u16 *base)
+{
+    u32 a = 2166136261u, b = 0x9E3779B9u;
+    u32 i, low = 0, high = ARRAY_COUNT(sGeneratedChromaticRoles);
+    for (i = 1; i < 16; i++)
+    {
+        u32 v = base[i] & 0x7FFF;
+        a = (a ^ v) * 16777619u;
+        b = (b ^ v) * 2246822519u;
+    }
+    while (low < high)
+    {
+        u32 mid = low + (high - low) / 2;
+        const struct GeneratedChromaticRole *row = &sGeneratedChromaticRoles[mid];
+        if (row->keyA == a && row->keyB == b)
+            return row->roles;
+        if (row->keyA < a || (row->keyA == a && row->keyB < b))
+            low = mid + 1;
+        else
+            high = mid;
+    }
+    return 0;
+}
+
 u8 NaturalTone_SelectV2Roles(u32 packedRoles, const struct NaturalToneV2Profile *profile)
 {
     u8 available = 0, selected = 0;
@@ -533,8 +564,11 @@ static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
 void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 otId, bool32 isShiny, u32 overrides)
 {
     struct NaturalToneV2Profile p;
-    u32 roles = NaturalTone_GetCuratedRoleMask(base), i;
+    u32 roles = NaturalTone_GetGeneratedRoleMask(base), i;
     u8 selected;
+    // Spatial segmentation is the default, curated exceptions are fallback
+    // only, and the original automatic hue grouping handles unknown palettes.
+    if (!roles) roles = NaturalTone_GetCuratedRoleMask(base);
     if (!roles) roles = NaturalTone_GetV2RoleMask(base);
     // Explicit overrides replace individual role assignments; zero means
     // retain inferred or curated role. Protected colors are always preserved.

@@ -72,6 +72,7 @@ void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct 
 u32 NaturalTone_GetV2RoleMask(const u16 *base);
 // A curated signature uses exact RGB555 palette colors; zero means no match.
 u32 NaturalTone_GetCuratedRoleMask(const u16 *base);
+u32 NaturalTone_GetGeneratedRoleMask(const u16 *base);
 // Return selected 1-based region bits as bit 0..2, ignoring absent roles.
 u8 NaturalTone_SelectV2Roles(u32 packedRoles, const struct NaturalToneV2Profile *profile);
 void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 otId, bool32 isShiny, u32 overrides);
