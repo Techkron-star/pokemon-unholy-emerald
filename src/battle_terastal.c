@@ -24,7 +24,7 @@ void ActivateTera(enum BattlerId battler)
     SetGimmickAsActivated(battler, GIMMICK_TERA);
 
     // Remove Tera Orb charge.
-    if (IsTeraOrbCharged()
+    if (B_FLAG_TERA_ORB_CHARGED != 0 && IsTeraOrbCharged()
         && IsOnPlayerSide(battler)
         && !(IsDoubleBattle() && !IsPartnerMonFromSameTrainer(battler)))
     {
@@ -60,9 +60,9 @@ void ApplyBattlerVisualsForTeraAnim(enum BattlerId battler)
 // Returns whether the Tera Orb is charged.
 bool32 IsTeraOrbCharged(void)
 {
-    if (FlagGet(B_FLAG_TERA_ORB_NO_COST) || B_TERA_ORB_ALWAYS_CHARGED)
+    if (B_TERA_ORB_ALWAYS_CHARGED || (B_FLAG_TERA_ORB_NO_COST != 0 && FlagGet(B_FLAG_TERA_ORB_NO_COST)))
         return TRUE;
-    return FlagGet(B_FLAG_TERA_ORB_CHARGED);
+    return B_FLAG_TERA_ORB_CHARGED != 0 && FlagGet(B_FLAG_TERA_ORB_CHARGED);
 }
 
 // Returns whether a battler can Terastallize.

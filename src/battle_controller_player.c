@@ -993,9 +993,27 @@ void HandleInputChooseMove(enum BattlerId battler)
                  && GetUsableZMove(battler, moveInfo->moves[gMoveSelectionCursor[battler]]) == MOVE_NONE))
         {
             gBattleStruct->chainFirstPos[battler] = 0;
-            gBattleStruct->gimmick.playerSelect ^= 1;
+            // With both devices available: off -> Dynamax -> Tera -> off.
+            enum Gimmick current = gBattleStruct->gimmick.usableGimmick[battler];
+            if (gBattleStruct->gimmick.playerSelect && current == GIMMICK_DYNAMAX && CanActivateGimmick(battler, GIMMICK_TERA))
+            {
+                DestroyGimmickTriggerSprite();
+                gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_TERA;
+                CreateGimmickTriggerSprite(battler);
+            }
+            else
+            {
+                gBattleStruct->gimmick.playerSelect ^= 1;
+                if (!gBattleStruct->gimmick.playerSelect && current == GIMMICK_TERA && CanActivateGimmick(battler, GIMMICK_DYNAMAX))
+                {
+                    DestroyGimmickTriggerSprite();
+                    gBattleStruct->gimmick.usableGimmick[battler] = GIMMICK_DYNAMAX;
+                    CreateGimmickTriggerSprite(battler);
+                }
+            }
             ReloadMoveNames(battler);
-            ChangeGimmickTriggerSprite(gBattleStruct->gimmick.triggerSpriteId, gBattleStruct->gimmick.playerSelect);
+            if (gBattleStruct->gimmick.triggerSpriteId != 0xFF)
+                ChangeGimmickTriggerSprite(gBattleStruct->gimmick.triggerSpriteId, gBattleStruct->gimmick.playerSelect);
             PlaySE(SE_SELECT);
         }
     }
