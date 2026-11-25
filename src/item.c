@@ -860,7 +860,7 @@ const u8 *GetItemName(enum Item itemId)
         {
         case ITEM_MEGA_RING: return COMPOUND_STRING("Megaaro");
         case ITEM_Z_POWER_RING: return COMPOUND_STRING("Pulsera Z");
-        case ITEM_DYNAMAX_BAND: return COMPOUND_STRING("Pulsera Dinamax");
+        case ITEM_DYNAMAX_BAND: return COMPOUND_STRING("P. Dinamax");
         case ITEM_TERA_ORB: return COMPOUND_STRING("Orbe Tera");
         default: break;
         }
