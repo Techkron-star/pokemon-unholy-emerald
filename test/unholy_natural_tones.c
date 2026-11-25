@@ -114,3 +114,58 @@ TEST("V2 groups shade ramps and protects transparent and extreme colors")
     }
     EXPECT_EQ(different, TRUE);
 }
+
+TEST("V2 chooses only available regions in stable priority order")
+{
+    struct NaturalToneV2Profile p = {0};
+    u32 roles = (1u << 2) | (2u << 4) | (3u << 6);
+    p.roleOrder[0] = 2; p.roleOrder[1] = 0; p.roleOrder[2] = 1;
+    p.scope = 1;
+    EXPECT_EQ(NaturalTone_SelectV2Roles(roles, &p), 4);
+    EXPECT_EQ(NaturalTone_SelectV2Roles(roles & ~(3u << 6), &p), 1);
+    p.scope = 2;
+    EXPECT_EQ(NaturalTone_SelectV2Roles(roles, &p), 5);
+    p.scope = 3;
+    EXPECT_EQ(NaturalTone_SelectV2Roles(roles, &p), 7);
+    p.scope = 4;
+    EXPECT_EQ(NaturalTone_SelectV2Roles(roles, &p), 7);
+}
+
+TEST("V2 partial variants preserve unselected palette regions exactly")
+{
+    const u16 base[16] = {0x1234, 0, 0x7FFF, 25 | (3 << 5) | (2 << 10),
+        17 | (2 << 5) | (1 << 10), 2 | (26 << 5) | (3 << 10),
+        1 | (16 << 5) | (2 << 10), 2 | (3 << 5) | (25 << 10),
+        1 | (2 << 5) | (16 << 10)};
+    u16 out[16];
+    u32 pid, i, roles = NaturalTone_GetV2RoleMask(base);
+    bool32 found = FALSE;
+    struct NaturalToneV2Profile p;
+    for (pid = 0; pid < 128; pid++)
+    {
+        u8 selected;
+        NaturalTone_GetV2Profile(pid, 0x9ABCDEF0u, FALSE, &p);
+        if (p.scope != 1) continue;
+        found = TRUE;
+        selected = NaturalTone_SelectV2Roles(roles, &p);
+        NaturalTone_BuildV2Palette(base, out, pid, 0x9ABCDEF0u, FALSE, 0);
+        for (i = 0; i < 16; i++)
+        {
+            u32 role = (roles >> (2 * i)) & 3;
+            if (!role || !(selected & (1u << (role - 1))))
+                EXPECT_EQ(out[i], base[i]);
+        }
+    }
+    EXPECT_EQ(found, TRUE);
+}
+
+TEST("Alakazam canonical palette identifies silver accent separately")
+{
+    u16 base[16] = {0, 0x7fff, 0x6f7b, 0x5ad6, 0x2d6b, 0x2ada, 0x1616, 0x56f, 0x4ca, 0x54d, 0x1d3, 0x57df, 0xfbf, 0xad9, 0x56e, 0x842};
+    u32 mask = NaturalTone_GetCuratedRoleMask(base);
+    EXPECT_EQ(mask, 0x156aabf0u);
+    EXPECT_EQ((mask >> 4) & 3, 3);
+    EXPECT_EQ((mask >> 24) & 3, 1);
+    base[12] ^= 1;
+    EXPECT_EQ(NaturalTone_GetCuratedRoleMask(base), 0);
+}
