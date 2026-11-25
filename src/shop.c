@@ -1814,6 +1814,7 @@ static u32 GetShopPurchasePrice(enum Item item)
     case ITEM_ABILITY_PATCH: price = 150000; break;
     case ITEM_BOTTLE_CAP: price = 25000; break;
     case ITEM_GOLD_BOTTLE_CAP: price = 100000; break;
+    case ITEM_ESCAPE_ROPE: price = 1000; break;
     case ITEM_DYNAMAX_CANDY: price = 4000; break;
     case ITEM_MAX_MUSHROOMS: price = 15000; break;
     case ITEM_MAX_HONEY: price = 12000; break;
