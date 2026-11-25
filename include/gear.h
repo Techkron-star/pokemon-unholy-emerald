@@ -110,6 +110,8 @@ uq4_12_t Gear_GetPowerModifier(enum BattlerId battler, enum Move move, enum Type
 void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType);
 // HP/reactive Gears are resolved after real damage; preview must not consume them.
 void Gear_OnDamaged(enum BattlerId battler, u32 damage);
+// Called only after a real, damaging critical hit against an opponent.
+void Gear_OnCriticalHit(enum BattlerId battler);
 // Only actual, direct, single-turn/single-strike lethal move damage can activate it.
 bool32 Gear_TryMeteorArmorSurvive(enum BattlerId defender, enum BattlerId attacker,
                                  enum Move move, s32 damage, u16 *remainingHp);
