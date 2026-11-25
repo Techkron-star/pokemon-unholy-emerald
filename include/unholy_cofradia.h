@@ -4,6 +4,9 @@
 enum CofradiaState { COFRADIA_IDLE, COFRADIA_READY, COFRADIA_FIGHTING };
 enum CofradiaResult { COFRADIA_OK, COFRADIA_INVALID, COFRADIA_NO_MONEY, COFRADIA_BUSY, COFRADIA_CASH_FULL };
 #define COFRADIA_DIFFICULTY_COUNT 6
+#define COFRADIA_MAX_COUNTERS 2
+
+struct Pokemon;
 
 struct CofradiaView
 {
@@ -32,6 +35,8 @@ u32 CofradiaBattleSeed(void);
 u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal);
 u16 CofradiaGymPatternSource(u32 seed, u8 difficulty, u16 primary);
 u8 CofradiaTeamSize(u8 difficulty, bool32 boss);
+u8 CofradiaPickCounterTargets(struct Pokemon *party, u32 seed, u8 difficulty, u8 *slots);
+s32 CofradiaCounterScore(struct Pokemon *candidate, struct Pokemon *target);
 u16 CofradiaBattleDonor(u8 ordinal);
 bool32 CofradiaBattleIsBoss(void);
 void CofradiaScaleEnemyParty(void);
