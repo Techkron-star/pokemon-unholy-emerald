@@ -26,4 +26,30 @@ void NaturalTone_GetProfile(u32 personality, u32 otId, bool32 isShiny, struct Na
 u16 NaturalTone_AdjustColor(u16 color, u32 paletteIndex, const struct NaturalToneProfile *profile);
 void NaturalTone_ApplyLoadedPalette(u32 paletteOffset, u32 personality, u32 otId, bool32 isShiny, bool32 isEgg);
 
+#define NATURAL_TONE_LATEST_VERSION 2
+
+enum NaturalToneFinish
+{
+    NATURAL_FINISH_NATURAL,
+    NATURAL_FINISH_PASTEL,
+    NATURAL_FINISH_COPPER,
+    NATURAL_FINISH_OBSIDIAN,
+    NATURAL_FINISH_PORCELAIN,
+    NATURAL_FINISH_MELANISM,
+};
+
+struct NaturalToneV2Profile
+{
+    s16 hue[3];
+    s8 saturation[3];
+    s8 brightness[3];
+    u8 finish;
+};
+
+void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct NaturalToneV2Profile *profile);
+// Two bits per palette entry: 0 automatic, 1 body, 2 secondary, 3 accent.
+u32 NaturalTone_GetV2RoleMask(const u16 *base);
+void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 otId, bool32 isShiny, u32 overrides);
+void NaturalTone_ApplyLoadedPaletteVersion(u32 paletteOffset, u32 personality, u32 otId, bool32 isShiny, bool32 isEgg, bool32 isV2);
+
 #endif // GUARD_UNHOLY_NATURAL_TONES_H

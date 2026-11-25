@@ -216,3 +216,171 @@ void NaturalTone_ApplyLoadedPalette(u32 paletteOffset, u32 personality, u32 otId
         colors[i] = NaturalTone_AdjustColor(gPlttBufferUnfaded[paletteOffset + i], i, &profile);
     LoadPalette(colors, paletteOffset, sizeof(colors));
 }
+
+// V2 is independent of V1's frozen identity and palette vectors.
+static s32 V2_Wrap(s32 hue)
+{
+    while (hue < -768) hue += 1536;
+    while (hue > 768) hue -= 1536;
+    return hue;
+}
+static s32 V2_Distance(s32 a, s32 b)
+{
+    s32 d = V2_Wrap(a - b);
+    return d < 0 ? -d : d;
+}
+static s32 V2_Chroma(u16 c)
+{
+    s32 r = c & 31, g = (c >> 5) & 31, b = (c >> 10) & 31;
+    return max(r, max(g, b)) - min(r, min(g, b));
+}
+static s32 V2_Hue(u16 c)
+{
+    s32 r = c & 31, g = (c >> 5) & 31, b = (c >> 10) & 31;
+    s32 hi = max(r, max(g, b)), ch = V2_Chroma(c);
+    if (!ch) return 0;
+    if (hi == r) return V2_Wrap(256 * (g - b) / ch);
+    if (hi == g) return V2_Wrap(512 + 256 * (b - r) / ch);
+    return V2_Wrap(1024 + 256 * (r - g) / ch);
+}
+static bool32 V2_Protected(u16 c)
+{
+    s32 sum = (c & 31) + ((c >> 5) & 31) + ((c >> 10) & 31);
+    return sum <= 6 || sum >= 87;
+}
+void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct NaturalToneV2Profile *profile)
+{
+    u64 identity = NaturalTone_GetIdentityCode(personality, otId);
+    u32 lo = identity, hi = identity >> 32;
+    u32 seed = NaturalTone_Mix32(lo ^ (hi << 13 | hi >> 19) ^ 0x56324348u);
+    u32 harmony = NaturalTone_Mix32(seed ^ 0x4841524Du);
+    u32 finish = NaturalTone_Mix32(seed ^ 0x46494E32u) % 1000;
+    s32 shift = (s32)(harmony % 513) - 256;
+    s32 direction = (harmony & 0x10000u) ? 1 : -1;
+    static const s16 offsets[5][2] = {{128,-160},{768,128},{512,-512},{640,-640},{64,-256}};
+    u32 scheme = (harmony >> 10) % 5;
+    u32 i;
+    if ((harmony >> 20) % 100 < (isShiny ? 25 : 15))
+        shift = (s32)(NaturalTone_Mix32(seed ^ 0x48554532u) % 1536) - 768;
+    profile->hue[0] = shift;
+    profile->hue[1] = V2_Wrap(shift + direction * offsets[scheme][0]);
+    profile->hue[2] = V2_Wrap(shift + direction * offsets[scheme][1]);
+    for (i = 0; i < 3; i++)
+    {
+        u32 detail = NaturalTone_Mix32(seed ^ ((i + 1) * 0x9E3779B9u));
+        profile->hue[i] = V2_Wrap(profile->hue[i] + (s32)(detail % 65) - 32);
+        profile->saturation[i] = (s32)((detail >> 8) % 25) - 12;
+        profile->brightness[i] = (s32)((detail >> 16) % 5) - 2;
+    }
+    if (finish < 700) profile->finish = NATURAL_FINISH_NATURAL;
+    else if (finish < 820) profile->finish = NATURAL_FINISH_PASTEL;
+    else if (finish < 890) profile->finish = NATURAL_FINISH_COPPER;
+    else if (finish < 940) profile->finish = NATURAL_FINISH_OBSIDIAN;
+    else if (finish < 980) profile->finish = NATURAL_FINISH_PORCELAIN;
+    else profile->finish = NATURAL_FINISH_MELANISM;
+}
+u32 NaturalTone_GetV2RoleMask(const u16 *base)
+{
+    s32 anchor[3] = {0};
+    u32 count = 0, mask = 0, i, j;
+    // Select separated hue anchors; keep shade ramps in a single role.
+    for (j = 0; j < 3; j++)
+    {
+        s32 best = 0, score = -1;
+        for (i = 1; i < 16; i++)
+        {
+            s32 ch = V2_Chroma(base[i]), hue = V2_Hue(base[i]), sep = 768;
+            u32 k;
+            if (V2_Protected(base[i]) || ch < 4) continue;
+            for (k = 0; k < count; k++) sep = min(sep, V2_Distance(hue, anchor[k]));
+            if (count && sep < 160) continue;
+            if (ch * (count ? sep : 256) > score)
+            {
+                best = hue;
+                score = ch * (count ? sep : 256);
+            }
+        }
+        if (score < 0) break;
+        anchor[count++] = best;
+    }
+    for (i = 1; i < 16; i++)
+    {
+        u32 role = 1;
+        s32 dist = 769, hue = V2_Hue(base[i]);
+        if (V2_Protected(base[i])) continue;
+        if (V2_Chroma(base[i]) >= 4)
+            for (j = 0; j < count; j++)
+            {
+                s32 d = V2_Distance(hue, anchor[j]);
+                if (d < dist) { dist = d; role = j + 1; }
+            }
+        mask |= role << (2 * i);
+    }
+    return mask;
+}
+static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
+{
+    s32 r, g, b, gray, sat, light, value;
+    u16 mapped;
+    if (V2_Protected(c)) return c;
+    r = c & 31; g = (c >> 5) & 31; b = (c >> 10) & 31;
+    mapped = NaturalTone_ShiftHue(c, r, g, b, p->hue[role]);
+    r = mapped & 31; g = (mapped >> 5) & 31; b = (mapped >> 10) & 31;
+    gray = (r * 3 + g * 4 + b) / 8;
+    sat = 100 + p->saturation[role]; light = p->brightness[role];
+    switch (p->finish)
+    {
+    case NATURAL_FINISH_PASTEL: sat = sat * 62 / 100; light += 3; break;
+    case NATURAL_FINISH_COPPER: sat = sat * 80 / 100; break;
+    case NATURAL_FINISH_OBSIDIAN: sat = sat * 65 / 100; break;
+    case NATURAL_FINISH_PORCELAIN: sat = sat * 45 / 100; break;
+    case NATURAL_FINISH_MELANISM: sat = sat * 35 / 100; break;
+    default: break;
+    }
+    r = gray + (r - gray) * sat / 100;
+    g = gray + (g - gray) * sat / 100;
+    b = gray + (b - gray) * sat / 100;
+    if (p->finish == NATURAL_FINISH_COPPER && role == 0)
+    {
+        r = (r * 3 + min(31, gray + 8)) / 4;
+        g = (g * 3 + gray) / 4;
+        b = (b * 3 + max(0, gray - 7)) / 4;
+    }
+    else if (p->finish == NATURAL_FINISH_OBSIDIAN || p->finish == NATURAL_FINISH_MELANISM)
+    {
+        value = role == 0 ? (p->finish == NATURAL_FINISH_MELANISM ? 55 : 68) : 86;
+        r = 2 + r * value / 100; g = 2 + g * value / 100; b = 2 + b * value / 100;
+    }
+    else if (p->finish == NATURAL_FINISH_PORCELAIN)
+    {
+        value = role == 0 ? 45 : 20;
+        r += (31-r) * value / 100; g += (31-g) * value / 100; b += (31-b) * value / 100;
+    }
+    return (c & 0x8000) | NaturalTone_ClampChannel(r + light)
+        | (NaturalTone_ClampChannel(g + light) << 5) | (NaturalTone_ClampChannel(b + light) << 10);
+}
+void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 otId, bool32 isShiny, u32 overrides)
+{
+    struct NaturalToneV2Profile p;
+    u32 roles = NaturalTone_GetV2RoleMask(base), i;
+    NaturalTone_GetV2Profile(personality, otId, isShiny, &p);
+    out[0] = base[0];
+    for (i = 1; i < 16; i++)
+    {
+        u32 role = (overrides >> (2 * i)) & 3;
+        if (!role) role = (roles >> (2 * i)) & 3;
+        out[i] = role ? V2_Adjust(base[i], role - 1, &p) : base[i];
+    }
+}
+void NaturalTone_ApplyLoadedPaletteVersion(u32 paletteOffset, u32 personality, u32 otId, bool32 isShiny, bool32 isEgg, bool32 isV2)
+{
+    u16 colors[16];
+    if (!isV2)
+    {
+        NaturalTone_ApplyLoadedPalette(paletteOffset, personality, otId, isShiny, isEgg);
+        return;
+    }
+    if (isEgg || paletteOffset > PLTT_BUFFER_SIZE - ARRAY_COUNT(colors)) return;
+    NaturalTone_BuildV2Palette(&gPlttBufferUnfaded[paletteOffset], colors, personality, otId, isShiny, 0);
+    LoadPalette(colors, paletteOffset, sizeof(colors));
+}

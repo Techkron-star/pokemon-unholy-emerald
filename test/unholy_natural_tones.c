@@ -1,4 +1,5 @@
 #include "global.h"
+#include "pokemon.h"
 #include "unholy_natural_tones.h"
 #include "test/test.h"
 
@@ -71,4 +72,45 @@ TEST("Rare chromatic light inversion can make a dark shiny silver-white")
         }
     }
     EXPECT_EQ(found, TRUE);
+}
+
+TEST("Chromatic version is an independent persistent bit")
+{
+    struct BoxPokemon original = {0}, copy;
+    const u8 yes = TRUE, no = FALSE;
+    EXPECT_EQ(GetBoxMonData(&original, MON_DATA_CHROMATIC_V2), FALSE);
+    SetBoxMonData(&original, MON_DATA_CHROMATIC_V2, &yes);
+    EXPECT_EQ(GetBoxMonData(&original, MON_DATA_CHROMATIC_V2), TRUE);
+    copy = original;
+    EXPECT_EQ(GetBoxMonData(&copy, MON_DATA_CHROMATIC_V2), TRUE);
+    SetBoxMonData(&copy, MON_DATA_CHROMATIC_V2, &no);
+    EXPECT_EQ(GetBoxMonData(&copy, MON_DATA_CHROMATIC_V2), FALSE);
+    EXPECT_EQ(GetBoxMonData(&original, MON_DATA_CHROMATIC_V2), TRUE);
+    EXPECT_EQ(GetBoxMonData(&copy, MON_DATA_SANITY_IS_BAD_EGG), FALSE);
+}
+
+TEST("V2 groups shade ramps and protects transparent and extreme colors")
+{
+    const u16 palette[16] = {0x1234, 0, 0x7FFF, 25 | (3 << 5) | (2 << 10),
+        17 | (2 << 5) | (1 << 10), 2 | (26 << 5) | (3 << 10), 1 | (16 << 5) | (2 << 10),
+        2 | (3 << 5) | (25 << 10), 1 | (2 << 5) | (16 << 10)};
+    u16 a[16], b[16], c[16];
+    u32 mask = NaturalTone_GetV2RoleMask(palette);
+    bool32 different = FALSE;
+    EXPECT_EQ((mask >> 6) & 3, (mask >> 8) & 3);
+    EXPECT_EQ((mask >> 10) & 3, (mask >> 12) & 3);
+    EXPECT_NE((mask >> 6) & 3, (mask >> 10) & 3);
+    EXPECT_NE((mask >> 10) & 3, (mask >> 14) & 3);
+    NaturalTone_BuildV2Palette(palette, a, 0x12345678u, 0x9ABCDEF0u, TRUE, 0);
+    NaturalTone_BuildV2Palette(palette, b, 0x12345678u, 0x9ABCDEF0u, TRUE, 0);
+    NaturalTone_BuildV2Palette(palette, c, 0x12345679u, 0x9ABCDEF0u, TRUE, 0);
+    EXPECT_EQ(a[0], palette[0]);
+    EXPECT_EQ(a[1], palette[1]);
+    EXPECT_EQ(a[2], palette[2]);
+    for (u32 i = 0; i < 16; i++)
+    {
+        EXPECT_EQ(a[i], b[i]);
+        if (a[i] != c[i]) different = TRUE;
+    }
+    EXPECT_EQ(different, TRUE);
 }

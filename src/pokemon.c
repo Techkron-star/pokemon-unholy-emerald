@@ -1007,6 +1007,10 @@ void CreateBoxMon(struct BoxPokemon *boxMon, enum Species species, u8 level, u32
     SetBoxMonData(boxMon, MON_DATA_CHECKSUM, &checksum);
     EncryptBoxMon(boxMon);
     SetBoxMonData(boxMon, MON_DATA_IS_SHINY, &isShiny);
+    {
+        const u8 v2 = TRUE;
+        SetBoxMonData(boxMon, MON_DATA_CHROMATIC_V2, &v2);
+    }
     StringCopy(speciesName, GetSpeciesName(species));
     SetBoxMonData(boxMon, MON_DATA_NICKNAME, speciesName);
     SetBoxMonData(boxMon, MON_DATA_LANGUAGE, &gGameLanguage);
@@ -2243,6 +2247,9 @@ u32 GetBoxMonData3(struct BoxPokemon *boxMon, s32 field, u8 *data)
         case MON_DATA_HAS_BEEN_EXILED:
             retVal = GetSubstruct0(boxMon)->hasBeenExiled;
             break;
+        case MON_DATA_CHROMATIC_V2:
+            retVal = GetSubstruct0(boxMon)->chromaticV2;
+            break;
         case MON_DATA_IS_FAVORITE:
             retVal = boxMon->isFavorite;
             break;
@@ -2780,6 +2787,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
         }
         case MON_DATA_HAS_BEEN_EXILED:
             GetSubstruct0(boxMon)->hasBeenExiled = data[0] != 0;
+            break;
+        case MON_DATA_CHROMATIC_V2:
+            GetSubstruct0(boxMon)->chromaticV2 = data[0] != 0;
             break;
         case MON_DATA_IS_FAVORITE:
             boxMon->isFavorite = data[0] != 0;

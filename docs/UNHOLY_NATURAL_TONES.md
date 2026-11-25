@@ -74,3 +74,9 @@ con PID distintos del mismo entrenador, la versión con microvariaciones
 produjo 0 paletas exactamente repetidas en cada lote (frente a centenares
 sin ese refinamiento). Esta es una muestra reproducible, no una garantía
 universal. RGB555 todavía puede producir tonos visualmente parecidos.
+
+## V2 — regional palette engine (experimental)
+
+V1 is unchanged. The previously zeroed bit in encrypted substructure 0 selects V2 without adding save bytes. New individuals use V2, old zero-bit individuals retain V1. Eggs retain their version at hatching. SELECT in the new editable summary INFO page toggles the version persistently and reversibly.
+The V2 palette engine uses PID + OT ID, three automatic hue roles, analogous/complementary/triadic/split harmonies, and six cosmetic finishes with design weights: natural 70%, pastel 12%, copper 7%, obsidian 5%, porcelain 4%, melanism 2%. Transparent entries and extreme outlines/highlights are protected; the shiny flag is unchanged. Packed role overrides are supported by the engine but not yet authored per species; shared entries cannot be recolored independently. Pixel patterns and small icons are not included.
+Existing palette hooks use the stored version for battle, summary, PC portraits, hatching, trade and evolution. Synthetic previews without an actual individual retain V1. Compile, run tests and validate real save migration and visual consistency in emulator before merging.
