@@ -9,6 +9,8 @@
 #include "battle_pike.h"
 #include "battle_pyramid.h"
 #include "battle_setup.h"
+#include "battle_util.h"
+#include "move.h"
 #include "battle_special.h"
 #include "battle_partner.h"
 #include "battle_tower.h"
@@ -1966,6 +1968,78 @@ static s32 CofradiaCandidateScore(struct Pokemon *party, u8 count, struct Pokemo
     return max(0, score + (newType ? 5 : 0));
 }
 
+// Counter scouting uses a separate RNG stream, so it does not change the
+// gym archetype or donor generation. Never inspect the player's moves/items.
+u8 CofradiaPickCounterTargets(struct Pokemon *party, u32 seed, u8 difficulty, u8 *slots)
+{
+    static const u8 chance[] = {25, 45, 65, 80, 100, 100};
+    u8 eligible[PARTY_SIZE];
+    u8 count = 0;
+    if (party == NULL || slots == NULL)
+        return 0;
+    difficulty = min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1);
+    rng_value_t rng = LocalRandomSeed(seed ^ 0xC2B2AE35u);
+    if (LocalRandom32(&rng) % 100 >= chance[difficulty])
+        return 0;
+    for (u8 i = 0; i < PARTY_SIZE; i++)
+        if (CofradiaUsableMon(&party[i]) && GetMonData(&party[i], MON_DATA_HP) != 0)
+            eligible[count++] = i;
+    u8 budget = 1;
+    if (difficulty >= 4 && LocalRandom32(&rng) % 100 < (difficulty == 5 ? 75 : 45))
+        budget++;
+    budget = min(budget, count);
+    for (u8 i = 0; i < budget; i++)
+    {
+        u8 j = i + LocalRandom32(&rng) % (count - i);
+        u8 temp = eligible[i];
+        eligible[i] = eligible[j];
+        eligible[j] = temp;
+        slots[i] = eligible[i];
+    }
+    return budget;
+}
+
+s32 CofradiaCounterScore(struct Pokemon *candidate, struct Pokemon *target)
+{
+    if (candidate == NULL || target == NULL
+     || !CofradiaUsableMon(candidate) || !CofradiaUsableMon(target))
+        return 0;
+    enum Species attacker = GetMonData(candidate, MON_DATA_SPECIES);
+    enum Species defender = GetMonData(target, MON_DATA_SPECIES);
+    s32 best = 0;
+    // Require a damaging move the donor actually knows. A type advantage
+    // without a usable attack is not enough to qualify as a counter.
+    for (u8 i = 0; i < MAX_MON_MOVES; i++)
+    {
+        enum Move move = GetMonData(candidate, MON_DATA_MOVE1 + i);
+        if (move == MOVE_NONE || GetMoveCategory(move) == DAMAGE_CATEGORY_STATUS || GetMovePower(move) < 50)
+            continue;
+        enum Type type = GetMoveType(move);
+        uq4_12_t effectiveness = GetOverworldTypeEffectiveness(target, type);
+        if (effectiveness < UQ_4_12(2.0))
+            continue;
+        s32 score = effectiveness >= UQ_4_12(4.0) ? 24 : 15;
+        score += min(10u, GetMovePower(move) / 15);
+        if (IsSpeciesOfType(attacker, type))
+            score += 5;
+        best = max(best, score);
+    }
+    if (best == 0)
+        return 0;
+
+    // Evaluate expected STAB threats only, not the player's hidden moveset.
+    uq4_12_t threat = max(GetOverworldTypeEffectiveness(candidate, GetSpeciesType(defender, 0)),
+                          GetOverworldTypeEffectiveness(candidate, GetSpeciesType(defender, 1)));
+    if (threat > UQ_4_12(1.0)
+        && gSpeciesInfo[attacker].baseSpeed <= gSpeciesInfo[defender].baseSpeed)
+        return 0;
+    if (threat == UQ_4_12(0.0)) best += 10;
+    else if (threat <= UQ_4_12(0.5)) best += 8;
+    else if (threat <= UQ_4_12(1.0)) best += 3;
+    else best -= 8; // faster offensive check, not a safe switch-in
+    return max(1, best);
+}
+
 static void CofradiaComposeEnemyParty(u16 primary)
 {
     struct Pokemon *party = gParties[B_TRAINER_OPPONENT_A];
@@ -2029,6 +2103,13 @@ static void CofradiaComposeEnemyParty(u16 primary)
     for (u8 i = 0; i < middleCount && count < coreLimit; i++)
         CofradiaAppendCore(party, &count, &donors[order[i]]);
 
+    struct Pokemon *playerParty = gParties[B_TRAINER_PLAYER];
+    u8 counterSlots[COFRADIA_MAX_COUNTERS];
+    u8 counterCount = CofradiaPickCounterTargets(playerParty, seed, CofradiaBattleDifficulty(), counterSlots);
+    // Leave at least one procedural slot for each available counter, without
+    // replacing the lead/ace or expanding the difficulty's team size.
+    counterCount = min(counterCount, target - reserve - count);
+    u8 counterIndex = 0;
     while (count < target - reserve)
     {
         s32 bestScore = -1;
@@ -2036,6 +2117,12 @@ static void CofradiaComposeEnemyParty(u16 primary)
         for (u8 i = PARTY_SIZE; i < COFRADIA_DONOR_COUNT * PARTY_SIZE; i++)
         {
             s32 score = CofradiaCandidateScore(party, count, &donors[i], &ace, hasAce, &pattern, &rng);
+            if (score >= 0 && counterIndex < counterCount)
+            {
+                s32 counter = CofradiaCounterScore(&donors[i], &playerParty[counterSlots[counterIndex]]);
+                if (counter > 0)
+                    score += 1000 + counter * 4;
+            }
             if (score > bestScore)
             {
                 best = i;
@@ -2052,6 +2139,10 @@ static void CofradiaComposeEnemyParty(u16 primary)
             break;
         }
         CofradiaAppendCore(party, &count, &donors[best]);
+        // If no counter is available, use the best tactical donor instead.
+        // Never reserve more than two slots or retry until a perfect team.
+        if (counterIndex < counterCount)
+            counterIndex++;
     }
     if (hasAce)
         CofradiaAppendCore(party, &count, &ace);
