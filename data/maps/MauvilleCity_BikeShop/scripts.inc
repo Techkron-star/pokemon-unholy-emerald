@@ -25,6 +25,7 @@ MauvilleCity_BikeShop_EventScript_ChooseBike::
 	switch VAR_RESULT
 	case 0, MauvilleCity_BikeShop_EventScript_GetMachBike
 	case 1, MauvilleCity_BikeShop_EventScript_GetAcroBike
+	release
 	end
 
 MauvilleCity_BikeShop_EventScript_NotFar::
