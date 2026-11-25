@@ -39,6 +39,9 @@ struct CofradiaRecord
     u32 bestStake;
     u32 bestProfit;
     u32 biggestLoss;
+    // Append-only fields: original P5C saves have zeroed reserved bytes.
+    u32 borrowed;
+    u32 debt;
 };
 STATIC_ASSERT(UNHOLY_SAVE4_COFRADIA_OFFSET + sizeof(struct CofradiaRecord) <= UNHOLY_SAVE4_PAYLOAD_BYTES, CofradiaFitsSave4);
 
@@ -90,13 +93,16 @@ static struct CofradiaRecord *GetRecord(void)
         return NULL;
     if (r->state != COFRADIA_IDLE && (r->stake < CofradiaMinimum(r->difficulty) || r->fund < r->stake))
         return NULL;
+    if (r->borrowed > r->stake || (r->state == COFRADIA_IDLE && r->borrowed != 0)
+        || (r->borrowed && r->debt))
+        return NULL;
     return r;
 }
 
 static void ClearRun(struct CofradiaRecord *r)
 {
     r->state = COFRADIA_IDLE;
-    r->stake = r->fund = r->wins = r->seed = 0;
+    r->stake = r->fund = r->wins = r->seed = r->borrowed = 0;
 }
 
 u32 CofradiaMinimum(u8 difficulty)
@@ -118,26 +124,43 @@ bool32 CofradiaGetView(struct CofradiaView *view)
     if (r == NULL || view == NULL)
         return FALSE;
     *view = (struct CofradiaView){r->stake, r->fund, r->wins, r->bestWins,
-        r->bestStake, r->bestProfit, r->biggestLoss, r->state, r->difficulty};
+        r->bestStake, r->bestProfit, r->biggestLoss, r->state, r->difficulty, r->borrowed, r->debt};
     return TRUE;
 }
 
 enum CofradiaResult CofradiaBegin(u8 difficulty, u32 stake)
+{
+    return CofradiaBeginCredit(difficulty, stake, 0);
+}
+
+// Not exposed by the lobby until custody and recovery are implemented.
+enum CofradiaResult CofradiaBeginCredit(u8 difficulty, u32 stake, u32 borrowed)
 {
     struct CofradiaRecord *r = GetRecord();
     if (r == NULL || difficulty >= COFRADIA_DIFFICULTY_COUNT || stake < CofradiaMinimum(difficulty))
         return COFRADIA_INVALID;
     if (r->state != COFRADIA_IDLE)
         return COFRADIA_BUSY;
-    if (!IsEnoughMoney(&gSaveBlock1Ptr->money, stake))
+    if (borrowed > stake)
+        return COFRADIA_INVALID;
+    if (borrowed && r->debt)
+        return COFRADIA_DEBT_PENDING;
+    u32 own = stake - borrowed;
+    if (!IsEnoughMoney(&gSaveBlock1Ptr->money, own))
         return COFRADIA_NO_MONEY;
+    struct CofradiaRecord old = *r;
+    r->borrowed = borrowed;
     r->difficulty = difficulty;
     r->state = COFRADIA_READY;
     r->stake = r->fund = stake;
     r->wins = 0;
     r->seed = Random32();
-    RemoveMoney(&gSaveBlock1Ptr->money, stake);
-    UnholySave4_Commit();
+    if (!UnholySave4_Commit())
+    {
+        *r = old;
+        return COFRADIA_INVALID;
+    }
+    RemoveMoney(&gSaveBlock1Ptr->money, own);
     return COFRADIA_OK;
 }
 
@@ -147,7 +170,12 @@ bool32 CofradiaArm(void)
     if (r == NULL || r->state != COFRADIA_READY || (r->wins && r->fund == MAX_MONEY))
         return FALSE;
     r->state = COFRADIA_FIGHTING;
-    return UnholySave4_Commit();
+    if (!UnholySave4_Commit())
+    {
+        r->state = COFRADIA_READY;
+        return FALSE;
+    }
+    return TRUE;
 }
 
 bool32 CofradiaDisarm(void)
@@ -155,17 +183,25 @@ bool32 CofradiaDisarm(void)
     struct CofradiaRecord *r = GetRecord();
     if (r == NULL || r->state != COFRADIA_FIGHTING || sActive)
         return FALSE;
+    struct CofradiaRecord old = *r;
+    u32 refund = 0;
     if (!r->wins)
     {
         u32 cash = GetMoney(&gSaveBlock1Ptr->money);
-        if (r->stake > MAX_MONEY - cash)
+        refund = r->stake - r->borrowed;
+        if (refund > MAX_MONEY - cash)
             return FALSE;
-        AddMoney(&gSaveBlock1Ptr->money, r->stake);
         ClearRun(r);
     }
     else
         r->state = COFRADIA_READY;
-    return UnholySave4_Commit();
+    if (!UnholySave4_Commit())
+    {
+        *r = old;
+        return FALSE;
+    }
+    AddMoney(&gSaveBlock1Ptr->money, refund);
+    return TRUE;
 }
 
 bool32 CofradiaResolve(bool32 won)
@@ -173,6 +209,7 @@ bool32 CofradiaResolve(bool32 won)
     struct CofradiaRecord *r = GetRecord();
     if (r == NULL || r->state != COFRADIA_FIGHTING)
         return FALSE;
+    struct CofradiaRecord old = *r;
     r->bestStake = max(r->bestStake, r->stake);
     if (won)
     {
@@ -185,9 +222,16 @@ bool32 CofradiaResolve(bool32 won)
     else
     {
         r->biggestLoss = max(r->biggestLoss, r->fund);
+        // Only borrowed principal becomes debt. Own money was already paid.
+        r->debt += r->borrowed;
         ClearRun(r);
     }
-    return UnholySave4_Commit();
+    if (!UnholySave4_Commit())
+    {
+        *r = old;
+        return FALSE;
+    }
+    return TRUE;
 }
 
 enum CofradiaResult CofradiaCashOut(void)
@@ -195,13 +239,77 @@ enum CofradiaResult CofradiaCashOut(void)
     struct CofradiaRecord *r = GetRecord();
     if (r == NULL || r->state != COFRADIA_READY || !r->wins)
         return COFRADIA_INVALID;
-    if (r->fund > MAX_MONEY - GetMoney(&gSaveBlock1Ptr->money))
+    u32 payout = r->fund - r->borrowed;
+    if (payout > MAX_MONEY - GetMoney(&gSaveBlock1Ptr->money))
         return COFRADIA_CASH_FULL;
-    AddMoney(&gSaveBlock1Ptr->money, r->fund);
+    struct CofradiaRecord old = *r;
     r->bestProfit = max(r->bestProfit, r->fund - r->stake);
     ClearRun(r);
-    UnholySave4_Commit();
+    if (!UnholySave4_Commit())
+    {
+        *r = old;
+        return COFRADIA_INVALID;
+    }
+    AddMoney(&gSaveBlock1Ptr->money, payout);
     return COFRADIA_OK;
+}
+
+enum CofradiaResult CofradiaRepay(u32 amount)
+{
+    struct CofradiaRecord *r = GetRecord();
+    if (r == NULL || amount == 0 || amount > r->debt)
+        return COFRADIA_INVALID;
+    if (r->state != COFRADIA_IDLE)
+        return COFRADIA_BUSY;
+    if (!IsEnoughMoney(&gSaveBlock1Ptr->money, amount))
+        return COFRADIA_NO_MONEY;
+    u32 oldDebt = r->debt;
+    r->debt -= amount;
+    if (!UnholySave4_Commit())
+    {
+        r->debt = oldDebt;
+        return COFRADIA_INVALID;
+    }
+    RemoveMoney(&gSaveBlock1Ptr->money, amount);
+    return COFRADIA_OK;
+}
+
+// Provisional appraisal: normalize training potential, mutation rarity,
+// species rarity and level independently before applying the design weights.
+u32 CofradiaAppraisePokemon(struct Pokemon *mon)
+{
+    if (mon == NULL || GetMonData(mon, MON_DATA_IS_EGG))
+        return 0;
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+    if (species == SPECIES_NONE)
+        return 0;
+    const struct SpeciesInfo *info = &gSpeciesInfo[species];
+    u32 bst = info->baseHP + info->baseAttack + info->baseDefense
+            + info->baseSpeed + info->baseSpAttack + info->baseSpDefense;
+    static const u8 ivFields[] = {MON_DATA_HP_IV, MON_DATA_ATK_IV, MON_DATA_DEF_IV,
+        MON_DATA_SPEED_IV, MON_DATA_SPATK_IV, MON_DATA_SPDEF_IV};
+    static const u8 evFields[] = {MON_DATA_HP_EV, MON_DATA_ATK_EV, MON_DATA_DEF_EV,
+        MON_DATA_SPEED_EV, MON_DATA_SPATK_EV, MON_DATA_SPDEF_EV};
+    u32 iv = 0, ev = 0;
+    for (u8 i = 0; i < ARRAY_COUNT(ivFields); i++)
+    {
+        iv += GetMonData(mon, ivFields[i]);
+        ev += GetMonData(mon, evFields[i]);
+    }
+    u32 training = min(bst, 900u) * 60 / 900
+        + min(iv, 186u) * 25 / 186 + min(ev, 510u) * 15 / 510;
+    u32 badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
+    u32 mutation = 0;
+    static const u8 rarity[] = {15, 20, 14, 65, 25, 25, 30, 35, 45};
+    for (u8 i = 0; i < ARRAY_COUNT(rarity); i++)
+        if (badges & (1u << i))
+            mutation += rarity[i];
+    mutation = min(mutation, 100u);
+    u32 speciesRarity = info->isMythical ? 100 : info->isRestrictedLegendary ? 90
+        : info->isSubLegendary ? 75 : 25;
+    u32 level = min(100u, GetMonData(mon, MON_DATA_LEVEL));
+    u32 quality = 40 * training + 35 * mutation + 15 * speciesRarity + 10 * level;
+    return 1000 + quality * 25;
 }
 
 // The actual trainer database is the source of all species, moves, abilities,
