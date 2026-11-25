@@ -349,6 +349,22 @@ void HandleJascToGbaPaletteCommand(char *inputPath, char *outputPath, int argc, 
 
     if (numColors != 0)
         palette.numColors = numColors;
+    else if (strstr(inputPath, "graphics/pokemon/") != NULL && palette.numColors < 16)
+    {
+        // Battle palette loaders consume a full 16-entry OBJ palette.
+        // Explicitly zero-pad short source palettes (the struct starts
+        // zeroed), so the unused entries never read adjacent ROM data.
+        // Do not change icon, overworld or unrelated palette formats.
+        const char *name = strrchr(inputPath, '/');
+        if (name != NULL)
+        {
+            name++;
+            if (!strcmp(name, "normal.pal") || !strcmp(name, "shiny.pal")
+             || !strcmp(name, "normal_gba.pal") || !strcmp(name, "shiny_gba.pal")
+             || !strcmp(name, "normalf.pal") || !strcmp(name, "shinyf.pal"))
+                palette.numColors = 16;
+        }
+    }
 
     WriteGbaPalette(outputPath, &palette);
 }

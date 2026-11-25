@@ -27,12 +27,16 @@ def rgb555(rgb):
 
 def read_pal(path):
     lines = path.read_text(encoding="ascii").split()
-    if lines[:3] != ["JASC-PAL", "0100", "16"] or len(lines) != 51:
-        raise ValueError("not a 16-entry JASC palette")
+    if len(lines) < 3 or lines[:2] != ["JASC-PAL", "0100"]:
+        raise ValueError("invalid JASC palette header")
+    count = int(lines[2])
+    if not 1 <= count <= 16 or len(lines) != 3 + count*3:
+        raise ValueError("invalid GBA battle palette entry count")
     values = list(map(int, lines[3:]))
     if any(v < 0 or v > 255 for v in values):
         raise ValueError("palette channel out of bounds")
-    return tuple(rgb555(values[i:i+3]) for i in range(0, 48, 3))
+    # Match gbagfx's battle palette zero padding, including short shinies.
+    return tuple(rgb555(values[i:i+3]) for i in range(0,count*3,3)) + (0,)*(16-count)
 
 
 def paeth(a, b, c):
@@ -436,8 +440,12 @@ def fixture_test():
         shiny=normal.copy()
         shiny[2]=(32,128,224)
         for name,pal in (("normal",normal),("shiny",shiny)):
-            (folder/(name+".pal")).write_text("JASC-PAL\n0100\n16\n"+
-                 "\n".join(" ".join(map(str,rgb)) for rgb in pal)+"\n")
+            # Exercise both short and full JASC files with identical geometry.
+            entries = pal[:8] if name == "normal" else pal
+            path = folder/(name+".pal")
+            path.write_text("JASC-PAL\n0100\n%d\n" % len(entries)+
+                 "\n".join(" ".join(map(str,rgb)) for rgb in entries)+"\n")
+            assert read_pal(path)==tuple(map(rgb555,pal))
         for name in ("front.png","back.png"):
             (folder/name).write_bytes(png)
         pal,rows=read_png(folder/"front.png")
