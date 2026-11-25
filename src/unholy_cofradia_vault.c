@@ -116,6 +116,7 @@ static bool32 OptionalKey(enum Item item)
     case ITEM_ROTOM_CATALOG:
     case ITEM_GRACIDEA:
     case ITEM_REVEAL_GLASS:
+    case ITEM_PRISON_BOTTLE:
         return TRUE;
     default:
         return FALSE;
@@ -344,7 +345,8 @@ bool32 CofradiaVaultReturnItem(u8 index)
 }
 
 // Select highest-value eligible Pokemon first. The engine is intentionally
-// callable only by a future confirmed lobby transaction, never a battle hook.
+// callable by lobby default processing or a confirmed account transaction,
+// never while the battle party is active.
 bool32 CofradiaVaultCollect(void)
 {
     struct CofradiaView ledger;
