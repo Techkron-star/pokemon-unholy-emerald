@@ -1763,6 +1763,141 @@ static void CB2_EndCofradiaBattle(void)
     SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
 }
 
+#define COFRADIA_DONOR_COUNT 5
+
+static bool32 CofradiaUsableMon(struct Pokemon *mon)
+{
+    return GetMonData(mon, MON_DATA_SPECIES) != SPECIES_NONE
+        && !GetMonData(mon, MON_DATA_IS_EGG);
+}
+
+static bool32 CofradiaAlreadyHas(struct Pokemon *party, u8 count, struct Pokemon *candidate)
+{
+    enum Species species = GET_BASE_SPECIES_ID(GetMonData(candidate, MON_DATA_SPECIES));
+    for (u8 i = 0; i < count; i++)
+        if (GET_BASE_SPECIES_ID(GetMonData(&party[i], MON_DATA_SPECIES)) == species)
+            return TRUE;
+    return FALSE;
+}
+
+static void CofradiaAppendCore(struct Pokemon *party, u8 *count, struct Pokemon *candidate)
+{
+    if (*count < PARTY_SIZE && CofradiaUsableMon(candidate)
+        && !CofradiaAlreadyHas(party, *count, candidate))
+        party[(*count)++] = *candidate;
+}
+
+static s32 CofradiaCandidateScore(struct Pokemon *party, u8 count, struct Pokemon *candidate,
+                                  struct Pokemon *ace, bool32 hasAce, rng_value_t *rng)
+{
+    if (!CofradiaUsableMon(candidate) || CofradiaAlreadyHas(party, count, candidate)
+        || (hasAce && GET_BASE_SPECIES_ID(GetMonData(candidate, MON_DATA_SPECIES))
+                == GET_BASE_SPECIES_ID(GetMonData(ace, MON_DATA_SPECIES))))
+        return -1;
+    enum Species species = GetMonData(candidate, MON_DATA_SPECIES);
+    // Prefer a little thematic overlap, but don't force a monotype team.
+    // Each mon is a complete generated set, preserving its own internal synergy.
+    bool32 overlap = FALSE;
+    bool32 newType = FALSE;
+    for (u8 slot = 0; slot < 2; slot++)
+    {
+        enum Type type = GetSpeciesType(species, slot);
+        bool32 found = FALSE;
+        for (u8 i = 0; i < count; i++)
+            if (IsSpeciesOfType(GetMonData(&party[i], MON_DATA_SPECIES), type))
+                found = TRUE;
+        overlap |= found;
+        newType |= !found;
+    }
+    return (overlap ? 4 : 0) + (newType ? 5 : 0) + (LocalRandom32(rng) % 12);
+}
+
+static void CofradiaComposeEnemyParty(u16 primary)
+{
+    struct Pokemon *party = gParties[B_TRAINER_OPPONENT_A];
+    // Save the global RNG streams: the same persisted run/round seed determines
+    // the team without perturbing subsequent field or battle RNG.
+    rng_value_t oldRng = gRngValue;
+    rng_value_t oldRng2 = gRng2Value;
+    u32 seed = CofradiaBattleSeed();
+    SeedRng(seed);
+    SeedRng2(seed ^ 0xA511E9B3u);
+    rng_value_t rng = LocalRandomSeed(seed ^ 0x63D83595u);
+    CreateNPCTrainerParty(party, primary);
+
+    struct Pokemon *donors = AllocZeroed(COFRADIA_DONOR_COUNT * PARTY_SIZE * sizeof(*donors));
+    if (donors == NULL)
+        goto restore_rng;
+
+    memcpy(donors, party, PARTY_SIZE * sizeof(*party));
+    u8 sourceCount = 0;
+    while (sourceCount < PARTY_SIZE && CofradiaUsableMon(&donors[sourceCount]))
+        sourceCount++;
+    if (!sourceCount)
+    {
+        Free(donors);
+        goto restore_rng;
+    }
+    for (u8 i = 1; i < COFRADIA_DONOR_COUNT; i++)
+        CreateNPCTrainerParty(&donors[i * PARTY_SIZE], CofradiaBattleDonor(i));
+
+    u8 target = CofradiaTeamSize(CofradiaBattleDifficulty(), CofradiaBattleIsBoss());
+    u8 count = 0;
+    struct Pokemon ace = donors[sourceCount - 1];
+    bool32 hasAce = sourceCount > 1
+        && GET_BASE_SPECIES_ID(GetMonData(&ace, MON_DATA_SPECIES))
+        != GET_BASE_SPECIES_ID(GetMonData(&donors[0], MON_DATA_SPECIES));
+    ZeroPartyMons(party);
+    CofradiaAppendCore(party, &count, &donors[0]);
+    // Reserve at least one slot for variation, keeping lead and ace.
+    u8 reserve = hasAce ? 1 : 0;
+    u8 coreLimit = min(target - reserve - 1, (target + 1) / 2);
+    u8 middleCount = sourceCount > 2 ? sourceCount - 2 : 0;
+    u8 order[PARTY_SIZE] = {0};
+    for (u8 i = 0; i < middleCount; i++)
+        order[i] = i + 1;
+    for (u8 i = middleCount; i > 1; i--)
+    {
+        u8 j = LocalRandom32(&rng) % i;
+        u8 temp = order[i - 1];
+        order[i - 1] = order[j];
+        order[j] = temp;
+    }
+    for (u8 i = 0; i < middleCount && count < coreLimit; i++)
+        CofradiaAppendCore(party, &count, &donors[order[i]]);
+
+    while (count < target - reserve)
+    {
+        s32 bestScore = -1;
+        u8 best = 0;
+        for (u8 i = PARTY_SIZE; i < COFRADIA_DONOR_COUNT * PARTY_SIZE; i++)
+        {
+            s32 score = CofradiaCandidateScore(party, count, &donors[i], &ace, hasAce, &rng);
+            if (score > bestScore)
+            {
+                best = i;
+                bestScore = score;
+            }
+        }
+        if (bestScore < 0)
+        {
+            // Use remaining primary sets if the donor pool is exhausted.
+            for (u8 i = 0; i < sourceCount && count < target - reserve; i++)
+                if (!hasAce || GET_BASE_SPECIES_ID(GetMonData(&donors[i], MON_DATA_SPECIES))
+                    != GET_BASE_SPECIES_ID(GetMonData(&ace, MON_DATA_SPECIES)))
+                    CofradiaAppendCore(party, &count, &donors[i]);
+            break;
+        }
+        CofradiaAppendCore(party, &count, &donors[best]);
+    }
+    if (hasAce)
+        CofradiaAppendCore(party, &count, &ace);
+    Free(donors);
+restore_rng:
+    gRngValue = oldRng;
+    gRng2Value = oldRng2;
+}
+
 void BattleSetup_StartCofradiaBattle(u16 trainer)
 {
     memset(&gTrainerBattleParameter, 0, sizeof(gTrainerBattleParameter));
@@ -1770,8 +1905,11 @@ void BattleSetup_StartCofradiaBattle(u16 trainer)
     TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)UnholyLocalize(COMPOUND_STRING("The house acknowledges your victory."), COMPOUND_STRING("La casa reconoce tu victoria."));
     gBattleTypeFlags = BATTLE_TYPE_TRAINER;
     gMain.savedCallback = CB2_EndCofradiaBattle;
-    DoTrainerBattle();
+    CofradiaComposeEnemyParty(trainer);
     CofradiaScaleEnemyParty();
+    CreateBattleStartTask(GetTrainerBattleTransition(), 0);
+    IncrementGameStat(GAME_STAT_TOTAL_BATTLES);
+    IncrementGameStat(GAME_STAT_TRAINER_BATTLES);
 }
 
 static void CB2_EndBountyBattle(void)
