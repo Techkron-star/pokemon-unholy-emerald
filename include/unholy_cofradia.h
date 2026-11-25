@@ -2,7 +2,7 @@
 #define GUARD_UNHOLY_COFRADIA_H
 
 enum CofradiaState { COFRADIA_IDLE, COFRADIA_READY, COFRADIA_FIGHTING };
-enum CofradiaResult { COFRADIA_OK, COFRADIA_INVALID, COFRADIA_NO_MONEY, COFRADIA_BUSY, COFRADIA_CASH_FULL };
+enum CofradiaResult { COFRADIA_OK, COFRADIA_INVALID, COFRADIA_NO_MONEY, COFRADIA_BUSY, COFRADIA_CASH_FULL, COFRADIA_DEBT_PENDING };
 #define COFRADIA_DIFFICULTY_COUNT 6
 #define COFRADIA_MAX_COUNTERS 2
 
@@ -19,12 +19,17 @@ struct CofradiaView
     u32 biggestLoss;
     u8 state;
     u8 difficulty;
+    u32 borrowed;
+    u32 debt;
 };
 
 u32 CofradiaMinimum(u8 difficulty);
 u32 CofradiaCompound(u32 fund, u8 difficulty);
 bool32 CofradiaGetView(struct CofradiaView *view);
 enum CofradiaResult CofradiaBegin(u8 difficulty, u32 stake);
+enum CofradiaResult CofradiaBeginCredit(u8 difficulty, u32 stake, u32 borrowed);
+enum CofradiaResult CofradiaRepay(u32 amount);
+u32 CofradiaAppraisePokemon(struct Pokemon *mon);
 bool32 CofradiaArm(void);
 bool32 CofradiaDisarm(void);
 bool32 CofradiaResolve(bool32 won);
