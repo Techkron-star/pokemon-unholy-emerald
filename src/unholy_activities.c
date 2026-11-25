@@ -5,7 +5,7 @@
 
 #define ACTIVITY_MAGIC 0x55414331
 #define ACTIVITY_VERSION 1
-STATIC_ASSERT(sizeof(struct UnholyActivitySave) <= UNHOLY_SAVE4_PAYLOAD_BYTES, ActivitiesFitSave4);
+STATIC_ASSERT(sizeof(struct UnholyActivitySave) <= UNHOLY_SAVE4_HORIZON_OFFSET, ActivitiesFitSave4);
 
 struct UnholyActivitySave *UnholyActivities_Get(void)
 {
