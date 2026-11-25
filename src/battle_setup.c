@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_cofradia.h"
 #include "unholy_bounty.h"
 #include "unholy_localization.h"
 #include "data.h"
@@ -1752,6 +1753,24 @@ static void CB2_EndRematchBattle(void)
         HandleRematchVarsOnBattleEnd();
         DowngradeBadPoison();
     }
+}
+
+static void CB2_EndCofradiaBattle(void)
+{
+    CofradiaBattleEnded(gBattleOutcome);
+    CpuFill16(0, (void *)BG_PLTT, BG_PLTT_SIZE);
+    ResetOamRange(0, 128);
+    SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
+}
+
+void BattleSetup_StartCofradiaBattle(u16 trainer)
+{
+    memset(&gTrainerBattleParameter, 0, sizeof(gTrainerBattleParameter));
+    TRAINER_BATTLE_PARAM.opponentA = trainer;
+    TRAINER_BATTLE_PARAM.defeatTextA = (u8 *)UnholyLocalize(COMPOUND_STRING("The house acknowledges your victory."), COMPOUND_STRING("La casa reconoce tu victoria."));
+    gBattleTypeFlags = BATTLE_TYPE_TRAINER;
+    gMain.savedCallback = CB2_EndCofradiaBattle;
+    DoTrainerBattle();
 }
 
 static void CB2_EndBountyBattle(void)
