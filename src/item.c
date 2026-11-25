@@ -854,6 +854,17 @@ const u8 *GetItemName(enum Item itemId)
 
     if (itemId == ITEM_MAX_SOUP)
         return UnholyLocalize(COMPOUND_STRING("Max Soup"), COMPOUND_STRING("Maxisopa"));
+    if (UnholyIsSpanish())
+    {
+        switch (itemId)
+        {
+        case ITEM_MEGA_RING: return COMPOUND_STRING("Megaaro");
+        case ITEM_Z_POWER_RING: return COMPOUND_STRING("Pulsera Z");
+        case ITEM_DYNAMAX_BAND: return COMPOUND_STRING("Pulsera Dinamax");
+        case ITEM_TERA_ORB: return COMPOUND_STRING("Orbe Tera");
+        default: break;
+        }
+    }
     name = gItemsInfo[itemId].name;
 
     return name == NULL ? gQuestionMarksItemName : name;
@@ -914,6 +925,9 @@ const u8 *GetItemDescription(enum Item itemId)
         return Gear_GetLocalizedDescription(gear);
     if (itemId == ITEM_MAX_SOUP)
         return UnholyLocalize(gItemsInfo[itemId].description, COMPOUND_STRING("Alterna Gigamax.\nUrshifu necesita\nMiel Max."));
+    if (UnholyIsSpanish() && ((itemId >= ITEM_BUG_TERA_SHARD && itemId <= ITEM_WATER_TERA_SHARD)
+                            || itemId == ITEM_STELLAR_TERA_SHARD))
+        return COMPOUND_STRING("Usa 10 para cambiar\nel teratipo de un\nPokémon.");
     return gItemsInfo[itemId].description;
 }
 
