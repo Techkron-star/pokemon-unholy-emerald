@@ -256,7 +256,7 @@ CHROMATIC_REGION_ASSETS := $(shell find graphics/pokemon -type f \( -name 'norma
 AUTO_GEN_TARGETS += $(CHROMATIC_REGION_HEADER)
 
 $(CHROMATIC_REGION_HEADER): $(CHROMATIC_REGION_TOOL) $(CHROMATIC_REGION_ASSETS)
-	python3 $(CHROMATIC_REGION_TOOL) --output $@
+	python3 $(CHROMATIC_REGION_TOOL) --output $@ --report $(BUILD_DIR)/chromatic-coverage.json
 
 $(DATA_SRC_SUBDIR)/wild_encounters.h: $(DATA_SRC_SUBDIR)/wild_encounters.json $(WILD_ENCOUNTERS_TOOL_DIR)/wild_encounters_to_header.py $(INCLUDE_DIRS)/config/overworld.h $(INCLUDE_DIRS)/config/dexnav.h
 	python3 $(WILD_ENCOUNTERS_TOOL_DIR)/wild_encounters_to_header.py

@@ -2,10 +2,14 @@
 """Build deterministic spatial palette roles from indexed battle sprites.
 
 Only Python stdlib is needed. No changes to PNGs, save data or game RNG.
-A palette signature that has conflicting roles is omitted, not guessed.
+Geometry is read from indexed PNGs, including inherited form sprites.
+Conflicting identical palettes are conservatively reconciled; hash collisions
+between different palettes are rejected.
 """
 import argparse
 import json
+import itertools
+from collections import Counter
 import tempfile
 import pathlib
 import struct
@@ -108,9 +112,9 @@ def measure(images, normal):
             pal, rows = read_png(path)
         except (OSError, ValueError, struct.error, zlib.error):
             continue
-        # Never guess how a different PNG palette was reindexed by gbagfx.
-        if not palette_matches(pal, normal):
-            continue
+        # gbagfx ReadPng/ConvertPngToGba keep indexed pixel values;
+        # the separate .pal supplies their actual colors, including forms.
+        # read_png already rejects any used index outside 0..15.
         accepted += 1
         h, w = len(rows), len(rows[0])
         side = 16 if path.name.startswith("back") else 0
@@ -235,49 +239,129 @@ def signature(pal):
     return a,b
 
 
+def battle_images(folder, suffix):
+    return [p for name in ("front","anim_front","back","frontf","anim_frontf","backf")
+            if (p := folder/(name+suffix+".png")).is_file()]
+
+
+def find_geometry(folder, root, suffix):
+    # Palette-only nested forms share their closest ancestor's sprite
+    # (e.g. Arceus types, Minior cores and Deerling seasons).
+    local = battle_images(folder,suffix)
+    if local:
+        return local, "local", folder
+    if suffix:
+        # Some GBA alternatives only replace the palette.
+        local = battle_images(folder,"")
+        if local:
+            return local,"local-alternate",folder
+    for parent in folder.parents:
+        if parent == root or root not in parent.parents:
+            break
+        candidates = battle_images(parent,suffix)
+        if not candidates and suffix:
+            candidates = battle_images(parent,"")
+        if candidates:
+            return candidates,"inherited",parent
+    return [],"missing",folder
+
+
+def reconcile_masks(masks):
+    # Same palette, potentially different sprites: align role labels before
+    # voting. Do not change any index that one of its users protects.
+    # A role mask is not anatomy when the runtime only has palette identity.
+    if len(set(masks)) == 1:
+        return masks[0]
+    counts = Counter(masks)
+    reference = min(counts,key=lambda m:(-counts[m],m))
+    aligned = []
+    for mask in masks:
+        if mask == reference:
+            aligned.append(mask)
+            continue
+        choices = []
+        for perm in itertools.permutations((1,2,3)):
+            value = 0
+            for i in range(1,16):
+                role = (mask>>(2*i))&3
+                if role:
+                    value |= perm[role-1]<<(2*i)
+            score = sum(((reference>>(2*i))&3) != 0 and
+                        ((reference>>(2*i))&3)==((value>>(2*i))&3)
+                        for i in range(1,16))
+            choices.append((-score,value))
+        aligned.append(min(choices)[1])
+    result = 0
+    for i in range(1,16):
+        votes = Counter((m>>(2*i))&3 for m in aligned)
+        if 0 in votes:
+            continue
+        # Require strict majority for conflicting role assignments.
+        role,n = min(votes.items(),key=lambda pair:(-pair[1],pair[0]))
+        if n*2 > len(aligned):
+            result |= role<<(2*i)
+    return result
+
+
 def generate(root, output, report=None):
     records = {}
     conflicts = set()
     scanned, skipped, accepted_images = 0, 0, 0
     role_histogram = [0]*4
-    families = []
+    families, issues = [], []
+    modes = Counter()
     for normal_path in sorted(root.rglob("normal*.pal")):
         if normal_path.name not in ("normal.pal", "normal_gba.pal"):
             continue
         scanned += 1
         suffix = "_gba" if normal_path.stem.endswith("_gba") else ""
         folder = normal_path.parent
-        images = [folder/(name+suffix+".png") for name in
-                  ("front","anim_front","back","frontf","anim_frontf","backf")]
-        images = [p for p in images if p.is_file()]
+        relative = normal_path.relative_to(root).as_posix()
+        images, mode, geometry = find_geometry(folder,root,suffix)
         try:
             normal = read_pal(normal_path)
             counts, edges, links, zones, accepted = measure(images,normal)
+            if not accepted:
+                raise ValueError("no decodable indexed battle geometry")
             mask = analyze(normal,counts,edges,links,zones)
-        except (OSError, ValueError):
+        except (OSError, ValueError) as exc:
             skipped += 1
+            issues.append({"path":relative,"reason":str(exc),"geometry_mode":mode})
             continue
-        if not mask:
-            skipped += 1
-            continue
+        modes[mode] += 1
         accepted_images += accepted
         role_count = len({(mask>>(2*i))&3 for i in range(1,16)}-{0})
         role_histogram[role_count] += 1
-        families.append({"path":normal_path.relative_to(root).as_posix(),
-                         "roles":role_count,"images":accepted,
-                         "mask":"%08X" % mask})
-        for path in (normal_path, folder/("shiny"+suffix+".pal")):
+        families.append({"path":relative,"roles":role_count,"images":accepted,
+                         "geometry":geometry.relative_to(root).as_posix(),
+                         "geometry_mode":mode,"mask":"%08X" % mask})
+        shiny_path = folder/("shiny"+suffix+".pal")
+        if not shiny_path.is_file() and mode == "inherited":
+            shared = geometry/("shiny"+suffix+".pal")
+            if shared.is_file():
+                shiny_path = shared
+        for path in (normal_path, shiny_path):
             try:
                 pal = read_pal(path)
             except (OSError, ValueError):
                 continue
             key = signature(pal)
-            if key in records and records[key] != (pal[1:],mask):
+            if key in records and records[key][0] != pal[1:]:
                 conflicts.add(key)
+            elif key in records:
+                records[key][1].append(mask)
             else:
-                records[key] = (pal[1:],mask)
-    rows = [(a,b,mask) for (a,b),(_,mask) in sorted(records.items())
-            if (a,b) not in conflicts]
+                records[key] = (pal[1:],[mask])
+    rows, reconciled, protected = [], 0, 0
+    for (a,b),(_,masks) in sorted(records.items()):
+        if (a,b) in conflicts:
+            continue
+        mask = reconcile_masks(masks)
+        reconciled += len(set(masks)) > 1
+        protected += mask == 0
+        # Bit 0 is unused by the game and marks a known protected-only
+        # palette so it cannot accidentally fall through to hue grouping.
+        rows.append((a,b,mask or 1))
     if not rows:
         raise SystemExit("chromatic generator found no compatible battle palettes")
     text = ["/* Generated by tools/misc/unholy_chromatic_regions.py; do not edit. */",
@@ -291,12 +375,18 @@ def generate(root, output, report=None):
     stats = {"signatures":len(rows),"families_scanned":scanned,
              "families_skipped":skipped,"conflicts":len(conflicts),
              "images_accepted":accepted_images,"role_histogram":role_histogram,
-             "families":families}
+             "geometry_modes":dict(modes),"reconciled_signatures":reconciled,
+             "protected_only_signatures":protected,"families":families,
+             "issues":issues}
     if report:
         report.parent.mkdir(parents=True,exist_ok=True)
         report.write_text(json.dumps(stats,indent=2)+"\n",encoding="utf-8")
-    print("chromatic regions: %d signatures, %d/%d families, %d images, %d conflicts"
+    print("chromatic regions: %d signatures, %d/%d families, %d images, %d hash conflicts"
           % (len(rows),scanned-skipped,scanned,accepted_images,len(conflicts)))
+    print("chromatic geometry: %s; reconciled=%d protected_only=%d"
+          % (dict(modes),reconciled,protected))
+    for issue in issues:
+        print("chromatic skipped: %s: %s" % (issue["path"],issue["reason"]))
     return stats
 
 
@@ -361,6 +451,17 @@ def fixture_test():
         assert stats["families"][0]["roles"]>=2
         assert stats["families_skipped"]==0
         assert not palette_matches(pal,tuple(map(rgb555,shiny)))
+        # A nested recolored form without its own PNG inherits geometry.
+        child=folder/"variant"
+        child.mkdir()
+        (child/"normal.pal").write_text((folder/"shiny.pal").read_text())
+        inherited=generate(root,second)
+        assert inherited["families_scanned"]==2
+        assert inherited["families_skipped"]==0
+        assert inherited["geometry_modes"]["inherited"]==1
+        assert inherited["conflicts"]==0
+        assert reconcile_masks([4,8]) in (4,8)
+        assert reconcile_masks([4,0])==0
 
 
 if __name__ == "__main__":

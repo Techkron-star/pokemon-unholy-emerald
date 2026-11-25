@@ -36,6 +36,14 @@ jobs:
       - name: Compilar
         run: make -j$(nproc) -O all
 
+      - name: Subir informe cromatico
+        uses: actions/upload-artifact@v4
+        with:
+          name: chromatic-coverage
+          path: build/chromatic-coverage.json
+          retention-days: 7
+          if-no-files-found: error
+
       - name: Subir ROM
         uses: actions/upload-artifact@v4
         with:
