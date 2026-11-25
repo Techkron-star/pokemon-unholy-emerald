@@ -169,3 +169,27 @@ TEST("Alakazam canonical palette identifies silver accent separately")
     base[12] ^= 1;
     EXPECT_EQ(NaturalTone_GetCuratedRoleMask(base), 0);
 }
+
+TEST("V2 recolor is alias-safe and keeps ordered selected shade ramps")
+{
+    const u16 base[16] = {0x1234, 0, 0x7FFF,
+        8 | (3 << 5) | (2 << 10), 16 | (6 << 5) | (4 << 10),
+        24 | (9 << 5) | (6 << 10)};
+    u16 a[16], b[16];
+    u32 pid, i;
+    // Force the three shades into one region, independent of fallback.
+    const u32 roles = (1u << 6) | (1u << 8) | (1u << 10);
+    for (pid = 0; pid < 128; pid++)
+    {
+        for (i = 0; i < 16; i++) b[i] = base[i];
+        NaturalTone_BuildV2Palette(base, a, pid, 0x9ABCDEF0u, FALSE, roles);
+        NaturalTone_BuildV2Palette(b, b, pid, 0x9ABCDEF0u, FALSE, roles);
+        for (i = 0; i < 16; i++) EXPECT_EQ(a[i], b[i]);
+        for (i = 3; i < 5; i++)
+        {
+            u32 x = max(a[i] & 31, max((a[i] >> 5) & 31, (a[i] >> 10) & 31));
+            u32 y = max(a[i+1] & 31, max((a[i+1] >> 5) & 31, (a[i+1] >> 10) & 31));
+            EXPECT_EQ(x <= y, TRUE);
+        }
+    }
+}

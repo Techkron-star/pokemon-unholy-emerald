@@ -5,7 +5,8 @@ Only Python stdlib is needed. No changes to PNGs, save data or game RNG.
 A palette signature that has conflicting roles is omitted, not guessed.
 """
 import argparse
-import collections
+import json
+import tempfile
 import pathlib
 import struct
 import zlib
@@ -88,24 +89,52 @@ def read_png(path):
     return palette, rows
 
 
+def palette_matches(pal, normal):
+    # Indexed PNGs may omit unused trailing entries. Only accept the
+    # identical index mapping (never match by RGB alone if indices differ).
+    return 1 < len(pal) <= 16 and pal[1:] == normal[1:len(pal)]
+
+
 def measure(images, normal):
     counts = [0]*16
     edges = [0]*16
     links = [[0]*16 for _ in range(16)]
+    # Separate front/back coordinate spaces: same coordinates on opposite
+    # sides do not imply that two pigment ramps occupy the same region.
+    zones = [[0]*32 for _ in range(16)]
+    accepted = 0
     for path in images:
         try:
             pal, rows = read_png(path)
         except (OSError, ValueError, struct.error, zlib.error):
             continue
         # Never guess how a different PNG palette was reindexed by gbagfx.
-        if len(pal) < 16 or pal[1:16] != normal[1:16]:
+        if not palette_matches(pal, normal):
             continue
+        accepted += 1
         h, w = len(rows), len(rows[0])
+        side = 16 if path.name.startswith("back") else 0
+        # Normalize each frame to its occupied bounds, not its padding.
+        bounds = {}
+        for y, row in enumerate(rows):
+            for x, p in enumerate(row):
+                if p:
+                    key = (x//64,y//64)
+                    if key not in bounds:
+                        bounds[key] = [x,y,x,y]
+                    else:
+                        box = bounds[key]
+                        box[0],box[1] = min(box[0],x),min(box[1],y)
+                        box[2],box[3] = max(box[2],x),max(box[3],y)
         for y, row in enumerate(rows):
             for x, p in enumerate(row):
                 if not p:
                     continue
                 counts[p] += 1
+                x0,y0,x1,y1 = bounds[(x//64,y//64)]
+                gx = min(3, 4*(x-x0)//(x1-x0+1))
+                gy = min(3, 4*(y-y0)//(y1-y0+1))
+                zones[p][side+gy*4+gx] += 1
                 for dx, dy in ((1,0),(-1,0),(0,1),(0,-1)):
                     xx, yy = x+dx, y+dy
                     # Separate tiled 64px animation frames.
@@ -117,7 +146,7 @@ def measure(images, normal):
                         edges[p] += 1
                     elif p != q:
                         links[p][q] += 1
-    return counts, edges, links
+    return counts, edges, links, zones, accepted
 
 
 def features(color):
@@ -135,7 +164,7 @@ def features(color):
     return hue, ch, hi, r+g+b
 
 
-def analyze(normal, counts, edges, links):
+def analyze(normal, counts, edges, links, zones=None):
     """Cluster shading ramps using hue, neutral/chromatic split and contacts.
 
     Largest cluster is body; remaining clusters are secondary/accent.
@@ -152,14 +181,29 @@ def analyze(normal, counts, edges, links):
         hb, cb, vb, _ = feat[b]
         contact = links[a][b] + links[b][a]
         bonus = min(70, 120*contact//max(1,min(counts[a],counts[b])))
+        spatial = 0
+        if zones is not None:
+            # Compare normalized occupancy independently on each side.
+            # No penalty if colors never appear in the same view.
+            similarities = []
+            for side in (0,16):
+                za,zb = zones[a][side:side+16],zones[b][side:side+16]
+                na,nb = sum(za),sum(zb)
+                if na and nb:
+                    overlap = sum(min(x*nb,y*na) for x,y in zip(za,zb))
+                    similarities.append(100*overlap//(na*nb))
+            if similarities:
+                spatial = (100-max(similarities))*2//3
+                if contact:
+                    spatial //= 2
         neutral_a, neutral_b = ca <= 4, cb <= 4
         if neutral_a != neutral_b:
-            return 310 + 3*abs(va-vb) - bonus//3
+            return 310 + 3*abs(va-vb) - bonus//3 + spatial
         if neutral_a:
-            return 5*abs(va-vb) - bonus
+            return 5*abs(va-vb) - bonus + spatial
         hue = abs(ha-hb)
         hue = min(hue,1536-hue)
-        return hue + 3*abs(ca-cb) + 2*abs(va-vb) - bonus
+        return hue + 3*abs(ca-cb) + 2*abs(va-vb) - bonus + spatial
 
     clusters = [(i,) for i in eligible]
 
@@ -191,10 +235,12 @@ def signature(pal):
     return a,b
 
 
-def generate(root, output):
+def generate(root, output, report=None):
     records = {}
     conflicts = set()
-    scanned, skipped = 0, 0
+    scanned, skipped, accepted_images = 0, 0, 0
+    role_histogram = [0]*4
+    families = []
     for normal_path in sorted(root.rglob("normal*.pal")):
         if normal_path.name not in ("normal.pal", "normal_gba.pal"):
             continue
@@ -206,14 +252,20 @@ def generate(root, output):
         images = [p for p in images if p.is_file()]
         try:
             normal = read_pal(normal_path)
-            counts, edges, links = measure(images,normal)
-            mask = analyze(normal,counts,edges,links)
+            counts, edges, links, zones, accepted = measure(images,normal)
+            mask = analyze(normal,counts,edges,links,zones)
         except (OSError, ValueError):
             skipped += 1
             continue
         if not mask:
             skipped += 1
             continue
+        accepted_images += accepted
+        role_count = len({(mask>>(2*i))&3 for i in range(1,16)}-{0})
+        role_histogram[role_count] += 1
+        families.append({"path":normal_path.relative_to(root).as_posix(),
+                         "roles":role_count,"images":accepted,
+                         "mask":"%08X" % mask})
         for path in (normal_path, folder/("shiny"+suffix+".pal")):
             try:
                 pal = read_pal(path)
@@ -236,8 +288,16 @@ def generate(root, output):
     tmp = output.with_suffix(output.suffix+".tmp")
     tmp.write_text("\n".join(text),encoding="ascii")
     tmp.replace(output)
-    print("chromatic regions: %d signatures, %d palette families, %d skipped, %d conflicts"
-          % (len(rows),scanned,skipped,len(conflicts)))
+    stats = {"signatures":len(rows),"families_scanned":scanned,
+             "families_skipped":skipped,"conflicts":len(conflicts),
+             "images_accepted":accepted_images,"role_histogram":role_histogram,
+             "families":families}
+    if report:
+        report.parent.mkdir(parents=True,exist_ok=True)
+        report.write_text(json.dumps(stats,indent=2)+"\n",encoding="utf-8")
+    print("chromatic regions: %d signatures, %d/%d families, %d images, %d conflicts"
+          % (len(rows),scanned-skipped,scanned,accepted_images,len(conflicts)))
+    return stats
 
 
 def self_test():
@@ -260,10 +320,61 @@ def self_test():
     assert signature(pal)!=signature(pal[:2]+(pal[2]^1,)+pal[3:])
 
 
+def fixture_test():
+    # Real compressed indexed PNG, short palette, two distinct ramps,
+    # both battle views, and a shiny palette reusing the same index roles.
+    def chunk(tag,data):
+        return (struct.pack(">I",len(data))+tag+data+
+                struct.pack(">I",zlib.crc32(tag+data)&MASK32))
+    colors=[(0,0,0),(0,0,0),(224,128,32),(152,80,16),
+            (160,160,160),(96,96,96),(24,168,216),(255,255,255)]
+    pixels=[[0,0,0,0,0,0,0,0],
+            [0,2,2,3,3,4,5,0],
+            [0,2,2,3,3,4,5,0],
+            [0,2,2,3,3,6,6,0],
+            [0,0,0,0,0,0,0,0]]
+    raw=b"".join(b"\0"+bytes(row[i]*16+row[i+1]
+                  for i in range(0,8,2)) for row in pixels)
+    png=(PNG_SIG+chunk(b"IHDR",struct.pack(">IIBBBBB",8,5,4,3,0,0,0))+
+         chunk(b"PLTE",bytes(c for rgb in colors for c in rgb))+
+         chunk(b"IDAT",zlib.compress(raw))+chunk(b"IEND",b""))
+    with tempfile.TemporaryDirectory() as tmp:
+        root=pathlib.Path(tmp)/"pokemon"
+        folder=root/"example"/"form"
+        folder.mkdir(parents=True)
+        normal=colors+[(0,0,0)]*8
+        shiny=normal.copy()
+        shiny[2]=(32,128,224)
+        for name,pal in (("normal",normal),("shiny",shiny)):
+            (folder/(name+".pal")).write_text("JASC-PAL\n0100\n16\n"+
+                 "\n".join(" ".join(map(str,rgb)) for rgb in pal)+"\n")
+        for name in ("front.png","back.png"):
+            (folder/name).write_bytes(png)
+        pal,rows=read_png(folder/"front.png")
+        assert rows==pixels and palette_matches(pal,tuple(map(rgb555,normal)))
+        first=pathlib.Path(tmp)/"first.h"
+        second=pathlib.Path(tmp)/"second.h"
+        stats=generate(root,first,pathlib.Path(tmp)/"report.json")
+        generate(root,second)
+        assert first.read_bytes()==second.read_bytes()
+        assert stats["signatures"]==2 and stats["images_accepted"]==2
+        assert stats["families"][0]["roles"]>=2
+        assert stats["families_skipped"]==0
+        assert not palette_matches(pal,tuple(map(rgb555,shiny)))
+
+
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root",type=pathlib.Path,default=ROOT)
-    parser.add_argument("--output",type=pathlib.Path,required=True)
+    parser.add_argument("--output",type=pathlib.Path)
+    parser.add_argument("--report",type=pathlib.Path)
+    parser.add_argument("--self-test-only",action="store_true")
     args=parser.parse_args()
     self_test()
-    generate(args.root,args.output)
+    fixture_test()
+    if args.self_test_only:
+        print("chromatic generator self-tests passed")
+    elif args.output:
+        generate(args.root,args.output,args.report)
+    else:
+        parser.error("--output is required unless --self-test-only is used")

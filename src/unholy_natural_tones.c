@@ -313,6 +313,15 @@ void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct 
         profile->roleOrder[j] = temp;
         order >>= 8;
     }
+    // Single-region variants more often change markings or materials
+    // than the main body. The ordering remains identity-only.
+    if (profile->scope == 1 && profile->roleOrder[0] == 0
+     && (NaturalTone_Mix32(seed ^ 0x50415254u) & 3) != 0)
+    {
+        temp = profile->roleOrder[0];
+        profile->roleOrder[0] = profile->roleOrder[1];
+        profile->roleOrder[1] = temp;
+    }
     if (scope >= 95)
     {
         // Prefer accent (role 2) but fall back to another available role.
@@ -561,10 +570,72 @@ static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
     return (c & 0x8000) | NaturalTone_ClampChannel(r + light)
         | (NaturalTone_ClampChannel(g + light) << 5) | (NaturalTone_ClampChannel(b + light) << 10);
 }
+// Keep the relative value order of shade ramps even when a themed
+// finish compresses RGB555 channels. Never touch an unselected entry.
+static s32 V2_Value(u16 c)
+{
+    s32 r = c & 31, g = (c >> 5) & 31, b = (c >> 10) & 31;
+    return max(r, max(g, b));
+}
+
+static u16 V2_SetValue(u16 c, s32 value)
+{
+    s32 r = c & 31, g = (c >> 5) & 31, b = (c >> 10) & 31;
+    s32 hi = V2_Value(c);
+    if (!hi)
+        return (c & 0x8000) | value | (value << 5) | (value << 10);
+    return (c & 0x8000) | (r * value / hi) | ((g * value / hi) << 5)
+        | ((b * value / hi) << 10);
+}
+
+static void V2_KeepShadeOrder(const u16 *base, u16 *out, u32 roles, u8 selected)
+{
+    u32 role, i, j, count;
+    u8 order[15];
+    for (role = 1; role <= 3; role++)
+    {
+        s32 previous = -1, previousBase = -1;
+        if (!(selected & (1u << (role - 1)))) continue;
+        count = 0;
+        for (i = 1; i < 16; i++)
+        {
+            if (((roles >> (2 * i)) & 3) != role) continue;
+            // Stable insertion sort, dark to light, within this role only.
+            j = count;
+            while (j && V2_Value(base[order[j-1]]) > V2_Value(base[i]))
+            {
+                order[j] = order[j-1];
+                j--;
+            }
+            order[j] = i;
+            count++;
+        }
+        for (j = 0; j < count; j++)
+        {
+            s32 source, value, minimum;
+            i = order[j];
+            source = V2_Value(base[i]);
+            value = V2_Value(out[i]);
+            // Reserve at least one RGB555 step for distinctly lighter
+            // original shades whenever the remaining range permits.
+            minimum = previous + (source > previousBase);
+            if (value < minimum) value = min(31, minimum);
+            if (value != V2_Value(out[i])) out[i] = V2_SetValue(out[i], value);
+            previous = max(previous, value);
+            previousBase = source;
+        }
+    }
+}
+
 void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 otId, bool32 isShiny, u32 overrides)
 {
     struct NaturalToneV2Profile p;
-    u32 roles = NaturalTone_GetGeneratedRoleMask(base), i;
+    // Support in-place use and retain canonical input for contrast checks.
+    u16 original[16];
+    u32 roles, i;
+    for (i = 0; i < 16; i++) original[i] = base[i];
+    base = original;
+    roles = NaturalTone_GetGeneratedRoleMask(base);
     u8 selected;
     // Spatial segmentation is the default, curated exceptions are fallback
     // only, and the original automatic hue grouping handles unknown palettes.
@@ -587,6 +658,7 @@ void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 
         out[i] = role && (selected & (1u << (role - 1)))
             ? V2_Adjust(base[i], role - 1, &p) : base[i];
     }
+    V2_KeepShadeOrder(base, out, roles, selected);
 }
 void NaturalTone_ApplyLoadedPaletteVersion(u32 paletteOffset, u32 personality, u32 otId, bool32 isShiny, bool32 isEgg, bool32 isV2)
 {
