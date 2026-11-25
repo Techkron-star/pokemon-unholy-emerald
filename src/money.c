@@ -120,55 +120,45 @@ void SubtractMoneyFromVar0x8005(void)
     RemoveMoney(&gSaveBlock1Ptr->money, gSpecialVar_0x8005);
 }
 
-void PrintMoneyAmountInMoneyBox(u8 windowId, int amount, u8 speed)
+void PrintMoneyAmountInMoneyBox(u8 windowId, u32 amount, u8 speed)
 {
     PrintMoneyAmount(windowId, CalculateMoneyTextHorizontalPosition(amount), 1, amount, speed);
 }
 
-static u32 CalculateLeadingSpacesForMoney(u32 numDigits)
+void PrintMoneyAmount(u8 windowId, u8 x, u8 y, u32 amount, u8 speed)
 {
-    u32 leadingSpaces = CountDigits(INT_MAX) - StringLength(gStringVar1);
-    return (numDigits > 8) ? leadingSpaces : (leadingSpaces >= 2 ? leadingSpaces - 2 : 0);
+    ConvertUIntToDecimalStringN(gStringVar1, amount, STR_CONV_MODE_LEFT_ALIGN, MAX_MONEY_DIGITS);
+    StringExpandPlaceholders(gStringVar4, gText_PokedollarVar1);
+    u32 width = GetWindowAttribute(windowId, WINDOW_WIDTH) * 8;
+    u8 font = FONT_NORMAL;
+    u32 textWidth = GetStringWidth(font, gStringVar4, 0);
+    if (textWidth > width - min(x, width))
+    {
+        font = FONT_SMALL_NARROW;
+        textWidth = GetStringWidth(font, gStringVar4, 0);
+    }
+    // Right align within the native 80px money window. Reserve left space for the label.
+    x = width > textWidth + 2 ? width - textWidth - 2 : 0;
+    AddTextPrinterParameterized(windowId, font, gStringVar4, x, y, speed, NULL);
 }
 
-void PrintMoneyAmount(u8 windowId, u8 x, u8 y, int amount, u8 speed)
-{
-    u8 *txtPtr = gStringVar4;
-    u32 numDigits = CountDigits(amount);
-    u32 maxDigits = (numDigits > 6) ? MAX_MONEY_DIGITS: 6;
-    u32 leadingSpaces;
-
-    ConvertIntToDecimalStringN(gStringVar1, amount, STR_CONV_MODE_LEFT_ALIGN, maxDigits);
-
-    leadingSpaces = CalculateLeadingSpacesForMoney(numDigits);
-
-    while (leadingSpaces-- > 0)
-        *(txtPtr++) = CHAR_SPACER;
-
-    StringExpandPlaceholders(txtPtr, gText_PokedollarVar1);
-
-    if (numDigits > 8)
-        PrependFontIdToFit(gStringVar4, txtPtr + 1 + numDigits, FONT_NORMAL, 54);
-    AddTextPrinterParameterized(windowId, FONT_NORMAL, gStringVar4, x, y, speed, NULL);
-}
-
-void PrintMoneyAmountInMoneyBoxWithBorder(u8 windowId, u16 tileStart, u8 pallete, int amount)
+void PrintMoneyAmountInMoneyBoxWithBorder(u8 windowId, u16 tileStart, u8 pallete, u32 amount)
 {
     DrawStdFrameWithCustomTileAndPalette(windowId, FALSE, tileStart, pallete);
     PrintMoneyAmountInMoneyBox(windowId, amount, 0);
 }
 
-void ChangeAmountInMoneyBox(int amount)
+void ChangeAmountInMoneyBox(u32 amount)
 {
     PrintMoneyAmountInMoneyBox(sMoneyBoxWindowId, amount, 0);
 }
 
 u32 CalculateMoneyTextHorizontalPosition(u32 amount)
 {
-    return (CountDigits(amount) > 8) ? 34 : 26;
+    return (CountDigits(amount) > 8) ? 18 : 26;
 }
 
-void DrawMoneyBox(int amount, u8 x, u8 y)
+void DrawMoneyBox(u32 amount, u8 x, u8 y)
 {
     struct WindowTemplate template;
 
