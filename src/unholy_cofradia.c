@@ -102,6 +102,8 @@ static struct CofradiaRecord *GetRecord(void)
         return NULL;
     if (r->state != COFRADIA_IDLE && (r->stake < CofradiaMinimum(r->difficulty) || r->fund < r->stake))
         return NULL;
+    if (r->state == COFRADIA_IDLE && (r->stake || r->fund || r->wins || r->seed))
+        return NULL;
     if (r->borrowed > r->stake || (r->state == COFRADIA_IDLE && r->borrowed != 0)
         || (r->borrowed && r->debt) || r->collectionPending > 1
         || (r->collectionPending && !r->debt))
@@ -143,7 +145,7 @@ enum CofradiaResult CofradiaBegin(u8 difficulty, u32 stake)
     return CofradiaBeginCredit(difficulty, stake, 0);
 }
 
-// Not exposed by the lobby until custody and recovery are implemented.
+// Enforce credit policy here as well as in the lobby UI.
 enum CofradiaResult CofradiaBeginCredit(u8 difficulty, u32 stake, u32 borrowed)
 {
     struct CofradiaRecord *r = GetRecord();
@@ -151,8 +153,10 @@ enum CofradiaResult CofradiaBeginCredit(u8 difficulty, u32 stake, u32 borrowed)
         return COFRADIA_INVALID;
     if (r->state != COFRADIA_IDLE)
         return COFRADIA_BUSY;
-    if (borrowed > stake)
+    if (borrowed > stake || borrowed > CofradiaMinimum(difficulty) * 10u)
         return COFRADIA_INVALID;
+    if (r->collectionPending)
+        return COFRADIA_DEBT_PENDING;
     if (borrowed && r->debt)
         return COFRADIA_DEBT_PENDING;
     if (borrowed)
@@ -281,7 +285,7 @@ enum CofradiaResult CofradiaRepay(u32 amount)
         return COFRADIA_INVALID;
     if (r->state != COFRADIA_IDLE)
         return COFRADIA_BUSY;
-    if (!IsEnoughMoney(&gSaveBlock1Ptr->money, amount))
+    if (sActive || !IsEnoughMoney(&gSaveBlock1Ptr->money, amount))
         return COFRADIA_NO_MONEY;
     struct CofradiaRecord old = *r;
     r->debt -= amount;
@@ -359,7 +363,7 @@ u32 CofradiaAppraisePokemon(struct Pokemon *mon)
     if (mon == NULL || GetMonData(mon, MON_DATA_IS_EGG))
         return 0;
     enum Species species = GetMonData(mon, MON_DATA_SPECIES);
-    if (species == SPECIES_NONE)
+    if (species == SPECIES_NONE || species >= NUM_SPECIES || GetMonData(mon, MON_DATA_SANITY_IS_BAD_EGG))
         return 0;
     const struct SpeciesInfo *info = &gSpeciesInfo[species];
     u32 bst = info->baseHP + info->baseAttack + info->baseDefense
