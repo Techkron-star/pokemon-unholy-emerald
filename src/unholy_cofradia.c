@@ -378,6 +378,34 @@ u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
     return selected[ordinal];
 }
 
+u16 CofradiaGymPatternSource(u32 seed, u8 difficulty, u16 primary)
+{
+    // If a gym leader is already the anchor, read their real generated roster.
+    // Otherwise select a gym blueprint independently of the battle portrait.
+    for (u8 gym = 0; gym < ARRAY_COUNT(sGymTeams); gym++)
+        for (u8 rematch = 0; rematch < ARRAY_COUNT(sGymTeams[0]); rematch++)
+            if (sGymTeams[gym][rematch] == primary && SourceValid(primary, FALSE))
+                return primary;
+
+    difficulty = min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1);
+    rng_value_t rng = LocalRandomSeed(seed ^ 0xD1B54A35u);
+    u8 gymCount = min(8, difficulty + 3);
+    u8 start = LocalRandom32(&rng) % gymCount;
+    u8 rematchCount = min(5, difficulty + 2);
+    for (u8 i = 0; i < gymCount; i++)
+    {
+        u8 gym = (start + i) % gymCount;
+        u8 rematchStart = LocalRandom32(&rng) % rematchCount;
+        for (u8 j = 0; j < rematchCount; j++)
+        {
+            u16 id = sGymTeams[gym][(rematchStart + j) % rematchCount];
+            if (SourceValid(id, FALSE))
+                return id;
+        }
+    }
+    return primary;
+}
+
 u8 CofradiaTeamSize(u8 difficulty, bool32 boss)
 {
     static const u8 sizes[] = {3, 4, 4, 5, 6, 6};
