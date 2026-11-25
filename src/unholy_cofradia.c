@@ -272,7 +272,7 @@ static bool32 OrdinaryClass(u8 cls, u8 difficulty)
     }
 }
 
-u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
+static u16 PickTeamSourceRaw(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
 {
     difficulty = min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1);
     rng_value_t rng = LocalRandomSeed(seed ^ ((u32)ordinal * 0x9E3779B9u));
@@ -324,6 +324,58 @@ u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
     if (picked != TRAINER_NONE)
         return picked;
     return sBountyTeams[min(difficulty, ARRAY_COUNT(sBountyTeams) - 1)];
+}
+
+// Trainer rematch aliases can point at the same underlying party.
+static u16 TeamSourceIdentity(u16 id)
+{
+    if (id == TRAINER_NONE || id >= TRAINERS_COUNT)
+        return TRAINER_NONE;
+    const struct Trainer *trainer = GetTrainerStructFromId(id);
+    return trainer->overrideTrainer ? trainer->overrideTrainer : id;
+}
+
+static bool32 TeamSourceUnused(u16 id, const u16 *selected, u8 count)
+{
+    u16 identity = TeamSourceIdentity(id);
+    if (identity == TRAINER_NONE)
+        return FALSE;
+    for (u8 i = 0; i < count; i++)
+        if (TeamSourceIdentity(selected[i]) == identity)
+            return FALSE;
+    return TRUE;
+}
+
+u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
+{
+    // Keep the lead archetype unchanged, but do not waste donor slots on
+    // identical trainers or aliases of their party.
+    u16 selected[5];
+    if (ordinal >= ARRAY_COUNT(selected))
+        return PickTeamSourceRaw(seed, difficulty, boss, ordinal);
+    difficulty = min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1);
+    selected[0] = PickTeamSourceRaw(seed, difficulty, boss, 0);
+    for (u8 slot = 1; slot <= ordinal; slot++)
+    {
+        u16 candidate = PickTeamSourceRaw(seed, difficulty, boss, slot);
+        for (u8 attempt = 1; attempt <= 8 && !TeamSourceUnused(candidate, selected, slot); attempt++)
+            candidate = PickTeamSourceRaw(seed ^ ((u32)attempt * 0xA511E9B3u), difficulty, boss, slot);
+        if (!TeamSourceUnused(candidate, selected, slot))
+        {
+            // Bounded deterministic fallback to a compatible ordinary trainer.
+            for (u16 id = 1; id < TRAINERS_COUNT; id++)
+            {
+                if (OrdinaryClass(GetTrainerClassFromId(id), difficulty)
+                    && SourceValid(id, FALSE) && TeamSourceUnused(id, selected, slot))
+                {
+                    candidate = id;
+                    break;
+                }
+            }
+        }
+        selected[slot] = candidate;
+    }
+    return selected[ordinal];
 }
 
 u8 CofradiaTeamSize(u8 difficulty, bool32 boss)
