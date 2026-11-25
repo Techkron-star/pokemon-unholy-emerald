@@ -393,46 +393,47 @@ bool32 AddBagItem(enum Item itemId, u16 count)
 
 static bool32 NONNULL BagPocket_RemoveItem(struct BagPocket *pocket, enum Item itemId, u16 count)
 {
-    u32 itemLookupIndex, itemRemoveIndex = 0, totalQuantity = 0;
-    struct ItemSlot tempItem;
-    u16 *tempPocketSlotQuantities = AllocZeroed(sizeof(u16) * pocket->capacity);
-
-    for (itemLookupIndex = 0; itemLookupIndex < pocket->capacity && totalQuantity < count; itemLookupIndex++)
+    // Validate the full quantity before changing any slot. The old code
+    // subtracted the original requested count from every matching stack.
+    if (count == 0)
+        return TRUE;
+    u32 total = 0;
+    for (u32 i = 0; i < pocket->capacity; i++)
     {
-        tempItem = BagPocket_GetSlotData(pocket, itemLookupIndex);
-        if (tempItem.itemId == itemId)
-        {
-            // Index for the next loop - where we should start removing items
-            if (!itemRemoveIndex)
-                itemRemoveIndex = itemLookupIndex + 1;
-
-            // Gather quantities (+ 1 to tempPocketSlotQuantities so that even if setting to 0 we know which indices to target)
-            totalQuantity += tempItem.quantity;
-            tempPocketSlotQuantities[itemLookupIndex] = (tempItem.quantity <= count ? 0 : tempItem.quantity - count) + 1;
-        }
+        struct ItemSlot slot = BagPocket_GetSlotData(pocket, i);
+        if (slot.itemId == itemId)
+            total += slot.quantity;
+        if (total >= count)
+            break;
     }
+    if (total < count)
+        return FALSE;
 
-    if (totalQuantity >= count) // We have enough of the item
+    if (CurMapIsSecretBase() == TRUE)
     {
-        if (CurMapIsSecretBase() == TRUE)
-        {
-            VarSet(VAR_SECRET_BASE_LOW_TV_FLAGS, VarGet(VAR_SECRET_BASE_LOW_TV_FLAGS) | SECRET_BASE_USED_BAG);
-            VarSet(VAR_SECRET_BASE_LAST_ITEM_USED, itemId);
-        }
-
-        // Update the quantities correctly with the items removed
-        for (--itemRemoveIndex; itemRemoveIndex < itemLookupIndex; itemRemoveIndex++)
-        {
-            if (tempPocketSlotQuantities[itemRemoveIndex] > 0)
-                BagPocket_SetSlotItemIdAndCount(pocket, itemRemoveIndex, itemId, tempPocketSlotQuantities[itemRemoveIndex] - 1);
-        }
+        VarSet(VAR_SECRET_BASE_LOW_TV_FLAGS, VarGet(VAR_SECRET_BASE_LOW_TV_FLAGS) | SECRET_BASE_USED_BAG);
+        VarSet(VAR_SECRET_BASE_LAST_ITEM_USED, itemId);
     }
-
-    if (totalQuantity == count)
+    u32 remaining = count;
+    bool32 emptied = FALSE;
+    for (u32 i = 0; i < pocket->capacity && remaining; i++)
+    {
+        struct ItemSlot slot = BagPocket_GetSlotData(pocket, i);
+        if (slot.itemId != itemId || !slot.quantity)
+            continue;
+        u32 take = min(remaining, slot.quantity);
+        slot.quantity -= take;
+        remaining -= take;
+        if (!slot.quantity)
+        {
+            slot.itemId = ITEM_NONE;
+            emptied = TRUE;
+        }
+        BagPocket_SetSlotData(pocket, i, slot);
+    }
+    if (emptied)
         BagPocket_CompactItems(pocket);
-
-    Free(tempPocketSlotQuantities);
-    return totalQuantity >= count;
+    return TRUE;
 }
 
 bool32 RemoveBagItem(enum Item itemId, u16 count)
