@@ -57,6 +57,8 @@
 #include "vs_seeker.h"
 #include "wild_encounter_ow.h"
 #include "window.h"
+#include "constants/abilities.h"
+#include "constants/moves.h"
 #include "constants/battle_frontier.h"
 #include "constants/battle_special.h"
 #include "constants/event_objects.h"
@@ -1763,7 +1765,8 @@ static void CB2_EndCofradiaBattle(void)
     SetMainCallback2(CB2_ReturnToFieldContinueScriptPlayMapMusic);
 }
 
-#define COFRADIA_DONOR_COUNT 5
+#define COFRADIA_DONOR_COUNT 6
+#define COFRADIA_GYM_SLOT (COFRADIA_DONOR_COUNT - 1)
 
 static bool32 CofradiaUsableMon(struct Pokemon *mon)
 {
@@ -1787,17 +1790,169 @@ static void CofradiaAppendCore(struct Pokemon *party, u8 *count, struct Pokemon 
         party[(*count)++] = *candidate;
 }
 
+enum CofradiaRole
+{
+    COF_HAZARDS = 1 << 0,
+    COF_SETUP = 1 << 1,
+    COF_RECOVERY = 1 << 2,
+    COF_SPEED = 1 << 3,
+    COF_SCREENS = 1 << 4,
+    COF_PIVOT = 1 << 5,
+    COF_DISRUPT = 1 << 6,
+    COF_RAIN = 1 << 7,
+    COF_SUN = 1 << 8,
+    COF_SAND = 1 << 9,
+    COF_TRICK_ROOM = 1 << 10,
+    COF_RAIN_USER = 1 << 11,
+    COF_SUN_USER = 1 << 12,
+    COF_SAND_USER = 1 << 13,
+};
+
+struct CofradiaPattern
+{
+    enum Type theme;
+    u32 roles;
+};
+
+static u32 CofradiaMonRoles(struct Pokemon *mon)
+{
+    u32 roles = 0;
+    switch (GetMonAbility(mon))
+    {
+    case ABILITY_DRIZZLE: roles |= COF_RAIN; break;
+    case ABILITY_DROUGHT: roles |= COF_SUN; break;
+    case ABILITY_SAND_STREAM: roles |= COF_SAND; break;
+    case ABILITY_SWIFT_SWIM:
+    case ABILITY_RAIN_DISH:
+    case ABILITY_HYDRATION: roles |= COF_RAIN_USER; break;
+    case ABILITY_CHLOROPHYLL:
+    case ABILITY_SOLAR_POWER:
+    case ABILITY_FLOWER_GIFT: roles |= COF_SUN_USER; break;
+    case ABILITY_SAND_RUSH:
+    case ABILITY_SAND_FORCE:
+    case ABILITY_SAND_VEIL: roles |= COF_SAND_USER; break;
+    default: break;
+    }
+    for (u8 i = 0; i < MAX_MON_MOVES; i++)
+    {
+        switch (GetMonData(mon, MON_DATA_MOVE1 + i))
+        {
+        case MOVE_STEALTH_ROCK:
+        case MOVE_SPIKES:
+        case MOVE_TOXIC_SPIKES:
+        case MOVE_STICKY_WEB: roles |= COF_HAZARDS; break;
+        case MOVE_SWORDS_DANCE:
+        case MOVE_DRAGON_DANCE:
+        case MOVE_BULK_UP:
+        case MOVE_CALM_MIND:
+        case MOVE_NASTY_PLOT:
+        case MOVE_QUIVER_DANCE:
+        case MOVE_SHELL_SMASH:
+        case MOVE_BELLY_DRUM:
+        case MOVE_CURSE: roles |= COF_SETUP; break;
+        case MOVE_RECOVER:
+        case MOVE_ROOST: roles |= COF_RECOVERY; break;
+        case MOVE_TAILWIND:
+        case MOVE_THUNDER_WAVE:
+        case MOVE_AGILITY:
+        case MOVE_ROCK_POLISH: roles |= COF_SPEED; break;
+        case MOVE_REFLECT:
+        case MOVE_LIGHT_SCREEN:
+        case MOVE_AURORA_VEIL: roles |= COF_SCREENS; break;
+        case MOVE_U_TURN:
+        case MOVE_VOLT_SWITCH:
+        case MOVE_FLIP_TURN:
+        case MOVE_BATON_PASS: roles |= COF_PIVOT; break;
+        case MOVE_WILL_O_WISP:
+        case MOVE_YAWN:
+        case MOVE_HYPNOSIS:
+        case MOVE_SLEEP_POWDER:
+        case MOVE_HAZE:
+        case MOVE_TAUNT:
+        case MOVE_ENCORE: roles |= COF_DISRUPT; break;
+        case MOVE_RAIN_DANCE: roles |= COF_RAIN; break;
+        case MOVE_SUNNY_DAY: roles |= COF_SUN; break;
+        case MOVE_SANDSTORM: roles |= COF_SAND; break;
+        case MOVE_TRICK_ROOM: roles |= COF_TRICK_ROOM; break;
+        default: break;
+        }
+    }
+    return roles;
+}
+
+static struct CofradiaPattern CofradiaReadPattern(struct Pokemon *gym)
+{
+    struct CofradiaPattern pattern = {TYPE_NONE, 0};
+    u8 bestCount = 0;
+    for (u8 i = 0; i < PARTY_SIZE; i++)
+    {
+        if (!CofradiaUsableMon(&gym[i]))
+            continue;
+        pattern.roles |= CofradiaMonRoles(&gym[i]);
+        enum Species species = GetMonData(&gym[i], MON_DATA_SPECIES);
+        for (u8 slot = 0; slot < 2; slot++)
+        {
+            enum Type type = GetSpeciesType(species, slot);
+            u8 matches = 0;
+            for (u8 j = 0; j < PARTY_SIZE; j++)
+                if (CofradiaUsableMon(&gym[j])
+                    && IsSpeciesOfType(GetMonData(&gym[j], MON_DATA_SPECIES), type))
+                    matches++;
+            if (matches > bestCount)
+            {
+                bestCount = matches;
+                pattern.theme = type;
+            }
+        }
+    }
+    // An incidental type shared by only one mon is not a team theme.
+    if (bestCount < 2)
+        pattern.theme = TYPE_NONE;
+    return pattern;
+}
+
 static s32 CofradiaCandidateScore(struct Pokemon *party, u8 count, struct Pokemon *candidate,
-                                  struct Pokemon *ace, bool32 hasAce, rng_value_t *rng)
+                                  struct Pokemon *ace, bool32 hasAce,
+                                  const struct CofradiaPattern *pattern, rng_value_t *rng)
 {
     if (!CofradiaUsableMon(candidate) || CofradiaAlreadyHas(party, count, candidate)
         || (hasAce && GET_BASE_SPECIES_ID(GetMonData(candidate, MON_DATA_SPECIES))
                 == GET_BASE_SPECIES_ID(GetMonData(ace, MON_DATA_SPECIES))))
         return -1;
     enum Species species = GetMonData(candidate, MON_DATA_SPECIES);
-    // Prefer a little thematic overlap, but don't force a monotype team.
-    // Each mon is a complete generated set, preserving its own internal synergy.
-    bool32 overlap = FALSE;
+    u32 existingRoles = hasAce ? CofradiaMonRoles(ace) : 0;
+    for (u8 i = 0; i < count; i++)
+        existingRoles |= CofradiaMonRoles(&party[i]);
+    u32 roles = CofradiaMonRoles(candidate);
+    s32 score = 12 + LocalRandom32(rng) % 12;
+    if (pattern->theme != TYPE_NONE && IsSpeciesOfType(species, pattern->theme))
+        score += 9;
+
+    // Reward actual missing functions from the gym blueprint, not just type.
+    u32 missing = roles & pattern->roles & ~existingRoles;
+    for (u8 bit = 0; bit < 14; bit++)
+        if (missing & (1u << bit))
+            score += bit >= 7 && bit <= 10 ? 9 : 4;
+
+    // Prefer weather beneficiaries only when the team actually has a setter.
+    if ((existingRoles & COF_RAIN) && (roles & COF_RAIN_USER)) score += 12;
+    if ((existingRoles & COF_SUN) && (roles & COF_SUN_USER)) score += 12;
+    if ((existingRoles & COF_SAND) && (roles & COF_SAND_USER)) score += 12;
+    // Conversely, a new setter completes a core that already has beneficiaries.
+    if ((existingRoles & COF_RAIN_USER) && (roles & COF_RAIN)) score += 12;
+    if ((existingRoles & COF_SUN_USER) && (roles & COF_SUN)) score += 12;
+    if ((existingRoles & COF_SAND_USER) && (roles & COF_SAND)) score += 12;
+    u32 weather = COF_RAIN | COF_SUN | COF_SAND;
+    if ((existingRoles & weather) && (roles & weather & ~existingRoles))
+        score -= 10;
+
+    if ((pattern->roles | existingRoles) & COF_TRICK_ROOM)
+    {
+        if (gSpeciesInfo[species].baseSpeed <= 60) score += 8;
+        if (gSpeciesInfo[species].baseSpeed >= 100) score -= 5;
+    }
+
+    // Preserve secondary type diversity rather than blindly forcing monotype.
     bool32 newType = FALSE;
     for (u8 slot = 0; slot < 2; slot++)
     {
@@ -1806,10 +1961,9 @@ static s32 CofradiaCandidateScore(struct Pokemon *party, u8 count, struct Pokemo
         for (u8 i = 0; i < count; i++)
             if (IsSpeciesOfType(GetMonData(&party[i], MON_DATA_SPECIES), type))
                 found = TRUE;
-        overlap |= found;
         newType |= !found;
     }
-    return (overlap ? 4 : 0) + (newType ? 5 : 0) + (LocalRandom32(rng) % 12);
+    return max(0, score + (newType ? 5 : 0));
 }
 
 static void CofradiaComposeEnemyParty(u16 primary)
@@ -1838,8 +1992,17 @@ static void CofradiaComposeEnemyParty(u16 primary)
         Free(donors);
         goto restore_rng;
     }
-    for (u8 i = 1; i < COFRADIA_DONOR_COUNT; i++)
+    for (u8 i = 1; i < COFRADIA_GYM_SLOT; i++)
         CreateNPCTrainerParty(&donors[i * PARTY_SIZE], CofradiaBattleDonor(i));
+
+    u16 gymSource = CofradiaGymPatternSource(seed, CofradiaBattleDifficulty(), primary);
+    struct Pokemon *gym = donors;
+    if (gymSource != primary)
+    {
+        gym = &donors[COFRADIA_GYM_SLOT * PARTY_SIZE];
+        CreateNPCTrainerParty(gym, gymSource);
+    }
+    struct CofradiaPattern pattern = CofradiaReadPattern(gym);
 
     u8 target = CofradiaTeamSize(CofradiaBattleDifficulty(), CofradiaBattleIsBoss());
     u8 count = 0;
@@ -1872,7 +2035,7 @@ static void CofradiaComposeEnemyParty(u16 primary)
         u8 best = 0;
         for (u8 i = PARTY_SIZE; i < COFRADIA_DONOR_COUNT * PARTY_SIZE; i++)
         {
-            s32 score = CofradiaCandidateScore(party, count, &donors[i], &ace, hasAce, &rng);
+            s32 score = CofradiaCandidateScore(party, count, &donors[i], &ace, hasAce, &pattern, &rng);
             if (score > bestScore)
             {
                 best = i;
