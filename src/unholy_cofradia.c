@@ -145,6 +145,14 @@ enum CofradiaResult CofradiaBeginCredit(u8 difficulty, u32 stake, u32 borrowed)
         return COFRADIA_INVALID;
     if (borrowed && r->debt)
         return COFRADIA_DEBT_PENDING;
+    if (borrowed)
+    {
+        struct CofradiaVaultView vault;
+        if (!CofradiaVaultGetView(&vault))
+            return COFRADIA_INVALID;
+        if (vault.pokemon || vault.itemStacks)
+            return COFRADIA_DEBT_PENDING; // retrieve previous assets first
+    }
     u32 own = stake - borrowed;
     if (!IsEnoughMoney(&gSaveBlock1Ptr->money, own))
         return COFRADIA_NO_MONEY;
