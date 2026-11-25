@@ -669,15 +669,7 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         return;
     }
     if (info->trigger == GEAR_TRIGGER_PASSIVE || info->trigger == GEAR_TRIGGER_EVENT)
-    {
-        if (cycle->gear == GEAR_PIEDRA_AFILAR && IsSlicingMove(move)
-         && !IsBattleMoveStatus(move) && Gear_ApplySelfStatChange(battler, STAT_ATK, 1))
-        {
-            // One stage per move execution, not per individual multihit.
-            gBattleStruct->gearActivations[battler]++;
-        }
         return;
-    }
 
     gBattleStruct->gearSnapshotMove[battler] = move;
     gBattleStruct->gearSnapshotPercent[battler] = CurrentPercent(cycle, move, moveType);
@@ -688,6 +680,20 @@ void Gear_OnMoveUsed(enum BattlerId battler, enum Move move, enum Type moveType)
         if (info->trigger == GEAR_TRIGGER_FIRST_COMPATIBLE_MOVE && cycle->phase == GEAR_PHASE_ARMED)
             StartRecharge(cycle, info);
     }
+}
+
+void Gear_OnCriticalHit(enum BattlerId battler)
+{
+    if (!GEARS_ENABLED || !IsBattlerAlive(battler)
+     || gSpecialStatuses[battler].attackerInParty
+     || Gear_GetBattlerGear(battler) != GEAR_PIEDRA_AFILAR
+     || gBattleMons[battler].statStages[STAT_ATK] >= DEFAULT_STAT_STAGE)
+        return;
+
+    // Recovery sets the final stage directly: remove all negative Attack stages,
+    // then sharpen to +1. This is not a repeatable ordinary stat-stage boost.
+    gBattleMons[battler].statStages[STAT_ATK] = DEFAULT_STAT_STAGE + 1;
+    gBattleStruct->gearActivations[battler]++;
 }
 
 void Gear_OnDamaged(enum BattlerId battler, u32 damage)
