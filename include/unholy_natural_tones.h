@@ -65,6 +65,9 @@ struct NaturalToneV2Profile
     u8 finish;
     u8 scope; // Requested region count; 4 means whole palette.
     u8 roleOrder[3]; // Stable permutation of anatomical role IDs 0..2.
+    u8 strength[3]; // Independent pigment intensity, 0..100.
+    u8 absoluteHueMask; // Selected roles may use a target hue, not a rotation.
+    s16 targetHue[3]; // Absolute hue on the 1536-step wheel.
 };
 
 void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct NaturalToneV2Profile *profile);

@@ -248,15 +248,23 @@ static bool32 V2_Protected(u16 c)
     s32 sum = (c & 31) + ((c >> 5) & 31) + ((c >> 10) & 31);
     return sum <= 6 || sum >= 87;
 }
+// Separate entropy lanes keep PID and OT ID involved throughout the
+// profile, instead of deriving every field from one collapsed 32-bit seed.
+static u32 V2_Lane(u32 lo, u32 hi, u32 salt)
+{
+    u32 a = NaturalTone_Mix32(lo ^ salt);
+    u32 b = NaturalTone_Mix32(hi ^ (salt * 0x9E3779B9u));
+    return NaturalTone_Mix32(a ^ (b << 11 | b >> 21) ^ salt);
+}
+
 void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct NaturalToneV2Profile *profile)
 {
     u64 identity = NaturalTone_GetIdentityCode(personality, otId);
     u32 lo = identity, hi = identity >> 32;
-    u32 seed = NaturalTone_Mix32(lo ^ (hi << 13 | hi >> 19) ^ 0x56324348u);
-    u32 harmony = NaturalTone_Mix32(seed ^ 0x4841524Du);
-    u32 finish = NaturalTone_Mix32(seed ^ 0x46494E32u) % 10000;
-    u32 scope = NaturalTone_Mix32(seed ^ 0x53434F50u) % 100;
-    u32 order = NaturalTone_Mix32(seed ^ 0x524F4C45u);
+    u32 harmony = V2_Lane(lo, hi, 0x4841524Du);
+    u32 finish = V2_Lane(lo, hi, 0x46494E32u) % 10000;
+    u32 scope = V2_Lane(lo, hi, 0x53434F50u) % 100;
+    u32 order = V2_Lane(lo, hi, 0x524F4C45u);
     u32 j;
     u8 temp;
     s32 shift = (s32)(harmony % 513) - 256;
@@ -265,16 +273,24 @@ void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct 
     u32 scheme = (harmony >> 10) % 5;
     u32 i;
     if ((harmony >> 20) % 100 < (isShiny ? 25 : 15))
-        shift = (s32)(NaturalTone_Mix32(seed ^ 0x48554532u) % 1536) - 768;
+        shift = (s32)(V2_Lane(lo, hi, 0x48554532u) % 1536) - 768;
     profile->hue[0] = shift;
     profile->hue[1] = V2_Wrap(shift + direction * offsets[scheme][0]);
     profile->hue[2] = V2_Wrap(shift + direction * offsets[scheme][1]);
+    profile->absoluteHueMask = 0;
     for (i = 0; i < 3; i++)
     {
-        u32 detail = NaturalTone_Mix32(seed ^ ((i + 1) * 0x9E3779B9u));
+        u32 detail = V2_Lane(lo, hi, (i + 1) * 0x9E3779B9u);
+        u32 pigment = V2_Lane(lo, hi, 0x5049474Du + i * 0x85EBCA6Bu);
         profile->hue[i] = V2_Wrap(profile->hue[i] + (s32)(detail % 65) - 32);
         profile->saturation[i] = (s32)((detail >> 8) % 25) - 12;
         profile->brightness[i] = (s32)((detail >> 16) % 5) - 2;
+        // Some regions use strong replacement pigments rather than
+        // small hue shifts, especially markings and neutral materials.
+        profile->strength[i] = 55 + pigment % 46;
+        profile->targetHue[i] = (s32)((pigment >> 8) % 1536);
+        if (((pigment >> 20) % 100) < (i == 0 ? 12 : 35))
+            profile->absoluteHueMask |= 1u << i;
     }
     if (finish < 5129) profile->finish = NATURAL_FINISH_NATURAL;
     else if (finish < 6329) profile->finish = NATURAL_FINISH_PASTEL;
@@ -316,7 +332,7 @@ void NaturalTone_GetV2Profile(u32 personality, u32 otId, bool32 isShiny, struct 
     // Single-region variants more often change markings or materials
     // than the main body. The ordering remains identity-only.
     if (profile->scope == 1 && profile->roleOrder[0] == 0
-     && (NaturalTone_Mix32(seed ^ 0x50415254u) & 3) != 0)
+     && (V2_Lane(lo, hi, 0x50415254u) & 3) != 0)
     {
         temp = profile->roleOrder[0];
         profile->roleOrder[0] = profile->roleOrder[1];
@@ -503,7 +519,7 @@ static u16 V2_ThemeColor(u16 mapped, u32 role, const struct NaturalToneV2Profile
     s32 r = mapped & 31, g = (mapped >> 5) & 31, b = (mapped >> 10) & 31;
     s32 tr = target & 31, tg = (target >> 5) & 31, tb = (target >> 10) & 31;
     s32 hi = max(r, max(g, b)), targetHi = max(tr, max(tg, tb));
-    s32 strength = 76 + p->saturation[role] / 2;
+    s32 strength = 65 + p->strength[role] / 3 + p->saturation[role] / 4;
     if (p->finish == NATURAL_FINISH_GODLY || p->finish == NATURAL_FINISH_ALBINISM
      || p->finish == NATURAL_FINISH_QUASAR)
         hi += (31 - hi) / 3;
@@ -518,13 +534,13 @@ static u16 V2_ThemeColor(u16 mapped, u32 role, const struct NaturalToneV2Profile
         | (NaturalTone_ClampChannel(g) << 5) | (NaturalTone_ClampChannel(b) << 10);
 }
 
-static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
+static u16 V2_Adjust(u16 c, u32 role, s32 hueShift, const struct NaturalToneV2Profile *p)
 {
     s32 r, g, b, gray, sat, light, value;
     u16 mapped;
     if (V2_Protected(c)) return c;
     r = c & 31; g = (c >> 5) & 31; b = (c >> 10) & 31;
-    mapped = NaturalTone_ShiftHue(c, r, g, b, p->hue[role]);
+    mapped = NaturalTone_ShiftHue(c, r, g, b, hueShift);
     if (p->finish >= NATURAL_FINISH_SOLAR && p->finish < NATURAL_FINISH_COUNT)
         return V2_ThemeColor(mapped, role, p);
     // A selected neutral material can acquire a tint too (e.g. silver
@@ -534,7 +550,8 @@ static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
         s32 v = max(r, max(g, b)), low = v * 3 / 5;
         u16 seedColor = v | (low << 5) | (low << 10);
         if (v - low >= 4)
-            mapped = NaturalTone_ShiftHue(seedColor, v, low, low, p->hue[role]);
+            mapped = NaturalTone_ShiftHue(seedColor, v, low, low,
+                p->absoluteHueMask & (1u << role) ? p->targetHue[role] : hueShift);
     }
     r = mapped & 31; g = (mapped >> 5) & 31; b = (mapped >> 10) & 31;
     gray = (r * 3 + g * 4 + b) / 8;
@@ -567,8 +584,19 @@ static u16 V2_Adjust(u16 c, u32 role, const struct NaturalToneV2Profile *p)
         value = role == 0 ? 45 : 20;
         r += (31-r) * value / 100; g += (31-g) * value / 100; b += (31-b) * value / 100;
     }
-    return (c & 0x8000) | NaturalTone_ClampChannel(r + light)
-        | (NaturalTone_ClampChannel(g + light) << 5) | (NaturalTone_ClampChannel(b + light) << 10);
+    r = NaturalTone_ClampChannel(r + light);
+    g = NaturalTone_ClampChannel(g + light);
+    b = NaturalTone_ClampChannel(b + light);
+    // Natural pigments range from subtle expression to full replacement.
+    // The other finishes retain their characteristic light/dark behavior.
+    if (p->finish == NATURAL_FINISH_NATURAL)
+    {
+        s32 strength = p->strength[role];
+        r = (r * strength + (c & 31) * (100 - strength) + 50) / 100;
+        g = (g * strength + ((c >> 5) & 31) * (100 - strength) + 50) / 100;
+        b = (b * strength + ((c >> 10) & 31) * (100 - strength) + 50) / 100;
+    }
+    return (c & 0x8000) | r | (g << 5) | (b << 10);
 }
 // Keep the relative value order of shade ramps even when a themed
 // finish compresses RGB555 channels. Never touch an unselected entry.
@@ -595,6 +623,7 @@ static void V2_KeepShadeOrder(const u16 *base, u16 *out, u32 roles, u8 selected)
     for (role = 1; role <= 3; role++)
     {
         s32 previous = -1, previousBase = -1;
+        u8 remainingSteps[15];
         if (!(selected & (1u << (role - 1)))) continue;
         count = 0;
         for (i = 1; i < 16; i++)
@@ -610,6 +639,13 @@ static void V2_KeepShadeOrder(const u16 *base, u16 *out, u32 roles, u8 selected)
             order[j] = i;
             count++;
         }
+        if (!count) continue;
+        // Reserve headroom backwards, so a bright compressed ramp cannot
+        // consume all 31 levels before its original lightest shade.
+        remainingSteps[count - 1] = 0;
+        for (j = count - 1; j > 0; j--)
+            remainingSteps[j - 1] = remainingSteps[j]
+                + (V2_Value(base[order[j]]) > V2_Value(base[order[j - 1]]));
         for (j = 0; j < count; j++)
         {
             s32 source, value, minimum;
@@ -619,6 +655,7 @@ static void V2_KeepShadeOrder(const u16 *base, u16 *out, u32 roles, u8 selected)
             // Reserve at least one RGB555 step for distinctly lighter
             // original shades whenever the remaining range permits.
             minimum = previous + (source > previousBase);
+            value = min(value, 31 - remainingSteps[j]);
             if (value < minimum) value = min(31, minimum);
             if (value != V2_Value(out[i])) out[i] = V2_SetValue(out[i], value);
             previous = max(previous, value);
@@ -632,11 +669,12 @@ void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 
     struct NaturalToneV2Profile p;
     // Support in-place use and retain canonical input for contrast checks.
     u16 original[16];
-    u32 roles, i;
+    s16 hueShift[3];
+    u32 roles, i, j;
+    u8 selected;
     for (i = 0; i < 16; i++) original[i] = base[i];
     base = original;
     roles = NaturalTone_GetGeneratedRoleMask(base);
-    u8 selected;
     // Spatial segmentation is the default, curated exceptions are fallback
     // only, and the original automatic hue grouping handles unknown palettes.
     if (!roles) roles = NaturalTone_GetCuratedRoleMask(base);
@@ -651,12 +689,32 @@ void NaturalTone_BuildV2Palette(const u16 *base, u16 *out, u32 personality, u32 
     }
     NaturalTone_GetV2Profile(personality, otId, isShiny, &p);
     selected = NaturalTone_SelectV2Roles(roles, &p);
+    // Use the highest-chroma source shade as the reference for a target
+    // pigment. All shades in the same region receive the same rotation.
+    for (j = 0; j < 3; j++)
+    {
+        s32 best = -1, reference = 0;
+        hueShift[j] = p.hue[j];
+        if (!(p.absoluteHueMask & (1u << j))) continue;
+        for (i = 1; i < 16; i++)
+        {
+            s32 ch;
+            if (((roles >> (2 * i)) & 3) != j + 1) continue;
+            ch = V2_Chroma(base[i]);
+            if (ch > best)
+            {
+                best = ch;
+                reference = V2_Hue(base[i]);
+            }
+        }
+        hueShift[j] = V2_Wrap(p.targetHue[j] - reference);
+    }
     out[0] = base[0];
     for (i = 1; i < 16; i++)
     {
         u32 role = (roles >> (2 * i)) & 3;
         out[i] = role && (selected & (1u << (role - 1)))
-            ? V2_Adjust(base[i], role - 1, &p) : base[i];
+            ? V2_Adjust(base[i], role - 1, hueShift[role - 1], &p) : base[i];
     }
     V2_KeepShadeOrder(base, out, roles, selected);
 }

@@ -112,6 +112,13 @@ TEST("V2 groups shade ramps and protects transparent and extreme colors")
         EXPECT_EQ(a[i], b[i]);
         if (a[i] != c[i]) different = TRUE;
     }
+    // A single pair may legitimately collide after RGB555 quantization.
+    for (u32 pid = 0; pid < 16 && !different; pid++)
+    {
+        NaturalTone_BuildV2Palette(palette, c, pid, 0x9ABCDEF0u, TRUE, 0);
+        for (u32 i = 0; i < 16; i++)
+            if (a[i] != c[i]) different = TRUE;
+    }
     EXPECT_EQ(different, TRUE);
 }
 
@@ -189,7 +196,34 @@ TEST("V2 recolor is alias-safe and keeps ordered selected shade ramps")
         {
             u32 x = max(a[i] & 31, max((a[i] >> 5) & 31, (a[i] >> 10) & 31));
             u32 y = max(a[i+1] & 31, max((a[i+1] >> 5) & 31, (a[i+1] >> 10) & 31));
-            EXPECT_EQ(x <= y, TRUE);
+            EXPECT_EQ(x < y, TRUE);
         }
     }
+}
+
+TEST("V2 individual pigment lanes are deterministic and bounded")
+{
+    struct NaturalToneV2Profile a, b;
+    u32 pid, i;
+    bool32 target = FALSE, relative = FALSE;
+    for (pid = 0; pid < 256; pid++)
+    {
+        NaturalTone_GetV2Profile(pid, 0x9ABCDEF0u, FALSE, &a);
+        NaturalTone_GetV2Profile(pid, 0x9ABCDEF0u, FALSE, &b);
+        EXPECT_EQ(a.finish, b.finish);
+        EXPECT_EQ(a.scope, b.scope);
+        EXPECT_EQ(a.absoluteHueMask, b.absoluteHueMask);
+        EXPECT_EQ(a.finish < NATURAL_FINISH_COUNT, TRUE);
+        for (i = 0; i < 3; i++)
+        {
+            EXPECT_EQ(a.strength[i], b.strength[i]);
+            EXPECT_EQ(a.targetHue[i], b.targetHue[i]);
+            EXPECT_EQ(a.strength[i] >= 55 && a.strength[i] <= 100, TRUE);
+            EXPECT_EQ(a.targetHue[i] >= 0 && a.targetHue[i] < 1536, TRUE);
+        }
+        if (a.absoluteHueMask) target = TRUE;
+        else relative = TRUE;
+    }
+    EXPECT_EQ(target, TRUE);
+    EXPECT_EQ(relative, TRUE);
 }
