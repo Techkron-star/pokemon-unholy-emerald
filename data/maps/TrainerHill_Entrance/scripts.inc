@@ -567,11 +567,12 @@ Cofradia_Guard_Text2:
 TrainerHill_Entrance_EventScript_CofradiaWorker::
 	lock
 	faceplayer
-	random 3
+	random 4
 	switch VAR_RESULT
 	case 0, Cofradia_Worker_0
 	case 1, Cofradia_Worker_1
 	case 2, Cofradia_Worker_2
+	case 3, Cofradia_Worker_3
 	goto Cofradia_Worker_0
 
 Cofradia_Worker_0::
@@ -597,6 +598,49 @@ Cofradia_Worker_2::
 
 Cofradia_Worker_Text2:
 	.string "El Gran Padre nunca derrama nada.\nPor eso es mi cliente favorito.$"
+
+Cofradia_Worker_3::
+	msgbox Cofradia_Worker_Text3, MSGBOX_DEFAULT
+	release
+	end
+
+Cofradia_Worker_Text3:
+	.string "Todas las quejas son atendidas\n"
+	.string "personalmente por nuestro\l"
+	.string "departamento.$"
+
+TrainerHill_Entrance_EventScript_Portrait::
+	msgbox Cofradia_Text_Portrait, MSGBOX_SIGN
+	end
+
+@ ponytail: sin pantalla para escribir la reclamación (diseño.md §10.5); añadirla cuando el motor admita entrada de texto libre
+@ ponytail: reutiliza SE_BREAKABLE_DOOR como trituradora; sustituir por un recurso propio y comprobar en emulador
+TrainerHill_Entrance_EventScript_ComplaintBox::
+	lockall
+	msgbox Cofradia_Text_ComplaintAsk, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, Cofradia_ComplaintDone
+	playse SE_BREAKABLE_DOOR
+	waitse
+	playse SE_BREAKABLE_DOOR
+	waitse
+	msgbox Cofradia_Text_ComplaintDone, MSGBOX_DEFAULT
+Cofradia_ComplaintDone::
+	releaseall
+	end
+
+Cofradia_Text_Portrait:
+	.string "Retrato del Gran Padre.\p"
+	.string "“La Cofradía garantiza la igualdad\n"
+	.string "de oportunidades, no la igualdad\l"
+	.string "de resultados.”$"
+
+Cofradia_Text_ComplaintAsk:
+	.string "BUZÓN DE QUEJAS\n"
+	.string "¿Desea presentar una reclamación?$"
+
+Cofradia_Text_ComplaintDone:
+	.string "Su reclamación ha sido procesada\n"
+	.string "exitosamente.$"
 
 Cofradia_Text_NurseAsk:
 	.string "¿Quieres que cure a tu equipo?$"
