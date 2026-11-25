@@ -32,7 +32,7 @@ TEST("Cofradia vault preserves complete party Pokemon and keeps two living allie
     SetMonData(&party[0], MON_DATA_SPECIAL_BADGES, &badges);
     struct Pokemon original = party[0];
     EXPECT(!CofradiaVaultHoldMon(COFRADIA_VAULT_PARTY, 0));
-    EXPECT_EQ(CofradiaBeginCredit(0, 500000, 500000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaBeginCredit(3, 500000, 500000), COFRADIA_OK);
     EXPECT(CofradiaArm());
     EXPECT(CofradiaResolve(FALSE));
     party[0].box.isFavorite = TRUE;
@@ -85,7 +85,7 @@ TEST("Cofradia vault preserves original PC bytes and returns mixed bag collatera
     EXPECT_EQ(CofradiaAppraiseItem(ITEM_MACH_BIKE), 0);
     EXPECT(CofradiaAppraiseItem(ITEM_ROTOM_CATALOG) > 0);
     EXPECT(CofradiaAppraiseItem(ITEM_GEAR_VISOR_COSMICO) > 0);
-    EXPECT_EQ(CofradiaBeginCredit(0, 500000, 500000), COFRADIA_OK);
+    EXPECT_EQ(CofradiaBeginCredit(3, 500000, 500000), COFRADIA_OK);
     EXPECT(CofradiaArm());
     EXPECT(CofradiaResolve(FALSE));
     EXPECT(CofradiaVaultHoldMon(0, 0));
