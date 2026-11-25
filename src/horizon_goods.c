@@ -302,7 +302,7 @@ struct HorizonGoodsSave
     u16 sold[2];
     struct HorizonGoodsOffer offers[2][HORIZON_GOODS_ITEM_COUNT];
 };
-STATIC_ASSERT(UNHOLY_SAVE4_HORIZON_OFFSET + sizeof(struct HorizonGoodsSave) <= UNHOLY_SAVE4_PAYLOAD_BYTES, HorizonGoodsFitSave4);
+STATIC_ASSERT(UNHOLY_SAVE4_HORIZON_OFFSET + sizeof(struct HorizonGoodsSave) <= UNHOLY_SAVE4_WALLET_OFFSET, HorizonGoodsFitSave4);
 static EWRAM_DATA u16 sHorizonLists[2][HORIZON_GOODS_ITEM_COUNT + 1];
 
 u8 HorizonGoodsItemCountForTier(u8 watchTier)
