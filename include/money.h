@@ -1,7 +1,7 @@
 #ifndef GUARD_MONEY_H
 #define GUARD_MONEY_H
 
-#define MAX_MONEY 2147483647 // Highest safe signed 32-bit amount for money UI
+#define MAX_MONEY 4294967295u // Full unsigned 32-bit cash balance
 
 #define MAX_MONEY_DIGITS ((MAX_MONEY > 999999999) ? 10 : \
         (MAX_MONEY > 99999999) ? 9 : \
@@ -20,11 +20,11 @@ void AddMoney(u32 *moneyPtr, u32 toAdd);
 void RemoveMoney(u32 *moneyPtr, u32 toSub);
 bool8 IsEnoughForCostInVar0x8005(void);
 void SubtractMoneyFromVar0x8005(void);
-void PrintMoneyAmountInMoneyBox(u8 windowId, int amount, u8 speed);
-void PrintMoneyAmount(u8 windowId, u8 x, u8 y, int amount, u8 speed);
-void PrintMoneyAmountInMoneyBoxWithBorder(u8 windowId, u16 tileStart, u8 pallete, int amount);
-void ChangeAmountInMoneyBox(int amount);
-void DrawMoneyBox(int amount, u8 x, u8 y);
+void PrintMoneyAmountInMoneyBox(u8 windowId, u32 amount, u8 speed);
+void PrintMoneyAmount(u8 windowId, u8 x, u8 y, u32 amount, u8 speed);
+void PrintMoneyAmountInMoneyBoxWithBorder(u8 windowId, u16 tileStart, u8 pallete, u32 amount);
+void ChangeAmountInMoneyBox(u32 amount);
+void DrawMoneyBox(u32 amount, u8 x, u8 y);
 void HideMoneyBox(void);
 void AddMoneyLabelObject(u16 x, u16 y);
 void RemoveMoneyLabelObject(void);
