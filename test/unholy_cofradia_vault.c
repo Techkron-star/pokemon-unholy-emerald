@@ -42,6 +42,11 @@ TEST("Cofradia vault preserves complete party Pokemon and keeps two living allie
     EXPECT(!CofradiaVaultHoldMon(COFRADIA_VAULT_PARTY, 0));
     EXPECT(CofradiaVaultGetView(&view));
     EXPECT_EQ(view.pokemon, 1);
+    u8 nickname[POKEMON_NAME_LENGTH + 1];
+    u32 value;
+    EXPECT(CofradiaVaultDescribeMon(0, nickname, &value));
+    EXPECT_EQ(value, view.totalValue);
+    EXPECT(!CofradiaVaultDescribeMon(COFRADIA_VAULT_MON_CAPACITY, nickname, &value));
     EXPECT(!CofradiaVaultReturnMon(0));
     EXPECT_EQ(CofradiaRepay(500000), COFRADIA_OK);
     EXPECT_EQ(CofradiaBeginCredit(0, 5000, 5000), COFRADIA_DEBT_PENDING);
@@ -90,6 +95,14 @@ TEST("Cofradia vault preserves original PC bytes and returns mixed bag collatera
     EXPECT(CofradiaVaultGetView(&view));
     EXPECT_EQ(view.pokemon, 1);
     EXPECT_EQ(view.itemStacks, 1);
+    enum Item item;
+    u16 quantity;
+    u32 value;
+    EXPECT(CofradiaVaultDescribeItem(0, &item, &quantity, &value));
+    EXPECT_EQ(item, ITEM_POTION);
+    EXPECT_EQ(quantity, 2);
+    EXPECT_EQ(value, CofradiaAppraiseItem(ITEM_POTION) * 2);
+    EXPECT(!CofradiaVaultDescribeItem(COFRADIA_VAULT_ITEM_CAPACITY, &item, &quantity, &value));
     EXPECT(!CofradiaVaultReturnItem(0));
     EXPECT_EQ(CofradiaRepay(500000), COFRADIA_OK);
     EXPECT(CofradiaVaultReturnMon(0));
