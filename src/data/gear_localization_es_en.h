@@ -92,8 +92,8 @@ static const struct GearLocalizedText sGearLocalizedText[GEAR_COUNT] =
         "Hada: reduce 25% del\ndaño directo de Veneno.",
         "Fairy: takes 25% less\ndirect Poison damage.")
     GEAR_LOCALE(PIEDRA_AFILAR, "Piedra de Afilar", "Whetstone",
-        "Movimientos de corte:\nAtaque propio +1.",
-        "Slicing moves: raises\nown Attack by 1 stage.")
+        "Crítico con Ataque < 0:\nrestaura Ataque a +1.",
+        "Crit with Attack < 0:\nsets Attack to +1.")
     GEAR_LOCALE(BATERIA_RESERVA, "Batería de Reserva", "Reserve Battery",
         "Stamina <50%: +20%;\n+4% durante recarga.",
         "Stamina below 50%: +20%;\n+4% while recharging.")

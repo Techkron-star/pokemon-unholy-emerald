@@ -8,7 +8,7 @@ RECENT_GEAR(TUNICA_RUNICA, TunicaRunica, "tunica_runica", "Túnica Rúnica", "Pr
 RECENT_GEAR(CARTEL_BUSQUEDA, CartelBusqueda, "cartel_busqueda", "Cartel de Búsqueda", "+5% daño por nivel\npositivo rival; máx. 60%.")
 RECENT_GEAR(NIHIL_ENGINE, NihilEngine, "nihil_engine", "Nihil Engine", "Quita una trampa rival\ncada 3 turnos activos.")
 RECENT_GEAR(ANILLO_FEERICO, AnilloFeerico, "anillo_feerico", "Anillo Feérico", "Tipo Hada: -25% del\ndaño directo Veneno.")
-RECENT_GEAR(PIEDRA_AFILAR, PiedraAfilar, "piedra_afilar", "Piedra de Afilar", "Movimientos de corte\nsuben Ataque en +1.")
+RECENT_GEAR(PIEDRA_AFILAR, PiedraAfilar, "piedra_afilar", "Piedra de Afilar", "Crítico: si Ataque baja,\nlo restaura a +1.")
 RECENT_GEAR(BATERIA_RESERVA, BateriaReserva, "bateria_reserva", "Batería de Reserva", "Bajo 50% Stamina: +20%;\n+4% durante recarga.")
 RECENT_GEAR(BOTAS_UMBRAL, BotasUmbral, "botas_umbral", "Botas del Umbral", "Evita trampas al entrar;\nrecarga en 3 turnos.")
 RECENT_GEAR(VELO_CRIPTICO, VeloCriptico, "velo_criptico", "Velo Críptico", "Anula un efecto extra;\nrecarga en 3 turnos.")
