@@ -795,9 +795,9 @@ void CofradiaDifficultyMenu(void)
         p = Number(p, sDifficulties[i].minimum);
         if (HfcWatch_CountBadges() < sDifficulties[i].badges)
         {
-            p = StringCopy(p, COMPOUND_STRING(" ["));
+            p = StringCopy(p, COMPOUND_STRING(" ("));
             p = Number(p, sDifficulties[i].badges);
-            StringCopy(p, COMPOUND_STRING("]"));
+            StringCopy(p, COMPOUND_STRING(")"));
         }
         labels[i] = texts[i];
     }
