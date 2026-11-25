@@ -276,7 +276,7 @@ bool32 CofradiaVaultReturnMon(u8 index)
     if (entry.origin == VAULT_PARTY)
     {
         for (u8 i = 0; i < PARTY_SIZE; i++)
-            if (!gParties[B_TRAINER_PLAYER][i].box.hasSpecies)
+            if (!gParties[B_TRAINER_PLAYER][i].box.hasSpecies && !gParties[B_TRAINER_PLAYER][i].box.isBadEgg)
             {
                 partyDest = &gParties[B_TRAINER_PLAYER][i];
                 break;
@@ -340,4 +340,92 @@ bool32 CofradiaVaultReturnItem(u8 index)
         return FALSE;
     }
     return TRUE;
+}
+
+// Select highest-value eligible Pokemon first. The engine is intentionally
+// callable only by a future confirmed lobby transaction, never a battle hook.
+bool32 CofradiaVaultCollect(void)
+{
+    struct CofradiaView ledger;
+    struct CofradiaVaultView view;
+    if (!CofradiaGetView(&ledger) || ledger.state != COFRADIA_IDLE
+        || !ledger.debt || !CofradiaVaultGetView(&view))
+        return FALSE;
+    while (view.totalValue < ledger.debt && view.pokemon < COFRADIA_VAULT_MON_CAPACITY)
+    {
+        u32 best = 0;
+        u8 bestBox = COFRADIA_VAULT_PARTY, bestSlot = 0;
+        if (LivingPartyCount() > 2)
+            for (u8 i = 0; i < PARTY_SIZE; i++)
+            {
+                struct Pokemon copy = gParties[B_TRAINER_PLAYER][i];
+                if (SafeMon(&copy))
+                {
+                    u32 value = CofradiaAppraisePokemon(&copy);
+                    if (value > best)
+                    {
+                        best = value;
+                        bestSlot = i;
+                    }
+                }
+            }
+        for (u8 box = 0; box < TOTAL_BOXES_COUNT; box++)
+            for (u8 slot = 0; slot < IN_BOX_COUNT; slot++)
+            {
+                struct BoxPokemon *source = GetBoxedMonPtr(box, slot);
+                if (source == NULL || !source->hasSpecies || source->isEgg
+                    || source->isBadEgg || source->isFavorite)
+                    continue;
+                struct BoxPokemon boxed = *source;
+                struct Pokemon copy = {0};
+                BoxMonToMon(&boxed, &copy);
+                if (!SafeMon(&copy))
+                    continue;
+                u32 value = CofradiaAppraisePokemon(&copy);
+                if (value > best)
+                {
+                    best = value;
+                    bestBox = box;
+                    bestSlot = slot;
+                }
+            }
+        if (!best || !CofradiaVaultHoldMon(bestBox, bestSlot))
+            break;
+        if (!CofradiaVaultGetView(&view))
+            return FALSE;
+    }
+    // Fill the remainder with the highest-value individual item units, using
+    // physical pockets (filtered display pockets would duplicate entries).
+    while (view.totalValue < ledger.debt && view.itemStacks < COFRADIA_VAULT_ITEM_CAPACITY)
+    {
+        enum Item bestItem = ITEM_NONE;
+        u32 best = 0;
+        u16 available = 0;
+        for (u8 pocket = 0; pocket < POCKET_GEARS; pocket++)
+            for (u32 slot = 0; slot < gBagPockets[pocket].capacity; slot++)
+            {
+                struct ItemSlot item = GetBagItemIdAndQuantity(pocket, slot);
+                if (!item.quantity)
+                    continue;
+                u32 value = CofradiaAppraiseItem(item.itemId);
+                if (value > best)
+                {
+                    best = value;
+                    bestItem = item.itemId;
+                    available = item.quantity;
+                }
+            }
+        if (!best || !available)
+            break;
+        u32 remaining = ledger.debt - view.totalValue;
+        u32 needed = remaining / best + (remaining % best != 0);
+        u16 count = min(available, needed);
+        if (GetItemPocket(bestItem) == POCKET_KEY_ITEMS)
+            count = 1;
+        if (!CofradiaVaultHoldItem(bestItem, count))
+            break;
+        if (!CofradiaVaultGetView(&view))
+            return FALSE;
+    }
+    return view.totalValue >= ledger.debt;
 }
