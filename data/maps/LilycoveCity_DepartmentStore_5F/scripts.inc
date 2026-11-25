@@ -386,6 +386,7 @@ LilycoveCity_DepartmentStore_5F_Pokemart_Special:
 	.2byte ITEM_YELLOW_SHARD
 	.2byte ITEM_GREEN_SHARD
 	.2byte ITEM_STAR_PIECE
+	.2byte ITEM_NORMAL_GEM
 	.2byte ITEM_BUG_TERA_SHARD
 	.2byte ITEM_DARK_TERA_SHARD
 	.2byte ITEM_DRAGON_TERA_SHARD
