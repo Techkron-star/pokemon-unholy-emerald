@@ -160,10 +160,10 @@ LilycoveCity_DepartmentStore_1F_Text_Azumarill:
 LilycoveCity_DepartmentStore_1F_Text_FloorNamesSign:
 	.string "1F: SERVICE COUNTER\n"
 	.string "    LOTTERY CORNER\p"
-	.string "2F: TRAINER'S ZONE\p"
-	.string "3F: BATTLE COLLECTION\p"
-	.string "4F: TM CORNER\p"
-	.string "5F: POKé DOLL FLOOR\p"
+	.string "2F: CAPTURE & MEDICINE\p"
+	.string "3F: TRAINING CENTER\p"
+	.string "4F: TMs & BATTLE ITEMS\p"
+	.string "5F: FORMS & DECORATIONS\p"
 	.string "ROOFTOP: ROOFTOP PLAZA$"
 
 @ Unused
