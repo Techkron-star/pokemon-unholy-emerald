@@ -23,6 +23,25 @@ struct CofradiaView
     u32 debt;
 };
 
+#define COFRADIA_VAULT_MON_CAPACITY 8
+#define COFRADIA_VAULT_ITEM_CAPACITY 24
+#define COFRADIA_VAULT_PARTY 0xFF
+
+struct CofradiaVaultView
+{
+    u32 totalValue;
+    u8 pokemon;
+    u8 itemStacks;
+};
+
+bool32 CofradiaVaultGetView(struct CofradiaVaultView *view);
+u32 CofradiaAppraiseItem(enum Item item);
+bool32 CofradiaVaultHoldMon(u8 box, u8 slot);
+bool32 CofradiaVaultHoldItem(enum Item item, u16 count);
+bool32 CofradiaVaultReturnMon(u8 index);
+bool32 CofradiaVaultReturnItem(u8 index);
+bool32 CofradiaVaultReturnAvailable(void);
+
 u32 CofradiaMinimum(u8 difficulty);
 u32 CofradiaCompound(u32 fund, u8 difficulty);
 bool32 CofradiaGetView(struct CofradiaView *view);
