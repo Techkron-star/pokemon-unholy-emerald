@@ -1,4 +1,5 @@
 #include "global.h"
+#include "data.h"
 #include "unholy_cofradia.h"
 #include "unholy_save.h"
 #include "unholy_localization.h"
@@ -62,6 +63,7 @@ static EWRAM_DATA struct Pokemon sPartyBackup[PARTY_SIZE] = {0};
 static EWRAM_DATA bool8 sActive = FALSE;
 static EWRAM_DATA u8 sBattleDifficulty = 0;
 static EWRAM_DATA u32 sBattleWins = 0;
+static EWRAM_DATA u32 sBattleSeed = 0;
 static EWRAM_DATA u32 sCashBackup = 0;
 static EWRAM_DATA u8 sDifficulty = 0;
 static EWRAM_DATA u32 sStake = 0;
@@ -202,31 +204,139 @@ enum CofradiaResult CofradiaCashOut(void)
     return COFRADIA_OK;
 }
 
-// Existing trainer pools are a first integration step; custom tower teams follow.
-static const u16 sOpponents[6][4] =
+// The actual trainer database is the source of all species, moves, abilities,
+ // items and gear; no separate speculative species list or trainer flag allocation.
+static const u16 sGymTeams[8][5] =
 {
-    {TRAINER_UNHOLY_BOUNTY_BRONZE, TRAINER_UNHOLY_BOUNTY_SILVER, TRAINER_UNHOLY_BOUNTY_BRONZE, TRAINER_UNHOLY_BOUNTY_SILVER},
-    {TRAINER_UNHOLY_BOUNTY_SILVER, TRAINER_UNHOLY_BOUNTY_GOLD, TRAINER_UNHOLY_BOUNTY_SILVER, TRAINER_UNHOLY_BOUNTY_GOLD},
-    {TRAINER_UNHOLY_BOUNTY_GOLD, TRAINER_UNHOLY_BOUNTY_PLATINUM, TRAINER_UNHOLY_BOUNTY_GOLD, TRAINER_UNHOLY_BOUNTY_PLATINUM},
-    {TRAINER_UNHOLY_BOUNTY_PLATINUM, TRAINER_UNHOLY_BOUNTY_LEGENDARY, TRAINER_UNHOLY_BOUNTY_PLATINUM, TRAINER_UNHOLY_BOUNTY_LEGENDARY},
-    {TRAINER_UNHOLY_BOUNTY_LEGENDARY, TRAINER_SIDNEY, TRAINER_PHOEBE, TRAINER_GLACIA},
-    {TRAINER_SIDNEY, TRAINER_PHOEBE, TRAINER_GLACIA, TRAINER_DRAKE},
+    {TRAINER_ROXANNE_1, TRAINER_ROXANNE_2, TRAINER_ROXANNE_3, TRAINER_ROXANNE_4, TRAINER_ROXANNE_5},
+    {TRAINER_BRAWLY_1, TRAINER_BRAWLY_2, TRAINER_BRAWLY_3, TRAINER_BRAWLY_4, TRAINER_BRAWLY_5},
+    {TRAINER_WATTSON_1, TRAINER_WATTSON_2, TRAINER_WATTSON_3, TRAINER_WATTSON_4, TRAINER_WATTSON_5},
+    {TRAINER_FLANNERY_1, TRAINER_FLANNERY_2, TRAINER_FLANNERY_3, TRAINER_FLANNERY_4, TRAINER_FLANNERY_5},
+    {TRAINER_NORMAN_1, TRAINER_NORMAN_2, TRAINER_NORMAN_3, TRAINER_NORMAN_4, TRAINER_NORMAN_5},
+    {TRAINER_WINONA_1, TRAINER_WINONA_2, TRAINER_WINONA_3, TRAINER_WINONA_4, TRAINER_WINONA_5},
+    {TRAINER_TATE_AND_LIZA_1, TRAINER_TATE_AND_LIZA_2, TRAINER_TATE_AND_LIZA_3, TRAINER_TATE_AND_LIZA_4, TRAINER_TATE_AND_LIZA_5},
+    {TRAINER_JUAN_1, TRAINER_JUAN_2, TRAINER_JUAN_3, TRAINER_JUAN_4, TRAINER_JUAN_5},
 };
-static const u16 sBosses[] =
+static const u16 sLeagueTeams[] = {TRAINER_SIDNEY, TRAINER_PHOEBE, TRAINER_GLACIA, TRAINER_DRAKE, TRAINER_WALLACE, TRAINER_STEVEN};
+static const u16 sBountyTeams[] =
 {
-    TRAINER_UNHOLY_BOUNTY_SILVER, TRAINER_UNHOLY_BOUNTY_GOLD,
+    TRAINER_UNHOLY_BOUNTY_BRONZE, TRAINER_UNHOLY_BOUNTY_SILVER, TRAINER_UNHOLY_BOUNTY_GOLD,
     TRAINER_UNHOLY_BOUNTY_PLATINUM, TRAINER_UNHOLY_BOUNTY_LEGENDARY,
-    TRAINER_WALLACE, TRAINER_STEVEN,
 };
-static u16 PickOpponent(const struct CofradiaRecord *r)
+
+static bool32 SourceValid(u16 id, bool32 primary)
 {
-    if (r->wins % 5 == 4)
-        return sBosses[r->difficulty];
-    u32 seed = r->seed ^ (r->wins * 0x9E3779B9u);
-    seed ^= seed >> 16;
-    seed *= 0x7FEB352Du;
-    seed ^= seed >> 15;
-    return sOpponents[r->difficulty][seed % 4];
+    if (id == TRAINER_NONE || id >= TRAINERS_COUNT)
+        return FALSE;
+    const struct Trainer *t = GetTrainerStructFromId(id);
+    if (primary && t->battleType != TRAINER_BATTLE_TYPE_SINGLES)
+        return FALSE;
+    if (t->overrideTrainer)
+    {
+        if (t->overrideTrainer >= TRAINERS_COUNT)
+            return FALSE;
+        const struct Trainer *original = GetTrainerStructFromId(t->overrideTrainer);
+        return original->party != NULL && original->partySize > 0 && original->partySize <= PARTY_SIZE
+            && t->partySize <= PARTY_SIZE;
+    }
+    return t->party != NULL && t->partySize > 0 && t->partySize <= PARTY_SIZE;
+}
+
+static bool32 OrdinaryClass(u8 cls, u8 difficulty)
+{
+    switch (cls)
+    {
+    case TRAINER_CLASS_COOLTRAINER:
+    case TRAINER_CLASS_COOLTRAINER_2:
+    case TRAINER_CLASS_EXPERT:
+    case TRAINER_CLASS_GENTLEMAN:
+    case TRAINER_CLASS_DRAGON_TAMER:
+    case TRAINER_CLASS_PKMN_RANGER:
+    case TRAINER_CLASS_PSYCHIC:
+    case TRAINER_CLASS_BLACK_BELT:
+    case TRAINER_CLASS_BIRD_KEEPER:
+    case TRAINER_CLASS_BATTLE_GIRL:
+    case TRAINER_CLASS_PKMN_BREEDER:
+    case TRAINER_CLASS_COLLECTOR:
+        return TRUE;
+    case TRAINER_CLASS_HIKER:
+    case TRAINER_CLASS_GUITARIST:
+    case TRAINER_CLASS_RUIN_MANIAC:
+    case TRAINER_CLASS_NINJA_BOY:
+    case TRAINER_CLASS_SCHOOL_KID:
+    case TRAINER_CLASS_YOUNGSTER:
+    case TRAINER_CLASS_LASS:
+        return difficulty <= 2;
+    default:
+        return FALSE;
+    }
+}
+
+u16 CofradiaPickTeamSource(u32 seed, u8 difficulty, bool32 boss, u8 ordinal)
+{
+    difficulty = min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1);
+    rng_value_t rng = LocalRandomSeed(seed ^ ((u32)ordinal * 0x9E3779B9u));
+    bool32 primary = ordinal == 0;
+    u32 roll = LocalRandom32(&rng) % 100;
+    // Bosses primarily use gym or League archetypes, ordinary rounds vary
+    // between existing route trainers, leaders and bounty teams.
+    if (difficulty >= 4 && roll < (boss ? 70 : 20))
+    {
+        u8 start = LocalRandom32(&rng) % ARRAY_COUNT(sLeagueTeams);
+        for (u8 i = 0; i < ARRAY_COUNT(sLeagueTeams); i++)
+        {
+            u16 id = sLeagueTeams[(start + i) % ARRAY_COUNT(sLeagueTeams)];
+            if (SourceValid(id, primary))
+                return id;
+        }
+    }
+    if (boss || roll < 35 + difficulty * 5)
+    {
+        u8 gymCount = min(8, difficulty + 3);
+        u8 gymStart = LocalRandom32(&rng) % gymCount;
+        u8 maxRematch = min(4, difficulty + (boss ? 1 : 0));
+        for (u8 i = 0; i < gymCount; i++)
+        {
+            u8 gym = (gymStart + i) % gymCount;
+            u8 rematch = LocalRandom32(&rng) % (maxRematch + 1);
+            u16 id = sGymTeams[gym][rematch];
+            if (SourceValid(id, primary))
+                return id;
+        }
+    }
+    if (roll >= 90)
+    {
+        u8 tier = min(difficulty, ARRAY_COUNT(sBountyTeams) - 1);
+        if (SourceValid(sBountyTeams[tier], primary))
+            return sBountyTeams[tier];
+    }
+    // Reservoir sample the actual trainer database without allocating a list.
+    // No defeated flags or story status are modified.
+    u16 picked = TRAINER_NONE;
+    u16 count = 0;
+    for (u16 id = 1; id < TRAINERS_COUNT; id++)
+    {
+        if (!OrdinaryClass(GetTrainerClassFromId(id), difficulty) || !SourceValid(id, primary))
+            continue;
+        if (LocalRandom32(&rng) % ++count == 0)
+            picked = id;
+    }
+    if (picked != TRAINER_NONE)
+        return picked;
+    return sBountyTeams[min(difficulty, ARRAY_COUNT(sBountyTeams) - 1)];
+}
+
+u8 CofradiaTeamSize(u8 difficulty, bool32 boss)
+{
+    static const u8 sizes[] = {3, 4, 4, 5, 6, 6};
+    return min(PARTY_SIZE, sizes[min(difficulty, COFRADIA_DIFFICULTY_COUNT - 1)] + (boss ? 1 : 0));
+}
+
+u32 CofradiaBattleSeed(void) { return sBattleSeed; }
+bool32 CofradiaBattleIsBoss(void) { return sBattleWins % 5 == 4; }
+u16 CofradiaBattleDonor(u8 ordinal)
+{
+    return CofradiaPickTeamSource(sBattleSeed, sBattleDifficulty, CofradiaBattleIsBoss(), ordinal);
 }
 
 bool32 CofradiaBattleActive(void) { return sActive; }
@@ -253,7 +363,9 @@ void CofradiaScaleEnemyParty(void)
         enum Species species = GetMonData(mon, MON_DATA_SPECIES);
         if (species == SPECIES_NONE)
             continue;
-        u8 level = max(GetMonData(mon, MON_DATA_LEVEL), target);
+        // Source trainers span the entire game; normalize the generated team
+        // so random postgame donors cannot make Normal absurdly overlevelled.
+        u8 level = target;
         u32 exp = gExperienceTables[gSpeciesInfo[species].growthRate][level];
         SetMonData(mon, MON_DATA_EXP, &exp);
         u16 badges = GetMonData(mon, MON_DATA_SPECIAL_BADGES);
@@ -282,8 +394,9 @@ bool32 CofradiaPrepareBattle(void)
     sCashBackup = GetMoney(&gSaveBlock1Ptr->money);
     sBattleDifficulty = r->difficulty;
     sBattleWins = r->wins;
+    sBattleSeed = r->seed ^ (r->wins * 0x85EBCA6Bu);
     sActive = TRUE;
-    BattleSetup_StartCofradiaBattle(PickOpponent(r));
+    BattleSetup_StartCofradiaBattle(CofradiaBattleDonor(0));
     return TRUE;
 }
 
