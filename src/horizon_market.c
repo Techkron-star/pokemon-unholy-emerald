@@ -14,12 +14,16 @@
 #include "constants/pokemon.h"
 #include "constants/vars.h"
 
-// Six independently rolled, persistent offers. Each 16-bit mutation word stores
+// First six saved offers and six deterministic extra offers. Each mutation word stores
 // three 4-bit codes; sold flags and the read-notification bit live separately.
 // Existing save variables only: no SaveBlock expansion or accidental stock rerolls.
-#define HORIZON_STOCK_VERSION       0x484F // New centralized tier policy
+#define HORIZON_STOCK_VERSION       0x4850
+#define HORIZON_LEGACY_VERSION      0x484F
+#define HORIZON_LEGACY_COUNT        6
 #define HORIZON_MARKET_SOLD(slot)   (1 << (slot))
-#define HORIZON_MARKET_SEEN_BIT     (1 << 6)
+#define HORIZON_MARKET_SEEN_BIT     (1 << 12)
+#define HORIZON_MARKET_TIER_SHIFT   13
+#define HORIZON_MARKET_TIER_MASK    (3 << HORIZON_MARKET_TIER_SHIFT)
 #define HORIZON_MARKET_MUT_SHIFT(slot) (((slot) % 3) * 4)
 
 struct HorizonSpeciesOffer
@@ -87,8 +91,8 @@ static const u8 sHorizonNameAscended[] = _("ASCENDED");
 
 u8 HorizonMarketOfferCountForTier(u8 watchTier)
 {
-    return watchTier >= HFC_WATCH_TIER_HF ? 6
-         : watchTier >= HFC_WATCH_TIER_SUPER ? 4 : 3;
+    return watchTier >= HFC_WATCH_TIER_HF ? 12
+         : watchTier >= HFC_WATCH_TIER_SUPER ? 6 : 3;
 }
 
 // 0: Alpha/Hyper; 1: Super/Overloaded/Enraged; 2: Ancestral.
@@ -120,7 +124,30 @@ static u8 HorizonMarketPeriod(void)
     return time == TIME_NIGHT || time == TIME_EVENING ? 1 : 0;
 }
 
-static enum Species HorizonMarketRollSpecies(u8 badges, u8 period)
+static u32 HorizonRollRandom(u32 *seed)
+{
+    if (seed == NULL)
+        return Random32();
+    *seed ^= *seed << 13;
+    *seed ^= *seed >> 17;
+    *seed ^= *seed << 5;
+    return *seed;
+}
+
+static u32 HorizonExtraSeed(u8 slot, u32 salt)
+{
+    u32 seed = ((u32)VarGet(VAR_HORIZON_GOODS_SEED_A) << 16)
+             | VarGet(VAR_HORIZON_GOODS_SEED_B);
+    seed ^= salt ^ ((u32)slot * 0x9E3779B9u);
+    return seed ? seed : 1;
+}
+
+u8 HorizonMarketGetRotationTier(void)
+{
+    return (VarGet(VAR_HORIZON_MARKET_STATUS) & HORIZON_MARKET_TIER_MASK) >> HORIZON_MARKET_TIER_SHIFT;
+}
+
+static enum Species HorizonMarketRollSpecies(u8 badges, u8 period, u32 *seed)
 {
     u16 count = 0;
     u16 chosen;
@@ -137,7 +164,7 @@ static enum Species HorizonMarketRollSpecies(u8 badges, u8 period)
     if (count == 0)
         return SPECIES_ZIGZAGOON;
 
-    chosen = Random32() % count;
+    chosen = HorizonRollRandom(seed) % count;
     for (u16 i = 0; i < ARRAY_COUNT(sHorizonSpeciesPool); i++)
     {
         const struct HorizonSpeciesOffer *entry = &sHorizonSpeciesPool[i];
@@ -151,7 +178,7 @@ static enum Species HorizonMarketRollSpecies(u8 badges, u8 period)
     return SPECIES_ZIGZAGOON;
 }
 
-static u8 HorizonMarketRollMutation(u8 badges, u8 watchTier)
+static u8 HorizonMarketRollMutation(u8 badges, u8 watchTier, u32 *seed)
 {
     u8 result = 0;
     u8 grade = HorizonMarketMutationGradeForTier(watchTier);
@@ -173,7 +200,7 @@ static u8 HorizonMarketRollMutation(u8 badges, u8 watchTier)
         if (grade == 1 && entry->mutation == POKEMON_BADGE_ANCESTRAL)
             continue;
 
-        if (Random32() % max(1, entry->denominator / oddsBonus) == 0
+        if (HorizonRollRandom(seed) % max(1, entry->denominator / oddsBonus) == 0
          && (tier > highestTier || (tier == highestTier && entry->denominator > highestRarity)))
         {
             result = i + 1;
@@ -186,7 +213,7 @@ static u8 HorizonMarketRollMutation(u8 badges, u8 watchTier)
 
 static u16 HorizonMarketSpeciesVar(u8 slot)
 {
-    static const u16 sSpeciesVars[HORIZON_MARKET_OFFER_COUNT] =
+    static const u16 sSpeciesVars[HORIZON_LEGACY_COUNT] =
     {
         VAR_HORIZON_MARKET_SPECIES_0, VAR_HORIZON_MARKET_SPECIES_1,
         VAR_HORIZON_MARKET_SPECIES_2, VAR_HORIZON_MARKET_SPECIES_3,
@@ -209,8 +236,8 @@ void HorizonMarketRefresh(void)
     u8 qualityBadges = min(badges, watchTier >= HFC_WATCH_TIER_HF ? 8
                                   : watchTier >= HFC_WATCH_TIER_SUPER ? 4 : 2);
 
-    if (VarGet(VAR_HORIZON_MARKET_VERSION) == HORIZON_STOCK_VERSION
-     && VarGet(VAR_HORIZON_MARKET_BADGES) == badges)
+    u16 version = VarGet(VAR_HORIZON_MARKET_VERSION);
+    if (version == HORIZON_STOCK_VERSION || version == HORIZON_LEGACY_VERSION)
     {
         u16 lastDay = VarGet(VAR_HORIZON_MARKET_DAY);
         u16 lastPeriod = VarGet(VAR_HORIZON_MARKET_PERIOD);
@@ -221,17 +248,25 @@ void HorizonMarketRefresh(void)
             // First visit with an older save: initialize goods once without
             // replacing existing Pokémon or purchased eggs.
             HorizonGoodsEnsureSeeds();
+            if (version == HORIZON_LEGACY_VERSION)
+            {
+                u16 old = VarGet(VAR_HORIZON_MARKET_STATUS);
+                VarSet(VAR_HORIZON_MARKET_STATUS, (old & 0x3F)
+                    | ((old & (1 << 6)) ? HORIZON_MARKET_SEEN_BIT : 0)
+                    | (watchTier << HORIZON_MARKET_TIER_SHIFT));
+                VarSet(VAR_HORIZON_MARKET_VERSION, HORIZON_STOCK_VERSION);
+            }
             return;
         }
     }
 
     u16 mutationWords[2] = {0, 0};
-    enum Species selected[HORIZON_MARKET_OFFER_COUNT];
+    enum Species selected[HORIZON_LEGACY_COUNT];
 
-    for (u8 i = 0; i < HORIZON_MARKET_OFFER_COUNT; i++)
+    for (u8 i = 0; i < HORIZON_LEGACY_COUNT; i++)
     {
-        enum Species species = HorizonMarketRollSpecies(qualityBadges, period);
-        u8 mutation = HorizonMarketRollMutation(qualityBadges, watchTier);
+        enum Species species = HorizonMarketRollSpecies(qualityBadges, period, NULL);
+        u8 mutation = HorizonMarketRollMutation(qualityBadges, watchTier, NULL);
 
         // Independent RNG for each stock slot. Retry duplicates only to improve
         // variety; a duplicate after retries is valid and is a separate offer.
@@ -243,7 +278,7 @@ void HorizonMarketRefresh(void)
                     duplicate = TRUE;
             if (!duplicate)
                 break;
-            species = HorizonMarketRollSpecies(qualityBadges, period);
+            species = HorizonMarketRollSpecies(qualityBadges, period, NULL);
         }
         selected[i] = species;
         VarSet(HorizonMarketSpeciesVar(i), species);
@@ -252,7 +287,7 @@ void HorizonMarketRefresh(void)
 
     VarSet(VAR_HORIZON_MARKET_MUTATIONS_0, mutationWords[0]);
     VarSet(VAR_HORIZON_MARKET_MUTATIONS_1, mutationWords[1]);
-    VarSet(VAR_HORIZON_MARKET_STATUS, 0);
+    VarSet(VAR_HORIZON_MARKET_STATUS, watchTier << HORIZON_MARKET_TIER_SHIFT);
     HorizonEggsRollStock();
     HorizonGoodsRollSeeds();
     VarSet(VAR_HORIZON_MARKET_DAY, day);
@@ -265,7 +300,11 @@ enum Species HorizonMarketGetSpecies(u8 slot)
 {
     if (slot >= HorizonMarketGetVisibleOfferCount())
         return SPECIES_NONE;
-    return VarGet(HorizonMarketSpeciesVar(slot));
+    if (slot < HORIZON_LEGACY_COUNT)
+        return VarGet(HorizonMarketSpeciesVar(slot));
+    u32 seed = HorizonExtraSeed(slot, 0x51EC1E55u);
+    return HorizonMarketRollSpecies(VarGet(VAR_HORIZON_MARKET_BADGES),
+                                    VarGet(VAR_HORIZON_MARKET_PERIOD), &seed);
 }
 
 bool8 HorizonMarketOfferSold(u8 slot)
@@ -284,6 +323,12 @@ static u8 HorizonMarketGetMutationCode(u8 slot)
 
     if (HorizonMarketOfferSold(slot))
         return 0;
+    if (slot >= HORIZON_LEGACY_COUNT)
+    {
+        u32 seed = HorizonExtraSeed(slot, 0xBADC0DE1u);
+        return HorizonMarketRollMutation(VarGet(VAR_HORIZON_MARKET_BADGES),
+                                         HFC_WATCH_TIER_HF, &seed);
+    }
     codes = VarGet(HorizonMarketMutationVar(slot));
     return (codes >> HORIZON_MARKET_MUT_SHIFT(slot)) & 0xF;
 }
@@ -346,7 +391,7 @@ u32 HorizonMarketGetPrice(u8 slot)
         return 0;
 
     badge = HorizonMarketGetMutation(slot);
-    u32 base = 2000 + HorizonMarketBadgeCount() * 1200;
+    u32 base = 2000 + VarGet(VAR_HORIZON_MARKET_BADGES) * 1200;
 
     if (badge == POKEMON_BADGE_ENRAGED || badge == POKEMON_BADGE_ANCESTRAL)
         return base + 20000;
@@ -374,7 +419,7 @@ enum HorizonMarketPurchaseResult HorizonMarketPurchase(u8 slot)
         return HORIZON_MARKET_PURCHASE_NO_MONEY;
 
     mutation = HorizonMarketGetMutation(slot);
-    CreateRandomMon(&mon, species, 8 + HorizonMarketBadgeCount() * 4);
+    CreateRandomMon(&mon, species, 8 + VarGet(VAR_HORIZON_MARKET_BADGES) * 4);
     if (mutation != 0)
     {
         Pokemon_SetBadge(&mon, mutation);
