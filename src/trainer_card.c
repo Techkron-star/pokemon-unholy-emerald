@@ -15,6 +15,9 @@
 #include "event_data.h"
 #include "easy_chat.h"
 #include "money.h"
+#include "coins.h"
+#include "unholy_wallet.h"
+#include "unholy_localization.h"
 #include "strings.h"
 #include "string_util.h"
 #include "trainer_card.h"
@@ -90,6 +93,10 @@ struct TrainerCardData
     u16 bgTilemapBuffer[0x1000];
     u16 cardTop;
     u8 language;
+    u32 walletAmount;
+    u8 walletStep;
+    bool8 walletDeposit;
+    bool8 walletError;
 };
 
 // EWRAM
@@ -373,6 +380,46 @@ static void CloseTrainerCard(u8 taskId)
 #define STATE_CLOSE_CARD          14
 #define STATE_WAIT_LINK_PARTNER   15
 #define STATE_CLOSE_CARD_LINK     16
+#define STATE_WALLET              17
+
+static const u32 sWalletSteps[] = {1, 100, 10000, 1000000, 100000000, 1000000000};
+static const u8 sWalletTextColors[] = {TEXT_COLOR_WHITE, TEXT_COLOR_DARK_GRAY, TEXT_COLOR_LIGHT_GRAY};
+
+static void WalletText(u8 x, u8 y, const u8 *text)
+{
+    AddTextPrinterParameterized3(WIN_CARD_TEXT, FONT_SMALL, x, y, sWalletTextColors, TEXT_SKIP_DRAW, text);
+}
+
+static void WalletNumber(u8 y, const u8 *label, u64 balance)
+{
+    u8 digits[16];
+    WalletText(10, y, label);
+    UnholyWalletFormat(digits, balance);
+    WalletText(GetStringRightAlignXOffset(FONT_SMALL, digits, 211), y, digits);
+}
+
+static void DrawWallet(void)
+{
+    u64 reserve = 0;
+    bool32 available = UnholyWalletGetReserve(&reserve);
+    FillWindowPixelBuffer(WIN_CARD_TEXT, PIXEL_FILL(TEXT_COLOR_WHITE));
+    WalletText(10, 5, UnholyLocalize(COMPOUND_STRING("WALLETS"), COMPOUND_STRING("CARTERAS")));
+    WalletNumber(22, UnholyLocalize(COMPOUND_STRING("Cash"), COMPOUND_STRING("Efectivo")), GetMoney(&gSaveBlock1Ptr->money));
+    if (available)
+        WalletNumber(37, UnholyLocalize(COMPOUND_STRING("Reserve"), COMPOUND_STRING("Reserva")), reserve);
+    else
+        WalletText(10, 37, UnholyLocalize(COMPOUND_STRING("Reserve unavailable"), COMPOUND_STRING("Reserva no disponible")));
+    WalletNumber(52, UnholyLocalize(COMPOUND_STRING("Casino coins"), COMPOUND_STRING("Fichas casino")), GetCoins());
+    WalletNumber(67, UnholyLocalize(COMPOUND_STRING("Battle Points"), COMPOUND_STRING("Puntos Batalla")), gSaveBlock2Ptr->frontier.battlePoints);
+    WalletNumber(84, sData->walletDeposit ? UnholyLocalize(COMPOUND_STRING("Deposit"), COMPOUND_STRING("Depositar"))
+                                        : UnholyLocalize(COMPOUND_STRING("Withdraw"), COMPOUND_STRING("Retirar")), sData->walletAmount);
+    WalletNumber(97, UnholyLocalize(COMPOUND_STRING("L/R: Step"), COMPOUND_STRING("L/R: Paso")), sWalletSteps[sData->walletStep]);
+    WalletText(10, 111, UnholyLocalize(COMPOUND_STRING("D-pad: amount / direction"), COMPOUND_STRING("Cruceta: cantidad / sentido")));
+    WalletText(10, 125, sData->walletError
+        ? UnholyLocalize(COMPOUND_STRING("Insufficient funds or space"), COMPOUND_STRING("Saldo o espacio insuficiente"))
+        : UnholyLocalize(COMPOUND_STRING("A: Transfer    B: Back"), COMPOUND_STRING("A: Transferir    B: Volver")));
+    DrawTrainerCardWindow(WIN_CARD_TEXT);
+}
 
 static void Task_TrainerCard(u8 taskId)
 {
@@ -436,6 +483,17 @@ static void Task_TrainerCard(u8 taskId)
             sData->mainState++;
         break;
     case STATE_HANDLE_INPUT_FRONT:
+        if (!sData->isLink && !gReceivedRemoteLinkPlayers && JOY_NEW(SELECT_BUTTON))
+        {
+            sData->walletAmount = 0;
+            sData->walletStep = 2;
+            sData->walletDeposit = TRUE;
+            sData->walletError = FALSE;
+            sData->mainState = STATE_WALLET;
+            DrawWallet();
+            PlaySE(SE_SELECT);
+            break;
+        }
         // Blink the : in play time
         if (!gReceivedRemoteLinkPlayers && sData->timeColonNeedDraw)
         {
@@ -499,6 +557,47 @@ static void Task_TrainerCard(u8 taskId)
                BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, sData->blendColor);
                sData->mainState = STATE_CLOSE_CARD;
            }
+        }
+        break;
+    case STATE_WALLET:
+        if (JOY_NEW(B_BUTTON | SELECT_BUTTON))
+        {
+            sData->trainerCard.money = GetMoney(&gSaveBlock1Ptr->money);
+            FillWindowPixelBuffer(WIN_CARD_TEXT, PIXEL_FILL(0));
+            sData->printState = 0;
+            while (!PrintAllOnCardFront()) {}
+            DrawTrainerCardWindow(WIN_CARD_TEXT);
+            sData->mainState = STATE_HANDLE_INPUT_FRONT;
+            PlaySE(SE_SELECT);
+        }
+        else if (JOY_NEW(A_BUTTON | L_BUTTON | R_BUTTON | DPAD_ANY) || JOY_REPEAT(DPAD_UP | DPAD_DOWN))
+        {
+            sData->walletError = FALSE;
+            if (JOY_NEW(A_BUTTON))
+            {
+                if (UnholyWalletTransfer(sData->walletDeposit, sData->walletAmount))
+                    sData->walletAmount = 0;
+                else
+                    sData->walletError = TRUE;
+            }
+            else if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
+                sData->walletDeposit = !sData->walletDeposit;
+            else if (JOY_NEW(L_BUTTON))
+                sData->walletStep = (sData->walletStep + ARRAY_COUNT(sWalletSteps) - 1) % ARRAY_COUNT(sWalletSteps);
+            else if (JOY_NEW(R_BUTTON))
+                sData->walletStep = (sData->walletStep + 1) % ARRAY_COUNT(sWalletSteps);
+            else if (JOY_REPEAT(DPAD_UP) || JOY_NEW(DPAD_UP))
+            {
+                u32 step = sWalletSteps[sData->walletStep];
+                sData->walletAmount = step > MAX_MONEY - sData->walletAmount ? MAX_MONEY : sData->walletAmount + step;
+            }
+            else if (JOY_REPEAT(DPAD_DOWN) || JOY_NEW(DPAD_DOWN))
+            {
+                u32 step = sWalletSteps[sData->walletStep];
+                sData->walletAmount = step > sData->walletAmount ? 0 : sData->walletAmount - step;
+            }
+            DrawWallet();
+            PlaySE(sData->walletError ? SE_FAILURE : SE_SELECT);
         }
         break;
     case STATE_WAIT_LINK_PARTNER:
@@ -1164,6 +1263,10 @@ static void PrintProfilePhraseOnCard(void)
 {
     static const u8 yOffsetsLine1[] = {113, 104};
     static const u8 yOffsetsLine2[] = {129, 120};
+
+    if (!sData->isLink && !gReceivedRemoteLinkPlayers)
+        AddTextPrinterParameterized3(WIN_CARD_TEXT, FONT_SMALL_NARROW, 16, 105, sTrainerCardTextColors, TEXT_SKIP_DRAW,
+            UnholyLocalize(COMPOUND_STRING("SELECT: WALLETS"), COMPOUND_STRING("SELECT: CARTERAS")));
 
     if (sData->isLink)
     {
