@@ -155,3 +155,40 @@ TEST("Cofradia item settlement reduces principal only and rejects protected or e
     gPokemonStoragePtr->unholySave5 = old5;
     SetMoney(&gSaveBlock1Ptr->money, oldCash);
 }
+
+TEST("Cofradia special item redemption is bounded and cannot be repeated after reacquisition")
+{
+    struct SaveBlock4 old4 = gSaveBlock3Ptr->unholySave4;
+    struct SaveBlock5 old5 = gPokemonStoragePtr->unholySave5;
+    u32 oldCash = GetMoney(&gSaveBlock1Ptr->money);
+    struct CofradiaView view;
+    enum Pocket id = GetItemPocket(ITEM_ROTOM_CATALOG);
+    struct BagPocket oldPocket = gBagPockets[id];
+    struct ItemSlot slots[4] = {0};
+    struct BagPocket *pocket = &gBagPockets[id];
+    pocket->itemSlots = slots;
+    pocket->capacity = ARRAY_COUNT(slots);
+    for (u8 i = 0; i < ARRAY_COUNT(slots); i++)
+        BagPocket_SetSlotItemIdAndCount(pocket, i, ITEM_NONE, 0);
+    BagPocket_SetSlotItemIdAndCount(pocket, 0, ITEM_ROTOM_CATALOG, 1);
+    UnholySave4_Reset();
+    UnholySave5_Reset();
+    SetMoney(&gSaveBlock1Ptr->money, 0);
+    EXPECT_EQ(CofradiaBeginCredit(0, 10000, 10000), COFRADIA_OK);
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaResolve(FALSE));
+    EXPECT_EQ(CofradiaRepayItem(ITEM_ROTOM_CATALOG, 1), COFRADIA_OK);
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 5000);
+    EXPECT(!CheckBagHasItem(ITEM_ROTOM_CATALOG, 1));
+    BagPocket_SetSlotItemIdAndCount(pocket, 0, ITEM_ROTOM_CATALOG, 1);
+    EXPECT_EQ(CofradiaRepayItem(ITEM_ROTOM_CATALOG, 1), COFRADIA_INVALID);
+    EXPECT(CheckBagHasItem(ITEM_ROTOM_CATALOG, 1));
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 5000);
+    EXPECT(UnholySave4_Validate(&gSaveBlock3Ptr->unholySave4));
+    *pocket = oldPocket;
+    gSaveBlock3Ptr->unholySave4 = old4;
+    gPokemonStoragePtr->unholySave5 = old5;
+    SetMoney(&gSaveBlock1Ptr->money, oldCash);
+}
