@@ -1124,6 +1124,7 @@ enum __attribute__((packed)) Item
     ITEM_GEAR_BOMBA_ARIETE = 938,
     ITEM_GEAR_GLICERINA = 939,
     ITEM_GEAR_ABONO = 940,
+    ITEM_MAX_SOUP = 941,
     ITEMS_COUNT,
     ITEM_FIELD_ARROW = ITEMS_COUNT,
 };
