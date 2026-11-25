@@ -120,3 +120,29 @@ TEST("Cofradia boss source varies across persisted round seeds")
             varied = TRUE;
     EXPECT(varied);
 }
+
+TEST("Cofradia donor slots avoid repeated trainers and rematch aliases")
+{
+    for (u8 tier = 0; tier < COFRADIA_DIFFICULTY_COUNT; tier++)
+    {
+        for (u8 boss = 0; boss < 2; boss++)
+        {
+            for (u32 seed = 1; seed <= 8; seed++)
+            {
+                u16 identities[5];
+                for (u8 slot = 0; slot < ARRAY_COUNT(identities); slot++)
+                {
+                    u16 id = CofradiaPickTeamSource(seed, tier, boss, slot);
+                    EXPECT(id > TRAINER_NONE && id < TRAINERS_COUNT);
+                    if (id == TRAINER_NONE || id >= TRAINERS_COUNT)
+                        break;
+                    const struct Trainer *trainer = GetTrainerStructFromId(id);
+                    identities[slot] = trainer->overrideTrainer ? trainer->overrideTrainer : id;
+                    for (u8 previous = 0; previous < slot; previous++)
+                        EXPECT(identities[slot] != identities[previous]);
+                    EXPECT_EQ(id, CofradiaPickTeamSource(seed, tier, boss, slot));
+                }
+            }
+        }
+    }
+}
