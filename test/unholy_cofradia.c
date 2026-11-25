@@ -1,5 +1,7 @@
 #include "global.h"
 #include "money.h"
+#include "data.h"
+#include "constants/trainers.h"
 #include "unholy_save.h"
 #include "unholy_cofradia.h"
 #include "test/test.h"
@@ -84,4 +86,37 @@ TEST("Cofradia retains a payout that would overflow cash")
     EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), MAX_MONEY);
     gSaveBlock3Ptr->unholySave4 = oldSave;
     SetMoney(&gSaveBlock1Ptr->money, oldMoney);
+}
+
+TEST("Cofradia derived teams have bounded difficulty sizes and seeded source selection")
+{
+    const u8 expected[] = {3, 4, 4, 5, 6, 6};
+    for (u8 tier = 0; tier < COFRADIA_DIFFICULTY_COUNT; tier++)
+    {
+        EXPECT_EQ(CofradiaTeamSize(tier, FALSE), expected[tier]);
+        EXPECT_EQ(CofradiaTeamSize(tier, TRUE), min(PARTY_SIZE, expected[tier] + 1));
+        for (u8 ordinal = 0; ordinal < 5; ordinal++)
+        {
+            u16 id = CofradiaPickTeamSource(0x12345678u, tier, FALSE, ordinal);
+            EXPECT(id > TRAINER_NONE && id < TRAINERS_COUNT);
+            EXPECT_EQ(id, CofradiaPickTeamSource(0x12345678u, tier, FALSE, ordinal));
+            const struct Trainer *trainer = GetTrainerStructFromId(id);
+            if (ordinal == 0)
+                EXPECT_EQ(trainer->battleType, TRAINER_BATTLE_TYPE_SINGLES);
+            if (trainer->overrideTrainer)
+                trainer = GetTrainerStructFromId(trainer->overrideTrainer);
+            EXPECT(trainer->party != NULL);
+            EXPECT(trainer->partySize > 0);
+        }
+    }
+}
+
+TEST("Cofradia boss source varies across persisted round seeds")
+{
+    u16 first = CofradiaPickTeamSource(1, 5, TRUE, 0);
+    bool32 varied = FALSE;
+    for (u32 seed = 2; seed < 32; seed++)
+        if (CofradiaPickTeamSource(seed, 5, TRUE, 0) != first)
+            varied = TRUE;
+    EXPECT(varied);
 }
