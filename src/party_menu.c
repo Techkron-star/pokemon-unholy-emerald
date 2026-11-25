@@ -6268,7 +6268,8 @@ void ItemUseCB_MaxSoup(u8 taskId, TaskFunc task)
 {
     struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
     enum Species species = GetMonData(mon, MON_DATA_SPECIES);
-    bool32 honey = GET_BASE_SPECIES_ID(species) == SPECIES_URSHIFU;
+    bool32 honey = GET_BASE_SPECIES_ID(species) == SPECIES_URSHIFU
+                || species == SPECIES_URSHIFU_RAPID_STRIKE;
     if (!UnholyTransformationTargetValid(mon) || !CheckBagHasItem(ITEM_DYNAMAX_BAND, 1)
      || !DoesSpeciesHaveFormChangeMethod(species, FORM_CHANGE_BATTLE_GIGANTAMAX)
      || !CheckBagHasItem(ITEM_MAX_SOUP, 1) || (honey && !CheckBagHasItem(ITEM_MAX_HONEY, 1)))
@@ -6301,10 +6302,10 @@ void ItemUseCB_TeraShard(u8 taskId, TaskFunc task)
     struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][gPartyMenu.slotId];
     enum Item item = gSpecialVar_ItemId;
     enum Type type = UnholyTeraShardType(item);
-    enum Species species = GET_BASE_SPECIES_ID(GetMonData(mon, MON_DATA_SPECIES));
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
     // Preserve fixed tera identities.
     if (!UnholyTransformationTargetValid(mon) || !CheckBagHasItem(ITEM_TERA_ORB, 1)
-     || type == TYPE_MYSTERY || species == SPECIES_TERAPAGOS || species == SPECIES_OGERPON
+     || type == TYPE_MYSTERY || gSpeciesInfo[species].forceTeraType
      || GetMonData(mon, MON_DATA_TERA_TYPE) == type || !CheckBagHasItem(item, 10)
      || !RemoveBagItem(item, 10))
     {
