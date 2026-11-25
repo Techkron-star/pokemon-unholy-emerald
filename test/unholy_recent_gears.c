@@ -168,3 +168,46 @@ TEST("Hydra Core heals indefinitely after taking damage below half HP")
     Free(gBattleStruct);
     gBattleStruct = oldStruct;
 }
+
+TEST("Whetstone restores negative Attack to exactly +1 only after critical-hit recovery")
+{
+    struct BattleStruct *oldStruct = gBattleStruct;
+    struct BattlePokemon oldBattler = gBattleMons[B_BATTLER_0];
+    struct Pokemon *mon = &gParties[B_TRAINER_PLAYER][0];
+    struct Pokemon oldMon = *mon;
+    u32 oldFlags = gBattleTypeFlags;
+    u16 oldIndex = gBattlerPartyIndexes[B_BATTLER_0];
+
+    gBattleStruct = AllocZeroed(sizeof(*gBattleStruct));
+    gBattleTypeFlags = 0;
+    gBattlerPartyIndexes[B_BATTLER_0] = 0;
+    CreateMonWithIVs(mon, SPECIES_SCEPTILE, 40, 0, OTID_STRUCT_PRESET(42), 15);
+    Gear_SetEquipped(mon, GEAR_PIEDRA_AFILAR);
+    gBattleMons[B_BATTLER_0].hp = 100;
+    gBattleMons[B_BATTLER_0].maxHP = 100;
+    gBattleMons[B_BATTLER_0].statStages[STAT_ATK] = DEFAULT_STAT_STAGE - 3;
+
+    EXPECT_EQ(Gear_GetBattlerGear(B_BATTLER_0), GEAR_PIEDRA_AFILAR);
+    Gear_OnMoveUsed(B_BATTLER_0, MOVE_SLASH, TYPE_NORMAL);
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_ATK], DEFAULT_STAT_STAGE - 3);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 0);
+    Gear_OnCriticalHit(B_BATTLER_0);
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_ATK], DEFAULT_STAT_STAGE + 1);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 1);
+    Gear_OnCriticalHit(B_BATTLER_0);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 1);
+    gBattleMons[B_BATTLER_0].statStages[STAT_ATK] = DEFAULT_STAT_STAGE;
+    Gear_OnCriticalHit(B_BATTLER_0);
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_ATK], DEFAULT_STAT_STAGE);
+    gBattleMons[B_BATTLER_0].statStages[STAT_ATK] = DEFAULT_STAT_STAGE - 6;
+    Gear_OnCriticalHit(B_BATTLER_0);
+    EXPECT_EQ(gBattleMons[B_BATTLER_0].statStages[STAT_ATK], DEFAULT_STAT_STAGE + 1);
+    EXPECT_EQ(gBattleStruct->gearActivations[B_BATTLER_0], 2);
+
+    *mon = oldMon;
+    gBattleMons[B_BATTLER_0] = oldBattler;
+    gBattlerPartyIndexes[B_BATTLER_0] = oldIndex;
+    gBattleTypeFlags = oldFlags;
+    Free(gBattleStruct);
+    gBattleStruct = oldStruct;
+}
