@@ -336,6 +336,16 @@ static const u8 *const sUnholyCraftStatuses[] =
 // replacing a held item. Repeating a recipe creates another physical copy.
 static const struct UnholyCraftRecipe sUnholyCraftRecipes[] =
 {
+    { ITEM_MEGA_RING, COMPOUND_STRING("Activa megaevolución.\nRequiere 4 medallas."), FLAG_BADGE04_GET, 3,
+      {{ ITEM_RED_SHARD, 3 }, { ITEM_ARMORITE_ORE, 2 }, { ITEM_STAR_PIECE, 1 }} },
+    { ITEM_Z_POWER_RING, COMPOUND_STRING("Activa movimientos Z.\nRequiere 5 medallas."), FLAG_BADGE05_GET, 3,
+      {{ ITEM_YELLOW_SHARD, 3 }, { ITEM_NORMAL_GEM, 2 }, { ITEM_STAR_PIECE, 1 }} },
+    { ITEM_DYNAMAX_BAND, COMPOUND_STRING("Activa Dinamax.\nRequiere 6 medallas."), FLAG_BADGE06_GET, 2,
+      {{ ITEM_DYNITE_ORE, 5 }, { ITEM_WISHING_PIECE, 2 }} },
+    { ITEM_TERA_ORB, COMPOUND_STRING("Activa teracristal.\nRequiere 7 medallas."), FLAG_BADGE07_GET, 3,
+      {{ ITEM_NORMAL_TERA_SHARD, 5 }, { ITEM_ARMORITE_ORE, 2 }, { ITEM_STAR_PIECE, 1 }} },
+    { ITEM_MAX_SOUP, COMPOUND_STRING("Alterna Gigamax.\nUrshifu: miel extra."), FLAG_BADGE06_GET, 1,
+      {{ ITEM_MAX_MUSHROOMS, 3 }} },
     { ITEM_SUPER_EXP_SHARE, sUnholyRecipeExp, FLAG_BADGE03_GET, 1,
       {{ ITEM_EXP_SHARE, 1 }} },
     { ITEM_OVERLOADED_EXP_SHARE, sUnholyRecipeOverloadedExp, FLAG_BADGE06_GET, 2,
@@ -843,7 +853,8 @@ static u8 UnholyCraftCheckRecipe(const struct UnholyCraftRecipe *recipe)
 {
     if (recipe->badgeFlag != 0 && !FlagGet(recipe->badgeFlag))
         return CRAFT_STATUS_BADGE;
-    if (recipe->result == ITEM_OVERLOADED_EXP_SHARE && CheckBagHasItem(recipe->result, 1))
+    if (GetItemImportance(recipe->result)
+     && (CheckBagHasItem(recipe->result, 1) || CheckPCHasItem(recipe->result, 1)))
         return CRAFT_STATUS_SHARE_OWNED;
 
     for (u8 i = 0; i < recipe->materialCount; i++)
