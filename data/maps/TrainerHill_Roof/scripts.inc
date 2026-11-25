@@ -13,7 +13,7 @@ TrainerHill_Roof_EventScript_Owner::
 	case 1, TrainerHill_Roof_EventScript_GivePrize
 	case 2, TrainerHill_Roof_EventScript_AlreadyReceivedPrize
 TrainerHill_Roof_EventScript_Arrived::
-	msgbox TrainerHill_Roof_Text_YouFinallyCameBravo, MSGBOX_DEFAULT
+	msgbox Cofradia_Text_Father, MSGBOX_DEFAULT
 TrainerHill_Roof_EventScript_GivePrize::
 	trainerhill_giveprize
 	switch VAR_RESULT
@@ -60,3 +60,9 @@ TrainerHill_Roof_EventScript_AlreadyReceivedPrize::
 	release
 	end
 
+
+Cofradia_Text_Father:
+	.string "Me llaman el Gran Padre.\p"
+	.string "No confundas una buena racha\n"
+	.string "con el dominio de la fortuna.\p"
+	.string "Ahora, recibe lo que has ganado.$"
