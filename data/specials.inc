@@ -644,3 +644,4 @@ gSpecials::
 	def_special CheckAddCoins
 	def_special OpenUnholyInjectorMenu
 	def_special GenesisEvent_ZapdosAvailable
+	def_special GenesisEvent_ZapdosGalarAvailable
