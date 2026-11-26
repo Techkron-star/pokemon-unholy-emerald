@@ -10,6 +10,7 @@ enum GenesisEventId
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id);
+bool32 GenesisEvent_ZapdosAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
 #endif
