@@ -252,3 +252,33 @@ TEST("Genesis island fauna discovery is gated by travel and persists independent
         if (oldDiscovered) FlagSet(discovered[i]); else FlagClear(discovered[i]);
     }
 }
+
+TEST("Genesis environmental discoveries depend on progression and capture")
+{
+    u16 oldGenerator = VarGet(VAR_NEW_MAUVILLE_STATE);
+    bool8 oldBadge = FlagGet(FLAG_BADGE06_GET);
+    const u16 flags[] = {FLAG_UNHOLY_GENESIS_TADBULB_DISCOVERED, FLAG_UNHOLY_GENESIS_VAROOM_DISCOVERED, FLAG_UNHOLY_GENESIS_CRAMORANT_DISCOVERED};
+    const enum GenesisEventId events[] = {GENESIS_EVENT_TADBULB_DISCOVERY, GENESIS_EVENT_VAROOM_DISCOVERY, GENESIS_EVENT_CRAMORANT_DISCOVERY};
+    bool8 oldFlags[ARRAY_COUNT(flags)];
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+    {
+        oldFlags[i] = FlagGet(flags[i]);
+        FlagClear(flags[i]);
+    }
+    VarSet(VAR_NEW_MAUVILLE_STATE, 1);
+    FlagClear(FLAG_BADGE06_GET);
+    for (u32 i = 0; i < ARRAY_COUNT(events); i++)
+        EXPECT(!GenesisEvent_IsAvailable(events[i]));
+    VarSet(VAR_NEW_MAUVILLE_STATE, 2);
+    FlagSet(FLAG_BADGE06_GET);
+    for (u32 i = 0; i < ARRAY_COUNT(events); i++)
+    {
+        EXPECT(GenesisEvent_IsAvailable(events[i]));
+        FlagSet(flags[i]);
+        EXPECT(!GenesisEvent_IsAvailable(events[i]));
+    }
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+        if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
+    VarSet(VAR_NEW_MAUVILLE_STATE, oldGenerator);
+    if (oldBadge) FlagSet(FLAG_BADGE06_GET); else FlagClear(FLAG_BADGE06_GET);
+}
