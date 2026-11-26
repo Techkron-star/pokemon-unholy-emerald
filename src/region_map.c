@@ -1769,7 +1769,13 @@ static void CreateGenesisMarkers(void)
     const struct SpriteTemplate template = {TAG_GENESIS_MARKER, TAG_GENESIS_MARKER, &sRegionMapPlayerIconOam,
         sRegionMapPlayerIconAnimTable, NULL, gDummySpriteAffineAnimTable, SpriteCB_GenesisMarker};
     LoadSpriteSheet(&sheet);
-    LoadSpritePalette(&palette);
+    if (GetSpriteTileStartByTag(TAG_GENESIS_MARKER) == TAG_NONE)
+        return;
+    if (LoadSpritePalette(&palette) == 0xFF)
+    {
+        FreeSpriteTilesByTag(TAG_GENESIS_MARKER);
+        return;
+    }
     u8 created = 0;
     for (u8 i = 0; i < count; i++)
     {
