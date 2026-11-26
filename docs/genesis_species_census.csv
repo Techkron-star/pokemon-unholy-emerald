@@ -994,9 +994,9 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 993,IRON_JUGULIS,IRON_JUGULIS,no_source_in_audited_tables,,,
 994,IRON_MOTH,IRON_MOTH,no_source_in_audited_tables,,,
 995,IRON_THORNS,IRON_THORNS,no_source_in_audited_tables,,,
-996,FRIGIBAX,FRIGIBAX,no_source_in_audited_tables,,,
-997,ARCTIBAX,FRIGIBAX,no_source_in_audited_tables,,,
-998,BAXCALIBUR,FRIGIBAX,no_source_in_audited_tables,,,
+996,FRIGIBAX,FRIGIBAX,badge_gated_wild,MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM@8badges,,FRIGIBAX
+997,ARCTIBAX,FRIGIBAX,family_present_review_evolution,,,FRIGIBAX
+998,BAXCALIBUR,FRIGIBAX,family_present_review_evolution,,,FRIGIBAX
 999,GIMMIGHOUL,GIMMIGHOUL,badge_gated_wild,MAP_MT_PYRE_3F@6badges,,GIMMIGHOUL
 1000,GHOLDENGO,GIMMIGHOUL,family_present_review_evolution,,,GIMMIGHOUL
 1001,WO_CHIEN,WO_CHIEN,no_source_in_audited_tables,,,

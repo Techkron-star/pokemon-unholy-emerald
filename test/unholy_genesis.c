@@ -389,3 +389,27 @@ TEST("Genesis Telluric Cave requires all badges and League clear, stays open aft
     for (u16 i = 0; i < NUM_BADGES; i++)
         if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
 }
+
+TEST("Genesis Frigibax is restricted to the ice room after eight badges")
+{
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_LAND, 6), 0);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_LAND, 7), 2);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_LAND, 8), 3);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_WATER, 8), 0);
+    const struct WildPokemon *mon = GenesisWild_GetEligibleMon(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_LAND, 8, 2);
+    EXPECT(mon != NULL);
+    if (mon != NULL)
+    {
+        EXPECT_EQ(mon->species, SPECIES_FRIGIBAX);
+        EXPECT_EQ(mon->minLevel, 32);
+        EXPECT_EQ(mon->maxLevel, 34);
+    }
+    EXPECT(GenesisWild_GetEligibleMon(MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM, WILD_AREA_LAND, 7, 2) == NULL);
+    for (u16 i = 0; i < GenesisWild_GetEligibleCount(MAP_SHOAL_CAVE_LOW_TIDE_LOWER_ROOM, WILD_AREA_LAND, 8); i++)
+    {
+        const struct WildPokemon *other = GenesisWild_GetEligibleMon(MAP_SHOAL_CAVE_LOW_TIDE_LOWER_ROOM, WILD_AREA_LAND, 8, i);
+        EXPECT(other != NULL);
+        if (other != NULL)
+            EXPECT(other->species != SPECIES_FRIGIBAX);
+    }
+}
