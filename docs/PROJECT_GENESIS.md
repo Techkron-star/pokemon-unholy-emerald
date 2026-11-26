@@ -58,3 +58,5 @@
 - Confirmed native gifts/encounters include Beldum (Steven; thus not actually exclusive to Birth Island), Lileep/Anorith, Hoenn legendaries/Regis and Johto starters. Keep existing acquisition paths intact.
 - New Mauville: after generator shutdown, interact with the existing generator to find Tadbulb (32) and Varoom (34); prioritize uncaught discoveries, then random repeatable encounters. Route 124: optional Cramorant (40) encounter by the Hunter's House sign after sixth badge. One encounter per visit; captures clear their individual regional markers; no new grass tables or map edits. Levels provisional.
 - Audit script is a lexical inventory tool, not a proof of availability; manual review required for dynamic sources and unreachable maps. Environmental scripts and flags need compile/emulator validation.
+
+Run `python3 tools/genesis_census.py --output /tmp/genesis-census.csv` from a full checkout for an expanded lexical scan of map scripts and candidate acquisition code; this script has not been executed in the connector environment. It intentionally uses separate evidence categories from the curated snapshot.
