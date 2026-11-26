@@ -4,6 +4,7 @@ Route114_FossilManiacsTunnel_MapScripts::
 	.byte 0
 
 Route114_FossilManiacsTunnel_OnTransition:
+	clearflag FLAG_TEMP_1
 	call_if_set FLAG_SYS_GAME_CLEAR, Route114_FossilManiacsTunnel_EventScript_MoveFossilManiac
 	end
 
@@ -34,6 +35,14 @@ Route114_FossilManiacsTunnel_EventScript_ManiacMentionCaveIn::
 Route114_FossilManiacsTunnel_EventScript_FossilManiac::
 	lock
 	faceplayer
+	goto_if_unset FLAG_BADGE04_GET, Route114_FossilManiacsTunnel_EventScript_GenesisOriginal
+	goto_if_set FLAG_TEMP_1, Route114_FossilManiacsTunnel_EventScript_GenesisOriginal
+	msgbox Route114_FossilManiacsTunnel_Text_GenesisDig, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Route114_FossilManiacsTunnel_EventScript_GenesisOriginal
+	goto Route114_FossilManiacsTunnel_EventScript_GenesisExcavate
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisOriginal::
 	goto_if_set FLAG_RECEIVED_REVIVED_FOSSIL_MON, Route114_FossilManiacsTunnel_EventScript_PlayerRevivedFossil
 	checkitem ITEM_ROOT_FOSSIL
 	goto_if_eq VAR_RESULT, TRUE, Route114_FossilManiacsTunnel_EventScript_PlayerHasFossil
@@ -89,3 +98,144 @@ Route114_FossilManiacsTunnel_Text_NotSafeThatWay:
 	.string "But I've left it alone because I don't\n"
 	.string "think there are any FOSSILS there…$"
 
+
+@ One guided excavation per tunnel visit, independent of the original fossil.
+Route114_FossilManiacsTunnel_EventScript_GenesisExcavate::
+	goto_if_set FLAG_BADGE08_GET, Route114_FossilManiacsTunnel_EventScript_GenesisDeepDig
+	random 11
+	goto Route114_FossilManiacsTunnel_EventScript_GenesisDigResult
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDeepDig::
+	random 15
+	goto Route114_FossilManiacsTunnel_EventScript_GenesisDigResult
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDigResult::
+	switch VAR_RESULT
+	case 0, Route114_FossilManiacsTunnel_EventScript_GenesisDig0
+	case 1, Route114_FossilManiacsTunnel_EventScript_GenesisDig1
+	case 2, Route114_FossilManiacsTunnel_EventScript_GenesisDig2
+	case 3, Route114_FossilManiacsTunnel_EventScript_GenesisDig3
+	case 4, Route114_FossilManiacsTunnel_EventScript_GenesisDig4
+	case 5, Route114_FossilManiacsTunnel_EventScript_GenesisDig5
+	case 6, Route114_FossilManiacsTunnel_EventScript_GenesisDig6
+	case 7, Route114_FossilManiacsTunnel_EventScript_GenesisDig7
+	case 8, Route114_FossilManiacsTunnel_EventScript_GenesisDig8
+	case 9, Route114_FossilManiacsTunnel_EventScript_GenesisDig9
+	case 10, Route114_FossilManiacsTunnel_EventScript_GenesisDig10
+	case 11, Route114_FossilManiacsTunnel_EventScript_GenesisDig11
+	case 12, Route114_FossilManiacsTunnel_EventScript_GenesisDig12
+	case 13, Route114_FossilManiacsTunnel_EventScript_GenesisDig13
+	case 14, Route114_FossilManiacsTunnel_EventScript_GenesisDig14
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig0::
+	giveitem ITEM_ROOT_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig1::
+	giveitem ITEM_CLAW_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig2::
+	giveitem ITEM_HELIX_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig3::
+	giveitem ITEM_DOME_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig4::
+	giveitem ITEM_OLD_AMBER
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig5::
+	giveitem ITEM_SKULL_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig6::
+	giveitem ITEM_ARMOR_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig7::
+	giveitem ITEM_COVER_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig8::
+	giveitem ITEM_PLUME_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig9::
+	giveitem ITEM_JAW_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig10::
+	giveitem ITEM_SAIL_FOSSIL
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig11::
+	giveitem ITEM_FOSSILIZED_BIRD
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig12::
+	giveitem ITEM_FOSSILIZED_FISH
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig13::
+	giveitem ITEM_FOSSILIZED_DRAKE
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_EventScript_GenesisDig14::
+	giveitem ITEM_FOSSILIZED_DINO
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+	setflag FLAG_TEMP_1
+	release
+	end
+
+Route114_FossilManiacsTunnel_Text_GenesisDig:
+	.string "I've found a new fossil seam.\n"
+	.string "Want to help excavate a sample?$"
