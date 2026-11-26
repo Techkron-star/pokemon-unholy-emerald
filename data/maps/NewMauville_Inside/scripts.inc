@@ -17,6 +17,7 @@ NewMauville_Inside_EventScript_TryRemoveVoltorb::
 	return
 
 NewMauville_Inside_OnTransition:
+	clearflag FLAG_TEMP_1
 	setvar VAR_TEMP_1, 0
 	setvar VAR_TEMP_2, 0
 	call_if_unset FLAG_DEFEATED_VOLTORB_1_NEW_MAUVILLE, NewMauville_Inside_EventScript_ShowVoltorb1
@@ -174,8 +175,50 @@ NewMauville_Inside_EventScript_Generator::
 
 NewMauville_Inside_EventScript_GeneratorOff::
 	msgbox NewMauville_Inside_Text_GeneratorQuietedDown, MSGBOX_DEFAULT
+	goto_if_set FLAG_TEMP_1, NewMauville_Inside_EventScript_GenesisGeneratorEnd
+	msgbox NewMauville_Inside_Text_GenesisGenerator, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, NewMauville_Inside_EventScript_GenesisGeneratorEnd
+	closemessage
+	goto_if_unset FLAG_UNHOLY_GENESIS_TADBULB_DISCOVERED, NewMauville_Inside_EventScript_GenesisTadbulb
+	goto_if_unset FLAG_UNHOLY_GENESIS_VAROOM_DISCOVERED, NewMauville_Inside_EventScript_GenesisVaroom
+	random 2
+	goto_if_eq VAR_RESULT, 0, NewMauville_Inside_EventScript_GenesisTadbulb
+	goto NewMauville_Inside_EventScript_GenesisVaroom
+	end
+
+NewMauville_Inside_EventScript_GenesisTadbulb::
+	setwildbattle SPECIES_TADBULB, 32
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, NewMauville_Inside_EventScript_GenesisCaughtTadbulb
+	goto NewMauville_Inside_EventScript_GenesisGeneratorDone
+	end
+
+NewMauville_Inside_EventScript_GenesisVaroom::
+	setwildbattle SPECIES_VAROOM, 34
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, NewMauville_Inside_EventScript_GenesisCaughtVaroom
+	goto NewMauville_Inside_EventScript_GenesisGeneratorDone
+	end
+
+NewMauville_Inside_EventScript_GenesisCaughtTadbulb::
+	setflag FLAG_UNHOLY_GENESIS_TADBULB_DISCOVERED
+	return
+
+NewMauville_Inside_EventScript_GenesisCaughtVaroom::
+	setflag FLAG_UNHOLY_GENESIS_VAROOM_DISCOVERED
+	return
+
+NewMauville_Inside_EventScript_GenesisGeneratorDone::
+	setflag FLAG_TEMP_1
+NewMauville_Inside_EventScript_GenesisGeneratorEnd::
 	releaseall
 	end
+
+NewMauville_Inside_Text_GenesisGenerator:
+	.string "Something is hiding inside the\n"
+	.string "machinery. Investigate?$"
 
 NewMauville_Inside_EventScript_Voltorb1::
 	lock
