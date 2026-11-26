@@ -1630,6 +1630,14 @@
       "y": 4,
       "width": 1,
       "height": 1
+    },
+    {
+      "id": "MAPSEC_CRYSTAL_CAVE",
+      "name": "CRYSTAL CAVE",
+      "x": 0,
+      "y": 3,
+      "width": 1,
+      "height": 1
     }
   ]
 }

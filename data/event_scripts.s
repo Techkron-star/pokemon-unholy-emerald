@@ -472,6 +472,7 @@ gStdScripts_End::
 	.include "data/maps/Underwater_MarineCave/scripts.inc"
 	.include "data/maps/MarineCave_Entrance/scripts.inc"
 	.include "data/maps/MarineCave_End/scripts.inc"
+	.include "data/maps/CrystalCave/scripts.inc"
 	.include "data/maps/TerraCave_Entrance/scripts.inc"
 	.include "data/maps/TerraCave_End/scripts.inc"
 	.include "data/maps/AlteringCave/scripts.inc"

@@ -19,6 +19,7 @@ struct GenesisEvent
     u16 completionFlag;
     u16 previousCaptureFlag;
     bool8 requiresAllBadges;
+    u8 minBadges;
     bool8 requiresKantoBirds;
 };
 
@@ -138,6 +139,17 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .prerequisiteFlag = FLAG_BADGE06_GET,
         .completionFlag = FLAG_UNHOLY_GENESIS_CRAMORANT_DISCOVERED,
     },
+    [GENESIS_EVENT_CRYSTAL_GATE] = {
+        .mapSection = MAPSEC_ROUTE_115,
+        .minBadges = 5,
+        .completionFlag = FLAG_GENESIS_CRYSTAL_OPEN,
+    },
+    [GENESIS_EVENT_MEWTWO] = {
+        .mapSection = MAPSEC_ROUTE_115,
+        .storyFlag = FLAG_GENESIS_CRYSTAL_OPEN,
+        .requiresAllBadges = TRUE,
+        .completionFlag = FLAG_GENESIS_MEWTWO_CAUGHT,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
@@ -145,6 +157,15 @@ bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
     if ((u32)id >= GENESIS_EVENT_COUNT)
         return FALSE;
     const struct GenesisEvent *event = &sEvents[id];
+    if (event->minBadges)
+    {
+        u8 count = 0;
+        for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
+            if (FlagGet(flag))
+                count++;
+        if (count < event->minBadges)
+            return FALSE;
+    }
     if (event->requiresAllBadges)
     {
         for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
@@ -384,4 +405,14 @@ u16 GenesisStarter_ClaimCofradia(void)
         return SPECIES_NONE;
     StarterWriteBits(FLAG_GENESIS_COFRADIA_PRIZE, 5, 0);
     return species;
+}
+
+bool32 GenesisEvent_CrystalGateAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_CRYSTAL_GATE);
+}
+
+bool32 GenesisEvent_MewtwoAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_MEWTWO);
 }

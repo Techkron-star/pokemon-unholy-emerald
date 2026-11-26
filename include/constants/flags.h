@@ -116,6 +116,9 @@
 #define FLAG_UNUSED_0x046    0x46 // Unused Flag
 #define FLAG_UNUSED_0x047    0x47 // Unused Flag
 #define FLAG_UNUSED_0x048    0x48 // Unused Flag
+#define FLAG_GENESIS_CRYSTAL_OPEN FLAG_UNUSED_0x046
+#define FLAG_GENESIS_MEWTWO_CAUGHT FLAG_UNUSED_0x047
+#define FLAG_GENESIS_MEWTWO_HIDE FLAG_UNUSED_0x048
 #define FLAG_UNUSED_0x049    0x49 // Unused Flag
 #define FLAG_UNUSED_0x04A    0x4A // Unused Flag
 #define FLAG_UNUSED_0x04B    0x4B // Unused Flag
