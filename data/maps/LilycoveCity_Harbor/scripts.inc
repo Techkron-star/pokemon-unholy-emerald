@@ -99,6 +99,7 @@ LilycoveCity_Harbor_EventScript_GoToBattleFrontier::
 LilycoveCity_Harbor_EventScript_GetEonTicketState::
 	setvar VAR_TEMP_E, 0
 	goto_if_unset FLAG_ENABLE_SHIP_SOUTHERN_ISLAND, Common_EventScript_NopReturn
+	goto_if_set FLAG_SHOWN_EON_TICKET, LilycoveCity_Harbor_EventScript_GenesisHasEON_TICKET
 	checkitem ITEM_EON_TICKET
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
 	setvar VAR_TEMP_E, 1
@@ -109,6 +110,7 @@ LilycoveCity_Harbor_EventScript_GetEonTicketState::
 LilycoveCity_Harbor_EventScript_GetAuroraTicketState::
 	setvar VAR_TEMP_D, 0
 	goto_if_unset FLAG_ENABLE_SHIP_BIRTH_ISLAND, Common_EventScript_NopReturn
+	goto_if_set FLAG_SHOWN_AURORA_TICKET, LilycoveCity_Harbor_EventScript_GenesisHasAURORA_TICKET
 	checkitem ITEM_AURORA_TICKET
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
 	setvar VAR_TEMP_D, 1
@@ -119,6 +121,7 @@ LilycoveCity_Harbor_EventScript_GetAuroraTicketState::
 LilycoveCity_Harbor_EventScript_GetOldSeaMapState::
 	setvar VAR_TEMP_C, 0
 	goto_if_unset FLAG_ENABLE_SHIP_FARAWAY_ISLAND, Common_EventScript_NopReturn
+	goto_if_set FLAG_SHOWN_OLD_SEA_MAP, LilycoveCity_Harbor_EventScript_GenesisHasOLD_SEA_MAP
 	checkitem ITEM_OLD_SEA_MAP
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
 	setvar VAR_TEMP_C, 1
@@ -129,6 +132,7 @@ LilycoveCity_Harbor_EventScript_GetOldSeaMapState::
 LilycoveCity_Harbor_EventScript_GetMysticTicketState::
 	setvar VAR_TEMP_9, 0
 	goto_if_unset FLAG_ENABLE_SHIP_NAVEL_ROCK, Common_EventScript_NopReturn
+	goto_if_set FLAG_SHOWN_MYSTIC_TICKET, LilycoveCity_Harbor_EventScript_GenesisHasMYSTIC_TICKET
 	checkitem ITEM_MYSTIC_TICKET
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
 	setvar VAR_TEMP_9, 1
@@ -427,7 +431,8 @@ LilycoveCity_Harbor_Movement_UnusedBoardFerry:
 LilycoveCity_Harbor_EventScript_Sailor::
 	lock
 	faceplayer
-	goto_if_set FLAG_SYS_GAME_CLEAR, LilycoveCity_Harbor_EventScript_SailorFerryAvailable
+	goto_if_set FLAG_SYS_GAME_CLEAR, LilycoveCity_Harbor_EventScript_GenesisPostgame
+	goto_if_set FLAG_ENABLE_SHIP_BIRTH_ISLAND, LilycoveCity_Harbor_EventScript_GenesisEarlyCharter
 	msgbox LilycoveCity_Harbor_Text_SailorFerryUnavailable, MSGBOX_DEFAULT
 	release
 	end
@@ -583,3 +588,85 @@ LilycoveCity_Harbor_Text_SailorFerryAvailable:
 	.string "The folks at the SHIPYARD in SLATEPORT\n"
 	.string "must've worked extra hard.\p"
 	.string "Well, it's my turn to get busy now!$"
+
+LilycoveCity_Harbor_EventScript_GenesisEarlyCharter::
+	msgbox LilycoveCity_Harbor_Text_GenesisCharter, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, LilycoveCity_Harbor_EventScript_ExitSailSelect
+	setflag FLAG_SHOWN_AURORA_TICKET
+	closemessage
+	warp MAP_BIRTH_ISLAND_HARBOR, 8, 4
+	waitstate
+	release
+	end
+
+LilycoveCity_Harbor_EventScript_GenesisPostgame::
+	specialvar VAR_RESULT, GenesisEvent_OldSeaMapAvailable
+	call_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMap
+	specialvar VAR_RESULT, GenesisEvent_EonTicketAvailable
+	call_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantEonTicket
+	specialvar VAR_RESULT, GenesisEvent_MysticTicketAvailable
+	call_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicket
+	goto LilycoveCity_Harbor_EventScript_SailorFerryAvailable
+	end
+
+LilycoveCity_Harbor_Text_GenesisCharter:
+	.string "The research ferry is ready.\n"
+	.string "Sail to BIRTH ISLAND?$"
+
+LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMap::
+	checkitem ITEM_OLD_SEA_MAP
+	goto_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMapEnable
+	msgbox LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMapText, MSGBOX_DEFAULT
+	giveitem ITEM_OLD_SEA_MAP
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMapEnable::
+	setflag FLAG_ENABLE_SHIP_FARAWAY_ISLAND
+	setflag FLAG_SHOWN_OLD_SEA_MAP
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisGrantOldSeaMapText:
+	.string "A chart of FARAWAY ISLAND.$"
+
+LilycoveCity_Harbor_EventScript_GenesisGrantEonTicket::
+	checkitem ITEM_EON_TICKET
+	goto_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantEonTicketEnable
+	msgbox LilycoveCity_Harbor_EventScript_GenesisGrantEonTicketText, MSGBOX_DEFAULT
+	giveitem ITEM_EON_TICKET
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+LilycoveCity_Harbor_EventScript_GenesisGrantEonTicketEnable::
+	setflag FLAG_ENABLE_SHIP_SOUTHERN_ISLAND
+	setflag FLAG_SHOWN_EON_TICKET
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisGrantEonTicketText:
+	.string "A pass to SOUTHERN ISLAND.$"
+
+LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicket::
+	checkitem ITEM_MYSTIC_TICKET
+	goto_if_eq VAR_RESULT, TRUE, LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicketEnable
+	msgbox LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicketText, MSGBOX_DEFAULT
+	giveitem ITEM_MYSTIC_TICKET
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicketEnable::
+	setflag FLAG_ENABLE_SHIP_NAVEL_ROCK
+	setflag FLAG_SHOWN_MYSTIC_TICKET
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisGrantMysticTicketText:
+	.string "A pass to NAVEL ROCK.$"
+
+LilycoveCity_Harbor_EventScript_GenesisHasEON_TICKET::
+	setvar VAR_TEMP_E, 1
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisHasMYSTIC_TICKET::
+	setvar VAR_TEMP_9, 1
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisHasAURORA_TICKET::
+	setvar VAR_TEMP_D, 1
+	return
+
+LilycoveCity_Harbor_EventScript_GenesisHasOLD_SEA_MAP::
+	setvar VAR_TEMP_C, 1
+	return
