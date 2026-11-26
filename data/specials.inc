@@ -658,3 +658,5 @@ gSpecials::
 	def_special GenesisStarter_ClaimLeague
 	def_special GenesisStarter_HasCofradiaPrize
 	def_special GenesisStarter_ClaimCofradia
+	def_special GenesisEvent_CrystalGateAvailable
+	def_special GenesisEvent_MewtwoAvailable

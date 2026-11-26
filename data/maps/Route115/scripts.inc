@@ -5,6 +5,7 @@ Route115_MapScripts::
 	.byte 0
 
 Route115_OnLoad:
+	call_if_unset FLAG_GENESIS_CRYSTAL_OPEN, Route115_EventScript_CrystalLockTile
 	call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_115_WEST, AbnormalWeather_EventScript_PlaceTilesRoute115West
 	call_if_eq VAR_ABNORMAL_WEATHER_LOCATION, ABNORMAL_WEATHER_ROUTE_115_EAST, AbnormalWeather_EventScript_PlaceTilesRoute115East
 	end
@@ -143,3 +144,60 @@ Route115_Text_MeteorFallsSign:
 	.string "METEOR FALLS\n"
 	.string "FALLARBOR TOWN THROUGH HERE$"
 
+
+Route115_EventScript_CrystalLockTile::
+	setmetatile 32, 39, METATILE_Fallarbor_BrownCaveEntrance_Bottom, TRUE
+	return
+
+Route115_EventScript_CrystalRock::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_CrystalGateAvailable
+	goto_if_eq VAR_RESULT, FALSE, Route115_EventScript_CrystalNeedBadges
+	checkfieldmove FIELD_MOVE_ROCK_SMASH, TRUE
+	goto_if_eq VAR_RESULT, PARTY_SIZE, Route115_EventScript_CrystalNeedMove
+	setfieldeffectargument 0, VAR_RESULT
+	bufferpartymonnick STR_VAR_1, VAR_RESULT
+	buffermovename STR_VAR_2, MOVE_ROCK_SMASH
+	msgbox Route115_Text_CrystalBreak, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Route115_EventScript_CrystalEnd
+	closemessage
+	setfieldeffectargument 3, FALSE
+	dofieldeffect FLDEFF_USE_ROCK_SMASH
+	waitstate
+	applymovement LOCALID_ROUTE115_CRYSTAL_ROCK, Movement_SmashRock
+	waitmovement 0
+	setflag FLAG_GENESIS_CRYSTAL_OPEN
+	removeobject LOCALID_ROUTE115_CRYSTAL_ROCK
+	setmetatile 32, 39, METATILE_Fallarbor_BrownCaveEntrance_Bottom, FALSE
+	msgbox Route115_Text_CrystalOpen, MSGBOX_DEFAULT
+	goto Route115_EventScript_CrystalEnd
+	end
+
+Route115_EventScript_CrystalNeedBadges::
+	msgbox Route115_Text_CrystalNeedBadges, MSGBOX_DEFAULT
+	goto Route115_EventScript_CrystalEnd
+	end
+
+Route115_EventScript_CrystalNeedMove::
+	msgbox Route115_Text_CrystalNeedMove, MSGBOX_DEFAULT
+	goto Route115_EventScript_CrystalEnd
+	end
+
+Route115_EventScript_CrystalEnd::
+	releaseall
+	end
+
+Route115_Text_CrystalBreak:
+	.string "A rock blocks a strange cave.\n"
+	.string "Use ROCK SMASH?$"
+
+Route115_Text_CrystalOpen:
+	.string "Blue light shines from within.\p"
+	.string "The CRYSTAL CAVE is open!$"
+
+Route115_Text_CrystalNeedBadges:
+	.string "The rock is unusually dense.\n"
+	.string "Five BADGES are needed.$"
+
+Route115_Text_CrystalNeedMove:
+	.string "ROCK SMASH could break this rock.$"

@@ -24,6 +24,8 @@ enum GenesisEventId
     GENESIS_EVENT_TADBULB_DISCOVERY,
     GENESIS_EVENT_VAROOM_DISCOVERY,
     GENESIS_EVENT_CRAMORANT_DISCOVERY,
+    GENESIS_EVENT_CRYSTAL_GATE,
+    GENESIS_EVENT_MEWTWO,
     GENESIS_EVENT_COUNT
 };
 
@@ -39,6 +41,8 @@ bool32 GenesisEvent_DeoxysAvailable(void);
 bool32 GenesisEvent_OldSeaMapAvailable(void);
 bool32 GenesisEvent_MysticTicketAvailable(void);
 bool32 GenesisEvent_EonTicketAvailable(void);
+bool32 GenesisEvent_CrystalGateAvailable(void);
+bool32 GenesisEvent_MewtwoAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
 #define GENESIS_STARTER_GENERATIONS 9

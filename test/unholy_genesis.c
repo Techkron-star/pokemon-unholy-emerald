@@ -318,3 +318,34 @@ TEST("Genesis starter generation selector excludes previously awarded trios")
     EXPECT_EQ(GenesisStarter_GetSpecies(9, 0), SPECIES_NONE);
     EXPECT_EQ(GenesisStarter_GetSpecies(0, 3), SPECIES_NONE);
 }
+
+TEST("Genesis Crystal Cave gate needs five badges and Mewtwo needs all eight")
+{
+    bool8 oldBadges[NUM_BADGES];
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        oldBadges[i] = FlagGet(FLAG_BADGE01_GET + i);
+        FlagClear(FLAG_BADGE01_GET + i);
+    }
+    bool8 oldOpen = FlagGet(FLAG_GENESIS_CRYSTAL_OPEN);
+    bool8 oldCaught = FlagGet(FLAG_GENESIS_MEWTWO_CAUGHT);
+    FlagClear(FLAG_GENESIS_CRYSTAL_OPEN);
+    FlagClear(FLAG_GENESIS_MEWTWO_CAUGHT);
+    for (u16 i = 0; i < 4; i++)
+        FlagSet(FLAG_BADGE01_GET + i);
+    EXPECT(!GenesisEvent_CrystalGateAvailable());
+    FlagSet(FLAG_BADGE05_GET);
+    EXPECT(GenesisEvent_CrystalGateAvailable());
+    EXPECT(!GenesisEvent_MewtwoAvailable());
+    FlagSet(FLAG_GENESIS_CRYSTAL_OPEN);
+    EXPECT(!GenesisEvent_CrystalGateAvailable());
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        FlagSet(FLAG_BADGE01_GET + i);
+    EXPECT(GenesisEvent_MewtwoAvailable());
+    FlagSet(FLAG_GENESIS_MEWTWO_CAUGHT);
+    EXPECT(!GenesisEvent_MewtwoAvailable());
+    if (oldOpen) FlagSet(FLAG_GENESIS_CRYSTAL_OPEN); else FlagClear(FLAG_GENESIS_CRYSTAL_OPEN);
+    if (oldCaught) FlagSet(FLAG_GENESIS_MEWTWO_CAUGHT); else FlagClear(FLAG_GENESIS_MEWTWO_CAUGHT);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
+}
