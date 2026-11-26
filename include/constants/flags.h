@@ -107,6 +107,12 @@
 #define FLAG_UNUSED_0x043    0x43 // Unused Flag
 #define FLAG_UNUSED_0x044    0x44 // Unused Flag
 #define FLAG_UNUSED_0x045    0x45 // Unused Flag
+// Genesis starter rewards: nine completion flags, four pending-generation bits,
+// two delivery-progress bits and five pending Cofradia prize bits.
+#define FLAG_GENESIS_STARTER_GEN1 FLAG_UNUSED_0x032
+#define FLAG_GENESIS_STARTER_PENDING_GEN FLAG_UNUSED_0x03B
+#define FLAG_GENESIS_STARTER_PROGRESS FLAG_UNUSED_0x03F
+#define FLAG_GENESIS_COFRADIA_PRIZE FLAG_UNUSED_0x041
 #define FLAG_UNUSED_0x046    0x46 // Unused Flag
 #define FLAG_UNUSED_0x047    0x47 // Unused Flag
 #define FLAG_UNUSED_0x048    0x48 // Unused Flag
