@@ -1,5 +1,6 @@
 #include "global.h"
 #include "unholy_bounty.h"
+#include "unholy_genesis.h"
 #include "main.h"
 #include "text.h"
 #include "menu.h"
@@ -49,6 +50,7 @@
 
 #define FLYDESTICON_RED_OUTLINE 6
 #define TAG_BOUNTY_MARKER 0xA4B1
+#define TAG_GENESIS_MARKER 0xA4B2
 
 enum {
     TAG_CURSOR,
@@ -712,6 +714,8 @@ void InitRegionMapData(struct RegionMap *regionMap, const struct BgTemplate *tem
     sRegionMap = regionMap;
     sRegionMap->initStep = 0;
     sRegionMap->bountyMarker = NULL;
+    for (u8 i = 0; i < GENESIS_MAP_MARKER_LIMIT; i++)
+        sRegionMap->genesisMarkers[i] = NULL;
     sRegionMap->zoomed = zoomed;
     sRegionMap->inputCallback = zoomed == TRUE ? ProcessRegionMapInput_Zoomed : ProcessRegionMapInput_Full;
     if (template != NULL)
@@ -827,6 +831,16 @@ void BlendRegionMap(u16 color, u32 coeff)
 
 void FreeRegionMapIconResources(void)
 {
+    for (u8 i = 0; i < GENESIS_MAP_MARKER_LIMIT; i++)
+    {
+        if (sRegionMap->genesisMarkers[i] != NULL)
+        {
+            DestroySprite(sRegionMap->genesisMarkers[i]);
+            sRegionMap->genesisMarkers[i] = NULL;
+        }
+    }
+    FreeSpriteTilesByTag(TAG_GENESIS_MARKER);
+    FreeSpritePaletteByTag(TAG_GENESIS_MARKER);
     if (sRegionMap->bountyMarker != NULL)
     {
         DestroySprite(sRegionMap->bountyMarker);
@@ -1717,9 +1731,69 @@ static void CreateBountyMarker(void)
     SpriteCB_BountyMarker(sRegionMap->bountyMarker);
 }
 
+static const u32 sGenesisMarkerGfx[] =
+{
+    0x00000000, 0x00000000, 0x11111100, 0x11111110,
+    0x11131110, 0x11131110, 0x11131110, 0x11131110,
+    0x00000000, 0x00000000, 0x00111111, 0x01111111,
+    0x01131113, 0x01131113, 0x01131113, 0x01131113,
+    0x11131110, 0x11111110, 0x11131110, 0x11111110,
+    0x11111100, 0x00000000, 0x00000000, 0x00000000,
+    0x01131113, 0x01111111, 0x01131113, 0x01111111,
+    0x00111111, 0x00000000, 0x00000000, 0x00000000,
+};
+static const u16 sGenesisMarkerPalette[16] = {RGB_BLACK, RGB(14, 3, 24), RGB(23, 12, 31), RGB_WHITE};
+
+static void SpriteCB_GenesisMarker(struct Sprite *sprite)
+{
+    SpriteCB_BountyMarker(sprite);
+    // Offset the discovery when a bounty shares its region.
+    if (sRegionMap->bountyMarker != NULL
+     && sRegionMap->bountyMarker->data[0] == sprite->data[0])
+        sprite->x += 8;
+}
+
+static void CreateGenesisMarkers(void)
+{
+    if (IS_FRLG || GetRegionMapType(gMapHeader.regionMapSectionId) != REGION_MAP_HOENN
+     || sRegionMap->genesisMarkers[0] != NULL)
+        return;
+
+    u16 sections[GENESIS_MAP_MARKER_LIMIT];
+    u8 count = GenesisEvent_GetPendingSections(sections, ARRAY_COUNT(sections));
+    if (!count)
+        return;
+
+    const struct SpriteSheet sheet = {sGenesisMarkerGfx, sizeof(sGenesisMarkerGfx), TAG_GENESIS_MARKER};
+    const struct SpritePalette palette = {sGenesisMarkerPalette, TAG_GENESIS_MARKER};
+    const struct SpriteTemplate template = {TAG_GENESIS_MARKER, TAG_GENESIS_MARKER, &sRegionMapPlayerIconOam,
+        sRegionMapPlayerIconAnimTable, NULL, gDummySpriteAffineAnimTable, SpriteCB_GenesisMarker};
+    LoadSpriteSheet(&sheet);
+    LoadSpritePalette(&palette);
+    u8 created = 0;
+    for (u8 i = 0; i < count; i++)
+    {
+        if (sections[i] >= MAPSEC_NONE)
+            continue;
+        u8 spriteId = CreateSprite(&template, 0, 0, 0);
+        if (spriteId == MAX_SPRITES)
+            break;
+        struct Sprite *sprite = &gSprites[spriteId];
+        sRegionMap->genesisMarkers[created++] = sprite;
+        sprite->data[0] = sections[i];
+        SpriteCB_GenesisMarker(sprite);
+    }
+    if (!created)
+    {
+        FreeSpriteTilesByTag(TAG_GENESIS_MARKER);
+        FreeSpritePaletteByTag(TAG_GENESIS_MARKER);
+    }
+}
+
 void CreateRegionMapCursor(u16 tileTag, u16 paletteTag)
 {
     CreateBountyMarker();
+    CreateGenesisMarkers();
     u8 spriteId;
     struct SpriteTemplate template;
     struct SpritePalette palette;
