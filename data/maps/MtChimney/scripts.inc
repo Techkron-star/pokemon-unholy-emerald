@@ -5,10 +5,12 @@ MtChimney_MapScripts::
 
 MtChimney_OnTransition:
 	setvar VAR_JAGGED_PASS_ASH_WEATHER, 1
+	call MtChimney_EventScript_GenesisRefresh
 	end
 
 MtChimney_OnResume:
 	setstepcallback STEP_CB_ASH
+	call_if_set FLAG_SYS_CTRL_OBJ_DELETE, MtChimney_EventScript_GenesisTryRemoveCaught
 	end
 
 MtChimney_EventScript_Archie::
@@ -851,3 +853,78 @@ MtChimney_Text_SawyerRematchDefeat:
 MtChimney_Text_SawyerPostRematch:
 	.string "Actually, it really is hot here.\n"
 	.string "I'm overdressed for these parts.$"
+
+@ Genesis: only the available stage is shown on map entry.
+MtChimney_EventScript_GenesisRefresh::
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_HIDE
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_HIDE
+	specialvar VAR_RESULT, GenesisEvent_MoltresAvailable
+	goto_if_eq VAR_RESULT, TRUE, MtChimney_EventScript_GenesisShowNormal
+	specialvar VAR_RESULT, GenesisEvent_MoltresGalarAvailable
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+	clearflag FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_HIDE
+	return
+
+MtChimney_EventScript_GenesisShowNormal::
+	clearflag FLAG_UNHOLY_GENESIS_MOLTRES_HIDE
+	return
+
+MtChimney_EventScript_GenesisTryRemoveCaught::
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_ne VAR_RESULT, B_OUTCOME_CAUGHT, Common_EventScript_NopReturn
+	removeobject VAR_LAST_TALKED
+	return
+
+MtChimney_EventScript_GenesisRelease::
+	releaseall
+	end
+
+MtChimney_EventScript_GenesisMoltres::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_MoltresAvailable
+	goto_if_eq VAR_RESULT, FALSE, MtChimney_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_MOLTRES, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_MOLTRES, 45
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, MtChimney_EventScript_GenesisMoltresCaught
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_HIDE
+	removeobject 31
+	releaseall
+	end
+
+MtChimney_EventScript_GenesisMoltresCaught::
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_HIDE
+	releaseall
+	end
+
+MtChimney_EventScript_GenesisMoltresGalar::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_MoltresGalarAvailable
+	goto_if_eq VAR_RESULT, FALSE, MtChimney_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_MOLTRES_GALAR, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_MOLTRES_GALAR, 65
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, MtChimney_EventScript_GenesisMoltresGalarCaught
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_HIDE
+	removeobject 32
+	releaseall
+	end
+
+MtChimney_EventScript_GenesisMoltresGalarCaught::
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_HIDE
+	releaseall
+	end

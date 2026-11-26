@@ -9,6 +9,7 @@ struct GenesisEvent
 {
     u16 mapSection;
     u16 prerequisiteFlag;
+    u16 storyFlag;
     u16 prerequisiteVar;
     u16 prerequisiteValue;
     u16 completionFlag;
@@ -36,6 +37,32 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .previousCaptureFlag = FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT,
         .requiresAllBadges = TRUE,
     },
+    [GENESIS_EVENT_MOLTRES] = {
+        .mapSection = MAPSEC_MT_CHIMNEY,
+        .prerequisiteFlag = FLAG_BADGE04_GET,
+        .storyFlag = FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY,
+        .completionFlag = FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT,
+    },
+    [GENESIS_EVENT_MOLTRES_GALAR] = {
+        .mapSection = MAPSEC_MT_CHIMNEY,
+        .prerequisiteFlag = FLAG_BADGE04_GET,
+        .storyFlag = FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY,
+        .completionFlag = FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT,
+        .previousCaptureFlag = FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT,
+        .requiresAllBadges = TRUE,
+    },
+    [GENESIS_EVENT_ARTICUNO] = {
+        .mapSection = MAPSEC_SHOAL_CAVE,
+        .prerequisiteFlag = FLAG_BADGE07_GET,
+        .completionFlag = FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT,
+    },
+    [GENESIS_EVENT_ARTICUNO_GALAR] = {
+        .mapSection = MAPSEC_SHOAL_CAVE,
+        .prerequisiteFlag = FLAG_BADGE07_GET,
+        .completionFlag = FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT,
+        .previousCaptureFlag = FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT,
+        .requiresAllBadges = TRUE,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
@@ -53,6 +80,7 @@ bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
         return FALSE;
     return !FlagGet(event->completionFlag)
         && (!event->prerequisiteFlag || FlagGet(event->prerequisiteFlag))
+        && (!event->storyFlag || FlagGet(event->storyFlag))
         && (!event->prerequisiteVar || VarGet(event->prerequisiteVar) == event->prerequisiteValue);
 }
 
@@ -85,4 +113,24 @@ bool32 GenesisEvent_ZapdosAvailable(void)
 bool32 GenesisEvent_ZapdosGalarAvailable(void)
 {
     return GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS_GALAR);
+}
+
+bool32 GenesisEvent_MoltresAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_MOLTRES);
+}
+
+bool32 GenesisEvent_MoltresGalarAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_MOLTRES_GALAR);
+}
+
+bool32 GenesisEvent_ArticunoAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_ARTICUNO);
+}
+
+bool32 GenesisEvent_ArticunoGalarAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_ARTICUNO_GALAR);
 }

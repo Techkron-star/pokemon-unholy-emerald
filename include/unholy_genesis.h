@@ -7,12 +7,20 @@ enum GenesisEventId
 {
     GENESIS_EVENT_ZAPDOS,
     GENESIS_EVENT_ZAPDOS_GALAR,
+    GENESIS_EVENT_MOLTRES,
+    GENESIS_EVENT_MOLTRES_GALAR,
+    GENESIS_EVENT_ARTICUNO,
+    GENESIS_EVENT_ARTICUNO_GALAR,
     GENESIS_EVENT_COUNT
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id);
 bool32 GenesisEvent_ZapdosAvailable(void);
 bool32 GenesisEvent_ZapdosGalarAvailable(void);
+bool32 GenesisEvent_MoltresAvailable(void);
+bool32 GenesisEvent_MoltresGalarAvailable(void);
+bool32 GenesisEvent_ArticunoAvailable(void);
+bool32 GenesisEvent_ArticunoGalarAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
 #endif

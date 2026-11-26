@@ -6,6 +6,16 @@
 #include "constants/region_map_sections.h"
 #include "test/test.h"
 
+static bool32 HasPendingSection(u16 section)
+{
+    u16 sections[GENESIS_MAP_MARKER_LIMIT];
+    u8 count = GenesisEvent_GetPendingSections(sections, ARRAY_COUNT(sections));
+    for (u8 i = 0; i < count; i++)
+        if (sections[i] == section)
+            return TRUE;
+    return FALSE;
+}
+
 TEST("Genesis Zapdos requires both generator completion and the sixth badge")
 {
     u16 oldState = VarGet(VAR_NEW_MAUVILLE_STATE);
@@ -31,7 +41,7 @@ TEST("Genesis Zapdos requires both generator completion and the sixth badge")
     EXPECT_EQ(sections[0], MAPSEC_MAUVILLE_CITY);
     FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT);
     EXPECT(!GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS));
-    EXPECT_EQ(GenesisEvent_GetPendingSections(sections, GENESIS_MAP_MARKER_LIMIT), 0);
+    EXPECT(!HasPendingSection(MAPSEC_MAUVILLE_CITY));
     EXPECT(!GenesisEvent_IsAvailable(GENESIS_EVENT_COUNT));
     VarSet(VAR_NEW_MAUVILLE_STATE, oldState);
     if (oldBadge8) FlagSet(FLAG_BADGE08_GET); else FlagClear(FLAG_BADGE08_GET);
@@ -63,15 +73,85 @@ TEST("Genesis regional encounter requires original capture and every badge")
     }
     EXPECT(!GenesisEvent_ZapdosAvailable());
     EXPECT(GenesisEvent_ZapdosGalarAvailable());
-    u16 sections[GENESIS_MAP_MARKER_LIMIT];
-    EXPECT_EQ(GenesisEvent_GetPendingSections(sections, ARRAY_COUNT(sections)), 1);
-    EXPECT_EQ(sections[0], MAPSEC_MAUVILLE_CITY);
+    EXPECT(HasPendingSection(MAPSEC_MAUVILLE_CITY));
     FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT);
     EXPECT(!GenesisEvent_ZapdosGalarAvailable());
-    EXPECT_EQ(GenesisEvent_GetPendingSections(sections, ARRAY_COUNT(sections)), 0);
+    EXPECT(!HasPendingSection(MAPSEC_MAUVILLE_CITY));
     VarSet(VAR_NEW_MAUVILLE_STATE, oldState);
     for (u16 i = 0; i < NUM_BADGES; i++)
         if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
     if (oldOriginal) FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT); else FlagClear(FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT);
     if (oldRegional) FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT); else FlagClear(FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT);
+}
+
+TEST("Genesis Moltres requires fourth badge and the volcano story")
+{
+    bool8 badge = FlagGet(FLAG_BADGE04_GET);
+    bool8 story = FlagGet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    bool8 caught = FlagGet(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT);
+    FlagClear(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT);
+    FlagClear(FLAG_BADGE04_GET);
+    FlagSet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    EXPECT(!GenesisEvent_MoltresAvailable());
+    FlagSet(FLAG_BADGE04_GET);
+    FlagClear(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    EXPECT(!GenesisEvent_MoltresAvailable());
+    FlagSet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    EXPECT(GenesisEvent_MoltresAvailable());
+    EXPECT(HasPendingSection(MAPSEC_MT_CHIMNEY));
+    if (badge) FlagSet(FLAG_BADGE04_GET); else FlagClear(FLAG_BADGE04_GET);
+    if (story) FlagSet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY); else FlagClear(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    if (caught) FlagSet(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT); else FlagClear(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT);
+}
+
+TEST("Genesis Articuno requires seventh badge")
+{
+    bool8 badge = FlagGet(FLAG_BADGE07_GET);
+    bool8 caught = FlagGet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
+    FlagClear(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
+    FlagClear(FLAG_BADGE07_GET);
+    EXPECT(!GenesisEvent_ArticunoAvailable());
+    FlagSet(FLAG_BADGE07_GET);
+    EXPECT(GenesisEvent_ArticunoAvailable());
+    EXPECT(HasPendingSection(MAPSEC_SHOAL_CAVE));
+    if (badge) FlagSet(FLAG_BADGE07_GET); else FlagClear(FLAG_BADGE07_GET);
+    if (caught) FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT); else FlagClear(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
+}
+
+TEST("Genesis regional Articuno and Moltres require original captures and all badges")
+{
+    bool8 oldBadges[NUM_BADGES];
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        oldBadges[i] = FlagGet(FLAG_BADGE01_GET + i);
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    const u16 flags[] = {FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY, FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT, FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT, FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT, FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT};
+    bool8 oldFlags[ARRAY_COUNT(flags)];
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+    {
+        oldFlags[i] = FlagGet(flags[i]);
+        FlagClear(flags[i]);
+    }
+    FlagSet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    EXPECT(!GenesisEvent_MoltresGalarAvailable());
+    EXPECT(!GenesisEvent_ArticunoGalarAvailable());
+    FlagSet(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT);
+    FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
+    FlagClear(FLAG_BADGE08_GET);
+    EXPECT(!GenesisEvent_MoltresGalarAvailable());
+    EXPECT(!GenesisEvent_ArticunoGalarAvailable());
+    FlagSet(FLAG_BADGE08_GET);
+    EXPECT(GenesisEvent_MoltresGalarAvailable());
+    EXPECT(GenesisEvent_ArticunoGalarAvailable());
+    EXPECT(HasPendingSection(MAPSEC_MT_CHIMNEY));
+    EXPECT(HasPendingSection(MAPSEC_SHOAL_CAVE));
+    FlagSet(FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT);
+    FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT);
+    EXPECT(!HasPendingSection(MAPSEC_MT_CHIMNEY));
+    EXPECT(!HasPendingSection(MAPSEC_SHOAL_CAVE));
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+        if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
 }
