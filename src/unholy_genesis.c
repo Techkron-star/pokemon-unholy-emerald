@@ -56,3 +56,9 @@ u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity)
     }
     return count;
 }
+
+// Script bridge: no duplicate prerequisite logic in map scripts.
+bool32 GenesisEvent_ZapdosAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS);
+}
