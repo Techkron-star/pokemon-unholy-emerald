@@ -1,3 +1,88 @@
 ShoalCave_LowTideIceRoom_MapScripts::
+	map_script MAP_SCRIPT_ON_TRANSITION, ShoalCave_LowTideIceRoom_OnTransition
+	map_script MAP_SCRIPT_ON_RESUME, ShoalCave_LowTideIceRoom_OnResume
 	.byte 0
 
+ShoalCave_LowTideIceRoom_OnTransition:
+	call ShoalCave_LowTideIceRoom_EventScript_GenesisRefresh
+	end
+
+ShoalCave_LowTideIceRoom_OnResume:
+	call_if_set FLAG_SYS_CTRL_OBJ_DELETE, ShoalCave_LowTideIceRoom_EventScript_GenesisTryRemoveCaught
+	end
+
+
+@ Genesis: only the available stage is shown on map entry.
+ShoalCave_LowTideIceRoom_EventScript_GenesisRefresh::
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_HIDE
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_HIDE
+	specialvar VAR_RESULT, GenesisEvent_ArticunoAvailable
+	goto_if_eq VAR_RESULT, TRUE, ShoalCave_LowTideIceRoom_EventScript_GenesisShowNormal
+	specialvar VAR_RESULT, GenesisEvent_ArticunoGalarAvailable
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+	clearflag FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_HIDE
+	return
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisShowNormal::
+	clearflag FLAG_UNHOLY_GENESIS_ARTICUNO_HIDE
+	return
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisTryRemoveCaught::
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_ne VAR_RESULT, B_OUTCOME_CAUGHT, Common_EventScript_NopReturn
+	removeobject VAR_LAST_TALKED
+	return
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisRelease::
+	releaseall
+	end
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisArticuno::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_ArticunoAvailable
+	goto_if_eq VAR_RESULT, FALSE, ShoalCave_LowTideIceRoom_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_ARTICUNO, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_ARTICUNO, 55
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, ShoalCave_LowTideIceRoom_EventScript_GenesisArticunoCaught
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_HIDE
+	removeobject 4
+	releaseall
+	end
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisArticunoCaught::
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_HIDE
+	releaseall
+	end
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisArticunoGalar::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_ArticunoGalarAvailable
+	goto_if_eq VAR_RESULT, FALSE, ShoalCave_LowTideIceRoom_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_ARTICUNO_GALAR, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_ARTICUNO_GALAR, 65
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, ShoalCave_LowTideIceRoom_EventScript_GenesisArticunoGalarCaught
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_HIDE
+	removeobject 5
+	releaseall
+	end
+
+ShoalCave_LowTideIceRoom_EventScript_GenesisArticunoGalarCaught::
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_HIDE
+	releaseall
+	end
