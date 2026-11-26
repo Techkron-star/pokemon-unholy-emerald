@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_cofradia.h"
 #include "battle_unholy_abilities.h"
 #include "battle.h"
 #include "battle_hold_effects.h"
@@ -2126,6 +2127,8 @@ FEATURE_FLAG_ASSERT(I_EXP_SHARE_FLAG, YouNeedToSetTheExpShareFlagToAnUnusedFlag)
 
 static bool32 BattleTypeAllowsExp(void)
 {
+    if (CofradiaBattleActive())
+        return FALSE;
     if (RECORDED_WILD_BATTLE)
         return TRUE;
     else if (gBattleTypeFlags &
@@ -4108,6 +4111,12 @@ static void Cmd_getmoneyreward(void)
     u32 money;
     u8 sPartyLevel = 1;
 
+    if (CofradiaBattleActive())
+    {
+        PREPARE_WORD_NUMBER_BUFFER(gBattleTextBuff1, MAX_MONEY_DIGITS, 0);
+        gBattlescriptCurrInstr = cmd->nextInstr;
+        return;
+    }
     if (gBattleOutcome == B_OUTCOME_WON)
     {
         money = GetTrainerMoneyToGive(TRAINER_BATTLE_PARAM.opponentA);
@@ -5814,7 +5823,7 @@ static void Cmd_givepaydaymoney(void)
 {
     CMD_ARGS();
 
-    if (!(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK)) && gPaydayMoney != 0)
+    if (!CofradiaBattleActive() && !(gBattleTypeFlags & (BATTLE_TYPE_LINK | BATTLE_TYPE_RECORDED_LINK)) && gPaydayMoney != 0)
     {
         u32 bonusMoney = gPaydayMoney * gBattleStruct->moneyMultiplier;
         AddMoney(&gSaveBlock1Ptr->money, bonusMoney);

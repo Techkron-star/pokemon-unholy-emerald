@@ -142,7 +142,7 @@
       "elevation": 3,
       "var": "VAR_TRAINER_HILL_IS_ACTIVE",
       "var_value": "0",
-      "script": "TrainerHill_Entrance_EventScript_EntryTrigger"
+      "script": "Cofradia_EntryTrigger"
     }
   ],
   "bg_events": [

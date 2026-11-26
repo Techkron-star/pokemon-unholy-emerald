@@ -1,4 +1,5 @@
 #include "global.h"
+#include "unholy_cofradia.h"
 #include "main.h"
 #include "malloc.h"
 #include "battle.h"
@@ -292,6 +293,17 @@ static u64 GetAiFlags(u16 trainerId, enum BattlerId battler)
     if (IsDoubleBattle() && flags != 0)
     {
         flags |= AI_FLAG_DOUBLE_BATTLE;
+    }
+
+    if (CofradiaBattleActive())
+    {
+        flags |= AI_FLAG_BASIC_TRAINER;
+        if (CofradiaBattleDifficulty() >= 2)
+            flags |= AI_FLAG_HP_AWARE | AI_FLAG_TRY_TO_2HKO;
+        if (CofradiaBattleDifficulty() >= 3)
+            flags |= AI_FLAG_SMART_TRAINER;
+        if (CofradiaBattleDifficulty() >= 5)
+            flags |= AI_FLAG_PREDICTION;
     }
 
     // Automatically includes AI_FLAG_SMART_MON_CHOICES to improve smart switching
