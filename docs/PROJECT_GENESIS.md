@@ -93,3 +93,5 @@ Run `python3 tools/genesis_census.py --output /tmp/genesis-census.csv` from a fu
 - New standalone 27x30 map derived from Marine Cave End. Native Kyogre maps untouched. Drained basin, six blue-stone decorations, distinct map name, native warp back to Route 115. Static tile dimensions and connectivity checked; actual metatile behavior, drawing and traversal still need emulator QA.
 - Goomy/Sliggoo and Jangmo-o/Hakamo-o families, alongside Beldum, Gible, Dratini, Roggenrola, Carbink and Sableye; wild levels provisional. Frigibax family reserved for later ice habitat. Mewtwo visible in deepest chamber, level 70 provisional, battle interaction locked until all eight badges, retry on re-entry unless caught. Route 115 discovery markers for gate and Mewtwo.
 - Census now 112 entries without documented source/family. Build and emulator validation pending; stacked PRs not merged.
+
+- Locked special encounters can branch to `Common_EventScript_GenesisUnworthy`: "No eres digno de desafiar este Pokémon." Mewtwo uses this shared message before eight badges, without revealing the exact requirement. The common script releases interaction and ends without initiating battle.
