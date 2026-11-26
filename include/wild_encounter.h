@@ -84,6 +84,12 @@ u8 GetWildEncounterSlotCount(enum WildPokemonArea area);
 u8 GetWildEncounterSlotWeight(enum WildPokemonArea area, u8 slot);
 u8 GetWildEncounterSlotGroupTotal(enum WildPokemonArea area, u8 slot);
 
+// Genesis additions use an independent fixed pool chance (no new native slots).
+#define GENESIS_WILD_POOL_CHANCE 20
+u16 GenesisWild_GetEligibleCount(u16 map, enum WildPokemonArea area, u8 badges);
+const struct WildPokemon *GenesisWild_GetEligibleMon(u16 map, enum WildPokemonArea area, u8 badges, u16 index);
+u8 GenesisWild_GetBadgeCount(void);
+
 u8 GetLandEncounterSlotForMatchCall(void);
 u8 GetWaterEncounterSlotForMatchCall(void);
 

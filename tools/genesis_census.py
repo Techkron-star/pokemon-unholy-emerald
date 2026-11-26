@@ -65,6 +65,13 @@ def audit(root, output):
     for encounter in group["encounters"]:
         for token in SPECIES.findall(json.dumps(encounter)):
             add(wild, token, encounter["map"])
+    bonus = root / "src/data/unholy_genesis_wild.inc"
+    if bonus.exists():
+        for map_name, badges, token in re.findall(
+            r"GENESIS_WILD\((MAP_\w+),\s*WILD_AREA_\w+,\s*(\d+),\s*\d+,\s*\d+,\s*SPECIES_(\w+)\)",
+            bonus.read_text()
+        ):
+            add(wild, token, map_name + "@" + badges + "badges")
     for file in sorted((root / "data").rglob("*.inc")):
         for token in SCRIPT_SOURCE.findall(file.read_text(errors="replace")):
             add(scripted, token, str(file.relative_to(root)))

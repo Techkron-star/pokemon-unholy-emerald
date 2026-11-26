@@ -28,6 +28,8 @@
 #include "battle_pike.h"
 #include "battle_pyramid.h"
 #include "constants/abilities.h"
+#include "constants/flags.h"
+#include "constants/maps.h"
 #include "constants/game_stat.h"
 #include "constants/item.h"
 #include "constants/items.h"
@@ -535,6 +537,71 @@ void CreateWildMon(enum Species species, u8 level)
 #define TRY_GET_ABILITY_INFLUENCED_WILD_MON_INDEX(wildPokemon, type, ability, ptr, count) TryGetAbilityInfluencedWildMonIndex(wildPokemon, type, ability, ptr)
 #endif
 
+// Additions are data-driven and cumulative; original encounter headers stay intact.
+struct GenesisWildEntry
+{
+    u16 map;
+    u8 area;
+    u8 badges;
+    struct WildPokemon mon;
+};
+
+#define GENESIS_WILD(mapId, areaId, badgeCount, min, max, speciesId) \
+    {mapId, areaId, badgeCount, {min, max, speciesId}},
+static const struct GenesisWildEntry sGenesisWild[] =
+{
+#include "data/unholy_genesis_wild.inc"
+};
+#undef GENESIS_WILD
+
+u8 GenesisWild_GetBadgeCount(void)
+{
+    u8 count = 0;
+    for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
+        if (FlagGet(flag))
+            count++;
+    return count;
+}
+
+static bool32 GenesisWild_EntryMatches(const struct GenesisWildEntry *entry, u16 map, enum WildPokemonArea area, u8 badges)
+{
+    return entry->map == map && entry->area == area && badges >= entry->badges;
+}
+
+u16 GenesisWild_GetEligibleCount(u16 map, enum WildPokemonArea area, u8 badges)
+{
+    u16 count = 0;
+    for (u32 i = 0; i < ARRAY_COUNT(sGenesisWild); i++)
+        if (GenesisWild_EntryMatches(&sGenesisWild[i], map, area, badges))
+            count++;
+    return count;
+}
+
+const struct WildPokemon *GenesisWild_GetEligibleMon(u16 map, enum WildPokemonArea area, u8 badges, u16 index)
+{
+    for (u32 i = 0; i < ARRAY_COUNT(sGenesisWild); i++)
+    {
+        if (!GenesisWild_EntryMatches(&sGenesisWild[i], map, area, badges))
+            continue;
+        if (index == 0)
+            return &sGenesisWild[i].mon;
+        index--;
+    }
+    return NULL;
+}
+
+static const struct WildPokemon *GenesisWild_TrySelect(enum WildPokemonArea area)
+{
+    if (area != WILD_AREA_LAND && area != WILD_AREA_WATER)
+        return NULL;
+    u16 map = ((u16)gSaveBlock1Ptr->location.mapGroup << 8) | (u8)gSaveBlock1Ptr->location.mapNum;
+    u8 badges = GenesisWild_GetBadgeCount();
+    u16 count = GenesisWild_GetEligibleCount(map, area, badges);
+    if (!count || Random() % 100 >= GENESIS_WILD_POOL_CHANCE)
+        return NULL;
+    return GenesisWild_GetEligibleMon(map, area, badges, Random() % count);
+}
+
 bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPokemonArea area, u8 flags)
 {
     u8 wildMonIndex = 0;
@@ -583,13 +650,24 @@ bool8 TryGenerateWildMon(const struct WildPokemonInfo *wildMonInfo, enum WildPok
         break;
     }
 
-    level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, area);
+    const struct WildPokemon *genesisMon = GenesisWild_TrySelect(area);
+    enum Species species;
+    if (genesisMon != NULL)
+    {
+        species = genesisMon->species;
+        level = genesisMon->minLevel + Random() % (genesisMon->maxLevel - genesisMon->minLevel + 1);
+    }
+    else
+    {
+        species = wildMonInfo->wildPokemon[wildMonIndex].species;
+        level = ChooseWildMonLevel(wildMonInfo->wildPokemon, wildMonIndex, area);
+    }
     if (flags & WILD_CHECK_REPEL && !IsWildLevelAllowedByRepel(level))
         return FALSE;
     if (gMapHeader.mapLayoutId != LAYOUT_BATTLE_FRONTIER_BATTLE_PIKE_ROOM_WILD_MONS && flags & WILD_CHECK_KEEN_EYE && !IsAbilityAllowingEncounter(level))
         return FALSE;
 
-    CreateWildMonWithFrequency(wildMonInfo->wildPokemon[wildMonIndex].species, level, HfcWatch_ConsumeFrequencyEncounter());
+    CreateWildMonWithFrequency(species, level, HfcWatch_ConsumeFrequencyEncounter());
     return TRUE;
 }
 

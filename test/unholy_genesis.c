@@ -1,6 +1,8 @@
 #include "global.h"
 #include "event_data.h"
 #include "unholy_genesis.h"
+#include "wild_encounter.h"
+#include "constants/maps.h"
 #include "constants/flags.h"
 #include "constants/vars.h"
 #include "constants/region_map_sections.h"
@@ -281,4 +283,25 @@ TEST("Genesis environmental discoveries depend on progression and capture")
         if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
     VarSet(VAR_NEW_MAUVILLE_STATE, oldGenerator);
     if (oldBadge) FlagSet(FLAG_BADGE06_GET); else FlagClear(FLAG_BADGE06_GET);
+}
+
+TEST("Genesis wild pools unlock cumulatively and preserve habitat separation")
+{
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE101, WILD_AREA_LAND, 0), 0);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE101, WILD_AREA_LAND, 1), 3);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE101, WILD_AREA_LAND, 8), 3);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE101, WILD_AREA_WATER, 8), 0);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_MIRAGE_TOWER_1F, WILD_AREA_LAND, 2), 0);
+    const struct WildPokemon *mon = GenesisWild_GetEligibleMon(MAP_MIRAGE_TOWER_1F, WILD_AREA_LAND, 3, 0);
+    EXPECT(mon != NULL);
+    if (mon != NULL)
+    {
+        EXPECT_EQ(mon->species, SPECIES_SILICOBRA);
+        EXPECT(mon->minLevel <= mon->maxLevel);
+    }
+    EXPECT(GenesisWild_GetEligibleMon(MAP_MIRAGE_TOWER_1F, WILD_AREA_LAND, 3, 1) == NULL);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_DESERT_UNDERPASS, WILD_AREA_LAND, 7), 0);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_DESERT_UNDERPASS, WILD_AREA_LAND, 8), 4);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE105, WILD_AREA_WATER, 4), 0);
+    EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE105, WILD_AREA_WATER, 5), 1);
 }
