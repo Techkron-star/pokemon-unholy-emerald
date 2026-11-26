@@ -49,6 +49,8 @@ LilycoveCity_DepartmentStoreRooftop_PokemartDecor_ClearOutSale:
 LilycoveCity_DepartmentStoreRooftop_EventScript_Man::
 	lock
 	faceplayer
+	goto_if_set FLAG_BADGE05_GET, LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisFossilMarket
+LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisOriginalMan::
 	getpokenewsactive POKENEWS_LILYCOVE
 	call_if_eq VAR_RESULT, TRUE, LilycoveCity_DepartmentStoreRooftop_EventScript_ManClearOutSale
 	msgbox LilycoveCity_DepartmentStoreRooftop_Text_SetDatesForClearOutSales, MSGBOX_DEFAULT
@@ -217,3 +219,59 @@ LilycoveCity_DepartmentStoreRooftop_Text_NotEnoughMoney:
 
 LilycoveCity_DepartmentStoreRooftop_Text_DecidedAgainstBuyingDrink:
 	.string "Decided against buying a drink.$"
+
+LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisFossilMarket::
+	msgbox LilycoveCity_DepartmentStoreRooftop_Text_GenesisFossilMarket, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisOriginalMan
+	goto_if_set FLAG_BADGE08_GET, LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisFullMarket
+	pokemart LilycoveCity_DepartmentStoreRooftop_Pokemart_GenesisFossils
+	goto LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisMarketEnd
+	end
+
+LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisFullMarket::
+	pokemart LilycoveCity_DepartmentStoreRooftop_Pokemart_GenesisAllFossils
+	goto LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisMarketEnd
+	end
+
+LilycoveCity_DepartmentStoreRooftop_EventScript_GenesisMarketEnd::
+	msgbox gText_PleaseComeAgain, MSGBOX_DEFAULT
+	release
+	end
+
+	.align 2
+LilycoveCity_DepartmentStoreRooftop_Pokemart_GenesisFossils:
+	.2byte ITEM_ROOT_FOSSIL
+	.2byte ITEM_CLAW_FOSSIL
+	.2byte ITEM_HELIX_FOSSIL
+	.2byte ITEM_DOME_FOSSIL
+	.2byte ITEM_OLD_AMBER
+	.2byte ITEM_SKULL_FOSSIL
+	.2byte ITEM_ARMOR_FOSSIL
+	.2byte ITEM_COVER_FOSSIL
+	.2byte ITEM_PLUME_FOSSIL
+	.2byte ITEM_JAW_FOSSIL
+	.2byte ITEM_SAIL_FOSSIL
+	pokemartlistend
+
+	.align 2
+LilycoveCity_DepartmentStoreRooftop_Pokemart_GenesisAllFossils:
+	.2byte ITEM_ROOT_FOSSIL
+	.2byte ITEM_CLAW_FOSSIL
+	.2byte ITEM_HELIX_FOSSIL
+	.2byte ITEM_DOME_FOSSIL
+	.2byte ITEM_OLD_AMBER
+	.2byte ITEM_SKULL_FOSSIL
+	.2byte ITEM_ARMOR_FOSSIL
+	.2byte ITEM_COVER_FOSSIL
+	.2byte ITEM_PLUME_FOSSIL
+	.2byte ITEM_JAW_FOSSIL
+	.2byte ITEM_SAIL_FOSSIL
+	.2byte ITEM_FOSSILIZED_BIRD
+	.2byte ITEM_FOSSILIZED_FISH
+	.2byte ITEM_FOSSILIZED_DRAKE
+	.2byte ITEM_FOSSILIZED_DINO
+	pokemartlistend
+
+LilycoveCity_DepartmentStoreRooftop_Text_GenesisFossilMarket:
+	.string "I sell fossils from many regions.\n"
+	.string "Want to see my collection?$"
