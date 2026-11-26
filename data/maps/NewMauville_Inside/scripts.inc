@@ -22,6 +22,7 @@ NewMauville_Inside_OnTransition:
 	call_if_unset FLAG_DEFEATED_VOLTORB_1_NEW_MAUVILLE, NewMauville_Inside_EventScript_ShowVoltorb1
 	call_if_unset FLAG_DEFEATED_VOLTORB_2_NEW_MAUVILLE, NewMauville_Inside_EventScript_ShowVoltorb2
 	call_if_unset FLAG_DEFEATED_VOLTORB_3_NEW_MAUVILLE, NewMauville_Inside_EventScript_ShowVoltorb3
+	call NewMauville_Inside_EventScript_GenesisRefresh
 	end
 
 NewMauville_Inside_EventScript_ShowVoltorb1::
@@ -145,6 +146,8 @@ NewMauville_Inside_EventScript_RedButton::
 	msgbox NewMauville_Inside_Text_SteppedOnSwitchGeneratorStopped, MSGBOX_DEFAULT
 	call NewMauville_Inside_EventScript_SetGeneratorOffMetatiles
 	setvar VAR_NEW_MAUVILLE_STATE, 2
+	call NewMauville_Inside_EventScript_GenesisRefresh
+	call_if_unset FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE, NewMauville_Inside_EventScript_GenesisSpawn
 	releaseall
 	end
 
@@ -261,3 +264,46 @@ NewMauville_Inside_Text_SteppedOnSwitchGeneratorStopped:
 	.string "… … … … … … … …\p"
 	.string "The generator appears to have\n"
 	.string "stopped…$"
+
+@ Genesis: visibility is derived from existing story state on every entry.
+NewMauville_Inside_EventScript_GenesisRefresh::
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
+	goto_if_set FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT, Common_EventScript_NopReturn
+	goto_if_unset FLAG_BADGE06_GET, Common_EventScript_NopReturn
+	goto_if_ne VAR_NEW_MAUVILLE_STATE, 2, Common_EventScript_NopReturn
+	clearflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
+	return
+
+NewMauville_Inside_EventScript_GenesisSpawn::
+	addobject 9
+	return
+
+NewMauville_Inside_EventScript_GenesisZapdos::
+	lockall
+	goto_if_set FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT, NewMauville_Inside_EventScript_GenesisRelease
+	goto_if_unset FLAG_BADGE06_GET, NewMauville_Inside_EventScript_GenesisRelease
+	goto_if_ne VAR_NEW_MAUVILLE_STATE, 2, NewMauville_Inside_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_ZAPDOS, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_ZAPDOS, 50
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, NewMauville_Inside_EventScript_GenesisCaught
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
+	removeobject 9
+	releaseall
+	end
+
+NewMauville_Inside_EventScript_GenesisCaught::
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
+	releaseall
+	end
+
+NewMauville_Inside_EventScript_GenesisRelease::
+	releaseall
+	end
