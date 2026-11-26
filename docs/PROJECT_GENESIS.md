@@ -69,3 +69,9 @@ Run `python3 tools/genesis_census.py --output /tmp/genesis-census.csv` from a fu
 - Pending QA: compile, run tests, emulator check all map access gates (including Safari expansion), probability/repel/ability balance, integration with Pokélocator and other encounter readers, and compare all pending conventional families against existing acquisition systems. Data file src/data/unholy_genesis_wild.inc is authoritative.
 
 - Castform verified as a native Weather Institute 2F gift; no additional wild habitat added. Only the Porygon family remains without a conventional source in this snapshot; reserve for a computer-based encounter or verified existing shop. Pokélocator integration is deferred, not claimed complete.
+
+## P7 — digital prize
+- Porygon level 20, repeatable exchange for 2,500 Game Corner coins, existing doll-prize clerk. Declining the optional offer preserves the original doll menu. No additional badge gate beyond native access and Coin Case.
+- Native givemon success branches handle party/PC and optional nickname. Charge only after successful gift; no charge for insufficient coins, cancellation or full party and PC.
+- Existing species data supports direct item evolution with Upgrade and Dubious Disc as well as trade evolution; verify item availability and config in integration. Census now 208 entries without source or documented family (no conventional families remain in this snapshot). Price and level are provisional.
+- Pending build, emulator checks (balance, cancellation, full storage, repeated redemption) and integration. No Mall rooftop alteration.

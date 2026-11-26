@@ -8,6 +8,7 @@ MauvilleCity_GameCorner_MapScripts::
 	.set TM_THUNDERBOLT_COINS, 4000
 	.set TM_ICE_BEAM_COINS, 4000
 	.set DOLL_COINS, 1000
+	.set PORYGON_COINS, 2500
 
 	.set COINS_PRICE_50,  1000
 	.set COINS_PRICE_500, 10000
@@ -104,7 +105,7 @@ MauvilleCity_GameCorner_EventScript_PrizeCornerDolls::
 	faceplayer
 	msgbox MauvilleCity_GameCorner_Text_ExchangeCoinsForPrizes, MSGBOX_DEFAULT
 	checkitem ITEM_COIN_CASE
-	goto_if_eq VAR_RESULT, TRUE, MauvilleCity_GameCorner_EventScript_ChooseDollPrizeMessage
+	goto_if_eq VAR_RESULT, TRUE, MauvilleCity_GameCorner_EventScript_GenesisPorygonOffer
 	release
 	end
 
@@ -776,3 +777,67 @@ MauvilleCity_GameCorner_Text_CantPlayWithNoCoinCase:
 	.string "You can't play if you don't have\n"
 	.string "a COIN CASE.$"
 
+
+@ Genesis: repeatable digital Pokemon prize; charge only after successful delivery.
+MauvilleCity_GameCorner_EventScript_GenesisPorygonOffer::
+	showcoinsbox 0, 0
+	msgbox MauvilleCity_GameCorner_Text_GenesisPorygonOffer, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, MauvilleCity_GameCorner_EventScript_GenesisDolls
+	checkcoins VAR_TEMP_2
+	goto_if_lt VAR_TEMP_2, PORYGON_COINS, MauvilleCity_GameCorner_EventScript_GenesisPorygonPoor
+	setvar VAR_TEMP_TRANSFERRED_SPECIES, SPECIES_PORYGON
+	givemon SPECIES_PORYGON, 20
+	goto_if_eq VAR_RESULT, MON_GIVEN_TO_PARTY, MauvilleCity_GameCorner_EventScript_GenesisPorygonParty
+	goto_if_eq VAR_RESULT, MON_GIVEN_TO_PC, MauvilleCity_GameCorner_EventScript_GenesisPorygonPC
+	hidecoinsbox
+	goto Common_EventScript_NoMoreRoomForPokemon
+	end
+
+MauvilleCity_GameCorner_EventScript_GenesisDolls::
+	hidecoinsbox
+	goto MauvilleCity_GameCorner_EventScript_ChooseDollPrizeMessage
+	end
+
+MauvilleCity_GameCorner_EventScript_GenesisPorygonPoor::
+	msgbox MauvilleCity_GameCorner_Text_NotEnoughCoins, MSGBOX_DEFAULT
+	goto MauvilleCity_GameCorner_EventScript_GenesisDolls
+	end
+
+MauvilleCity_GameCorner_EventScript_GenesisPorygonPaid::
+	removecoins PORYGON_COINS
+	updatecoinsbox
+	hidecoinsbox
+	playfanfare MUS_OBTAIN_ITEM
+	message MauvilleCity_GameCorner_Text_GenesisPorygonReceived
+	waitmessage
+	waitfanfare
+	bufferspeciesname STR_VAR_1, SPECIES_PORYGON
+	return
+
+MauvilleCity_GameCorner_EventScript_GenesisPorygonParty::
+	call MauvilleCity_GameCorner_EventScript_GenesisPorygonPaid
+	msgbox gText_NicknameThisPokemon, MSGBOX_YESNO
+	goto_if_eq VAR_RESULT, NO, MauvilleCity_GameCorner_EventScript_GenesisPorygonEnd
+	call Common_EventScript_GetGiftMonPartySlot
+	call Common_EventScript_NameReceivedPartyMon
+	goto MauvilleCity_GameCorner_EventScript_GenesisPorygonEnd
+	end
+
+MauvilleCity_GameCorner_EventScript_GenesisPorygonPC::
+	call MauvilleCity_GameCorner_EventScript_GenesisPorygonPaid
+	msgbox gText_NicknameThisPokemon, MSGBOX_YESNO
+	call_if_eq VAR_RESULT, YES, Common_EventScript_NameReceivedBoxMon
+	call Common_EventScript_TransferredToPC
+	goto MauvilleCity_GameCorner_EventScript_GenesisPorygonEnd
+	end
+
+MauvilleCity_GameCorner_EventScript_GenesisPorygonEnd::
+	release
+	end
+
+MauvilleCity_GameCorner_Text_GenesisPorygonOffer:
+	.string "A special digital POKéMON!\p"
+	.string "Exchange 2500 COINS for PORYGON?$"
+
+MauvilleCity_GameCorner_Text_GenesisPorygonReceived:
+	.string "{PLAYER} received PORYGON!$"

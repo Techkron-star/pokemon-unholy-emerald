@@ -135,7 +135,7 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 134,VAPOREON,EEVEE,family_present_review_evolution,,,EEVEE
 135,JOLTEON,EEVEE,family_present_review_evolution,,,EEVEE
 136,FLAREON,EEVEE,family_present_review_evolution,,,EEVEE
-137,PORYGON,PORYGON,no_source_in_audited_tables,,,
+137,PORYGON,PORYGON,scripted_source,,MauvilleCity_GameCorner:2500_coins,PORYGON
 138,OMANYTE,OMANYTE,no_source_in_audited_tables,,,
 139,OMASTAR,OMANYTE,no_source_in_audited_tables,,,
 140,KABUTO,KABUTO,no_source_in_audited_tables,,,
@@ -231,7 +231,7 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 230,KINGDRA,HORSEA,family_present_review_evolution,,,HORSEA;SEADRA
 231,PHANPY,PHANPY,ordinary_wild,MAP_SAFARI_ZONE_NORTH;MAP_SEVEN_ISLAND_SEVAULT_CANYON;MAP_SEVEN_ISLAND_SEVAULT_CANYON_ENTRANCE,,PHANPY
 232,DONPHAN,PHANPY,family_present_review_evolution,,,PHANPY
-233,PORYGON2,PORYGON,no_source_in_audited_tables,,,
+233,PORYGON2,PORYGON,family_present_review_evolution,,,PORYGON
 234,STANTLER,STANTLER,ordinary_wild,MAP_ALTERING_CAVE;MAP_SAFARI_ZONE_SOUTHEAST;MAP_SIX_ISLAND_ALTERING_CAVE,,STANTLER
 235,SMEARGLE,SMEARGLE,ordinary_wild,MAP_ALTERING_CAVE;MAP_ARTISAN_CAVE_1F;MAP_ARTISAN_CAVE_B1F;MAP_SIX_ISLAND_ALTERING_CAVE,,SMEARGLE
 236,TYROGUE,HITMONS,badge_gated_wild,MAP_GRANITE_CAVE_1F@1badges,,TYROGUE
@@ -472,7 +472,7 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 471,GLACEON,EEVEE,family_present_review_evolution,,,EEVEE
 472,GLISCOR,GLIGAR,family_present_review_evolution,,,GLIGAR
 473,MAMOSWINE,SWINUB,family_present_review_evolution,,,SWINUB
-474,PORYGON_Z,PORYGON,no_source_in_audited_tables,,,
+474,PORYGON_Z,PORYGON,family_present_review_evolution,,,PORYGON
 475,GALLADE,RALTS,family_present_review_evolution,,,RALTS
 476,PROBOPASS,NOSEPASS,family_present_review_evolution,,,NOSEPASS
 477,DUSKNOIR,DUSKULL,family_present_review_evolution,,,DUSKULL
