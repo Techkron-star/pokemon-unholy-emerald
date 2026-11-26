@@ -1564,6 +1564,17 @@ EventScript_SelectWithoutRegisteredItem::
 Common_EventScript_NopReturn::
 	return
 
+@ Reusable denial for a locked legendary or other special encounter.
+@ Caller must have locked interaction; this branch terminates the script.
+Common_EventScript_GenesisUnworthy::
+	msgbox Common_Text_GenesisUnworthy, MSGBOX_DEFAULT
+	releaseall
+	end
+
+Common_Text_GenesisUnworthy:
+	.string "No eres digno de desafiar\n"
+	.string "este Pokémon.$"
+
 EventScript_SetResultTrue::
 	setvar VAR_RESULT, TRUE
 	return
