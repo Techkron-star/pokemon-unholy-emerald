@@ -1,6 +1,7 @@
 #include "global.h"
 #include "data.h"
 #include "unholy_cofradia.h"
+#include "unholy_genesis.h"
 #include "unholy_save.h"
 #include "unholy_localization.h"
 #include "money.h"
@@ -907,9 +908,34 @@ void CofradiaStartBattleScript(void)
 }
 void CofradiaCashOutScript(void)
 {
+    struct CofradiaView view;
+    bool32 eligible = CofradiaGetView(&view) && view.wins >= 5;
     enum CofradiaResult result = CofradiaCashOut();
-    Message(result == COFRADIA_OK ? C_TEXT("Net fund paid; loan settled.", "Fondo neto abonado. Préstamo saldado.")
-        : C_TEXT("No room for payout. Use reserve.", "Sin espacio. Usa tu reserva."), result == COFRADIA_OK);
+    if (result != COFRADIA_OK)
+    {
+        Message(C_TEXT("No room for payout. Use reserve.", "Sin espacio. Usa tu reserva."), FALSE);
+        return;
+    }
+
+    // Deliver an existing prize first; if it fits, a new eligible run
+    // may earn its own prize. Never overwrite a held reward.
+    u16 prior = GenesisStarter_ClaimCofradia();
+    if (eligible)
+        GenesisStarter_QueueCofradiaPrize();
+    u16 species = GenesisStarter_ClaimCofradia();
+    Message(C_TEXT("Net fund paid; loan settled.", "Fondo neto abonado. Préstamo saldado."), TRUE);
+    if (prior != SPECIES_NONE)
+    {
+        u8 *p = StringAppend(gStringVar4, C_TEXT("\pHeld prize: ", "\pPremio reservado: "));
+        StringCopy(p, GetSpeciesName(prior));
+    }
+    if (species != SPECIES_NONE)
+    {
+        u8 *p = StringAppend(gStringVar4, C_TEXT("\pStarter prize: ", "\pInicial de premio: "));
+        StringCopy(p, GetSpeciesName(species));
+    }
+    if (GenesisStarter_HasCofradiaPrize())
+        StringAppend(gStringVar4, C_TEXT("\pPrize held. Claim at BIRCH's lab.", "\pPremio reservado en lab. ABEDUL."));
 }
 
 void CofradiaRecordsScript(void)

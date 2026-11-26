@@ -654,3 +654,7 @@ gSpecials::
 	def_special GenesisEvent_OldSeaMapAvailable
 	def_special GenesisEvent_MysticTicketAvailable
 	def_special GenesisEvent_EonTicketAvailable
+	def_special GenesisStarter_LeagueAvailable
+	def_special GenesisStarter_ClaimLeague
+	def_special GenesisStarter_HasCofradiaPrize
+	def_special GenesisStarter_ClaimCofradia

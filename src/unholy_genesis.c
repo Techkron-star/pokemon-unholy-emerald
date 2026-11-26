@@ -1,6 +1,10 @@
 #include "global.h"
 #include "unholy_genesis.h"
 #include "event_data.h"
+#include "overworld.h"
+#include "pokemon.h"
+#include "random.h"
+#include "constants/game_stat.h"
 #include "constants/flags.h"
 #include "constants/vars.h"
 #include "constants/region_map_sections.h"
@@ -234,4 +238,150 @@ bool32 GenesisEvent_MysticTicketAvailable(void)
 bool32 GenesisEvent_EonTicketAvailable(void)
 {
     return GenesisEvent_IsAvailable(GENESIS_EVENT_EON_TICKET);
+}
+
+static const u16 sGenesisStarters[GENESIS_STARTER_GENERATIONS][3] =
+{
+    {SPECIES_BULBASAUR, SPECIES_CHARMANDER, SPECIES_SQUIRTLE},
+    {SPECIES_CHIKORITA, SPECIES_CYNDAQUIL, SPECIES_TOTODILE},
+    {SPECIES_TREECKO, SPECIES_TORCHIC, SPECIES_MUDKIP},
+    {SPECIES_TURTWIG, SPECIES_CHIMCHAR, SPECIES_PIPLUP},
+    {SPECIES_SNIVY, SPECIES_TEPIG, SPECIES_OSHAWOTT},
+    {SPECIES_CHESPIN, SPECIES_FENNEKIN, SPECIES_FROAKIE},
+    {SPECIES_ROWLET, SPECIES_LITTEN, SPECIES_POPPLIO},
+    {SPECIES_GROOKEY, SPECIES_SCORBUNNY, SPECIES_SOBBLE},
+    {SPECIES_SPRIGATITO, SPECIES_FUECOCO, SPECIES_QUAXLY},
+};
+
+u16 GenesisStarter_GetSpecies(u8 generation, u8 slot)
+{
+    if (generation >= GENESIS_STARTER_GENERATIONS || slot >= 3)
+        return SPECIES_NONE;
+    return sGenesisStarters[generation][slot];
+}
+
+// Pure selector, uniform among generations not yet completed.
+u8 GenesisStarter_SelectGeneration(u16 completedMask, u32 roll)
+{
+    u8 count = 0;
+    for (u8 i = 0; i < GENESIS_STARTER_GENERATIONS; i++)
+        if (!(completedMask & (1u << i)))
+            count++;
+    if (!count)
+        return GENESIS_STARTER_NONE;
+    roll %= count;
+    for (u8 i = 0; i < GENESIS_STARTER_GENERATIONS; i++)
+        if (!(completedMask & (1u << i)))
+        {
+            if (!roll)
+                return i;
+            roll--;
+        }
+    return GENESIS_STARTER_NONE;
+}
+
+static u8 StarterReadBits(u16 first, u8 count)
+{
+    u8 value = 0;
+    for (u8 i = 0; i < count; i++)
+        if (FlagGet(first + i))
+            value |= 1u << i;
+    return value;
+}
+
+static void StarterWriteBits(u16 first, u8 count, u8 value)
+{
+    for (u8 i = 0; i < count; i++)
+        if (value & (1u << i))
+            FlagSet(first + i);
+        else
+            FlagClear(first + i);
+}
+
+static u16 StarterCompletedMask(void)
+{
+    u16 mask = 0;
+    for (u8 i = 0; i < GENESIS_STARTER_GENERATIONS; i++)
+        if (FlagGet(FLAG_GENESIS_STARTER_GEN1 + i))
+            mask |= 1u << i;
+    return mask;
+}
+
+bool32 GenesisStarter_LeagueAvailable(void)
+{
+    if (!FlagGet(FLAG_SYS_GAME_CLEAR))
+        return FALSE;
+    u8 pending = StarterReadBits(FLAG_GENESIS_STARTER_PENDING_GEN, 4);
+    if (pending > 0 && pending <= GENESIS_STARTER_GENERATIONS)
+        return TRUE;
+    u16 mask = StarterCompletedMask();
+    u8 completed = 0;
+    for (u8 i = 0; i < GENESIS_STARTER_GENERATIONS; i++)
+        if (mask & (1u << i))
+            completed++;
+    return completed < GENESIS_STARTER_GENERATIONS
+        && completed < max(1u, GetGameStat(GAME_STAT_ENTERED_HOF));
+}
+
+static bool32 StarterDeliver(u16 species)
+{
+    struct Pokemon mon;
+    if (species == SPECIES_NONE)
+        return FALSE;
+    CreateMon(&mon, species, 5, Random32(), OTID_STRUCT_PLAYER_ID);
+    CalculateMonStats(&mon);
+    return GiveScriptedMonToPlayer(&mon, PARTY_SIZE) != MON_CANT_GIVE;
+}
+
+// 0 = nothing due, 1 = complete trio, 2 = storage full (progress preserved).
+u16 GenesisStarter_ClaimLeague(void)
+{
+    if (!GenesisStarter_LeagueAvailable())
+        return 0;
+    u8 pending = StarterReadBits(FLAG_GENESIS_STARTER_PENDING_GEN, 4);
+    if (!pending || pending > GENESIS_STARTER_GENERATIONS)
+    {
+        u8 generation = GenesisStarter_SelectGeneration(StarterCompletedMask(), Random32());
+        if (generation == GENESIS_STARTER_NONE)
+            return 0;
+        pending = generation + 1;
+        StarterWriteBits(FLAG_GENESIS_STARTER_PENDING_GEN, 4, pending);
+        StarterWriteBits(FLAG_GENESIS_STARTER_PROGRESS, 2, 0);
+    }
+    u8 progress = StarterReadBits(FLAG_GENESIS_STARTER_PROGRESS, 2);
+    while (progress < 3)
+    {
+        if (!StarterDeliver(GenesisStarter_GetSpecies(pending - 1, progress)))
+            return 2;
+        StarterWriteBits(FLAG_GENESIS_STARTER_PROGRESS, 2, ++progress);
+    }
+    FlagSet(FLAG_GENESIS_STARTER_GEN1 + pending - 1);
+    StarterWriteBits(FLAG_GENESIS_STARTER_PROGRESS, 2, 0);
+    StarterWriteBits(FLAG_GENESIS_STARTER_PENDING_GEN, 4, 0);
+    return 1;
+}
+
+bool32 GenesisStarter_HasCofradiaPrize(void)
+{
+    u8 prize = StarterReadBits(FLAG_GENESIS_COFRADIA_PRIZE, 5);
+    return prize > 0 && prize <= GENESIS_STARTER_GENERATIONS * 3;
+}
+
+void GenesisStarter_QueueCofradiaPrize(void)
+{
+    if (!GenesisStarter_HasCofradiaPrize())
+        StarterWriteBits(FLAG_GENESIS_COFRADIA_PRIZE, 5,
+                         1 + Random32() % (GENESIS_STARTER_GENERATIONS * 3));
+}
+
+u16 GenesisStarter_ClaimCofradia(void)
+{
+    if (!GenesisStarter_HasCofradiaPrize())
+        return SPECIES_NONE;
+    u8 index = StarterReadBits(FLAG_GENESIS_COFRADIA_PRIZE, 5) - 1;
+    u16 species = GenesisStarter_GetSpecies(index / 3, index % 3);
+    if (!StarterDeliver(species))
+        return SPECIES_NONE;
+    StarterWriteBits(FLAG_GENESIS_COFRADIA_PRIZE, 5, 0);
+    return species;
 }
