@@ -229,3 +229,26 @@ TEST("Genesis postgame tickets retain individual progression")
     for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
         if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
 }
+
+TEST("Genesis island fauna discovery is gated by travel and persists independently")
+{
+    const u16 travel[] = {FLAG_ENABLE_SHIP_BIRTH_ISLAND, FLAG_ENABLE_SHIP_FARAWAY_ISLAND, FLAG_ENABLE_SHIP_NAVEL_ROCK, FLAG_ENABLE_SHIP_SOUTHERN_ISLAND};
+    const u16 discovered[] = {FLAG_UNHOLY_GENESIS_BIRTH_FAUNA_DISCOVERED, FLAG_UNHOLY_GENESIS_FARAWAY_FAUNA_DISCOVERED, FLAG_UNHOLY_GENESIS_NAVEL_FAUNA_DISCOVERED, FLAG_UNHOLY_GENESIS_SOUTHERN_FAUNA_DISCOVERED};
+    const enum GenesisEventId events[] = {GENESIS_EVENT_BIRTH_FAUNA, GENESIS_EVENT_FARAWAY_FAUNA, GENESIS_EVENT_NAVEL_FAUNA, GENESIS_EVENT_SOUTHERN_FAUNA};
+    for (u32 i = 0; i < ARRAY_COUNT(events); i++)
+    {
+        bool8 oldTravel = FlagGet(travel[i]);
+        bool8 oldDiscovered = FlagGet(discovered[i]);
+        FlagClear(travel[i]);
+        FlagClear(discovered[i]);
+        EXPECT(!GenesisEvent_IsAvailable(events[i]));
+        FlagSet(travel[i]);
+        EXPECT(GenesisEvent_IsAvailable(events[i]));
+        EXPECT(HasPendingSection(MAPSEC_LILYCOVE_CITY));
+        FlagSet(discovered[i]);
+        EXPECT(!GenesisEvent_IsAvailable(events[i]));
+        EXPECT(FlagGet(travel[i]));
+        if (oldTravel) FlagSet(travel[i]); else FlagClear(travel[i]);
+        if (oldDiscovered) FlagSet(discovered[i]); else FlagClear(discovered[i]);
+    }
+}
