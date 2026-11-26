@@ -11,6 +11,11 @@ enum GenesisEventId
     GENESIS_EVENT_MOLTRES_GALAR,
     GENESIS_EVENT_ARTICUNO,
     GENESIS_EVENT_ARTICUNO_GALAR,
+    GENESIS_EVENT_AURORA_TICKET,
+    GENESIS_EVENT_DEOXYS,
+    GENESIS_EVENT_OLD_SEA_MAP,
+    GENESIS_EVENT_MYSTIC_TICKET,
+    GENESIS_EVENT_EON_TICKET,
     GENESIS_EVENT_COUNT
 };
 
@@ -21,6 +26,11 @@ bool32 GenesisEvent_MoltresAvailable(void);
 bool32 GenesisEvent_MoltresGalarAvailable(void);
 bool32 GenesisEvent_ArticunoAvailable(void);
 bool32 GenesisEvent_ArticunoGalarAvailable(void);
+bool32 GenesisEvent_AuroraTicketAvailable(void);
+bool32 GenesisEvent_DeoxysAvailable(void);
+bool32 GenesisEvent_OldSeaMapAvailable(void);
+bool32 GenesisEvent_MysticTicketAvailable(void);
+bool32 GenesisEvent_EonTicketAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
 #endif
