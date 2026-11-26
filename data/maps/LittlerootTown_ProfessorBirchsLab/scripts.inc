@@ -282,6 +282,10 @@ LittlerootTown_ProfessorBirchsLab_EventScript_AideAlreadyMet::
 	end
 
 LittlerootTown_ProfessorBirchsLab_EventScript_AideReceivedStarter::
+	specialvar VAR_RESULT, GenesisStarter_HasCofradiaPrize
+	call_if_eq VAR_RESULT, TRUE, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisCofradia
+	specialvar VAR_RESULT, GenesisStarter_LeagueAvailable
+	goto_if_eq VAR_RESULT, TRUE, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisLeagueOffer
 	msgbox LittlerootTown_ProfessorBirchsLab_Text_BirchEnjoysRivalsHelpToo, MSGBOX_DEFAULT
 	release
 	end
@@ -992,3 +996,51 @@ LittlerootTown_ProfessorBirchsLab_Text_ScottAboardSSTidalCall:
 	.string "we meet. I'll be waiting!\p"
 	.string "… … … … … …\n"
 	.string "… … … … … Click!$"
+
+LittlerootTown_ProfessorBirchsLab_EventScript_GenesisLeagueOffer::
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_GenesisLeagueOffer, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisEnd
+	specialvar VAR_RESULT, GenesisStarter_ClaimLeague
+	goto_if_eq VAR_RESULT, 2, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisFull
+	goto_if_eq VAR_RESULT, 0, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisEnd
+	playfanfare MUS_OBTAIN_ITEM
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_GenesisTrio, MSGBOX_DEFAULT
+	waitfanfare
+	goto LittlerootTown_ProfessorBirchsLab_EventScript_GenesisEnd
+	end
+
+LittlerootTown_ProfessorBirchsLab_EventScript_GenesisFull::
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_GenesisFull, MSGBOX_DEFAULT
+	goto LittlerootTown_ProfessorBirchsLab_EventScript_GenesisEnd
+	end
+
+LittlerootTown_ProfessorBirchsLab_EventScript_GenesisCofradia::
+	specialvar VAR_RESULT, GenesisStarter_ClaimCofradia
+	goto_if_eq VAR_RESULT, SPECIES_NONE, LittlerootTown_ProfessorBirchsLab_EventScript_GenesisCofradiaFull
+	bufferspeciesname STR_VAR_1, VAR_RESULT
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_GenesisCofradia, MSGBOX_DEFAULT
+	return
+
+LittlerootTown_ProfessorBirchsLab_EventScript_GenesisCofradiaFull::
+	msgbox LittlerootTown_ProfessorBirchsLab_Text_GenesisFull, MSGBOX_DEFAULT
+	return
+
+LittlerootTown_ProfessorBirchsLab_EventScript_GenesisEnd::
+	release
+	end
+
+LittlerootTown_ProfessorBirchsLab_Text_GenesisLeagueOffer:
+	.string "Your LEAGUE victory earned a trio\n"
+	.string "of starter POKéMON. Claim it?$"
+
+LittlerootTown_ProfessorBirchsLab_Text_GenesisTrio:
+	.string "You received all three starters\n"
+	.string "from a new region!$"
+
+LittlerootTown_ProfessorBirchsLab_Text_GenesisFull:
+	.string "Your storage is full. Your remaining\n"
+	.string "reward will wait here.$"
+
+LittlerootTown_ProfessorBirchsLab_Text_GenesisCofradia:
+	.string "Your COFRADIA prize arrived!\p"
+	.string "You received {STR_VAR_1}!$"
