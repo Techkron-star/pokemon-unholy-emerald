@@ -7,6 +7,13 @@
 - Regional marker shows !!! at Mauville, not the species or exact location. Separate purple sprite sheet, deduplicated by section, capped at 8 concurrent markers for P1. Existing bounty marker preserved; offset on overlap. Further pagination or aggregate indicators needed when there are more than 8 pending sections.
 - Encounter level, location and retry policy are initial balance proposals.
 
+## Regional sequel rule
+- A static encounter with an official regional form may have a second registry entry at the same location, requiring its original Genesis capture flag AND every badge. This is independent of the shared National Dex entry; trading or defeating the original does not count.
+- Galarian Zapdos: level 65 (provisional), same position as original on next map entry, native species follower graphics, separate completion and visibility flags (0x020/0x021).
+- The map marker becomes available again (or stays pending when all badges are already earned). Capturing the regional form completes its event; defeat/flee allows retry. No simultaneous originals and regional forms.
+- Future Articuno/Moltres encounters must register their Galarian forms using this same rule, not recolor the original or replace its capture flag.
+- If a species has no official regional form, do not invent one under this rule.
+
 ## Acceptance checks (not executed yet)
 - Build ROM and run test/unholy_genesis.c.
 - Test with neither prerequisite, each prerequisite independently, both in either order, existing save, capture and re-entry/save/reload, defeat and flee.
