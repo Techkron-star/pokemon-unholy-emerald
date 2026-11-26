@@ -111,6 +111,12 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .prerequisiteFlag = FLAG_ENABLE_SHIP_SOUTHERN_ISLAND,
         .completionFlag = FLAG_UNHOLY_GENESIS_SOUTHERN_FAUNA_DISCOVERED,
     },
+    [GENESIS_EVENT_BEHEEYEM_DISCOVERY] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_BIRTH_ISLAND,
+        .storyFlag = FLAG_BATTLED_DEOXYS,
+        .completionFlag = FLAG_UNHOLY_GENESIS_BEHEEYEM_DISCOVERED,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
