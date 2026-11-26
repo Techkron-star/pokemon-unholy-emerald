@@ -1584,6 +1584,9 @@
 // Daily Flags
 // These flags are cleared once per day
 // The start and end are byte-aligned because the flags are cleared in byte increments
+// Genesis flags use the last two unassigned permanent world slots.
+#define FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT            FLAG_UNUSED_0x91E
+#define FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE              FLAG_UNUSED_0x91F
 #define DAILY_FLAGS_START                           (FLAG_UNUSED_0x91F + (8 - FLAG_UNUSED_0x91F % 8))
 #define FLAG_UNUSED_0x920                           (DAILY_FLAGS_START + 0x0)  // Unused Flag
 #define FLAG_DAILY_CONTEST_LOBBY_RECEIVED_BERRY     (DAILY_FLAGS_START + 0x1)
