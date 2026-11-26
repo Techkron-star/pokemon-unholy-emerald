@@ -1,4 +1,4 @@
-national_dex,species,family,status,ordinary_wild_maps,known_genesis_or_island_sources,family_members_with_source
+national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,family_members_with_source
 1,BULBASAUR,BULBASAUR,no_source_in_audited_tables,,,
 2,IVYSAUR,BULBASAUR,no_source_in_audited_tables,,,
 3,VENUSAUR,BULBASAUR,no_source_in_audited_tables,,,
@@ -150,15 +150,15 @@ national_dex,species,family,status,ordinary_wild_maps,known_genesis_or_island_so
 149,DRAGONITE,DRATINI,family_present_review_evolution,,,DRAGONAIR;DRATINI
 150,MEWTWO,MEWTWO,no_source_in_audited_tables,,,
 151,MEW,MEW,genesis_or_island,,Faraway Island,MEW
-152,CHIKORITA,CHIKORITA,no_source_in_audited_tables,,,
-153,BAYLEEF,CHIKORITA,no_source_in_audited_tables,,,
-154,MEGANIUM,CHIKORITA,no_source_in_audited_tables,,,
-155,CYNDAQUIL,CYNDAQUIL,no_source_in_audited_tables,,,
-156,QUILAVA,CYNDAQUIL,no_source_in_audited_tables,,,
-157,TYPHLOSION,CYNDAQUIL,no_source_in_audited_tables,,,
-158,TOTODILE,TOTODILE,no_source_in_audited_tables,,,
-159,CROCONAW,TOTODILE,no_source_in_audited_tables,,,
-160,FERALIGATR,TOTODILE,no_source_in_audited_tables,,,
+152,CHIKORITA,CHIKORITA,scripted_source,,LittlerootTown_ProfessorBirchsLab,CHIKORITA
+153,BAYLEEF,CHIKORITA,family_present_review_evolution,,,CHIKORITA
+154,MEGANIUM,CHIKORITA,family_present_review_evolution,,,CHIKORITA
+155,CYNDAQUIL,CYNDAQUIL,scripted_source,,LittlerootTown_ProfessorBirchsLab,CYNDAQUIL
+156,QUILAVA,CYNDAQUIL,family_present_review_evolution,,,CYNDAQUIL
+157,TYPHLOSION,CYNDAQUIL,family_present_review_evolution,,,CYNDAQUIL
+158,TOTODILE,TOTODILE,scripted_source,,LittlerootTown_ProfessorBirchsLab,TOTODILE
+159,CROCONAW,TOTODILE,family_present_review_evolution,,,TOTODILE
+160,FERALIGATR,TOTODILE,family_present_review_evolution,,,TOTODILE
 161,SENTRET,SENTRET,ordinary_wild,MAP_FIVE_ISLAND_MEADOW;MAP_ROUTE101;MAP_SEVEN_ISLAND_SEVAULT_CANYON_ENTRANCE;MAP_SIX_ISLAND_WATER_PATH,,SENTRET
 162,FURRET,SENTRET,family_present_review_evolution,,,SENTRET
 163,HOOTHOOT,HOOTHOOT,ordinary_wild,MAP_SAFARI_ZONE_NORTHEAST;MAP_SAFARI_ZONE_SOUTHEAST,,HOOTHOOT
@@ -343,14 +343,14 @@ national_dex,species,family,status,ordinary_wild_maps,known_genesis_or_island_so
 342,CRAWDAUNT,CORPHISH,family_present_review_evolution,,,CORPHISH
 343,BALTOY,BALTOY,ordinary_wild,MAP_MIRAGE_TOWER_1F;MAP_MIRAGE_TOWER_2F;MAP_MIRAGE_TOWER_3F;MAP_MIRAGE_TOWER_4F;MAP_ROUTE111,,BALTOY;CLAYDOL
 344,CLAYDOL,BALTOY,ordinary_wild,MAP_SKY_PILLAR_1F;MAP_SKY_PILLAR_3F;MAP_SKY_PILLAR_5F,,BALTOY;CLAYDOL
-345,LILEEP,LILEEP,no_source_in_audited_tables,,,
-346,CRADILY,LILEEP,no_source_in_audited_tables,,,
-347,ANORITH,ANORITH,no_source_in_audited_tables,,,
-348,ARMALDO,ANORITH,no_source_in_audited_tables,,,
+345,LILEEP,LILEEP,scripted_source,,RustboroCity_DevonCorp_2F,LILEEP
+346,CRADILY,LILEEP,family_present_review_evolution,,,LILEEP
+347,ANORITH,ANORITH,scripted_source,,RustboroCity_DevonCorp_2F,ANORITH
+348,ARMALDO,ANORITH,family_present_review_evolution,,,ANORITH
 349,FEEBAS,FEEBAS,no_source_in_audited_tables,,,
 350,MILOTIC,FEEBAS,no_source_in_audited_tables,,,
 351,CASTFORM,CASTFORM,no_source_in_audited_tables,,,
-352,KECLEON,KECLEON,ordinary_wild,MAP_ROUTE118;MAP_ROUTE119;MAP_ROUTE120;MAP_ROUTE121;MAP_ROUTE123,,KECLEON
+352,KECLEON,KECLEON,ordinary_wild,MAP_ROUTE118;MAP_ROUTE119;MAP_ROUTE120;MAP_ROUTE121;MAP_ROUTE123,Route120,KECLEON
 353,SHUPPET,SHUPPET,ordinary_wild,MAP_MT_PYRE_1F;MAP_MT_PYRE_2F;MAP_MT_PYRE_3F;MAP_MT_PYRE_4F;MAP_MT_PYRE_5F;MAP_MT_PYRE_6F;MAP_MT_PYRE_EXTERIOR;MAP_MT_PYRE_SUMMIT;MAP_ROUTE121;MAP_ROUTE123,,BANETTE;SHUPPET
 354,BANETTE,SHUPPET,ordinary_wild,MAP_SKY_PILLAR_1F;MAP_SKY_PILLAR_3F;MAP_SKY_PILLAR_5F,,BANETTE;SHUPPET
 355,DUSKULL,DUSKULL,ordinary_wild,MAP_MT_PYRE_1F;MAP_MT_PYRE_2F;MAP_MT_PYRE_3F;MAP_MT_PYRE_4F;MAP_MT_PYRE_5F;MAP_MT_PYRE_6F;MAP_MT_PYRE_EXTERIOR;MAP_MT_PYRE_SUMMIT,,DUSKULL
@@ -372,17 +372,17 @@ national_dex,species,family,status,ordinary_wild_maps,known_genesis_or_island_so
 371,BAGON,BAGON,ordinary_wild,MAP_METEOR_FALLS_B1F_2R,,BAGON
 372,SHELGON,BAGON,family_present_review_evolution,,,BAGON
 373,SALAMENCE,BAGON,family_present_review_evolution,,,BAGON
-374,BELDUM,BELDUM,genesis_or_island,,BirthIsland_Exterior,BELDUM
+374,BELDUM,BELDUM,scripted_source,,BirthIsland_Exterior;MossdeepCity_StevensHouse,BELDUM
 375,METANG,BELDUM,family_present_review_evolution,,,BELDUM
 376,METAGROSS,BELDUM,family_present_review_evolution,,,BELDUM
-377,REGIROCK,REGIROCK,no_source_in_audited_tables,,,
-378,REGICE,REGICE,no_source_in_audited_tables,,,
-379,REGISTEEL,REGISTEEL,no_source_in_audited_tables,,,
+377,REGIROCK,REGIROCK,scripted_source,,DesertRuins,REGIROCK
+378,REGICE,REGICE,scripted_source,,IslandCave,REGICE
+379,REGISTEEL,REGISTEEL,scripted_source,,AncientTomb,REGISTEEL
 380,LATIAS,LATIAS,genesis_or_island,,Southern Island or roamer,LATIAS
 381,LATIOS,LATIOS,genesis_or_island,,Southern Island or roamer,LATIOS
-382,KYOGRE,KYOGRE,no_source_in_audited_tables,,,
-383,GROUDON,GROUDON,no_source_in_audited_tables,,,
-384,RAYQUAZA,RAYQUAZA,no_source_in_audited_tables,,,
+382,KYOGRE,KYOGRE,scripted_source,,MarineCave_End,KYOGRE
+383,GROUDON,GROUDON,scripted_source,,TerraCave_End,GROUDON
+384,RAYQUAZA,RAYQUAZA,scripted_source,,SkyPillar_Top,RAYQUAZA
 385,JIRACHI,JIRACHI,no_source_in_audited_tables,,,
 386,DEOXYS,DEOXYS,genesis_or_island,,BirthIsland_Exterior,DEOXYS
 387,TURTWIG,TURTWIG,no_source_in_audited_tables,,,
