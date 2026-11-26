@@ -25,7 +25,7 @@ CrystalCave_TryRemoveMewtwo::
 CrystalCave_EventScript_Mewtwo::
 	lockall
 	specialvar VAR_RESULT, GenesisEvent_MewtwoAvailable
-	goto_if_eq VAR_RESULT, FALSE, CrystalCave_MewtwoLocked
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_GenesisUnworthy
 	waitse
 	playmoncry SPECIES_MEWTWO, CRY_MODE_ENCOUNTER
 	delay 40
@@ -46,13 +46,3 @@ CrystalCave_MewtwoCaught::
 	setflag FLAG_GENESIS_MEWTWO_HIDE
 	releaseall
 	end
-
-CrystalCave_MewtwoLocked::
-	msgbox CrystalCave_Text_MewtwoLocked, MSGBOX_DEFAULT
-	releaseall
-	end
-
-CrystalCave_Text_MewtwoLocked:
-	.string "An overwhelming psychic force\n"
-	.string "pushes you back.\p"
-	.string "Return with all eight BADGES.$"
