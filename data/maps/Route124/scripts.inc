@@ -3,12 +3,34 @@ Route124_MapScripts::
 	.byte 0
 
 Route124_OnTransition:
+	clearflag FLAG_TEMP_1
 	call_if_set FLAG_SYS_WEATHER_CTRL, Common_EventScript_SetAbnormalWeather
 	end
 
 Route124_EventScript_HuntersHouseSign::
+	lockall
 	msgbox Route124_Text_HuntersHouse, MSGBOX_SIGN
+	goto_if_unset FLAG_BADGE06_GET, Route124_EventScript_GenesisCramorantEnd
+	goto_if_set FLAG_TEMP_1, Route124_EventScript_GenesisCramorantEnd
+	msgbox Route124_Text_GenesisCramorant, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Route124_EventScript_GenesisCramorantEnd
+	closemessage
+	setwildbattle SPECIES_CRAMORANT, 40
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, Route124_EventScript_GenesisCramorantCaught
+	setflag FLAG_TEMP_1
+Route124_EventScript_GenesisCramorantEnd::
+	releaseall
 	end
+
+Route124_EventScript_GenesisCramorantCaught::
+	setflag FLAG_UNHOLY_GENESIS_CRAMORANT_DISCOVERED
+	return
+
+Route124_Text_GenesisCramorant:
+	.string "A bird splashes in the shallows\n"
+	.string "nearby. Investigate?$"
 
 Route124_EventScript_Spencer::
 	trainerbattle_single TRAINER_SPENCER, Route124_Text_SpencerIntro, Route124_Text_SpencerDefeat
