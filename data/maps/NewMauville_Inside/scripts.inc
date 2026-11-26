@@ -268,9 +268,8 @@ NewMauville_Inside_Text_SteppedOnSwitchGeneratorStopped:
 @ Genesis: visibility is derived from existing story state on every entry.
 NewMauville_Inside_EventScript_GenesisRefresh::
 	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
-	goto_if_set FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT, Common_EventScript_NopReturn
-	goto_if_unset FLAG_BADGE06_GET, Common_EventScript_NopReturn
-	goto_if_ne VAR_NEW_MAUVILLE_STATE, 2, Common_EventScript_NopReturn
+	specialvar VAR_RESULT, GenesisEvent_ZapdosAvailable
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
 	clearflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
 	return
 
@@ -280,9 +279,8 @@ NewMauville_Inside_EventScript_GenesisSpawn::
 
 NewMauville_Inside_EventScript_GenesisZapdos::
 	lockall
-	goto_if_set FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT, NewMauville_Inside_EventScript_GenesisRelease
-	goto_if_unset FLAG_BADGE06_GET, NewMauville_Inside_EventScript_GenesisRelease
-	goto_if_ne VAR_NEW_MAUVILLE_STATE, 2, NewMauville_Inside_EventScript_GenesisRelease
+	specialvar VAR_RESULT, GenesisEvent_ZapdosAvailable
+	goto_if_eq VAR_RESULT, FALSE, NewMauville_Inside_EventScript_GenesisRelease
 	waitse
 	playmoncry SPECIES_ZAPDOS, CRY_MODE_ENCOUNTER
 	delay 40
