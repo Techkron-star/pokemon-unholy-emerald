@@ -150,6 +150,19 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .requiresAllBadges = TRUE,
         .completionFlag = FLAG_GENESIS_MEWTWO_CAUGHT,
     },
+    [GENESIS_EVENT_TELLURIC_GATE] = {
+        .mapSection = MAPSEC_ROUTE_103,
+        .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
+        .requiresAllBadges = TRUE,
+        .completionFlag = FLAG_GENESIS_TELLURIC_VISITED,
+    },
+    [GENESIS_EVENT_ZYGARDE] = {
+        .mapSection = MAPSEC_ROUTE_103,
+        .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
+        .storyFlag = FLAG_GENESIS_TELLURIC_VISITED,
+        .requiresAllBadges = TRUE,
+        .completionFlag = FLAG_GENESIS_ZYGARDE_CAUGHT,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
@@ -415,4 +428,20 @@ bool32 GenesisEvent_CrystalGateAvailable(void)
 bool32 GenesisEvent_MewtwoAvailable(void)
 {
     return GenesisEvent_IsAvailable(GENESIS_EVENT_MEWTWO);
+}
+
+// Physical entrance remains open even after its discovery marker is cleared.
+bool32 GenesisEvent_TelluricGateAvailable(void)
+{
+    if (!FlagGet(FLAG_SYS_GAME_CLEAR))
+        return FALSE;
+    for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
+        if (!FlagGet(flag))
+            return FALSE;
+    return TRUE;
+}
+
+bool32 GenesisEvent_ZygardeAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_ZYGARDE);
 }

@@ -10,6 +10,8 @@ Route103_OnTransition:
 
 Route103_OnLoad:
 	call_if_set FLAG_SYS_GAME_CLEAR, Route103_EventScript_OpenAlteringCave
+	specialvar VAR_RESULT, GenesisEvent_TelluricGateAvailable
+	call_if_eq VAR_RESULT, TRUE, Route103_EventScript_OpenTelluricCave
 	end
 
 Route103_EventScript_OpenAlteringCave::
@@ -351,3 +353,8 @@ Route103_Text_RouteSign:
 	.string "ROUTE 103\n"
 	.string "{DOWN_ARROW} OLDALE TOWN$"
 
+
+Route103_EventScript_OpenTelluricCave::
+	setmetatile 47, 5, METATILE_General_CaveEntrance_Top, TRUE
+	setmetatile 47, 6, METATILE_General_CaveEntrance_Bottom, FALSE
+	return

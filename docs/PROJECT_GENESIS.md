@@ -95,3 +95,10 @@ Run `python3 tools/genesis_census.py --output /tmp/genesis-census.csv` from a fu
 - Census now 112 entries without documented source/family. Build and emulator validation pending; stacked PRs not merged.
 
 - Locked special encounters can branch to `Common_EventScript_GenesisUnworthy`: "No eres digno de desafiar este Pokémon." Mewtwo uses this shared message before eight badges, without revealing the exact requirement. The common script releases interaction and ends without initiating battle.
+
+## P11 — Telluric Cave (Cueva Terráquea)
+- Route 103 east shore, new cave door at (47,6) with top at (47,5). Original Altering Cave at (45,6) remains unchanged. The new door uses the native dynamic metatile technique, opens automatically with all eight badges and League clear, and remains open regardless of discovery/capture. No extra field move required. Before unlock the original cliff remains solid.
+- Standalone 27x30 cave derived from Terra Cave End; original Groudon cave untouched. Removed lava from the lower basin and added six mineral decorations. Static collision connectivity checked from exit to Zygarde; actual traversal and binary rendering still need emulator QA.
+- Zygarde 50% with Power Construct, level 75, visible in the deepest chamber. Persistent capture, repeat on reentry after defeat/flee, shared unworthy dialogue for unmet requirements. Markers at Route 103 until capture.
+- Wild pool: Larvitar/Pupitar, Bagon/Shelgon, Gible/Gabite, Deino/Zweilous, Glimmet, Duraludon, Spiritomb, Hisuian Sliggoo (levels 40–53). Frigibax reserved for an icy habitat. The wild table reconstructed from P9 plus P10 and verified by identical Git blob SHA before appending P11; only whitespace compacted to keep the connector-readable size. Census now 111 pending source/family entries; not proof of full availability.
+- Levels, form/ability and fauna are design defaults; compilation, emulator and integration still pending.

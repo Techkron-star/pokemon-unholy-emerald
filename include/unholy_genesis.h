@@ -26,6 +26,8 @@ enum GenesisEventId
     GENESIS_EVENT_CRAMORANT_DISCOVERY,
     GENESIS_EVENT_CRYSTAL_GATE,
     GENESIS_EVENT_MEWTWO,
+    GENESIS_EVENT_TELLURIC_GATE,
+    GENESIS_EVENT_ZYGARDE,
     GENESIS_EVENT_COUNT
 };
 
@@ -43,6 +45,8 @@ bool32 GenesisEvent_MysticTicketAvailable(void);
 bool32 GenesisEvent_EonTicketAvailable(void);
 bool32 GenesisEvent_CrystalGateAvailable(void);
 bool32 GenesisEvent_MewtwoAvailable(void);
+bool32 GenesisEvent_TelluricGateAvailable(void);
+bool32 GenesisEvent_ZygardeAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
 #define GENESIS_STARTER_GENERATIONS 9

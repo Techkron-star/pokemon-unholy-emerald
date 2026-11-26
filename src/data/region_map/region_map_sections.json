@@ -1638,6 +1638,14 @@
       "y": 3,
       "width": 1,
       "height": 1
+    },
+    {
+      "id": "MAPSEC_TELLURIC_CAVE",
+      "name": "TELLURIC CAVE",
+      "x": 6,
+      "y": 8,
+      "width": 1,
+      "height": 1
     }
   ]
 }

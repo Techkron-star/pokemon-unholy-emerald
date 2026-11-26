@@ -9334,6 +9334,17 @@
       "border_filepath": "data/layouts/CrystalCave/border.bin",
       "blockdata_filepath": "data/layouts/CrystalCave/map.bin",
       "layout_version": "emerald"
+    },
+    {
+      "id": "LAYOUT_TELLURIC_CAVE",
+      "name": "TelluricCave_Layout",
+      "width": 27,
+      "height": 30,
+      "primary_tileset": "gTileset_General",
+      "secondary_tileset": "gTileset_Cave",
+      "border_filepath": "data/layouts/TelluricCave/border.bin",
+      "blockdata_filepath": "data/layouts/TelluricCave/map.bin",
+      "layout_version": "emerald"
     }
   ]
 }
