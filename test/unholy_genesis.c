@@ -41,7 +41,7 @@ TEST("Genesis Zapdos requires both generator completion and the sixth badge")
     EXPECT_EQ(sections[0], MAPSEC_MAUVILLE_CITY);
     FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT);
     EXPECT(!GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS));
-    EXPECT(!HasPendingSection(MAPSEC_MAUVILLE_CITY));
+    EXPECT_EQ(HasPendingSection(MAPSEC_MAUVILLE_CITY), GenesisEvent_IsAvailable(GENESIS_EVENT_TADBULB_DISCOVERY) || GenesisEvent_IsAvailable(GENESIS_EVENT_VAROOM_DISCOVERY));
     EXPECT(!GenesisEvent_IsAvailable(GENESIS_EVENT_COUNT));
     VarSet(VAR_NEW_MAUVILLE_STATE, oldState);
     if (oldBadge8) FlagSet(FLAG_BADGE08_GET); else FlagClear(FLAG_BADGE08_GET);
@@ -76,7 +76,7 @@ TEST("Genesis regional encounter requires original capture and every badge")
     EXPECT(HasPendingSection(MAPSEC_MAUVILLE_CITY));
     FlagSet(FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT);
     EXPECT(!GenesisEvent_ZapdosGalarAvailable());
-    EXPECT(!HasPendingSection(MAPSEC_MAUVILLE_CITY));
+    EXPECT_EQ(HasPendingSection(MAPSEC_MAUVILLE_CITY), GenesisEvent_IsAvailable(GENESIS_EVENT_TADBULB_DISCOVERY) || GenesisEvent_IsAvailable(GENESIS_EVENT_VAROOM_DISCOVERY));
     VarSet(VAR_NEW_MAUVILLE_STATE, oldState);
     for (u16 i = 0; i < NUM_BADGES; i++)
         if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
