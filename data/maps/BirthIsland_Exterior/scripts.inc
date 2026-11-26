@@ -4,6 +4,7 @@ BirthIsland_Exterior_MapScripts::
 	.byte 0
 
 BirthIsland_Exterior_OnTransition:
+	call BirthIsland_Exterior_EventScript_GenesisFaunaReset
 	setflag FLAG_MAP_SCRIPT_CHECKED_DEOXYS
 	setflag FLAG_HIDE_DEOXYS
 	setflag FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE
@@ -77,3 +78,64 @@ BirthIsland_Exterior_EventScript_Release::
 BirthIsland_Exterior_Text_GenesisSignal:
 	.string "The stone pulses with a strange\n"
 	.string "light. Something has appeared!$"
+
+@ Genesis island fauna: each specimen can be encountered once per map visit.
+BirthIsland_Exterior_EventScript_GenesisFaunaReset::
+	clearflag FLAG_TEMP_1
+	clearflag FLAG_TEMP_2
+	clearflag FLAG_TEMP_3
+	call_if_unset FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_GenesisFaunaHide3
+	return
+
+BirthIsland_Exterior_EventScript_GenesisFaunaELGYEM::
+	lockall
+	waitse
+	playmoncry SPECIES_ELGYEM, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_ELGYEM, 36
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_1
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+BirthIsland_Exterior_EventScript_GenesisFaunaBELDUM::
+	lockall
+	waitse
+	playmoncry SPECIES_BELDUM, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_BELDUM, 36
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_2
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+BirthIsland_Exterior_EventScript_GenesisFaunaHide3::
+	setflag FLAG_TEMP_3
+	return
+
+BirthIsland_Exterior_EventScript_GenesisFaunaBEHEEYEM::
+	lockall
+	waitse
+	playmoncry SPECIES_BEHEEYEM, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_BEHEEYEM, 48
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_3
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered::
+	setflag FLAG_UNHOLY_GENESIS_BIRTH_FAUNA_DISCOVERED
+	return
