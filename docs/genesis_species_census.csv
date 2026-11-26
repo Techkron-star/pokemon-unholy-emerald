@@ -136,11 +136,11 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 135,JOLTEON,EEVEE,family_present_review_evolution,,,EEVEE
 136,FLAREON,EEVEE,family_present_review_evolution,,,EEVEE
 137,PORYGON,PORYGON,scripted_source,,MauvilleCity_GameCorner:2500_coins,PORYGON
-138,OMANYTE,OMANYTE,no_source_in_audited_tables,,,
-139,OMASTAR,OMANYTE,no_source_in_audited_tables,,,
-140,KABUTO,KABUTO,no_source_in_audited_tables,,,
-141,KABUTOPS,KABUTO,no_source_in_audited_tables,,,
-142,AERODACTYL,AERODACTYL,no_source_in_audited_tables,,,
+138,OMANYTE,OMANYTE,scripted_source,,Devon:Genesis_fossil_restoration,OMANYTE
+139,OMASTAR,OMANYTE,family_present_review_evolution,,,OMANYTE
+140,KABUTO,KABUTO,scripted_source,,Devon:Genesis_fossil_restoration,KABUTO
+141,KABUTOPS,KABUTO,family_present_review_evolution,,,KABUTO
+142,AERODACTYL,AERODACTYL,scripted_source,,Devon:Genesis_fossil_restoration,AERODACTYL
 143,SNORLAX,SNORLAX,badge_gated_wild,MAP_SAFARI_ZONE_NORTHEAST@8badges,,SNORLAX
 144,ARTICUNO,ARTICUNO,genesis_or_island,,Genesis birds,ARTICUNO
 145,ZAPDOS,ZAPDOS,genesis_or_island,,Genesis birds,ZAPDOS
@@ -343,9 +343,9 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 342,CRAWDAUNT,CORPHISH,family_present_review_evolution,,,CORPHISH
 343,BALTOY,BALTOY,ordinary_wild,MAP_MIRAGE_TOWER_1F;MAP_MIRAGE_TOWER_2F;MAP_MIRAGE_TOWER_3F;MAP_MIRAGE_TOWER_4F;MAP_ROUTE111,,BALTOY;CLAYDOL
 344,CLAYDOL,BALTOY,ordinary_wild,MAP_SKY_PILLAR_1F;MAP_SKY_PILLAR_3F;MAP_SKY_PILLAR_5F,,BALTOY;CLAYDOL
-345,LILEEP,LILEEP,scripted_source,,RustboroCity_DevonCorp_2F,LILEEP
+345,LILEEP,LILEEP,scripted_source,,RustboroCity_DevonCorp_2F;Devon:Genesis_fossil_restoration,LILEEP
 346,CRADILY,LILEEP,family_present_review_evolution,,,LILEEP
-347,ANORITH,ANORITH,scripted_source,,RustboroCity_DevonCorp_2F,ANORITH
+347,ANORITH,ANORITH,scripted_source,,RustboroCity_DevonCorp_2F;Devon:Genesis_fossil_restoration,ANORITH
 348,ARMALDO,ANORITH,family_present_review_evolution,,,ANORITH
 349,FEEBAS,FEEBAS,scripted_source,MAP_ROUTE119:native_Feebas_fishing,,FEEBAS
 350,MILOTIC,FEEBAS,family_present_review_evolution,,,FEEBAS
@@ -406,10 +406,10 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 405,LUXRAY,SHINX,family_present_review_evolution,,,SHINX
 406,BUDEW,ROSELIA,badge_gated_wild,MAP_ROUTE102@1badges,,BUDEW
 407,ROSERADE,ROSELIA,family_present_review_evolution,,,BUDEW
-408,CRANIDOS,CRANIDOS,no_source_in_audited_tables,,,
-409,RAMPARDOS,CRANIDOS,no_source_in_audited_tables,,,
-410,SHIELDON,SHIELDON,no_source_in_audited_tables,,,
-411,BASTIODON,SHIELDON,no_source_in_audited_tables,,,
+408,CRANIDOS,CRANIDOS,scripted_source,,Devon:Genesis_fossil_restoration,CRANIDOS
+409,RAMPARDOS,CRANIDOS,family_present_review_evolution,,,CRANIDOS
+410,SHIELDON,SHIELDON,scripted_source,,Devon:Genesis_fossil_restoration,SHIELDON
+411,BASTIODON,SHIELDON,family_present_review_evolution,,,SHIELDON
 412,BURMY,BURMY,badge_gated_wild,MAP_PETALBURG_WOODS@2badges,,BURMY
 413,WORMADAM,BURMY,family_present_review_evolution,,,BURMY
 414,MOTHIM,BURMY,family_present_review_evolution,,,BURMY
@@ -562,10 +562,10 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 561,SIGILYPH,SIGILYPH,ordinary_wild,MAP_MIRAGE_TOWER_1F;MAP_MIRAGE_TOWER_2F;MAP_MIRAGE_TOWER_3F;MAP_MIRAGE_TOWER_4F;MAP_ROUTE111,,SIGILYPH
 562,YAMASK,YAMASK,ordinary_wild,MAP_MIRAGE_TOWER_1F;MAP_MIRAGE_TOWER_3F;MAP_MIRAGE_TOWER_4F;MAP_MT_PYRE_1F;MAP_MT_PYRE_3F;MAP_MT_PYRE_4F;MAP_MT_PYRE_6F,,YAMASK
 563,COFAGRIGUS,YAMASK,family_present_review_evolution,,,YAMASK
-564,TIRTOUGA,TIRTOUGA,no_source_in_audited_tables,,,
-565,CARRACOSTA,TIRTOUGA,no_source_in_audited_tables,,,
-566,ARCHEN,ARCHEN,no_source_in_audited_tables,,,
-567,ARCHEOPS,ARCHEN,no_source_in_audited_tables,,,
+564,TIRTOUGA,TIRTOUGA,scripted_source,,Devon:Genesis_fossil_restoration,TIRTOUGA
+565,CARRACOSTA,TIRTOUGA,family_present_review_evolution,,,TIRTOUGA
+566,ARCHEN,ARCHEN,scripted_source,,Devon:Genesis_fossil_restoration,ARCHEN
+567,ARCHEOPS,ARCHEN,family_present_review_evolution,,,ARCHEN
 568,TRUBBISH,TRUBBISH,badge_gated_wild,MAP_ROUTE113@3badges,,TRUBBISH
 569,GARBODOR,TRUBBISH,family_present_review_evolution,,,TRUBBISH
 570,ZORUA,ZORUA,ordinary_wild,MAP_ARTISAN_CAVE_B1F;MAP_DESERT_UNDERPASS,,ZORUA
@@ -694,9 +694,9 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 693,CLAWITZER,CLAUNCHER,family_present_review_evolution,,,CLAUNCHER
 694,HELIOPTILE,HELIOPTILE,ordinary_wild,MAP_MIRAGE_TOWER_2F;MAP_ROUTE111,,HELIOPTILE
 695,HELIOLISK,HELIOPTILE,family_present_review_evolution,,,HELIOPTILE
-696,TYRUNT,TYRUNT,ordinary_wild,MAP_MIRAGE_TOWER_4F,,TYRUNT
+696,TYRUNT,TYRUNT,ordinary_wild,MAP_MIRAGE_TOWER_4F,Devon:Genesis_fossil_restoration,TYRUNT
 697,TYRANTRUM,TYRUNT,family_present_review_evolution,,,TYRUNT
-698,AMAURA,AMAURA,ordinary_wild,MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM,,AMAURA
+698,AMAURA,AMAURA,ordinary_wild,MAP_SHOAL_CAVE_LOW_TIDE_ICE_ROOM,Devon:Genesis_fossil_restoration,AMAURA
 699,AURORUS,AMAURA,family_present_review_evolution,,,AMAURA
 700,SYLVEON,EEVEE,family_present_review_evolution,,,EEVEE
 701,HAWLUCHA,HAWLUCHA,badge_gated_wild,MAP_METEOR_FALLS_B1F_2R@8badges,,HAWLUCHA
@@ -878,10 +878,10 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 877,MORPEKO,MORPEKO,badge_gated_wild,MAP_ROUTE118@5badges,,MORPEKO
 878,CUFANT,CUFANT,badge_gated_wild,MAP_RUSTURF_TUNNEL@1badges,,CUFANT
 879,COPPERAJAH,CUFANT,family_present_review_evolution,,,CUFANT
-880,DRACOZOLT,DRACOZOLT,no_source_in_audited_tables,,,
-881,ARCTOZOLT,ARCTOZOLT,no_source_in_audited_tables,,,
-882,DRACOVISH,DRACOVISH,no_source_in_audited_tables,,,
-883,ARCTOVISH,ARCTOVISH,no_source_in_audited_tables,,,
+880,DRACOZOLT,DRACOZOLT,scripted_source,,Devon:Genesis_fossil_restoration,DRACOZOLT
+881,ARCTOZOLT,ARCTOZOLT,scripted_source,,Devon:Genesis_fossil_restoration,ARCTOZOLT
+882,DRACOVISH,DRACOVISH,scripted_source,,Devon:Genesis_fossil_restoration,DRACOVISH
+883,ARCTOVISH,ARCTOVISH,scripted_source,,Devon:Genesis_fossil_restoration,ARCTOVISH
 884,DURALUDON,DURALUDON,genesis_or_island,,NavelRock_B1F,DURALUDON
 885,DREEPY,DREEPY,genesis_or_island,,NavelRock_B1F,DREEPY
 886,DRAKLOAK,DREEPY,family_present_review_evolution,,,DREEPY
