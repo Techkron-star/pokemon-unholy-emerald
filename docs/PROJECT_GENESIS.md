@@ -40,3 +40,15 @@
 - Deoxys: one interaction with the triangle reveals Deoxys at (15,10), then the player approaches to battle. Level 60 provisional. Native capture and reveal flags reused; defeating/fleeing allows retry on re-entry. Existing captured event remains complete. Off-map island is represented by the Lilycove transport hub, not a fabricated map coordinate.
 - No new island species or terrain changes beyond Deoxys placement yet. Native Mew, Lugia, Ho-Oh and Eon encounters unchanged. Island ecosystems and distribution audit are P4.
 - QA pending: pre-League ferry round trip, post-League ferry menu and existing tickets, bag-full behavior, save/reload, rock interaction and Deoxys collision, original roamer selection, native island encounters, compile and execute tests.
+
+## P4 — island ecology, first pass
+- Birth Island: visible Elgyem (36), Beldum (36), and Beheeyem (48, after native Deoxys capture flag).
+- Faraway Island entrance: visible Oranguru (48), Passimian (48), Komala (42), Toedscool (43).
+- Navel Rock B1F: visible Dreepy (44), Duraludon (48), Drampa (55).
+- Southern Island: interact with existing sign, opt into investigating psychic presence; random Munna (42), Espurr (44), Hatenna (46), male Indeedee (50). One encounter per map visit. No new tile layout needed.
+- These 14 species are absent from the ordinary wild encounter tables on the P3 base; this does not assert absence from gifts, breeding, raids, shops, or other scripted encounters. Levels provisional. Regional forms/other forms not automatically added here.
+- Visible fauna is repeatable on re-entry, using temporary map-local flags rather than permanent per-individual completion. First successful capture per island clears its discovery marker (permanent flags 0x02A–0x02D); access never closes. Off-map discovery markers use Lilycove transport hub. No species names revealed on map.
+- Static collision/elevation and connectivity from entry verified for the ten new visible positions using raw layout blocks; actual walking, camera, sprites, battles, re-entry, collision around legendary events and sign interaction require emulator QA.
+- No random grass/water tables changed and no new terrain. Later expansions may add distinct biomes, new maps, artifacts and further families after a full acquisition audit.
+
+- Beheeyem has a separate post-Deoxys discovery marker until first capture (0x02E). Deoxys elevation corrected to the actual floor elevation 3 at its existing tile.

@@ -4,6 +4,7 @@ SouthernIsland_Exterior_MapScripts::
 
 SouthernIsland_Exterior_OnTransition:
 	setflag FLAG_LANDMARK_SOUTHERN_ISLAND
+	clearflag FLAG_TEMP_1
 	end
 
 SouthernIsland_Exterior_EventScript_Sailor::
@@ -49,6 +50,58 @@ Ferry_Movement_DepartIslandBoardWest:
 	step_end
 
 SouthernIsland_Exterior_EventScript_Sign::
+	lockall
 	msgbox SouthernIsland_Exterior_Text_Sign, MSGBOX_SIGN
+	goto_if_set FLAG_TEMP_1, SouthernIsland_Exterior_EventScript_GenesisFaunaEnd
+	msgbox SouthernIsland_Exterior_Text_GenesisFauna, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, SouthernIsland_Exterior_EventScript_GenesisFaunaEnd
+	closemessage
+	random 4
+	switch VAR_RESULT
+	case 0, SouthernIsland_Exterior_EventScript_GenesisFaunaMunna
+	case 1, SouthernIsland_Exterior_EventScript_GenesisFaunaEspurr
+	case 2, SouthernIsland_Exterior_EventScript_GenesisFaunaHatenna
+	case 3, SouthernIsland_Exterior_EventScript_GenesisFaunaIndeedee
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaEnd
 	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaMunna::
+	setwildbattle SPECIES_MUNNA, 42
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaBattle
+	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaEspurr::
+	setwildbattle SPECIES_ESPURR, 44
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaBattle
+	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaHatenna::
+	setwildbattle SPECIES_HATENNA, 46
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaBattle
+	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaIndeedee::
+	setwildbattle SPECIES_INDEEDEE_M, 50
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaBattle
+	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaBattle::
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, SouthernIsland_Exterior_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_1
+	goto SouthernIsland_Exterior_EventScript_GenesisFaunaEnd
+	end
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaDiscovered::
+	setflag FLAG_UNHOLY_GENESIS_SOUTHERN_FAUNA_DISCOVERED
+	return
+
+SouthernIsland_Exterior_EventScript_GenesisFaunaEnd::
+	releaseall
+	end
+
+SouthernIsland_Exterior_Text_GenesisFauna:
+	.string "A strange presence lingers here.\n"
+	.string "Investigate the surroundings?$"
 
