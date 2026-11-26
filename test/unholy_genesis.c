@@ -349,3 +349,43 @@ TEST("Genesis Crystal Cave gate needs five badges and Mewtwo needs all eight")
     for (u16 i = 0; i < NUM_BADGES; i++)
         if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
 }
+
+TEST("Genesis Telluric Cave requires all badges and League clear, stays open after capture")
+{
+    bool8 oldBadges[NUM_BADGES];
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        oldBadges[i] = FlagGet(FLAG_BADGE01_GET + i);
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    bool8 oldClear = FlagGet(FLAG_SYS_GAME_CLEAR);
+    bool8 oldVisited = FlagGet(FLAG_GENESIS_TELLURIC_VISITED);
+    bool8 oldCaught = FlagGet(FLAG_GENESIS_ZYGARDE_CAUGHT);
+    FlagClear(FLAG_SYS_GAME_CLEAR);
+    FlagClear(FLAG_GENESIS_TELLURIC_VISITED);
+    FlagClear(FLAG_GENESIS_ZYGARDE_CAUGHT);
+    EXPECT(!GenesisEvent_TelluricGateAvailable());
+    FlagSet(FLAG_SYS_GAME_CLEAR);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        FlagClear(FLAG_BADGE01_GET + i);
+        EXPECT(!GenesisEvent_TelluricGateAvailable());
+        EXPECT(!GenesisEvent_ZygardeAvailable());
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    EXPECT(GenesisEvent_TelluricGateAvailable());
+    EXPECT(GenesisEvent_IsAvailable(GENESIS_EVENT_TELLURIC_GATE));
+    EXPECT(!GenesisEvent_ZygardeAvailable());
+    FlagSet(FLAG_GENESIS_TELLURIC_VISITED);
+    EXPECT(GenesisEvent_TelluricGateAvailable());
+    EXPECT(!GenesisEvent_IsAvailable(GENESIS_EVENT_TELLURIC_GATE));
+    EXPECT(GenesisEvent_ZygardeAvailable());
+    FlagSet(FLAG_GENESIS_ZYGARDE_CAUGHT);
+    EXPECT(!GenesisEvent_ZygardeAvailable());
+    EXPECT(GenesisEvent_TelluricGateAvailable());
+    if (oldClear) FlagSet(FLAG_SYS_GAME_CLEAR); else FlagClear(FLAG_SYS_GAME_CLEAR);
+    if (oldVisited) FlagSet(FLAG_GENESIS_TELLURIC_VISITED); else FlagClear(FLAG_GENESIS_TELLURIC_VISITED);
+    if (oldCaught) FlagSet(FLAG_GENESIS_ZYGARDE_CAUGHT); else FlagClear(FLAG_GENESIS_ZYGARDE_CAUGHT);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
+}
