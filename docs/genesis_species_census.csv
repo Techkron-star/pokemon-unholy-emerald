@@ -843,7 +843,7 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 842,APPLETUN,APPLIN,family_present_review_evolution,,,APPLIN
 843,SILICOBRA,SILICOBRA,no_source_in_audited_tables,,,
 844,SANDACONDA,SILICOBRA,no_source_in_audited_tables,,,
-845,CRAMORANT,CRAMORANT,no_source_in_audited_tables,,,
+845,CRAMORANT,CRAMORANT,scripted_source,,Route124,CRAMORANT
 846,ARROKUDA,ARROKUDA,no_source_in_audited_tables,,,
 847,BARRASKEWDA,ARROKUDA,no_source_in_audited_tables,,,
 848,TOXEL,TOXEL,ordinary_wild,MAP_NEW_MAUVILLE_ENTRANCE;MAP_NEW_MAUVILLE_INSIDE,,TOXEL
@@ -936,8 +936,8 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 935,CHARCADET,CHARCADET,ordinary_wild,MAP_FIERY_PATH;MAP_MAGMA_HIDEOUT_1F;MAP_MAGMA_HIDEOUT_2F_1R;MAP_MAGMA_HIDEOUT_2F_3R;MAP_MAGMA_HIDEOUT_3F_2R;MAP_MAGMA_HIDEOUT_3F_3R;MAP_MAGMA_HIDEOUT_4F,,CHARCADET
 936,ARMAROUGE,CHARCADET,family_present_review_evolution,,,CHARCADET
 937,CERULEDGE,CHARCADET,family_present_review_evolution,,,CHARCADET
-938,TADBULB,TADBULB,no_source_in_audited_tables,,,
-939,BELLIBOLT,TADBULB,no_source_in_audited_tables,,,
+938,TADBULB,TADBULB,scripted_source,,NewMauville_Inside,TADBULB
+939,BELLIBOLT,TADBULB,family_present_review_evolution,,,TADBULB
 940,WATTREL,WATTREL,no_source_in_audited_tables,,,
 941,KILOWATTREL,WATTREL,no_source_in_audited_tables,,,
 942,MASCHIFF,MASCHIFF,no_source_in_audited_tables,,,
@@ -963,8 +963,8 @@ national_dex,species,family,status,ordinary_wild_maps,known_scripted_sources,fam
 962,BOMBIRDIER,BOMBIRDIER,no_source_in_audited_tables,,,
 963,FINIZEN,FINIZEN,no_source_in_audited_tables,,,
 964,PALAFIN,FINIZEN,no_source_in_audited_tables,,,
-965,VAROOM,VAROOM,no_source_in_audited_tables,,,
-966,REVAVROOM,VAROOM,no_source_in_audited_tables,,,
+965,VAROOM,VAROOM,scripted_source,,NewMauville_Inside,VAROOM
+966,REVAVROOM,VAROOM,family_present_review_evolution,,,VAROOM
 967,CYCLIZAR,CYCLIZAR,no_source_in_audited_tables,,,
 968,ORTHWORM,ORTHWORM,no_source_in_audited_tables,,,
 969,GLIMMET,GLIMMET,ordinary_wild,MAP_CAVE_OF_ORIGIN_1F;MAP_CAVE_OF_ORIGIN_ENTRANCE;MAP_JAGGED_PASS;MAP_METEOR_FALLS_1F_1R;MAP_METEOR_FALLS_1F_2R;MAP_METEOR_FALLS_B1F_1R;MAP_METEOR_FALLS_STEVENS_CAVE;MAP_SEAFLOOR_CAVERN_ROOM1;MAP_SEAFLOOR_CAVERN_ROOM2;MAP_SEAFLOOR_CAVERN_ROOM3;MAP_SEAFLOOR_CAVERN_ROOM4;MAP_SEAFLOOR_CAVERN_ROOM5;MAP_SEAFLOOR_CAVERN_ROOM6;MAP_SEAFLOOR_CAVERN_ROOM7;MAP_SEAFLOOR_CAVERN_ROOM8,,GLIMMET
