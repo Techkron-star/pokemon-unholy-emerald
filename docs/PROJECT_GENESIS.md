@@ -26,3 +26,9 @@
 2. Original Aurora/Mystic/Eon tickets and Old Sea Map: in-game acquisition, permanent travel, Deoxys after climate crisis and eight badges, simplified triangle.
 3. Unique island encounters, availability audit across all enabled species, fossil market, overworld interactions.
 4. Ultra Space using authored maps and variable connections; time distortions and other special ecosystems.
+
+## P2 — remaining legendary birds
+- Moltres: Mt Chimney, fourth badge and `FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY`, level 45. Uses Maxie's former tile after the story; check collision and trainer visibility in emulator.
+- Articuno: Shoal Cave low-tide ice room, seventh badge, level 55. Existing tide access controls entry; marker remains visible at high tide. Provisional tile (12,9), collision QA required.
+- Each original capture unlocks its Galarian variant on re-entry once all eight badges are present; level 65 provisional. Flags 0x022–0x029 reserved. No capture by trade or Dex flag. Same retry policy as Zapdos.
+- Combat work is separate. Confirmed designs: Demon Surge (Fighting/Dark damaging moves, Electric mixed strike BP25/45 if primary crit, independent crit, paralysis); Dark Phoenix (one revival at half max HP, then 50% healing ceiling); Ice Sovereign (Ice damage heals, double against Frostbite); EverIce (permanent hail while active, heals 1/10 max HP each turn). Blitz Storm and Bright Phoenix named; mechanics not yet confirmed. Proposed Galar typings Fighting/Electric, Dark/Fire, Psychic/Ice.
