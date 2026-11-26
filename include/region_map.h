@@ -2,6 +2,7 @@
 #define GUARD_REGION_MAP_H
 
 #include "bg.h"
+#include "unholy_genesis.h"
 
 // Exported type declarations
 #define MAP_NAME_LENGTH 16
@@ -97,7 +98,8 @@ struct RegionMap {
     /*0x082*/ u8 mapBaseIdx;
     /*0x083*/ bool8 bgManaged;
     /*0x084*/ struct Sprite *bountyMarker;
-    u8 filler_088[0xFC];
+    struct Sprite *genesisMarkers[GENESIS_MAP_MARKER_LIMIT];
+    u8 filler_088[0xFC - GENESIS_MAP_MARKER_LIMIT * 4];
     /*0x184*/ u8 cursorSmallImage[0x100];
     /*0x284*/ u8 cursorLargeImage[0x600];
 }; // size = 0x884
