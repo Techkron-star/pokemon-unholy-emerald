@@ -117,6 +117,23 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .storyFlag = FLAG_BATTLED_DEOXYS,
         .completionFlag = FLAG_UNHOLY_GENESIS_BEHEEYEM_DISCOVERED,
     },
+    [GENESIS_EVENT_TADBULB_DISCOVERY] = {
+        .mapSection = MAPSEC_MAUVILLE_CITY,
+        .prerequisiteVar = VAR_NEW_MAUVILLE_STATE,
+        .prerequisiteValue = 2,
+        .completionFlag = FLAG_UNHOLY_GENESIS_TADBULB_DISCOVERED,
+    },
+    [GENESIS_EVENT_VAROOM_DISCOVERY] = {
+        .mapSection = MAPSEC_MAUVILLE_CITY,
+        .prerequisiteVar = VAR_NEW_MAUVILLE_STATE,
+        .prerequisiteValue = 2,
+        .completionFlag = FLAG_UNHOLY_GENESIS_VAROOM_DISCOVERED,
+    },
+    [GENESIS_EVENT_CRAMORANT_DISCOVERY] = {
+        .mapSection = MAPSEC_ROUTE_124,
+        .prerequisiteFlag = FLAG_BADGE06_GET,
+        .completionFlag = FLAG_UNHOLY_GENESIS_CRAMORANT_DISCOVERED,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
