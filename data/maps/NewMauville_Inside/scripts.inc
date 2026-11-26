@@ -148,6 +148,7 @@ NewMauville_Inside_EventScript_RedButton::
 	setvar VAR_NEW_MAUVILLE_STATE, 2
 	call NewMauville_Inside_EventScript_GenesisRefresh
 	call_if_unset FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE, NewMauville_Inside_EventScript_GenesisSpawn
+	call_if_unset FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_HIDE, NewMauville_Inside_EventScript_GenesisSpawnGalar
 	releaseall
 	end
 
@@ -268,8 +269,15 @@ NewMauville_Inside_Text_SteppedOnSwitchGeneratorStopped:
 @ Genesis: visibility is derived from existing story state on every entry.
 NewMauville_Inside_EventScript_GenesisRefresh::
 	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_HIDE
 	specialvar VAR_RESULT, GenesisEvent_ZapdosAvailable
+	goto_if_eq VAR_RESULT, TRUE, NewMauville_Inside_EventScript_GenesisShowNormal
+	specialvar VAR_RESULT, GenesisEvent_ZapdosGalarAvailable
 	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_NopReturn
+	clearflag FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_HIDE
+	return
+
+NewMauville_Inside_EventScript_GenesisShowNormal::
 	clearflag FLAG_UNHOLY_GENESIS_ZAPDOS_HIDE
 	return
 
@@ -303,5 +311,34 @@ NewMauville_Inside_EventScript_GenesisCaught::
 	end
 
 NewMauville_Inside_EventScript_GenesisRelease::
+	releaseall
+	end
+
+NewMauville_Inside_EventScript_GenesisSpawnGalar::
+	addobject 10
+	return
+
+NewMauville_Inside_EventScript_GenesisZapdosGalar::
+	lockall
+	specialvar VAR_RESULT, GenesisEvent_ZapdosGalarAvailable
+	goto_if_eq VAR_RESULT, FALSE, NewMauville_Inside_EventScript_GenesisRelease
+	waitse
+	playmoncry SPECIES_ZAPDOS_GALAR, CRY_MODE_ENCOUNTER
+	delay 40
+	waitmoncry
+	setwildbattle SPECIES_ZAPDOS_GALAR, 65
+	setflag FLAG_SYS_CTRL_OBJ_DELETE
+	special BattleSetup_StartLegendaryBattle
+	clearflag FLAG_SYS_CTRL_OBJ_DELETE
+	specialvar VAR_RESULT, GetBattleOutcome
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, NewMauville_Inside_EventScript_GenesisGalarCaught
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_HIDE
+	removeobject 10
+	releaseall
+	end
+
+NewMauville_Inside_EventScript_GenesisGalarCaught::
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT
+	setflag FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_HIDE
 	releaseall
 	end
