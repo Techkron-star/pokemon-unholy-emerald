@@ -649,3 +649,8 @@ gSpecials::
 	def_special GenesisEvent_MoltresGalarAvailable
 	def_special GenesisEvent_ArticunoAvailable
 	def_special GenesisEvent_ArticunoGalarAvailable
+	def_special GenesisEvent_AuroraTicketAvailable
+	def_special GenesisEvent_DeoxysAvailable
+	def_special GenesisEvent_OldSeaMapAvailable
+	def_special GenesisEvent_MysticTicketAvailable
+	def_special GenesisEvent_EonTicketAvailable

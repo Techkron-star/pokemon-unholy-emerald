@@ -15,6 +15,7 @@ struct GenesisEvent
     u16 completionFlag;
     u16 previousCaptureFlag;
     bool8 requiresAllBadges;
+    bool8 requiresKantoBirds;
 };
 
 // Registry of persistent world discoveries. Map scripts own the encounters;
@@ -63,6 +64,33 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .previousCaptureFlag = FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT,
         .requiresAllBadges = TRUE,
     },
+    [GENESIS_EVENT_AURORA_TICKET] = {
+        .mapSection = MAPSEC_MOSSDEEP_CITY,
+        .prerequisiteFlag = FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE,
+        .completionFlag = FLAG_ENABLE_SHIP_BIRTH_ISLAND,
+        .requiresAllBadges = TRUE,
+    },
+    [GENESIS_EVENT_DEOXYS] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_BIRTH_ISLAND,
+        .completionFlag = FLAG_BATTLED_DEOXYS,
+    },
+    [GENESIS_EVENT_OLD_SEA_MAP] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
+        .completionFlag = FLAG_ENABLE_SHIP_FARAWAY_ISLAND,
+    },
+    [GENESIS_EVENT_MYSTIC_TICKET] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
+        .completionFlag = FLAG_ENABLE_SHIP_NAVEL_ROCK,
+        .requiresKantoBirds = TRUE,
+    },
+    [GENESIS_EVENT_EON_TICKET] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
+        .completionFlag = FLAG_ENABLE_SHIP_SOUTHERN_ISLAND,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
@@ -76,6 +104,11 @@ bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
             if (!FlagGet(flag))
                 return FALSE;
     }
+    if (event->requiresKantoBirds
+     && (!FlagGet(FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT)
+      || !FlagGet(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT)
+      || !FlagGet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT)))
+        return FALSE;
     if (event->previousCaptureFlag && !FlagGet(event->previousCaptureFlag))
         return FALSE;
     return !FlagGet(event->completionFlag)
@@ -133,4 +166,29 @@ bool32 GenesisEvent_ArticunoAvailable(void)
 bool32 GenesisEvent_ArticunoGalarAvailable(void)
 {
     return GenesisEvent_IsAvailable(GENESIS_EVENT_ARTICUNO_GALAR);
+}
+
+bool32 GenesisEvent_AuroraTicketAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_AURORA_TICKET);
+}
+
+bool32 GenesisEvent_DeoxysAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_DEOXYS);
+}
+
+bool32 GenesisEvent_OldSeaMapAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_OLD_SEA_MAP);
+}
+
+bool32 GenesisEvent_MysticTicketAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_MYSTIC_TICKET);
+}
+
+bool32 GenesisEvent_EonTicketAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_EON_TICKET);
 }

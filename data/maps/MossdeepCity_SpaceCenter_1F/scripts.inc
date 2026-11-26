@@ -90,6 +90,8 @@ MossdeepCity_SpaceCenter_1F_EventScript_Scientist::
 	lock
 	faceplayer
 	goto_if_eq VAR_MOSSDEEP_CITY_STATE, 2, MossdeepCity_SpaceCenter_1F_EventScript_ScientistMagma
+	specialvar VAR_RESULT, GenesisEvent_AuroraTicketAvailable
+	goto_if_eq VAR_RESULT, TRUE, MossdeepCity_SpaceCenter_1F_EventScript_GenesisAurora
 	msgbox MossdeepCity_SpaceCenter_1F_Text_RocketLaunchDemandsPerfection, MSGBOX_DEFAULT
 	release
 	end
@@ -422,3 +424,25 @@ MossdeepCity_SpaceCenter_1F_Text_MagmaIntentToStealNotice:
 	.string "We will take the fuel no matter what.\p"
 	.string "“Let there be more land!\n"
 	.string "                                          TEAM MAGMA”$"
+
+MossdeepCity_SpaceCenter_1F_EventScript_GenesisAurora::
+	msgbox MossdeepCity_SpaceCenter_1F_Text_GenesisAurora, MSGBOX_DEFAULT
+	checkitem ITEM_AURORA_TICKET
+	goto_if_eq VAR_RESULT, TRUE, MossdeepCity_SpaceCenter_1F_EventScript_GenesisEnableAurora
+	giveitem ITEM_AURORA_TICKET
+	goto_if_eq VAR_RESULT, FALSE, Common_EventScript_ShowBagIsFull
+MossdeepCity_SpaceCenter_1F_EventScript_GenesisEnableAurora::
+	setflag FLAG_ENABLE_SHIP_BIRTH_ISLAND
+	setflag FLAG_SHOWN_AURORA_TICKET
+	msgbox MossdeepCity_SpaceCenter_1F_Text_GenesisAuroraTravel, MSGBOX_DEFAULT
+	release
+	end
+
+MossdeepCity_SpaceCenter_1F_Text_GenesisAurora:
+	.string "We tracked a strange signal to\n"
+	.string "BIRTH ISLAND. Take this ticket.$"
+
+MossdeepCity_SpaceCenter_1F_Text_GenesisAuroraTravel:
+	.string "A research ferry leaves from\n"
+	.string "LILYCOVE HARBOR. You can visit\l"
+	.string "whenever you want.$"

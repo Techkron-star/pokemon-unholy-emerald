@@ -155,3 +155,77 @@ TEST("Genesis regional Articuno and Moltres require original captures and all ba
     for (u16 i = 0; i < NUM_BADGES; i++)
         if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
 }
+
+TEST("Genesis Aurora ticket requires resolved climate crisis and every badge")
+{
+    bool8 oldBadges[NUM_BADGES];
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        oldBadges[i] = FlagGet(FLAG_BADGE01_GET + i);
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    const u16 flags[] = {FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE, FLAG_ENABLE_SHIP_BIRTH_ISLAND, FLAG_BATTLED_DEOXYS};
+    bool8 oldFlags[ARRAY_COUNT(flags)];
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+    {
+        oldFlags[i] = FlagGet(flags[i]);
+        FlagClear(flags[i]);
+    }
+    EXPECT(!GenesisEvent_AuroraTicketAvailable());
+    EXPECT(!GenesisEvent_DeoxysAvailable());
+    FlagSet(FLAG_SOOTOPOLIS_ARCHIE_MAXIE_LEAVE);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        FlagClear(FLAG_BADGE01_GET + i);
+        EXPECT(!GenesisEvent_AuroraTicketAvailable());
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    EXPECT(GenesisEvent_AuroraTicketAvailable());
+    EXPECT(HasPendingSection(MAPSEC_MOSSDEEP_CITY));
+    FlagSet(FLAG_ENABLE_SHIP_BIRTH_ISLAND);
+    EXPECT(!GenesisEvent_AuroraTicketAvailable());
+    EXPECT(GenesisEvent_DeoxysAvailable());
+    EXPECT(HasPendingSection(MAPSEC_LILYCOVE_CITY));
+    FlagSet(FLAG_BATTLED_DEOXYS);
+    EXPECT(!GenesisEvent_DeoxysAvailable());
+    EXPECT(FlagGet(FLAG_ENABLE_SHIP_BIRTH_ISLAND));
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+        if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
+}
+
+TEST("Genesis postgame tickets retain individual progression")
+{
+    const u16 flags[] = {FLAG_SYS_GAME_CLEAR, FLAG_ENABLE_SHIP_FARAWAY_ISLAND, FLAG_ENABLE_SHIP_SOUTHERN_ISLAND, FLAG_ENABLE_SHIP_NAVEL_ROCK, FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT, FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT, FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT};
+    bool8 oldFlags[ARRAY_COUNT(flags)];
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+    {
+        oldFlags[i] = FlagGet(flags[i]);
+        FlagClear(flags[i]);
+    }
+    EXPECT(!GenesisEvent_OldSeaMapAvailable());
+    EXPECT(!GenesisEvent_EonTicketAvailable());
+    EXPECT(!GenesisEvent_MysticTicketAvailable());
+    FlagSet(FLAG_SYS_GAME_CLEAR);
+    EXPECT(GenesisEvent_OldSeaMapAvailable());
+    EXPECT(GenesisEvent_EonTicketAvailable());
+    EXPECT(!GenesisEvent_MysticTicketAvailable());
+    for (u32 i = 4; i < ARRAY_COUNT(flags); i++)
+        FlagSet(flags[i]);
+    EXPECT(GenesisEvent_MysticTicketAvailable());
+    for (u32 i = 4; i < ARRAY_COUNT(flags); i++)
+    {
+        FlagClear(flags[i]);
+        EXPECT(!GenesisEvent_MysticTicketAvailable());
+        FlagSet(flags[i]);
+    }
+    FlagSet(FLAG_ENABLE_SHIP_FARAWAY_ISLAND);
+    FlagSet(FLAG_ENABLE_SHIP_SOUTHERN_ISLAND);
+    FlagSet(FLAG_ENABLE_SHIP_NAVEL_ROCK);
+    EXPECT(!GenesisEvent_OldSeaMapAvailable());
+    EXPECT(!GenesisEvent_EonTicketAvailable());
+    EXPECT(!GenesisEvent_MysticTicketAvailable());
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+        if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
+}
