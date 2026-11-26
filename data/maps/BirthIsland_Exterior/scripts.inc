@@ -1,32 +1,23 @@
 BirthIsland_Exterior_MapScripts::
 	map_script MAP_SCRIPT_ON_TRANSITION, BirthIsland_Exterior_OnTransition
 	map_script MAP_SCRIPT_ON_RESUME, BirthIsland_Exterior_OnResume
-	map_script MAP_SCRIPT_ON_RETURN_TO_FIELD, BirthIsland_Exterior_OnReturnToField
 	.byte 0
-
-BirthIsland_Exterior_OnReturnToField:
-	special SetDeoxysRockPalette
-	end
 
 BirthIsland_Exterior_OnTransition:
 	setflag FLAG_MAP_SCRIPT_CHECKED_DEOXYS
-	setvar VAR_OBJ_GFX_ID_0, OBJ_EVENT_GFX_RIVAL_BRENDAN_NORMAL
-	setvar VAR_DEOXYS_ROCK_STEP_COUNT, 0
-	setvar VAR_DEOXYS_ROCK_LEVEL, 0
-	call_if_set FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_HideDeoxysAndPuzzle
-	call_if_unset FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_TryShowDeoxysPuzzle
-	end
-
-BirthIsland_Exterior_EventScript_HideDeoxysAndPuzzle::
 	setflag FLAG_HIDE_DEOXYS
 	setflag FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE
-	return
-
-BirthIsland_Exterior_EventScript_TryShowDeoxysPuzzle::
-	goto_if_set FLAG_DEFEATED_DEOXYS, Common_EventScript_NopReturn
+	goto_if_set FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_End
+	goto_if_set FLAG_DEOXYS_ROCK_COMPLETE, BirthIsland_Exterior_EventScript_ShowDeoxys
 	clearflag FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE
-	clearflag FLAG_DEOXYS_ROCK_COMPLETE
-	return
+	end
+
+BirthIsland_Exterior_EventScript_ShowDeoxys::
+	clearflag FLAG_HIDE_DEOXYS
+	end
+
+BirthIsland_Exterior_EventScript_End::
+	end
 
 BirthIsland_Exterior_OnResume:
 	call_if_set FLAG_SYS_CTRL_OBJ_DELETE, BirthIsland_Exterior_EventScript_TryRemoveDeoxys
@@ -39,76 +30,50 @@ BirthIsland_Exterior_EventScript_TryRemoveDeoxys::
 	return
 
 BirthIsland_Exterior_EventScript_Triangle::
-	lock
-	faceplayer
-	special DoDeoxysRockInteraction
-	switch VAR_RESULT
-	case DEOXYS_ROCK_FAILED,     BirthIsland_Exterior_EventScript_Failed
-	case DEOXYS_ROCK_PROGRESSED, BirthIsland_Exterior_EventScript_Progressed
-	case DEOXYS_ROCK_SOLVED,     BirthIsland_Exterior_EventScript_Deoxys
-	case DEOXYS_ROCK_COMPLETE,   BirthIsland_Exterior_EventScript_Complete
-	end
-
-@ The actual rock triangle movement is handled by DoDeoxysRockInteraction.
-@ Unless the player has solved the puzzle and needs to encounter Deoxys,
-@ there's nothing else the script needs to do.
-BirthIsland_Exterior_EventScript_Failed::
-	release
-	end
-
-BirthIsland_Exterior_EventScript_Progressed::
-	release
-	end
-
-BirthIsland_Exterior_EventScript_Complete::
-	release
+	lockall
+	goto_if_set FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_Release
+	playse SE_PIN
+	msgbox BirthIsland_Exterior_Text_GenesisSignal, MSGBOX_DEFAULT
+	closemessage
+	setflag FLAG_DEOXYS_ROCK_COMPLETE
+	setflag FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE
+	removeobject LOCALID_BIRTH_ISLAND_EXTERIOR_ROCK
+	clearflag FLAG_HIDE_DEOXYS
+	addobject LOCALID_BIRTH_ISLAND_DEOXYS
+	releaseall
 	end
 
 BirthIsland_Exterior_EventScript_Deoxys::
-	waitse
-	setfieldeffectargument 0, LOCALID_BIRTH_ISLAND_EXTERIOR_ROCK
-	setfieldeffectargument 1, MAP_NUM(MAP_BIRTH_ISLAND_EXTERIOR)
-	setfieldeffectargument 2, MAP_GROUP(MAP_BIRTH_ISLAND_EXTERIOR)
-	dofieldeffect FLDEFF_DESTROY_DEOXYS_ROCK
+	lockall
+	goto_if_set FLAG_BATTLED_DEOXYS, BirthIsland_Exterior_EventScript_Release
 	playbgm MUS_RG_ENCOUNTER_DEOXYS, FALSE
-	waitfieldeffect FLDEFF_DESTROY_DEOXYS_ROCK
-	addobject LOCALID_BIRTH_ISLAND_DEOXYS
-	applymovement LOCALID_BIRTH_ISLAND_DEOXYS, BirthIsland_Exterior_Movement_DeoxysApproach
-	waitmovement 0
 	waitse
 	playmoncry SPECIES_DEOXYS_NORMAL, CRY_MODE_ENCOUNTER
 	delay 40
 	waitmoncry
-	setvar VAR_LAST_TALKED, LOCALID_BIRTH_ISLAND_DEOXYS
-	seteventmon SPECIES_DEOXYS_NORMAL, 30
+	seteventmon SPECIES_DEOXYS_NORMAL, 60
 	setflag FLAG_SYS_CTRL_OBJ_DELETE
 	special BattleSetup_StartLegendaryBattle
 	clearflag FLAG_SYS_CTRL_OBJ_DELETE
 	specialvar VAR_RESULT, GetBattleOutcome
-	goto_if_eq VAR_RESULT, B_OUTCOME_WON, BirthIsland_Exterior_EventScript_DefeatedDeoxys
-	goto_if_eq VAR_RESULT, B_OUTCOME_RAN, BirthIsland_Exterior_EventScript_RanFromDeoxys
-	goto_if_eq VAR_RESULT, B_OUTCOME_PLAYER_TELEPORTED, BirthIsland_Exterior_EventScript_RanFromDeoxys
+	goto_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_Caught
+	setflag FLAG_HIDE_DEOXYS
+	removeobject LOCALID_BIRTH_ISLAND_DEOXYS
+	releaseall
+	end
+
+BirthIsland_Exterior_EventScript_Caught::
 	setflag FLAG_BATTLED_DEOXYS
-	release
+	clearflag FLAG_DEFEATED_DEOXYS
+	setflag FLAG_HIDE_DEOXYS
+	setflag FLAG_HIDE_BIRTH_ISLAND_DEOXYS_TRIANGLE
+	releaseall
 	end
 
-BirthIsland_Exterior_EventScript_DefeatedDeoxys::
-	setflag FLAG_DEFEATED_DEOXYS
-	setvar VAR_0x8004, SPECIES_DEOXYS_NORMAL
-	goto Common_EventScript_LegendaryFlewAway
+BirthIsland_Exterior_EventScript_Release::
+	releaseall
 	end
 
-BirthIsland_Exterior_EventScript_RanFromDeoxys::
-	setvar VAR_0x8004, SPECIES_DEOXYS_NORMAL
-	goto Common_EventScript_LegendaryFlewAway
-	end
-
-BirthIsland_Exterior_Movement_DeoxysApproach:
-	walk_slow_down
-	walk_slow_down
-	walk_slow_down
-	walk_slow_down
-	walk_slow_down
-	walk_slow_down
-	walk_slow_down
-	step_end
+BirthIsland_Exterior_Text_GenesisSignal:
+	.string "The stone pulses with a strange\n"
+	.string "light. Something has appeared!$"
