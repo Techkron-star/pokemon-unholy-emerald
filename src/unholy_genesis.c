@@ -12,6 +12,8 @@ struct GenesisEvent
     u16 prerequisiteVar;
     u16 prerequisiteValue;
     u16 completionFlag;
+    u16 previousCaptureFlag;
+    bool8 requiresAllBadges;
 };
 
 // Registry of persistent world discoveries. Map scripts own the encounters;
@@ -25,6 +27,15 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .prerequisiteValue = 2,
         .completionFlag = FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT,
     },
+    [GENESIS_EVENT_ZAPDOS_GALAR] = {
+        .mapSection = MAPSEC_MAUVILLE_CITY,
+        .prerequisiteFlag = FLAG_BADGE06_GET,
+        .prerequisiteVar = VAR_NEW_MAUVILLE_STATE,
+        .prerequisiteValue = 2,
+        .completionFlag = FLAG_UNHOLY_GENESIS_ZAPDOS_GALAR_CAUGHT,
+        .previousCaptureFlag = FLAG_UNHOLY_GENESIS_ZAPDOS_CAUGHT,
+        .requiresAllBadges = TRUE,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
@@ -32,6 +43,14 @@ bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
     if ((u32)id >= GENESIS_EVENT_COUNT)
         return FALSE;
     const struct GenesisEvent *event = &sEvents[id];
+    if (event->requiresAllBadges)
+    {
+        for (u16 flag = FLAG_BADGE01_GET; flag <= FLAG_BADGE08_GET; flag++)
+            if (!FlagGet(flag))
+                return FALSE;
+    }
+    if (event->previousCaptureFlag && !FlagGet(event->previousCaptureFlag))
+        return FALSE;
     return !FlagGet(event->completionFlag)
         && (!event->prerequisiteFlag || FlagGet(event->prerequisiteFlag))
         && (!event->prerequisiteVar || VarGet(event->prerequisiteVar) == event->prerequisiteValue);
@@ -61,4 +80,9 @@ u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity)
 bool32 GenesisEvent_ZapdosAvailable(void)
 {
     return GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS);
+}
+
+bool32 GenesisEvent_ZapdosGalarAvailable(void)
+{
+    return GenesisEvent_IsAvailable(GENESIS_EVENT_ZAPDOS_GALAR);
 }
