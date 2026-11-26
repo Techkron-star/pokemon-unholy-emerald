@@ -117,3 +117,41 @@ TEST("Genesis Articuno requires seventh badge")
     if (badge) FlagSet(FLAG_BADGE07_GET); else FlagClear(FLAG_BADGE07_GET);
     if (caught) FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT); else FlagClear(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
 }
+
+TEST("Genesis regional Articuno and Moltres require original captures and all badges")
+{
+    bool8 oldBadges[NUM_BADGES];
+    for (u16 i = 0; i < NUM_BADGES; i++)
+    {
+        oldBadges[i] = FlagGet(FLAG_BADGE01_GET + i);
+        FlagSet(FLAG_BADGE01_GET + i);
+    }
+    const u16 flags[] = {FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY, FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT, FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT, FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT, FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT};
+    bool8 oldFlags[ARRAY_COUNT(flags)];
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+    {
+        oldFlags[i] = FlagGet(flags[i]);
+        FlagClear(flags[i]);
+    }
+    FlagSet(FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY);
+    EXPECT(!GenesisEvent_MoltresGalarAvailable());
+    EXPECT(!GenesisEvent_ArticunoGalarAvailable());
+    FlagSet(FLAG_UNHOLY_GENESIS_MOLTRES_CAUGHT);
+    FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_CAUGHT);
+    FlagClear(FLAG_BADGE08_GET);
+    EXPECT(!GenesisEvent_MoltresGalarAvailable());
+    EXPECT(!GenesisEvent_ArticunoGalarAvailable());
+    FlagSet(FLAG_BADGE08_GET);
+    EXPECT(GenesisEvent_MoltresGalarAvailable());
+    EXPECT(GenesisEvent_ArticunoGalarAvailable());
+    EXPECT(HasPendingSection(MAPSEC_MT_CHIMNEY));
+    EXPECT(HasPendingSection(MAPSEC_SHOAL_CAVE));
+    FlagSet(FLAG_UNHOLY_GENESIS_MOLTRES_GALAR_CAUGHT);
+    FlagSet(FLAG_UNHOLY_GENESIS_ARTICUNO_GALAR_CAUGHT);
+    EXPECT(!HasPendingSection(MAPSEC_MT_CHIMNEY));
+    EXPECT(!HasPendingSection(MAPSEC_SHOAL_CAVE));
+    for (u32 i = 0; i < ARRAY_COUNT(flags); i++)
+        if (oldFlags[i]) FlagSet(flags[i]); else FlagClear(flags[i]);
+    for (u16 i = 0; i < NUM_BADGES; i++)
+        if (oldBadges[i]) FlagSet(FLAG_BADGE01_GET + i); else FlagClear(FLAG_BADGE01_GET + i);
+}
