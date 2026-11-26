@@ -130,7 +130,7 @@ BirthIsland_Exterior_EventScript_GenesisFaunaBEHEEYEM::
 	setwildbattle SPECIES_BEHEEYEM, 48
 	dowildbattle
 	specialvar VAR_RESULT, GetBattleOutcome
-	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, BirthIsland_Exterior_EventScript_GenesisFaunaBeheeyemDiscovered
 	setflag FLAG_TEMP_3
 	removeobject VAR_LAST_TALKED
 	releaseall
@@ -138,4 +138,9 @@ BirthIsland_Exterior_EventScript_GenesisFaunaBEHEEYEM::
 
 BirthIsland_Exterior_EventScript_GenesisFaunaDiscovered::
 	setflag FLAG_UNHOLY_GENESIS_BIRTH_FAUNA_DISCOVERED
+	return
+
+BirthIsland_Exterior_EventScript_GenesisFaunaBeheeyemDiscovered::
+	setflag FLAG_UNHOLY_GENESIS_BIRTH_FAUNA_DISCOVERED
+	setflag FLAG_UNHOLY_GENESIS_BEHEEYEM_DISCOVERED
 	return
