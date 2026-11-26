@@ -305,3 +305,16 @@ TEST("Genesis wild pools unlock cumulatively and preserve habitat separation")
     EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE105, WILD_AREA_WATER, 4), 0);
     EXPECT_EQ(GenesisWild_GetEligibleCount(MAP_ROUTE105, WILD_AREA_WATER, 5), 1);
 }
+
+TEST("Genesis starter generation selector excludes previously awarded trios")
+{
+    EXPECT_EQ(GenesisStarter_SelectGeneration(0, 0), 0);
+    EXPECT_EQ(GenesisStarter_SelectGeneration(0, 8), 8);
+    EXPECT_EQ(GenesisStarter_SelectGeneration(0x1FE, 99), 0);
+    EXPECT_EQ(GenesisStarter_SelectGeneration(0x0FF, 99), 8);
+    EXPECT_EQ(GenesisStarter_SelectGeneration(0x1FF, 0), GENESIS_STARTER_NONE);
+    EXPECT_EQ(GenesisStarter_GetSpecies(0, 0), SPECIES_BULBASAUR);
+    EXPECT_EQ(GenesisStarter_GetSpecies(8, 2), SPECIES_QUAXLY);
+    EXPECT_EQ(GenesisStarter_GetSpecies(9, 0), SPECIES_NONE);
+    EXPECT_EQ(GenesisStarter_GetSpecies(0, 3), SPECIES_NONE);
+}
