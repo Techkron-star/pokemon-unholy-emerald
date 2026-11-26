@@ -329,6 +329,7 @@ static bool32 StarterDeliver(u16 species)
     if (species == SPECIES_NONE)
         return FALSE;
     CreateMon(&mon, species, 5, Random32(), OTID_STRUCT_PLAYER_ID);
+    CalculateMonStats(&mon);
     return GiveScriptedMonToPlayer(&mon, PARTY_SIZE) != MON_CANT_GIVE;
 }
 
