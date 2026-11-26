@@ -91,6 +91,26 @@ static const struct GenesisEvent sEvents[GENESIS_EVENT_COUNT] =
         .prerequisiteFlag = FLAG_SYS_GAME_CLEAR,
         .completionFlag = FLAG_ENABLE_SHIP_SOUTHERN_ISLAND,
     },
+    [GENESIS_EVENT_BIRTH_FAUNA] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_BIRTH_ISLAND,
+        .completionFlag = FLAG_UNHOLY_GENESIS_BIRTH_FAUNA_DISCOVERED,
+    },
+    [GENESIS_EVENT_FARAWAY_FAUNA] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_FARAWAY_ISLAND,
+        .completionFlag = FLAG_UNHOLY_GENESIS_FARAWAY_FAUNA_DISCOVERED,
+    },
+    [GENESIS_EVENT_NAVEL_FAUNA] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_NAVEL_ROCK,
+        .completionFlag = FLAG_UNHOLY_GENESIS_NAVEL_FAUNA_DISCOVERED,
+    },
+    [GENESIS_EVENT_SOUTHERN_FAUNA] = {
+        .mapSection = MAPSEC_LILYCOVE_CITY,
+        .prerequisiteFlag = FLAG_ENABLE_SHIP_SOUTHERN_ISLAND,
+        .completionFlag = FLAG_UNHOLY_GENESIS_SOUTHERN_FAUNA_DISCOVERED,
+    },
 };
 
 bool32 GenesisEvent_IsAvailable(enum GenesisEventId id)
