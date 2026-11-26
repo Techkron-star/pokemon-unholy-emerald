@@ -41,4 +41,14 @@ bool32 GenesisEvent_MysticTicketAvailable(void);
 bool32 GenesisEvent_EonTicketAvailable(void);
 u8 GenesisEvent_GetPendingSections(u16 *sections, u8 capacity);
 
+#define GENESIS_STARTER_GENERATIONS 9
+#define GENESIS_STARTER_NONE 0xFF
+u8 GenesisStarter_SelectGeneration(u16 completedMask, u32 roll);
+u16 GenesisStarter_GetSpecies(u8 generation, u8 slot);
+bool32 GenesisStarter_LeagueAvailable(void);
+u16 GenesisStarter_ClaimLeague(void);
+bool32 GenesisStarter_HasCofradiaPrize(void);
+void GenesisStarter_QueueCofradiaPrize(void);
+u16 GenesisStarter_ClaimCofradia(void);
+
 #endif
