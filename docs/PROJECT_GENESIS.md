@@ -52,3 +52,11 @@
 - No random grass/water tables changed and no new terrain. Later expansions may add distinct biomes, new maps, artifacts and further families after a full acquisition audit.
 
 - Beheeyem has a separate post-Deoxys discovery marker until first capture (0x02E). Deoxys elevation corrected to the actual floor elevation 3 at its existing tile.
+
+## P5 — National Dex census and first environmental placements
+- Census snapshot: 1,025 National Dex entries. 299 have ordinary wild table references, 37 have verified selected island/scripted sources, 233 share a family with a documented source (evolution direction and method not guaranteed), and 456 lack sources in these audited tables. These are triage categories, NOT an unobtainability verdict. 8 entries lacked explicit natDexNum mapping in the first pass and use their Dex name as fallback; forms are not counted as separate National Dex numbers. Coverage still needs shops, raids, eggs, static gifts, config, enabled maps, and runtime gates.
+- Confirmed native gifts/encounters include Beldum (Steven; thus not actually exclusive to Birth Island), Lileep/Anorith, Hoenn legendaries/Regis and Johto starters. Keep existing acquisition paths intact.
+- New Mauville: after generator shutdown, interact with the existing generator to find Tadbulb (32) and Varoom (34); prioritize uncaught discoveries, then random repeatable encounters. Route 124: optional Cramorant (40) encounter by the Hunter's House sign after sixth badge. One encounter per visit; captures clear their individual regional markers; no new grass tables or map edits. Levels provisional.
+- Audit script is a lexical inventory tool, not a proof of availability; manual review required for dynamic sources and unreachable maps. Environmental scripts and flags need compile/emulator validation.
+
+Run `python3 tools/genesis_census.py --output /tmp/genesis-census.csv` from a full checkout for an expanded lexical scan of map scripts and candidate acquisition code; this script has not been executed in the connector environment. It intentionally uses separate evidence categories from the curated snapshot.
