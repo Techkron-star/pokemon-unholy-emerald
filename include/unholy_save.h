@@ -19,6 +19,7 @@
 // all existing fields; therefore box offsets and encryption are untouched.
 #define UNHOLY_SAVE5_MAGIC         0x554E4835 // ASCII 'UNH5'
 #define UNHOLY_SAVE5_VERSION       1
+#define UNHOLY_SAVE5_COFRADIA_VAULT_OFFSET 0 // dedicated custody record
 #define UNHOLY_SAVE5_PAYLOAD_BYTES 1556 // 4 bytes reserved for CRC32
 
 struct SaveBlock4

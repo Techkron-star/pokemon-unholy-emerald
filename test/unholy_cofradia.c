@@ -225,3 +225,87 @@ TEST("Cofradia counters need real damaging coverage rather than typing alone")
     EXPECT(CofradiaCounterScore(&attacker, &defender) > 0);
     EXPECT_EQ(CofradiaCounterScore(NULL, &defender), 0);
 }
+
+TEST("Cofradia mixed credit refunds only own contribution and repays principal once")
+{
+    struct SaveBlock4 oldSave = gSaveBlock3Ptr->unholySave4;
+    u32 oldMoney = GetMoney(&gSaveBlock1Ptr->money);
+    struct CofradiaView view;
+    UnholySave4_Reset();
+    SetMoney(&gSaveBlock1Ptr->money, 100000);
+    EXPECT_EQ(CofradiaBeginCredit(0, 5000, 5001), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaBeginCredit(0, 50001, 50001), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaBeginCredit(0, 200000, 50000), COFRADIA_NO_MONEY);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 60000);
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaDisarm());
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 100000);
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.borrowed, 0);
+    EXPECT_EQ(view.debt, 0);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaResolve(TRUE));
+    EXPECT_EQ(CofradiaCashOut(), COFRADIA_OK);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 103000);
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 0);
+    EXPECT_EQ(view.borrowed, 0);
+    EXPECT_EQ(CofradiaCashOut(), COFRADIA_INVALID);
+    EXPECT(UnholySave4_Validate(&gSaveBlock3Ptr->unholySave4));
+    gSaveBlock3Ptr->unholySave4 = oldSave;
+    SetMoney(&gSaveBlock1Ptr->money, oldMoney);
+}
+
+TEST("Cofradia defeat creates only principal debt and permits installments")
+{
+    struct SaveBlock4 oldSave = gSaveBlock3Ptr->unholySave4;
+    u32 oldMoney = GetMoney(&gSaveBlock1Ptr->money);
+    struct CofradiaView view;
+    UnholySave4_Reset();
+    SetMoney(&gSaveBlock1Ptr->money, 100000);
+    EXPECT_EQ(CofradiaBeginCredit(1, 100000, 60000), COFRADIA_OK);
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaResolve(TRUE));
+    EXPECT(CofradiaArm());
+    EXPECT(CofradiaResolve(FALSE));
+    EXPECT(!CofradiaResolve(FALSE));
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 60000);
+    EXPECT_EQ(view.borrowed, 0);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 60000);
+    EXPECT_EQ(CofradiaBeginCredit(0, 5000, 1), COFRADIA_DEBT_PENDING);
+    EXPECT_EQ(CofradiaRepay(60001), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaRepay(0), COFRADIA_INVALID);
+    EXPECT_EQ(CofradiaRepay(20000), COFRADIA_OK);
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 40000);
+    EXPECT_EQ(CofradiaRepay(40000), COFRADIA_OK);
+    EXPECT_EQ(GetMoney(&gSaveBlock1Ptr->money), 0);
+    EXPECT(CofradiaGetView(&view));
+    EXPECT_EQ(view.debt, 0);
+    EXPECT_EQ(CofradiaBeginCredit(0, 5000, 5000), COFRADIA_OK);
+    EXPECT(UnholySave4_Validate(&gSaveBlock3Ptr->unholySave4));
+    gSaveBlock3Ptr->unholySave4 = oldSave;
+    SetMoney(&gSaveBlock1Ptr->money, oldMoney);
+}
+
+TEST("Cofradia appraisal excludes empty slots and values mutations")
+{
+    struct Pokemon mon = {0};
+    EXPECT_EQ(CofradiaAppraisePokemon(&mon), 0);
+    EXPECT_EQ(CofradiaAppraisePokemon(NULL), 0);
+    CreateRandomMon(&mon, SPECIES_CHARIZARD, 50);
+    u16 badges = 0;
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    u32 plain = CofradiaAppraisePokemon(&mon);
+    badges = POKEMON_BADGE_ALPHA;
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    u32 alpha = CofradiaAppraisePokemon(&mon);
+    badges |= POKEMON_BADGE_OMEGA;
+    SetMonData(&mon, MON_DATA_SPECIAL_BADGES, &badges);
+    EXPECT(plain > 0);
+    EXPECT(alpha > plain);
+    EXPECT(CofradiaAppraisePokemon(&mon) > alpha);
+}

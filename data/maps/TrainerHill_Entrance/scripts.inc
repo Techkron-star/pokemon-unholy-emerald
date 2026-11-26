@@ -676,10 +676,19 @@ Cofradia_WagerLobby::
 	case 1, Cofradia_WagerContinue
 	case 2, Cofradia_WagerUnstarted
 	case 3, Cofradia_WagerMessage
-	case 4, Cofradia_WagerMessage
-	msgbox Cofradia_Text_WagerWelcome, MSGBOX_YESNO
-	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
+	case 4, Cofradia_WagerInterrupted
+	case 5, Cofradia_DefaultCollection
+Cofradia_LobbyMenu::
 	closemessage
+	callnative CofradiaLobbyMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerExit
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_WagerExit
+	goto_if_eq VAR_RESULT, 4, Cofradia_WagerExit
+	goto_if_eq VAR_RESULT, 3, Cofradia_Accounts
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaChooseFunding
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
 	callnative CofradiaDifficultyMenu
 	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerExit
 	waitstate
@@ -699,7 +708,8 @@ Cofradia_WagerStake::
 	goto Cofradia_WagerStake
 
 Cofradia_WagerConfirm::
-	msgbox Cofradia_Text_WagerRisk, MSGBOX_YESNO
+	callnative CofradiaFundingQuote
+	msgbox gStringVar4, MSGBOX_YESNO
 	goto_if_ne VAR_RESULT, YES, Cofradia_WagerExit
 	callnative CofradiaBeginScript
 	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
@@ -736,8 +746,9 @@ Cofradia_WagerFight::
 	callnative CofradiaStatusScript
 	goto_if_eq VAR_RESULT, 1, Cofradia_WagerContinue
 	goto_if_eq VAR_RESULT, 3, Cofradia_WagerMessage
+	goto_if_eq VAR_RESULT, 5, Cofradia_DefaultCollection
 	msgbox Cofradia_Text_WagerLost, MSGBOX_DEFAULT
-	goto Cofradia_WagerExit
+	goto Cofradia_Accounts
 
 Cofradia_WagerSaveCancelled::
 	callnative CofradiaCancelSaveScript
@@ -780,3 +791,115 @@ Cofradia_Text_WagerLost:
 
 Cofradia_Text_SavePayout:
 	.string "Guarda para conservar el cobro.$"
+
+Cofradia_WagerInterrupted::
+	msgbox gStringVar4, MSGBOX_DEFAULT
+	callnative CofradiaStatusScript
+	goto_if_eq VAR_RESULT, 5, Cofradia_DefaultCollection
+	goto Cofradia_Accounts
+
+Cofradia_DefaultCollection::
+	callnative CofradiaDefaultScript
+	goto Cofradia_AccountTransaction
+
+Cofradia_Accounts::
+	closemessage
+	callnative CofradiaAccountsMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_WagerMessage
+	waitstate
+	switch VAR_RESULT
+	case 2, Cofradia_Repayment
+	case 3, Cofradia_Collateral
+	case 4, Cofradia_Vault
+	case 5, Cofradia_LobbyMenu
+	case MULTI_B_PRESSED, Cofradia_LobbyMenu
+	goto Cofradia_Accounts
+
+Cofradia_Repayment::
+	callnative CofradiaRepaymentMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_Accounts
+	goto_if_eq VAR_RESULT, 5, Cofradia_Accounts
+	goto_if_eq VAR_RESULT, 4, Cofradia_ItemPaymentStart
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaRepaymentQuote
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_AccountNotice
+	msgbox gStringVar4, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_Accounts
+	callnative CofradiaRepaymentApply
+	goto Cofradia_AccountTransaction
+
+Cofradia_Collateral::
+	msgbox Cofradia_Text_CollateralConfirm, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_Accounts
+	callnative CofradiaCollectScript
+	goto Cofradia_AccountTransaction
+
+Cofradia_Vault::
+	closemessage
+	callnative CofradiaVaultMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_Accounts
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaVaultEntryQuote
+	goto_if_eq VAR_RESULT, 2, Cofradia_Accounts
+	goto_if_eq VAR_RESULT, FALSE, Cofradia_VaultInspect
+	msgbox gStringVar4, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_Vault
+	callnative CofradiaVaultEntryReturn
+	goto Cofradia_AccountTransaction
+
+Cofradia_VaultInspect::
+	msgbox gStringVar4, MSGBOX_DEFAULT
+	goto Cofradia_Vault
+
+Cofradia_AccountNotice::
+	msgbox gStringVar4, MSGBOX_DEFAULT
+	goto Cofradia_Accounts
+
+Cofradia_AccountTransaction::
+	copyvar VAR_0x8004, VAR_RESULT
+	msgbox gStringVar4, MSGBOX_DEFAULT
+	goto_if_eq VAR_0x8004, FALSE, Cofradia_Accounts
+	callnative UpdateFollowingPokemon
+	msgbox Cofradia_Text_SaveAccount, MSGBOX_DEFAULT
+	call Common_EventScript_SaveGame
+	goto Cofradia_Accounts
+
+Cofradia_Text_CollateralConfirm:
+	.string "Se retendrán bienes por valor\n"
+	.string "de la deuda, según disponibilidad.\p"
+	.string "No se venden ni se destruyen.\n"
+	.string "Se devuelven al pagar la deuda.\p"
+	.string "¿Autorizar la retención?$"
+
+Cofradia_Text_SaveAccount:
+	.string "Guarda para conservar los cambios\n"
+	.string "de tu cuenta y de la bóveda.$"
+
+Cofradia_ItemPaymentStart::
+	callnative CofradiaItemPaymentReset
+Cofradia_ItemPaymentList::
+	closemessage
+	callnative CofradiaItemPaymentMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_Accounts
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaItemPaymentChoose
+	goto_if_eq VAR_RESULT, 2, Cofradia_ItemPaymentList
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_Accounts
+	callnative CofradiaItemPaymentQuantityMenu
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_ItemPaymentList
+	waitstate
+	goto_if_eq VAR_RESULT, MULTI_B_PRESSED, Cofradia_ItemPaymentList
+	goto_if_eq VAR_RESULT, 2, Cofradia_ItemPaymentList
+	copyvar VAR_0x8004, VAR_RESULT
+	callnative CofradiaItemPaymentQuote
+	goto_if_ne VAR_RESULT, TRUE, Cofradia_AccountNotice
+	msgbox gStringVar4, MSGBOX_YESNO
+	goto_if_ne VAR_RESULT, YES, Cofradia_ItemPaymentList
+	callnative CofradiaItemPaymentApply
+	goto Cofradia_AccountTransaction

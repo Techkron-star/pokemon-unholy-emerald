@@ -1,4 +1,6 @@
 #include "global.h"
+#include "item.h"
+#include "constants/items.h"
 #include "battle.h"
 #include "event_data.h"
 #include "item_menu.h"
@@ -162,4 +164,30 @@ TEST("Items are correctly sorted and compacted in the bag")
     EXPECT_EQ(pocket->itemSlots[4].itemId, ITEM_NONE);
     EXPECT_EQ(pocket->itemSlots[5].itemId, ITEM_NONE);
     EXPECT_EQ(pocket->itemSlots[6].itemId, ITEM_NONE);
+}
+
+TEST("Bag removal across stacks removes exactly requested quantity and preserves failed requests")
+{
+    enum Pocket id = GetItemPocket(ITEM_POTION);
+    struct BagPocket old = gBagPockets[id];
+    struct ItemSlot slots[4] = {0};
+    struct BagPocket *pocket = &gBagPockets[id];
+    pocket->itemSlots = slots;
+    pocket->capacity = ARRAY_COUNT(slots);
+    BagPocket_SetSlotItemIdAndCount(pocket, 0, ITEM_POTION, 3);
+    BagPocket_SetSlotItemIdAndCount(pocket, 1, ITEM_POTION, 10);
+    BagPocket_SetSlotItemIdAndCount(pocket, 2, ITEM_SUPER_POTION, 5);
+    BagPocket_SetSlotItemIdAndCount(pocket, 3, ITEM_NONE, 0);
+    EXPECT(!RemoveBagItem(ITEM_POTION, 14));
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 0).quantity, 3);
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 1).quantity, 10);
+    EXPECT(RemoveBagItem(ITEM_POTION, 5));
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 0).itemId, ITEM_POTION);
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 0).quantity, 8);
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 1).itemId, ITEM_SUPER_POTION);
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 1).quantity, 5);
+    EXPECT(RemoveBagItem(ITEM_POTION, 8));
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 0).itemId, ITEM_SUPER_POTION);
+    EXPECT_EQ(BagPocket_GetSlotData(pocket, 0).quantity, 5);
+    *pocket = old;
 }
