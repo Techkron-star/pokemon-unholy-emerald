@@ -660,3 +660,5 @@ gSpecials::
 	def_special GenesisStarter_ClaimCofradia
 	def_special GenesisEvent_CrystalGateAvailable
 	def_special GenesisEvent_MewtwoAvailable
+	def_special GenesisEvent_TelluricGateAvailable
+	def_special GenesisEvent_ZygardeAvailable

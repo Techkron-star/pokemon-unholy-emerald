@@ -471,7 +471,8 @@
     "TerraCave_End",
     "AlteringCave",
     "MeteorFalls_StevensCave",
-    "CrystalCave"
+    "CrystalCave",
+    "TelluricCave"
   ],
   "gMapGroup_IndoorDynamic": [
     "SecretBase_RedCave1",
