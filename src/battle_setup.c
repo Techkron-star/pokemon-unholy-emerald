@@ -1999,6 +1999,36 @@ u8 CofradiaPickCounterTargets(struct Pokemon *party, u32 seed, u8 difficulty, u8
     return budget;
 }
 
+// Counter scouting runs in the overworld, before battle state is allocated.
+// Use only the actual Pokemon and type chart; never call live-battle hooks.
+static uq4_12_t CofradiaScoutingEffectiveness(struct Pokemon *mon, enum Type attackType)
+{
+    enum Species species = GetMonData(mon, MON_DATA_SPECIES);
+    enum Type type1 = GetSpeciesType(species, 0);
+    enum Type type2 = GetSpeciesType(species, 1);
+    enum Ability ability = GetMonAbility(mon);
+    uq4_12_t modifier = GetTypeModifier(attackType, type1);
+    if (type2 != type1)
+        modifier = uq4_12_multiply(modifier, GetTypeModifier(attackType, type2));
+
+    // Only intrinsic, type-based immunities; no hidden items, active
+    // artifacts, field effects, stat stages, or battle-only ability hooks.
+    if ((attackType == TYPE_GROUND && (ability == ABILITY_LEVITATE
+         || ability == ABILITY_EELEVATE || ability == ABILITY_ANTI_REALM
+         || ability == ABILITY_EARTH_EATER))
+     || (attackType == TYPE_ELECTRIC && (ability == ABILITY_VOLT_ABSORB
+         || ability == ABILITY_MOTOR_DRIVE || ability == ABILITY_LIGHTNING_ROD))
+     || (attackType == TYPE_WATER && (ability == ABILITY_WATER_ABSORB
+         || ability == ABILITY_DRY_SKIN || ability == ABILITY_STORM_DRAIN
+         || ability == ABILITY_MAGMA_ARMOR))
+     || (attackType == TYPE_FIRE && (ability == ABILITY_FLASH_FIRE
+         || ability == ABILITY_WELL_BAKED_BODY))
+     || (attackType == TYPE_GRASS && ability == ABILITY_SAP_SIPPER)
+     || (ability == ABILITY_WONDER_GUARD && modifier <= UQ_4_12(1.0)))
+        return UQ_4_12(0.0);
+    return modifier;
+}
+
 s32 CofradiaCounterScore(struct Pokemon *candidate, struct Pokemon *target)
 {
     if (candidate == NULL || target == NULL
@@ -2015,7 +2045,7 @@ s32 CofradiaCounterScore(struct Pokemon *candidate, struct Pokemon *target)
         if (move == MOVE_NONE || GetMoveCategory(move) == DAMAGE_CATEGORY_STATUS || GetMovePower(move) < 50)
             continue;
         enum Type type = GetMoveType(move);
-        uq4_12_t effectiveness = GetOverworldTypeEffectiveness(target, type);
+        uq4_12_t effectiveness = CofradiaScoutingEffectiveness(target, type);
         if (effectiveness < UQ_4_12(2.0))
             continue;
         s32 score = effectiveness >= UQ_4_12(4.0) ? 24 : 15;
@@ -2028,8 +2058,8 @@ s32 CofradiaCounterScore(struct Pokemon *candidate, struct Pokemon *target)
         return 0;
 
     // Evaluate expected STAB threats only, not the player's hidden moveset.
-    uq4_12_t threat = max(GetOverworldTypeEffectiveness(candidate, GetSpeciesType(defender, 0)),
-                          GetOverworldTypeEffectiveness(candidate, GetSpeciesType(defender, 1)));
+    uq4_12_t threat = max(CofradiaScoutingEffectiveness(candidate, GetSpeciesType(defender, 0)),
+                          CofradiaScoutingEffectiveness(candidate, GetSpeciesType(defender, 1)));
     if (threat > UQ_4_12(1.0)
         && gSpeciesInfo[attacker].baseSpeed <= gSpeciesInfo[defender].baseSpeed)
         return 0;
