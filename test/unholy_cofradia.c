@@ -218,6 +218,9 @@ TEST("Cofradia counters need real damaging coverage rather than typing alone")
     EXPECT_EQ(CofradiaCounterScore(&attacker, &defender), 0);
     SetMonMoveSlot(&attacker, MOVE_RAIN_DANCE, 0);
     EXPECT_EQ(CofradiaCounterScore(&attacker, &defender), 0);
+    // Ground vs Flying must use the species chart, not a live battler.
+    SetMonMoveSlot(&attacker, MOVE_EARTHQUAKE, 0);
+    EXPECT_EQ(CofradiaCounterScore(&attacker, &defender), 0);
     SetMonMoveSlot(&attacker, MOVE_SURF, 0);
     EXPECT(CofradiaCounterScore(&attacker, &defender) > 0);
     EXPECT_EQ(CofradiaCounterScore(NULL, &defender), 0);
