@@ -50,3 +50,5 @@
 - Visible fauna is repeatable on re-entry, using temporary map-local flags rather than permanent per-individual completion. First successful capture per island clears its discovery marker (permanent flags 0x02A–0x02D); access never closes. Off-map discovery markers use Lilycove transport hub. No species names revealed on map.
 - Static collision/elevation and connectivity from entry verified for the ten new visible positions using raw layout blocks; actual walking, camera, sprites, battles, re-entry, collision around legendary events and sign interaction require emulator QA.
 - No random grass/water tables changed and no new terrain. Later expansions may add distinct biomes, new maps, artifacts and further families after a full acquisition audit.
+
+- Beheeyem has a separate post-Deoxys discovery marker until first capture (0x02E). Deoxys elevation corrected to the actual floor elevation 3 at its existing tile.
