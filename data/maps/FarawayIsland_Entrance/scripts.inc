@@ -3,6 +3,7 @@ FarawayIsland_Entrance_MapScripts::
 	.byte 0
 
 FarawayIsland_Entrance_OnTransition:
+	call FarawayIsland_Entrance_EventScript_GenesisFaunaReset
 	setflag FLAG_ARRIVED_ON_FARAWAY_ISLAND
 	end
 
@@ -43,3 +44,75 @@ FarawayIsland_Entrance_EventScript_Sign::
 	msgbox FarawayIsland_Entrance_Text_Sign, MSGBOX_SIGN
 	end
 
+
+@ Genesis island fauna: each specimen can be encountered once per map visit.
+FarawayIsland_Entrance_EventScript_GenesisFaunaReset::
+	clearflag FLAG_TEMP_1
+	clearflag FLAG_TEMP_2
+	clearflag FLAG_TEMP_3
+	clearflag FLAG_TEMP_4
+	return
+
+FarawayIsland_Entrance_EventScript_GenesisFaunaORANGURU::
+	lockall
+	waitse
+	playmoncry SPECIES_ORANGURU, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_ORANGURU, 48
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, FarawayIsland_Entrance_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_1
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+FarawayIsland_Entrance_EventScript_GenesisFaunaPASSIMIAN::
+	lockall
+	waitse
+	playmoncry SPECIES_PASSIMIAN, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_PASSIMIAN, 48
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, FarawayIsland_Entrance_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_2
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+FarawayIsland_Entrance_EventScript_GenesisFaunaKOMALA::
+	lockall
+	waitse
+	playmoncry SPECIES_KOMALA, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_KOMALA, 42
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, FarawayIsland_Entrance_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_3
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+FarawayIsland_Entrance_EventScript_GenesisFaunaTOEDSCOOL::
+	lockall
+	waitse
+	playmoncry SPECIES_TOEDSCOOL, CRY_MODE_ENCOUNTER
+	delay 24
+	waitmoncry
+	setwildbattle SPECIES_TOEDSCOOL, 43
+	dowildbattle
+	specialvar VAR_RESULT, GetBattleOutcome
+	call_if_eq VAR_RESULT, B_OUTCOME_CAUGHT, FarawayIsland_Entrance_EventScript_GenesisFaunaDiscovered
+	setflag FLAG_TEMP_4
+	removeobject VAR_LAST_TALKED
+	releaseall
+	end
+
+FarawayIsland_Entrance_EventScript_GenesisFaunaDiscovered::
+	setflag FLAG_UNHOLY_GENESIS_FARAWAY_FAUNA_DISCOVERED
+	return
