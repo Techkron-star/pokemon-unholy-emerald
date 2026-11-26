@@ -645,3 +645,7 @@ gSpecials::
 	def_special OpenUnholyInjectorMenu
 	def_special GenesisEvent_ZapdosAvailable
 	def_special GenesisEvent_ZapdosGalarAvailable
+	def_special GenesisEvent_MoltresAvailable
+	def_special GenesisEvent_MoltresGalarAvailable
+	def_special GenesisEvent_ArticunoAvailable
+	def_special GenesisEvent_ArticunoGalarAvailable
