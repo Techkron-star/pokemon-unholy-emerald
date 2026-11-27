@@ -3,7 +3,7 @@
 
 // EXPERIMENTAL BRANCH ONLY. Never enable in a release or use a valuable save.
 #define GENESIS_WORLD_TEST_ENABLED 1
-#define GENESIS_WORLD_TEST_SEED 0x47454E31u
+#define GENESIS_WORLD_TEST_SEED 0x47454E33u
 #include "genesis_core.h"
 
 enum {
@@ -28,6 +28,9 @@ struct GenesisWorldTestStats
     u32 protectedCells;
     u32 emergencyChunks;
     u32 landingRepairs;
+    u32 replacedCells;
+    u32 openedCells;
+    u8 biome;
     u8 connectedSides;
     u8 result;
 };
