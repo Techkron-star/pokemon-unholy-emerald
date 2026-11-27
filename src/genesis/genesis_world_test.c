@@ -13,7 +13,8 @@
 #include "constants/flags.h"
 
 #define TEST_CHUNK 32
-#define TEST_MARGIN MAP_OFFSET
+#define TEST_MARGIN 1
+#define TEST_SEAM_MARGIN MAP_OFFSET
 #define NO_TILE 0xFFFFu
 
 GENESIS_DECLARE_BUFFERS(sWorldTestBuffers, TEST_CHUNK, TEST_CHUNK);
@@ -32,13 +33,38 @@ static gbool Near(s32 x, s32 y, s32 ax, s32 ay, s32 rx, s32 ry)
     return (gbool)(x >= ax - rx && x <= ax + rx && y >= ay - ry && y <= ay + ry);
 }
 
+static u8 ConnectedSides(const struct MapHeader *header)
+{
+    const struct MapConnections *connections = header->connections;
+    s32 i;
+    u8 sides = 0;
+    if (!connections)
+        return 0;
+    if (!connections->connections || connections->count < 0)
+        return GENESIS_EDGE_ALL;
+    for (i = 0; i < connections->count; i++)
+    {
+        switch (connections->connections[i].direction)
+        {
+        case CONNECTION_NORTH: sides |= GENESIS_EDGE_NORTH; break;
+        case CONNECTION_SOUTH: sides |= GENESIS_EDGE_SOUTH; break;
+        case CONNECTION_WEST: sides |= GENESIS_EDGE_WEST; break;
+        case CONNECTION_EAST: sides |= GENESIS_EDGE_EAST; break;
+        default: break;
+        }
+    }
+    return sides;
+}
+
 static gbool Protected(const struct MapHeader *header, s32 x, s32 y)
 {
     const struct MapEvents *e = header->events;
     const struct MapLayout *l = header->mapLayout;
     u16 i;
-    if (x < TEST_MARGIN || y < TEST_MARGIN
-        || x >= l->width - TEST_MARGIN || y >= l->height - TEST_MARGIN)
+    if (GenesisWorldTest_ProtectEdge((u16)l->width, (u16)l->height,
+                                   (u16)x, (u16)y,
+                                   gGenesisWorldTestStats.connectedSides,
+                                   TEST_SEAM_MARGIN))
         return GTRUE;
     if (!e)
         return GFALSE;
@@ -118,20 +144,26 @@ void GenesisWorldTest_Apply(void)
     s32 bx, by, x, y;
     gbool cave, allowObstacles, allowGrass;
     gGenesisWorldTestStats = (struct GenesisWorldTestStats){0};
+    gGenesisWorldTestStats.result = GENESIS_TEST_OTHER_GAME;
     if (GAME_VERSION != VERSION_EMERALD)
         return;
+    gGenesisWorldTestStats.result = GENESIS_TEST_INVALID_LAYOUT;
     if (!l || !l->map || l->isFrlg || !gBackupMapLayout.map
         || l->width <= 2 * TEST_MARGIN || l->height <= 2 * TEST_MARGIN
         || gBackupMapLayout.width != l->width + MAP_OFFSET_W
         || gBackupMapLayout.height != l->height + MAP_OFFSET_H
         || (u32)gBackupMapLayout.width * (u32)gBackupMapLayout.height > MAX_MAP_DATA_SIZE)
         return;
+    gGenesisWorldTestStats.connectedSides = ConnectedSides(header);
     // Keep the starter rescue exactly authored; fixed scripted movement paths
     // cannot safely be inferred from an event template.
     if (gSaveBlock1Ptr->location.mapGroup == MAP_GROUP(MAP_ROUTE101)
         && gSaveBlock1Ptr->location.mapNum == MAP_NUM(MAP_ROUTE101)
         && !FlagGet(FLAG_RESCUED_BIRCH))
+    {
+        gGenesisWorldTestStats.result = GENESIS_TEST_STORY;
         return;
+    }
     cave = (gbool)(header->mapType == MAP_TYPE_UNDERGROUND);
     if (cave)
     {
@@ -139,15 +171,24 @@ void GenesisWorldTest_Apply(void)
         floorB = floorA;
         rock = DominantCaveTile(l, GTRUE);
         if (floorA == NO_TILE || rock == NO_TILE || floorA == rock)
+        {
+            gGenesisWorldTestStats.result = GENESIS_TEST_NO_FLOOR;
             return;
+        }
     }
     else
     {
         if (header->mapType != MAP_TYPE_ROUTE && header->mapType != MAP_TYPE_OCEAN_ROUTE
             && header->mapType != MAP_TYPE_TOWN && header->mapType != MAP_TYPE_CITY)
+        {
+            gGenesisWorldTestStats.result = GENESIS_TEST_MAP_TYPE;
             return;
+        }
         if (l->primaryTileset != &gTileset_General)
+        {
+            gGenesisWorldTestStats.result = GENESIS_TEST_TILESET;
             return;
+        }
         floorA = METATILE_General_Grass;
         floorB = METATILE_General_TallGrass;
         rock = METATILE_General_RockWall_RockBase;
@@ -159,22 +200,29 @@ void GenesisWorldTest_Apply(void)
     allowObstacles = (gbool)((cave || allowGrass)
                       && (!header->events || header->events->coordEventCount == 0));
     if (!allowObstacles && !allowGrass)
+    {
+        gGenesisWorldTestStats.result = GENESIS_TEST_MAP_TYPE;
         return;
+    }
     cfg.w = cfg.h = TEST_CHUNK;
     cfg.biome = cave ? GENESIS_BIOME_CAVE : GENESIS_BIOME_FOREST;
     gGenesisWorldTestStats.mapSeed = GenesisRng_Hash(GENESIS_WORLD_TEST_SEED,
                                                      header->mapLayoutId, 0);
+    gGenesisWorldTestStats.result = GENESIS_TEST_NO_CANDIDATES;
     for (by = TEST_MARGIN; by < l->height - TEST_MARGIN; by += TEST_CHUNK)
     {
         for (bx = TEST_MARGIN; bx < l->width - TEST_MARGIN; bx += TEST_CHUNK)
         {
             gbool found = GFALSE;
-            for (y = by; y < by + TEST_CHUNK && y < l->height - TEST_MARGIN && !found; y++)
+            for (y = by; y < by + TEST_CHUNK && y < l->height - TEST_MARGIN; y++)
                 for (x = bx; x < bx + TEST_CHUNK && x < l->width - TEST_MARGIN; x++)
-                    if (Candidate(LiveCell(x, y), floorA, floorB) && !Protected(header, x, y))
+                    if (Candidate(LiveCell(x, y), floorA, floorB))
                     {
-                        found = GTRUE;
-                        break;
+                        gGenesisWorldTestStats.candidateCells++;
+                        if (Protected(header, x, y))
+                            gGenesisWorldTestStats.protectedCells++;
+                        else
+                            found = GTRUE;
                     }
             if (!found)
                 continue;
@@ -185,6 +233,8 @@ void GenesisWorldTest_Apply(void)
                 continue; // leave the original chunk unchanged
             }
             gGenesisWorldTestStats.generatedChunks++;
+            if (sWorldTest.status == GENESIS_STATUS_EMERGENCY)
+                gGenesisWorldTestStats.emergencyChunks++;
             for (y = by; y < by + TEST_CHUNK && y < l->height - TEST_MARGIN; y++)
             {
                 for (x = bx; x < bx + TEST_CHUNK && x < l->width - TEST_MARGIN; x++)
@@ -199,8 +249,17 @@ void GenesisWorldTest_Apply(void)
                            (u16)gBackupMapLayout.width, (u16)gBackupMapLayout.height,
                            (u16)(x + MAP_OFFSET), (u16)(y + MAP_OFFSET), floorA, floorB))
                     {
-                        next = (u16)(elevation | MAPGRID_COLLISION_MASK | rock);
-                        gGenesisWorldTestStats.addedObstacles++;
+                        // Never create a blocker at a warp/save arrival position.
+                        // This safety exception can differ with the entry position.
+                        if (gSaveBlock1Ptr && x == gSaveBlock1Ptr->pos.x && y == gSaveBlock1Ptr->pos.y)
+                        {
+                            gGenesisWorldTestStats.landingRepairs++;
+                        }
+                        else
+                        {
+                            next = (u16)(elevation | MAPGRID_COLLISION_MASK | rock);
+                            gGenesisWorldTestStats.addedObstacles++;
+                        }
                     }
                     else if (allowGrass)
                     {
@@ -218,6 +277,12 @@ void GenesisWorldTest_Apply(void)
             }
         }
     }
+    if (gGenesisWorldTestStats.changedCells)
+        gGenesisWorldTestStats.result = GENESIS_TEST_OK;
+    else if (gGenesisWorldTestStats.failedChunks)
+        gGenesisWorldTestStats.result = GENESIS_TEST_GENERATION_FAILED;
+    else if (gGenesisWorldTestStats.generatedChunks)
+        gGenesisWorldTestStats.result = GENESIS_TEST_UNCHANGED;
 #endif
 }
 #else
