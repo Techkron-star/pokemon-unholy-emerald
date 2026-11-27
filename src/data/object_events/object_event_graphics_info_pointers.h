@@ -409,7 +409,10 @@ extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaMan
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaGuard;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaWorker;
 extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaFather;
+extern const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_UltraWormhole;
+
 const struct ObjectEventGraphicsInfo *const gObjectEventGraphicsInfoPointers[NUM_OBJ_EVENT_GFX] = {
+    [OBJ_EVENT_GFX_ULTRA_WORMHOLE] = &gObjectEventGraphicsInfo_UltraWormhole,
     [OBJ_EVENT_GFX_COFRADIA_NURSE] = &gObjectEventGraphicsInfo_CofradiaNurse,
     [OBJ_EVENT_GFX_COFRADIA_GAMBLER] = &gObjectEventGraphicsInfo_CofradiaGambler,
     [OBJ_EVENT_GFX_COFRADIA_VETERAN] = &gObjectEventGraphicsInfo_CofradiaVeteran,
