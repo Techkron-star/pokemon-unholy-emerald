@@ -30,12 +30,15 @@ struct GenesisWorldTestStats
     u32 landingRepairs;
     u32 replacedCells;
     u32 openedCells;
+    u32 learnedPatterns;
+    u32 autotiledCells;
     u8 biome;
     u8 connectedSides;
     u8 result;
 };
 extern struct GenesisWorldTestStats gGenesisWorldTestStats;
 void GenesisWorldTest_Apply(void);
+gbool GenesisWorldTest_IsGeneratedCell(s32 x, s32 y);
 
 gbool GenesisWorldTest_ProtectEdge(u16 w, u16 h, u16 x, u16 y,
                                     u8 connectedSides, u8 seamMargin);

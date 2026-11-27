@@ -597,7 +597,8 @@ static void LoadSavedMapView(void)
 
         for (j = x; j < x + MAP_OFFSET_W; j++)
         {
-            if (!SkipCopyingMetatileFromSavedMap(&sBackupMapData[j + width * i], width, yMode))
+            if (!GenesisWorldTest_IsGeneratedCell(j, i)
+                && !SkipCopyingMetatileFromSavedMap(&sBackupMapData[j + width * i], width, yMode))
                 sBackupMapData[j + width * i] = *mapView;
             mapView++;
         }
