@@ -7362,3 +7362,4 @@ const struct ObjectEventGraphicsInfo gObjectEventGraphicsInfo_CofradiaFather = {
     .anims = sAnimTable_Standard,
     .images = sPicTable_CofradiaFather,
 };
+#include "object_event_ultra_wormhole.h"
