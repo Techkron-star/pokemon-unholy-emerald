@@ -176,7 +176,7 @@ static void InitMapLayoutData(const struct MapHeader *mapHeader)
 
     InitBackupMapLayoutData(mapLayout->map, mapLayout->width, mapLayout->height);
     InitBackupMapLayoutConnections(mapHeader);
-#if GENESIS_WORLD_TEST_ENABLED && IS_EMERALD
+#if GENESIS_WORLD_TEST_ENABLED
     // Test-only overlay after native grid and connection initialization.
     GenesisWorldTest_Apply();
 #endif

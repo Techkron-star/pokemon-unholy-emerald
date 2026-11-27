@@ -9,6 +9,7 @@
 #include "constants/metatile_behaviors.h"
 #include "constants/metatile_labels.h"
 #include "constants/maps.h"
+#include "constants/event_objects.h"
 #include "constants/flags.h"
 
 #define TEST_CHUNK 32
@@ -109,7 +110,7 @@ static gbool Candidate(u16 entry, u16 floorA, u16 floorB)
 
 void GenesisWorldTest_Apply(void)
 {
-#if GENESIS_WORLD_TEST_ENABLED && IS_EMERALD
+#if GENESIS_WORLD_TEST_ENABLED
     const struct MapHeader *header = &gMapHeader;
     const struct MapLayout *l = header->mapLayout;
     GenesisConfig cfg = {0};
@@ -117,6 +118,8 @@ void GenesisWorldTest_Apply(void)
     s32 bx, by, x, y;
     gbool cave, allowObstacles, allowGrass;
     gGenesisWorldTestStats = (struct GenesisWorldTestStats){0};
+    if (GAME_VERSION != VERSION_EMERALD)
+        return;
     if (!l || !l->map || l->isFrlg || !gBackupMapLayout.map
         || l->width <= 2 * TEST_MARGIN || l->height <= 2 * TEST_MARGIN
         || gBackupMapLayout.width != l->width + MAP_OFFSET_W
