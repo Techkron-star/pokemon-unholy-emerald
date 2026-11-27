@@ -1,0 +1,13 @@
+#ifndef GUARD_GENESIS_NOISE_H
+#define GUARD_GENESIS_NOISE_H
+#include "genesis_core.h"
+#define GENESIS_NOISE_MAX 65535u
+#define GENESIS_NOISE_HALF 32768u
+#define GENESIS_NOISE_FX_ONE 65536u
+#define GENESIS_NOISE_FX_HALF 32768u
+#define GENESIS_NOISE_FX_TWO 131072u
+#define GENESIS_NOISE_MAX_OCTAVES 8
+#define GENESIS_NOISE_SCALE_MAX 4194304u
+s32 GenesisNoise_Value2D(u32,s32,s32,u32);
+s32 GenesisNoise_FBM(u32,s32,s32,u32,u8,u32,u32);
+#endif
