@@ -2,6 +2,7 @@
 #include "battle_pyramid.h"
 #include "bg.h"
 #include "fieldmap.h"
+#include "genesis_world_test.h"
 #include "fldeff.h"
 #include "fldeff_misc.h"
 #include "frontier_util.h"
@@ -175,6 +176,10 @@ static void InitMapLayoutData(const struct MapHeader *mapHeader)
 
     InitBackupMapLayoutData(mapLayout->map, mapLayout->width, mapLayout->height);
     InitBackupMapLayoutConnections(mapHeader);
+#if GENESIS_WORLD_TEST_ENABLED
+    // Test-only overlay after native grid and connection initialization.
+    GenesisWorldTest_Apply();
+#endif
 }
 
 static void InitBackupMapLayoutData(const u16 *map, u16 width, u16 height)
