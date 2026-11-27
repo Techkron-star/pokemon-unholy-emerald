@@ -21,11 +21,21 @@
 
 GENESIS_DECLARE_BUFFERS(sWorldTestBuffers, TEST_CHUNK, TEST_CHUNK);
 static EWRAM_DATA GenesisWorld sWorldTest = {0};
-static EWRAM_DATA u16 sTileCounts[1024] = {0};
-// Immutable semantic snapshot for the final pass. Max native grid already bounded.
-static EWRAM_DATA u8 sTerrain[MAX_MAP_DATA_SIZE] = {0};
-static EWRAM_DATA GenesisTerrainRules sWallRules = {0};
-static EWRAM_DATA GenesisTerrainRules sWaterRules = {0};
+// Cave histogram is used only before LearnTerrain clears and populates the
+// rule tables. These lifetimes never overlap; share the same EWRAM allocation.
+static EWRAM_DATA union
+{
+    u16 tileCounts[1024];
+    struct {
+        GenesisTerrainRules wall;
+        GenesisTerrainRules water;
+    } rules;
+} sTerrainWorkspace = {0};
+#define sTileCounts (sTerrainWorkspace.tileCounts)
+#define sWallRules (sTerrainWorkspace.rules.wall)
+#define sWaterRules (sTerrainWorkspace.rules.water)
+// Two semantic cells per byte; class and generated flag remain independent.
+static EWRAM_DATA u8 sTerrain[GENESIS_TERRAIN_PACKED_BYTES(MAX_MAP_DATA_SIZE)] = {0};
 static EWRAM_DATA GenesisTerrainRules sFloorRules = {0};
 static EWRAM_DATA u16 sTerrainW = 0, sTerrainH = 0, sTerrainLayout = 0;
 EWRAM_DATA struct GenesisWorldTestStats gGenesisWorldTestStats = {0};
@@ -192,7 +202,7 @@ static void LearnTerrain(const struct MapLayout *l, u16 floor, u16 rock, gbool c
         {
             u16 old = LiveCell(x, y);
             u32 behavior = MapGridGetMetatileBehaviorAt(x + MAP_OFFSET, y + MAP_OFFSET);
-            sTerrain[(u32)y * w + x] = TerrainClass(old, behavior);
+            GenesisTerrain_Set(sTerrain, (u32)y * w + x, TerrainClass(old, behavior));
             if ((old & MAPGRID_METATILE_ID_MASK) == floorId)
                 floorBehavior = behavior;
         }
@@ -203,19 +213,19 @@ static void LearnTerrain(const struct MapLayout *l, u16 floor, u16 rock, gbool c
             u16 old = LiveCell(x, y), id = old & MAPGRID_METATILE_ID_MASK;
             u32 behavior = MapGridGetMetatileBehaviorAt(x + MAP_OFFSET, y + MAP_OFFSET);
             u8 mask;
-            if (sTerrain[k] == GENESIS_TERRAIN_WALL && behavior == MB_NORMAL
+            if (GenesisTerrain_Get(sTerrain, k) == GENESIS_TERRAIN_WALL && behavior == MB_NORMAL
                 && ((id ^ rock) & 0x0200u) == 0)
             {
                 mask = GenesisTerrain_Mask(sTerrain, w, h, x, y, GENESIS_TERRAIN_WALL);
                 GenesisTerrain_Observe(&sWallRules, mask, id);
             }
-            else if (!cave && sTerrain[k] == GENESIS_TERRAIN_WATER
+            else if (!cave && GenesisTerrain_Get(sTerrain, k) == GENESIS_TERRAIN_WATER
                 && behavior == MB_OCEAN_WATER && (old & MAPGRID_ELEVATION_MASK) == 0x1000u)
             {
                 mask = GenesisTerrain_Mask(sTerrain, w, h, x, y, GENESIS_TERRAIN_WATER);
                 GenesisTerrain_Observe(&sWaterRules, mask, id);
             }
-            else if (sTerrain[k] == GENESIS_TERRAIN_GROUND && behavior == floorBehavior
+            else if (GenesisTerrain_Get(sTerrain, k) == GENESIS_TERRAIN_GROUND && behavior == floorBehavior
                 && ((old ^ floor) & MAPGRID_ELEVATION_MASK) == 0
                 && ((id ^ floor) & 0x0200u) == 0)
             {
@@ -239,7 +249,7 @@ static void RenderTerrain(const struct MapLayout *l, u16 floor, u16 rock, gbool 
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++)
         {
-            u8 kind = sTerrain[(u32)y * w + x], mask;
+            u8 kind = GenesisTerrain_Get(sTerrain, (u32)y * w + x), mask;
             u16 old, next, id;
             if (!(kind & GENESIS_TERRAIN_GENERATED))
                 continue;
@@ -282,7 +292,7 @@ gbool GenesisWorldTest_IsGeneratedCell(s32 x, s32 y)
     if (!sTerrainW || !sTerrainH || sTerrainLayout != gMapHeader.mapLayoutId
         || x < 0 || y < 0 || x >= sTerrainW || y >= sTerrainH)
         return GFALSE;
-    return (gbool)((sTerrain[(u32)y * sTerrainW + (u32)x] & GENESIS_TERRAIN_GENERATED) != 0);
+    return (gbool)((GenesisTerrain_Get(sTerrain, (u32)y * sTerrainW + (u32)x) & GENESIS_TERRAIN_GENERATED) != 0);
 }
 
 static GenesisBiomeId SelectBiome(u32 seed, gbool cave, gbool ocean)
@@ -414,9 +424,10 @@ void GenesisWorldTest_Apply(void)
                     }
                     next = GenesisFree_RenderCell(&sWorldTest, (u16)(x - bx), (u16)(y - by),
                                                    floor, vegetation, rock, water, ocean, cave);
-                    sTerrain[(u32)y * sTerrainW + (u32)x] = GENESIS_TERRAIN_GENERATED |
+                    GenesisTerrain_Set(sTerrain, (u32)y * sTerrainW + (u32)x,
+                        GENESIS_TERRAIN_GENERATED |
                         ((next & MAPGRID_COLLISION_MASK) ? GENESIS_TERRAIN_WALL :
-                         (!cave && next == water) ? GENESIS_TERRAIN_WATER : GENESIS_TERRAIN_GROUND);
+                         (!cave && next == water) ? GENESIS_TERRAIN_WATER : GENESIS_TERRAIN_GROUND));
                     gGenesisWorldTestStats.replacedCells++;
                     if (next == old)
                         continue;

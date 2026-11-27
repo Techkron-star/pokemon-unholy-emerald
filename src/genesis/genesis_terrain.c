@@ -21,7 +21,7 @@ u8 GenesisTerrain_Mask(const u8 *grid, u16 w, u16 h, u16 x, u16 y, u8 target)
     {
         s32 nx = (s32)x + dx[i], ny = (s32)y + dy[i];
         if (nx >= 0 && ny >= 0 && nx < w && ny < h
-            && (grid[(u32)ny * w + (u32)nx] & GENESIS_TERRAIN_CLASS_MASK) == target)
+            && (GenesisTerrain_Get(grid, (u32)ny * w + (u32)nx) & GENESIS_TERRAIN_CLASS_MASK) == target)
             mask |= (u8)(1u << i);
     }
     return mask;
