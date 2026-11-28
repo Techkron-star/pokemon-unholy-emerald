@@ -103,7 +103,7 @@ def assign(seed, map_id, width, height, domain="land", eligible=None,
     related = [n for n in RELATED.get(dominant, ()) if n in choices]
     single = rng.randrange(100) < 40 if homogeneous is None else homogeneous
     # Distinct seeds are spaced apart to avoid checkerboard-like biomes.
-    centers = [(width // 2, height // 2, dominant, max(width, height)**2 // 6)]
+    centers = [(width // 2, height // 2, dominant, max(width, height) // 3)]
     if not single and related and width * height >= 16:
         for _ in range(rng.randint(1, 4)):
             for _attempt in range(24):
@@ -116,7 +116,7 @@ def assign(seed, map_id, width, height, domain="land", eligible=None,
     for y in range(height):
         for x in range(width):
             index = min(range(len(centers)), key=lambda i: (
-                (x-centers[i][0])**2 + (y-centers[i][1])**2-centers[i][3], i))
+                abs(x-centers[i][0]) + abs(y-centers[i][1])-centers[i][3], i))
             name = centers[index][2]
             cells.append({"x": x, "y": y, "biome": name, "patch": index,
                           "background": catalog[name][1],
