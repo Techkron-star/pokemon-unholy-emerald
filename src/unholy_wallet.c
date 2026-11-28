@@ -11,7 +11,7 @@ struct WalletRecord
     u32 low;
     u32 high;
 };
-STATIC_ASSERT(UNHOLY_SAVE4_WALLET_OFFSET + sizeof(struct WalletRecord) <= UNHOLY_SAVE4_COFRADIA_OFFSET, WalletFitsSave4);
+STATIC_ASSERT(UNHOLY_SAVE4_WALLET_OFFSET + sizeof(struct WalletRecord) <= UNHOLY_SAVE4_GENESIS_OFFSET, WalletFitsSave4);
 
 static struct WalletRecord *GetWalletRecord(void)
 {

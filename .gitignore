@@ -72,3 +72,5 @@ __pycache__
 
 # Generated spatial palette roles for Unholy
 /src/data/unholy_chromatic_regions.generated.h
+/include/genesis2/assets.generated.h
+/include/genesis_baked.generated.h

@@ -1,6 +1,7 @@
 #include "genesis_world_test.h"
 #include "genesis_route_first.h"
 #ifndef GENESIS_BUILD_HOST
+#include "genesis2/runtime.h"
 #include "fieldmap.h"
 #include "global.fieldmap.h"
 #include "event_data.h"
@@ -29,6 +30,7 @@ struct GenesisBakedMap {
 gbool GenesisWorldTest_IsGeneratedCell(s32 x, s32 y)
 {
     u32 k;
+    if (G2_HasWorldRecord()) return G2_IsGeneratedCell(x, y);
     x -= MAP_OFFSET;
     y -= MAP_OFFSET;
     if (!sTerrainW || !sTerrainH || sTerrainLayout != gMapHeader.mapLayoutId
@@ -48,6 +50,8 @@ void GenesisWorldTest_Apply(void)
     const struct GenesisBakedMap *baked = NULL;
     gGenesisWorldTestStats = (struct GenesisWorldTestStats){0};
     sTerrainW = sTerrainH = sTerrainLayout = 0;
+    if (G2_ApplyCurrentMap()) return;
+    if (G2_HasWorldRecord()) return;
     gGenesisWorldTestStats.result = GENESIS_TEST_OTHER_GAME;
     if (GAME_VERSION != VERSION_EMERALD)
         return;

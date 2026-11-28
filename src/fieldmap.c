@@ -3,6 +3,7 @@
 #include "bg.h"
 #include "fieldmap.h"
 #include "genesis_world_test.h"
+#include "genesis2/runtime.h"
 #include "fldeff.h"
 #include "fldeff_misc.h"
 #include "frontier_util.h"
@@ -574,6 +575,7 @@ static void ClearSavedMapView(void)
 
 static void LoadSavedMapView(void)
 {
+    bool32 restoreGenerated = G2_HasWorldRecord();
     u8 yMode;
     s32 i, j;
     s32 x, y;
@@ -597,7 +599,7 @@ static void LoadSavedMapView(void)
 
         for (j = x; j < x + MAP_OFFSET_W; j++)
         {
-            if (!GenesisWorldTest_IsGeneratedCell(j, i)
+            if ((restoreGenerated || !GenesisWorldTest_IsGeneratedCell(j, i))
                 && !SkipCopyingMetatileFromSavedMap(&sBackupMapData[j + width * i], width, yMode))
                 sBackupMapData[j + width * i] = *mapView;
             mapView++;
