@@ -4,6 +4,7 @@
 #include "event_data.h"
 #include "constants/flags.h"
 #include "option_menu.h"
+#include "genesis_route_first.h"
 #include "bg.h"
 #include "gpu_regs.h"
 #include "international_string_util.h"
@@ -30,6 +31,7 @@
 #define tWindowFrameType data[6]
 #define tUiTheme data[7]
 #define tLanguageSpanish data[8]
+#define tGenesisTerrain data[9]
 
 enum
 {
@@ -41,6 +43,7 @@ enum
     MENUITEM_FRAMETYPE,
     MENUITEM_UITHEME,
     MENUITEM_LANGUAGE,
+    MENUITEM_GENESIS,
     MENUITEM_CANCEL,
     MENUITEM_COUNT,
 };
@@ -51,7 +54,7 @@ enum
     WIN_OPTIONS
 };
 
-#define OPTION_ROW_HEIGHT 12
+#define OPTION_ROW_HEIGHT 11
 #define YPOS_TEXTSPEED    (MENUITEM_TEXTSPEED * OPTION_ROW_HEIGHT)
 #define YPOS_BATTLESCENE  (MENUITEM_BATTLESCENE * OPTION_ROW_HEIGHT)
 #define YPOS_BATTLESTYLE  (MENUITEM_BATTLESTYLE * OPTION_ROW_HEIGHT)
@@ -60,6 +63,7 @@ enum
 #define YPOS_FRAMETYPE    (MENUITEM_FRAMETYPE * OPTION_ROW_HEIGHT)
 #define YPOS_UITHEME      (MENUITEM_UITHEME * OPTION_ROW_HEIGHT)
 #define YPOS_LANGUAGE     (MENUITEM_LANGUAGE * OPTION_ROW_HEIGHT)
+#define YPOS_GENESIS      (MENUITEM_GENESIS * OPTION_ROW_HEIGHT)
 
 static void Task_OptionMenuFadeIn(u8 taskId);
 static void Task_OptionMenuProcessInput(u8 taskId);
@@ -80,6 +84,8 @@ static u8 UiTheme_ProcessInput(u8 selection);
 static void UiTheme_DrawChoices(u8 selection);
 static u8 Language_ProcessInput(u8 selection);
 static void Language_DrawChoices(u8 selection);
+static u8 GenesisTerrain_ProcessInput(u8 selection);
+static void GenesisTerrain_DrawChoices(u8 selection);
 static void DrawAllOptionMenuChoices(u8 taskId);
 static u8 ButtonMode_ProcessInput(u8 selection);
 static void ButtonMode_DrawChoices(u8 selection);
@@ -134,6 +140,7 @@ static const u8 *const sOptionMenuItemsNamesEnglish[MENUITEM_COUNT] =
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
     [MENUITEM_UITHEME]     = COMPOUND_STRING("THEME"),
     [MENUITEM_LANGUAGE]    = COMPOUND_STRING("LANGUAGE"),
+    [MENUITEM_GENESIS]     = COMPOUND_STRING("TERRAIN"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
 };
 
@@ -147,6 +154,7 @@ static const u8 *const sOptionMenuItemsNamesSpanish[MENUITEM_COUNT] =
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("MARCO"),
     [MENUITEM_UITHEME]     = COMPOUND_STRING("TEMA"),
     [MENUITEM_LANGUAGE]    = COMPOUND_STRING("IDIOMA"),
+    [MENUITEM_GENESIS]     = COMPOUND_STRING("TERRENO"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("SALIR"),
 };
 
@@ -303,6 +311,7 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiTheme = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 1 : 0;
         gTasks[taskId].tLanguageSpanish = gSaveBlock2Ptr->optionsLanguageSpanish;
+        gTasks[taskId].tGenesisTerrain = GenesisRoute_Profile(gSaveBlock2Ptr->optionsGenesisTerrain);
 
         DrawAllOptionMenuChoices(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
@@ -406,6 +415,12 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             if (previousOption != gTasks[taskId].tWindowFrameType)
                 FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
             break;
+        case MENUITEM_GENESIS:
+            previousOption = gTasks[taskId].tGenesisTerrain;
+            gTasks[taskId].tGenesisTerrain = GenesisTerrain_ProcessInput(previousOption);
+            if (previousOption != gTasks[taskId].tGenesisTerrain)
+                GenesisTerrain_DrawChoices(gTasks[taskId].tGenesisTerrain);
+            break;
         case MENUITEM_LANGUAGE:
             previousOption = gTasks[taskId].tLanguageSpanish;
             gTasks[taskId].tLanguageSpanish = Language_ProcessInput(previousOption);
@@ -437,6 +452,7 @@ static void Task_OptionMenuSave(u8 taskId)
     gSaveBlock2Ptr->optionsButtonMode = gTasks[taskId].tButtonMode;
     gSaveBlock2Ptr->optionsWindowFrameType = gTasks[taskId].tWindowFrameType;
     gSaveBlock2Ptr->optionsLanguageSpanish = gTasks[taskId].tLanguageSpanish;
+    gSaveBlock2Ptr->optionsGenesisTerrain = gTasks[taskId].tGenesisTerrain;
     if (gTasks[taskId].tUiTheme)
         FlagSet(FLAG_UNHOLY_UI_DAYLIGHT);
     else
@@ -619,6 +635,38 @@ static void Language_DrawChoices(u8 selection)
                          117, YPOS_LANGUAGE, 1);
 }
 
+static u8 GenesisTerrain_ProcessInput(u8 selection)
+{
+    if (JOY_NEW(DPAD_RIGHT))
+    {
+        selection = selection + 1 == GENESIS_TERRAIN_COUNT ? 0 : selection + 1;
+        sArrowPressed = TRUE;
+    }
+    else if (JOY_NEW(DPAD_LEFT))
+    {
+        selection = selection ? selection - 1 : GENESIS_TERRAIN_COUNT - 1;
+        sArrowPressed = TRUE;
+    }
+    return selection;
+}
+
+static void GenesisTerrain_DrawChoices(u8 selection)
+{
+    static const u8 *const en[GENESIS_TERRAIN_COUNT] = {
+        COMPOUND_STRING("BALANCED"), COMPOUND_STRING("FOREST"),
+        COMPOUND_STRING("PLAINS"), COMPOUND_STRING("TRAILS"),
+        COMPOUND_STRING("CLEARINGS"), COMPOUND_STRING("ORIGINAL"),
+    };
+    static const u8 *const es[GENESIS_TERRAIN_COUNT] = {
+        COMPOUND_STRING("MIXTO"), COMPOUND_STRING("BOSQUE"),
+        COMPOUND_STRING("LLANURA"), COMPOUND_STRING("SENDAS"),
+        COMPOUND_STRING("CLAROS"), COMPOUND_STRING("ORIGINAL"),
+    };
+    selection = GenesisRoute_Profile(selection);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_GENESIS, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice((sPreviewSpanish ? es : en)[selection], 117, YPOS_GENESIS, 1);
+}
+
 static u8 FrameType_ProcessInput(u8 selection)
 {
     if (JOY_NEW(DPAD_RIGHT))
@@ -743,6 +791,7 @@ static void DrawAllOptionMenuChoices(u8 taskId)
     FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
     UiTheme_DrawChoices(gTasks[taskId].tUiTheme);
     Language_DrawChoices(gTasks[taskId].tLanguageSpanish);
+    GenesisTerrain_DrawChoices(gTasks[taskId].tGenesisTerrain);
 }
 
 #define TILE_TOP_CORNER_L 0x1A2
