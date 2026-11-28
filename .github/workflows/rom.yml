@@ -38,6 +38,9 @@ jobs:
           cc -DGENESIS_HOST -std=c99 -O2 -Wall -Wextra -Werror -Iinclude tools/genesis/genesis_route_first_test.c src/genesis/genesis_core.c -o /tmp/genesis-route-first
           /tmp/genesis-route-first
 
+      - name: Verificar topologia de modulos Genesis
+        run: python3 tools/genesis/genesis_route_modules.py --selftest
+
       - name: Compilar
         run: make -j$(nproc) -O all
 
