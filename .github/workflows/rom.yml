@@ -54,11 +54,24 @@ jobs:
 
       - name: Verificar runtime Genesis 2
         run: |
+          python3 tools/genesis/genesis2_modules_test.py
           make -C tools/genesis genesis2-test
           make -C tools/genesis genesis2-asan
+          make -C tools/genesis genesis2-topology-test
+          make -C tools/genesis genesis2-topology-asan
 
       - name: Compilar
         run: make GBAX=1 -j$(nproc) -O all
+
+      - name: Ejecutar Genesis en CPU ARM emulada
+        run: |
+          git clone --no-checkout https://github.com/Techkron-star/mgba-android-extended.git "$RUNNER_TEMP/genesis-gbax"
+          git -C "$RUNNER_TEMP/genesis-gbax" checkout --detach e06ebc4d2c3002a7189dc1e4242b5f80c381240b
+          cmake -S "$RUNNER_TEMP/genesis-gbax" -B "$RUNNER_TEMP/genesis-gbax-build" \
+            -DBUILD_LIBRETRO=ON -DSKIP_LIBRARY=ON -DBUILD_QT=OFF -DBUILD_SDL=OFF \
+            -DBUILD_GL=OFF -DBUILD_GLES2=OFF -DBUILD_GLES3=OFF -DDISABLE_DEPS=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/genesis-gbax-build" --target mgba_libretro -j2
+          python3 tools/genesis/genesis2_arm_test.py --core "$RUNNER_TEMP/genesis-gbax-build/mgba_libretro.so"
 
       - name: Subir informe cromatico
         uses: actions/upload-artifact@v4

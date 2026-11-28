@@ -192,3 +192,5 @@
     - [Scope Guidelines](team_procedures/scope.md)
 
 - [Genesis 2: preparación inicial y transiciones](GENESIS2_RUNTIME.md)
+
+- [Genesis 2: compositor y topología piloto](GENESIS2_TOPOLOGY.md)

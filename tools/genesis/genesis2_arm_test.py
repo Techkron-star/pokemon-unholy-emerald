@@ -10,6 +10,7 @@ from pathlib import Path
 import shlex
 import subprocess
 import tempfile
+import os
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--core', type=Path, required=True)
@@ -26,15 +27,18 @@ symbols = {s[2]:s[0] for l in subprocess.check_output([a.nm,str(a.elf)],text=Tru
 names = ['gGenesis2Stats','G2_StartNewGame','G2_RuntimeTick','G2_ApplyCurrentMap',
          'G2_CommitNewGame','G2_LoadWorld','gSaveBlock1Ptr','gSaveBlock2Ptr','gSaveBlock3Ptr',
          'gSaveblock1','gSaveblock2','gSaveblock3','gMapHeader','gBackupMapLayout',
-         'sBackupMapData','gMapGroups','gRngValue']
+         'sBackupMapData','gMapGroups','gRngValue','G2_PrepareSavedView',
+         'G2_ShouldRestoreSavedCell','G2_ReconcileCurrentModules']
 with tempfile.TemporaryDirectory() as td:
     binary = Path(td)/'genesis2-arm-test'
     subprocess.run(['cc','-O2','-std=c11',*defs,'-iquote','include',
                     '-I'+str(source/'include'),'-I'+str(build/'include'),
-                    'src/genesis2/world.c','tools/genesis/genesis2_arm_test.c',
+                    'src/genesis2/world.c','src/genesis2/topology.c','tools/genesis/genesis2_arm_test.c',
                     '-L'+str(build),'-Wl,-rpath,'+str(build),'-l:'+a.core.name,
                     '-o',str(binary)],check=True)
     subprocess.run([str(binary),str(a.rom),*[symbols[n] for n in names]],check=True)
+    subprocess.run([str(binary),str(a.rom),*[symbols[n] for n in names]],check=True,
+                   env={**os.environ,'G2_ARM_SEED':'12'})
     native = bytearray(a.rom.read_bytes())
     native[0xA0] = ord('N')
     native[0xBD] = (-sum(native[0xA0:0xBD])-0x19)&255

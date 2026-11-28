@@ -39,7 +39,7 @@ int G2_MapValid(const struct G2_Map *m)
 {
     return m && m->native && m->editable && m->width >= 8 && m->height >= 8
         && (uint32_t)(m->width + G2_MAP_OFFSET_W)
-          * (uint32_t)(m->height + G2_MAP_OFFSET_H) <= G2_MAX_NATIVE_CELLS
+          <= G2_MAX_NATIVE_CELLS / (uint32_t)(m->height + G2_MAP_OFFSET_H)
         && m->worldX >= -1048576 && m->worldX <= 1048576
         && m->worldY >= -1048576 && m->worldY <= 1048576;
 }
@@ -47,17 +47,28 @@ int G2_MapValid(const struct G2_Map *m)
 size_t G2_StorageBytes(const struct G2_Map *maps, uint32_t count)
 {
     size_t total = 0;
-    uint32_t i;
+    uint32_t i, maxPlan = 0;
     if (!maps || !count) return 0;
     for (i = 0; i < count; ++i)
     {
         size_t n;
         if (!G2_MapValid(&maps[i])) return 0;
-        n = (size_t)maps[i].width * maps[i].height
-            * (sizeof(uint16_t) + sizeof(struct G2_Edit));
+        n = (size_t)maps[i].width * maps[i].height;
+        total = (total + 3u) & ~(size_t)3u;
+        if (G2_HasTopology(&maps[i]))
+        {
+            size_t plan = n + (n & 1u) + n * 6u + (n / 4u) * sizeof(struct G2_Placement);
+            if (n > maxPlan) maxPlan = (uint32_t)n;
+            if (plan > SIZE_MAX - total) return 0;
+            total += plan;
+        }
+        n *= sizeof(uint16_t) + sizeof(struct G2_Edit);
         if (n > SIZE_MAX - total) return 0;
         total += n;
     }
+    total = (total + 3u) & ~(size_t)3u;
+    if ((size_t)maxPlan * 13u > SIZE_MAX - total) return 0;
+    total += (size_t)maxPlan * 13u;
     return total;
 }
 
@@ -98,21 +109,43 @@ int G2_Begin(struct G2_World *w, const struct G2_Map *maps, uint32_t count,
     if (!w) return 0;
     memset(w, 0, sizeof(*w));
     if (!needed || !entries || !storage || bytes < needed
-        || (uintptr_t)storage % sizeof(uint16_t)) return 0;
+        || (uintptr_t)storage % sizeof(uint32_t)) return 0;
     w->maps = maps; w->entries = entries; w->seed = seed;
     w->version = GENESIS2_VERSION; w->catalogVersion = G2_CATALOG_VERSION;
     w->mapCount = count;
     for (i = 0; i < count; ++i)
     {
         struct G2_Entry *e = &entries[i];
+        size_t n = (size_t)maps[i].width * maps[i].height;
+        offset = (offset + 3u) & ~(size_t)3u;
         memset(e, 0, sizeof(*e));
         e->tiles = (uint16_t *)((uint8_t *)storage + offset);
-        e->edits = (struct G2_Edit *)(e->tiles + (size_t)maps[i].width * maps[i].height);
+        e->edits = (struct G2_Edit *)(e->tiles + n);
+        offset += n * (sizeof(uint16_t) + sizeof(struct G2_Edit));
+        if (G2_HasTopology(&maps[i]))
+        {
+            e->plan.flags = (uint8_t *)storage + offset;
+            offset += n + (n & 1u);
+            e->plan.region = (uint16_t *)((uint8_t *)storage + offset); offset += n * 2u;
+            e->plan.parent = (uint16_t *)((uint8_t *)storage + offset); offset += n * 2u;
+            e->plan.owner = (uint16_t *)((uint8_t *)storage + offset); offset += n * 2u;
+            e->plan.placements = (struct G2_Placement *)((uint8_t *)storage + offset);
+            e->plan.placementCapacity = (uint16_t)(n / 4u);
+            offset += (n / 4u) * sizeof(struct G2_Placement);
+            e->plan.grammar = (uint8_t)(G2_Hash(seed ^ maps[i].mapId,0,0) % 3u);
+            if (n > w->work.capacity) w->work.capacity = (uint32_t)n;
+        }
         e->fingerprint = Fingerprint(&maps[i], seed);
         e->phase = G2_QUEUED;
-        offset += (size_t)maps[i].width * maps[i].height
-            * (sizeof(uint16_t) + sizeof(struct G2_Edit));
+        e->encounterAnchor = G2_NO_NODE;
     }
+    offset = (offset + 3u) & ~(size_t)3u;
+    w->work.distance = (uint32_t *)((uint8_t *)storage + offset); offset += w->work.capacity * 4u;
+    w->work.heap = (uint16_t *)((uint8_t *)storage + offset); offset += w->work.capacity * 2u;
+    w->work.position = (uint16_t *)((uint8_t *)storage + offset); offset += w->work.capacity * 2u;
+    w->work.queue = (uint16_t *)((uint8_t *)storage + offset); offset += w->work.capacity * 2u;
+    w->work.roots = (uint16_t *)((uint8_t *)storage + offset); offset += w->work.capacity * 2u;
+    w->work.seen = (uint8_t *)storage + offset;
     return 1;
 }
 
@@ -155,10 +188,12 @@ uint16_t G2_RenderCell(const struct G2_Map *m, uint32_t seed, uint32_t k)
     return (uint16_t)((old & (uint16_t)~G2_ID_MASK) | target);
 }
 
-static int CellValid(const struct G2_Map *m, uint32_t k, uint16_t value)
+static int CellValid(const struct G2_Map *m, const struct G2_Entry *e, uint32_t k, uint16_t value)
 {
     uint16_t old = m->native[k];
     uint16_t id = value & G2_ID_MASK;
+    if (k == e->encounterAnchor && value != old) return 0;
+    if (e->plan.owner && e->plan.owner[k]) return G2_ModuleCellValid(m,e,k,value);
     if (value == old) return 1;
     /* Exact movement-equivalence proof for this catalog: only passable
      * normal floors/encounter grass, identical collision and elevation.
@@ -186,36 +221,59 @@ uint32_t G2_Tick(struct G2_World *w, uint32_t budget)
         /* Weighted deterministic budget: protected copies are much cheaper
          * than climate sampling. Never waste an entire frame on 32 copies.
          * One unit = 16 credits; native measurements calibrate the weights. */
-        cost = e->phase == G2_RENDER
+        cost = e->phase >= G2_PLAN_INIT ? 16u : e->phase == G2_RENDER
             ? ((m->editable[k / 8u] & (1u << (k % 8u))) ? 16u : 4u)
             : e->phase == G2_VALIDATE ? 8u : 4u;
         if (cost > limit - credits) break;
-        if (e->phase == G2_RENDER)
+        if (e->phase >= G2_PLAN_INIT && e->phase <= G2_PLAN_FALLBACK)
         {
+            G2_PlanStep(w,e,m);
+            if (e->phase == G2_FAILED) { ++w->failed; ++w->current; }
+        }
+        else if (e->phase == G2_RENDER)
+        {
+            if (e->encounterAnchor == G2_NO_NODE && (m->native[k] & G2_ID_MASK) == G2_TALL
+                && !(m->native[k] & G2_COLLISION_MASK)) e->encounterAnchor = (uint16_t)k;
             e->tiles[k] = G2_RenderCell(m, w->seed, k);
-            if (e->tiles[k] != m->native[k])
-            {
-                struct G2_Edit *edit = &e->edits[e->changed++];
-                edit->sourceIndex = (uint16_t)k;
-                edit->liveIndex = (uint16_t)((k / m->width + 7u)
-                    * (m->width + G2_MAP_OFFSET_W) + k % m->width + 7u);
-            }
+            if (k == e->encounterAnchor) e->tiles[k] = m->native[k];
             if (++e->cursor == cells)
-            { e->phase = G2_VALIDATE; e->cursor = 0; e->crc = UINT32_MAX; }
+            {
+                e->cursor = 0; e->changed = 0;
+                if (G2_HasTopology(m)) { w->work.cursor = 0; e->phase = G2_PLAN_INIT; }
+                else { e->phase = G2_VALIDATE; e->crc = UINT32_MAX; }
+            }
         }
         else if (e->phase == G2_VALIDATE)
         {
             uint16_t value = e->tiles[k];
-            if (!CellValid(m, k, value))
+            if (!CellValid(m, e, k, value))
             { e->phase = G2_FAILED; ++w->failed; ++w->current; }
             else
             {
+                if (value != m->native[k])
+                {
+                    struct G2_Edit *edit = &e->edits[e->changed++];
+                    edit->sourceIndex = (uint16_t)k;
+                    edit->liveIndex = (uint16_t)((k / m->width + 7u)
+                        * (m->width + G2_MAP_OFFSET_W) + k % m->width + 7u);
+                }
+                if (e->plan.flags)
+                {
+                    e->plan.digest = (e->plan.digest ^ e->plan.flags[k]) * UINT32_C(16777619);
+                    e->plan.digest = (e->plan.digest ^ e->plan.region[k]) * UINT32_C(16777619);
+                    e->plan.digest = (e->plan.digest ^ e->plan.parent[k]) * UINT32_C(16777619);
+                    e->plan.digest = (e->plan.digest ^ e->plan.owner[k]) * UINT32_C(16777619);
+                }
                 e->crc = CrcByte(CrcByte(e->crc, (uint8_t)value), (uint8_t)(value >> 8));
                 if (++e->cursor == cells)
                 { e->crc = ~e->crc; e->phase = G2_READY; ++w->current; }
             }
         }
-        else ++w->current;
+        else
+        {
+            if (e->phase != G2_READY) { e->phase = G2_FAILED; ++w->failed; }
+            ++w->current;
+        }
         credits += cost;
     }
     used = (credits + 15u) / 16u;
