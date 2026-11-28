@@ -5,6 +5,9 @@ on:
     branches:
       - 'feat/**'
       - 'dev/**'
+  pull_request:
+    branches:
+      - 'feat/unholy-genesis-puzzle-islands'
   workflow_dispatch:
 
 # Si lanzas una build nueva en la misma rama, cancela la anterior en curso.
@@ -45,6 +48,9 @@ jobs:
           python3 tools/genesis/genesis_puzzles.py --audit . > /tmp/genesis-puzzle-audit.json
           python3 tools/genesis/genesis_biomes.py --selftest
           python3 tools/genesis/genesis_route_modules.py --selftest
+
+      - name: Precalcular terreno nativo de Genesis
+        run: python3 tools/genesis/genesis_bake.py --output include/genesis_baked.generated.h
 
       - name: Compilar
         run: make -j$(nproc) -O all
