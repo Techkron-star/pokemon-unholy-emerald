@@ -95,7 +95,7 @@ static u16 Original(const struct MapLayout *l, s32 x, s32 y)
     return l->map[(u32)y * (u32)l->width + (u32)x];
 }
 
-static u8 TallNeighbors(const struct MapLayout *l, s32 x, s32 y, u16 entry)
+static gbool HasTallNeighbors(const struct MapLayout *l, s32 x, s32 y, u16 entry, u8 need)
 {
     s32 dx, dy;
     u8 count = 0;
@@ -110,9 +110,10 @@ static u8 TallNeighbors(const struct MapLayout *l, s32 x, s32 y, u16 entry)
             if ((n & MAPGRID_METATILE_ID_MASK) == METATILE_General_TallGrass
                 && (n & (MAPGRID_COLLISION_MASK | MAPGRID_ELEVATION_MASK))
                    == (entry & (MAPGRID_COLLISION_MASK | MAPGRID_ELEVATION_MASK)))
-                ++count;
+                if (++count >= need)
+                    return GTRUE;
         }
-    return count;
+    return GFALSE;
 }
 
 gbool GenesisWorldTest_IsGeneratedCell(s32 x, s32 y)
@@ -134,6 +135,7 @@ void GenesisWorldTest_Apply(void)
     const struct MapLayout *l = header->mapLayout;
     s32 x, y;
     u32 i;
+    u8 profile;
     gGenesisWorldTestStats = (struct GenesisWorldTestStats){0};
     sTerrainW = sTerrainH = sTerrainLayout = 0;
     gGenesisWorldTestStats.result = GENESIS_TEST_OTHER_GAME;
@@ -166,7 +168,14 @@ void GenesisWorldTest_Apply(void)
         gGenesisWorldTestStats.result = GENESIS_TEST_TILESET;
         return;
     }
-    for (i = 0; i < sizeof(sChanged); ++i)
+    profile = GenesisRoute_Profile(gSaveBlock2Ptr->optionsGenesisTerrain);
+    gGenesisWorldTestStats.biome = profile;
+    if (profile == GENESIS_TERRAIN_NATIVE)
+    {
+        gGenesisWorldTestStats.result = GENESIS_TEST_UNCHANGED;
+        return;
+    }
+    for (i = 0; i < ((u32)l->width * (u32)l->height + 7u) / 8u; ++i)
         sChanged[i] = 0;
     sTerrainW = (u16)l->width;
     sTerrainH = (u16)l->height;
@@ -183,12 +192,18 @@ void GenesisWorldTest_Apply(void)
         {
             u16 old = Original(l, x, y), next;
             u32 k = (u32)y * sTerrainW + (u32)x;
+            u8 need;
             if ((old & MAPGRID_METATILE_ID_MASK) != METATILE_General_TallGrass
                 || (old & MAPGRID_COLLISION_MASK)
-                || LiveCell(x, y) != old
-                || MapGridGetMetatileBehaviorAt(x + MAP_OFFSET, y + MAP_OFFSET) != MB_TALL_GRASS)
+                || LiveCell(x, y) != old)
                 continue;
             ++gGenesisWorldTestStats.candidateCells;
+            need = GenesisRoute_Intent(gGenesisWorldTestStats.mapSeed, (u16)x, (u16)y,
+                                       sTerrainW, sTerrainH, profile);
+            if (!need || !HasTallNeighbors(l, x, y, old, need))
+                continue;
+            if (MapGridGetMetatileBehaviorAt(x + MAP_OFFSET, y + MAP_OFFSET) != MB_TALL_GRASS)
+                continue;
             if (Protected(header, x, y))
             {
                 ++gGenesisWorldTestStats.protectedCells;
@@ -200,9 +215,6 @@ void GenesisWorldTest_Apply(void)
                 ++gGenesisWorldTestStats.landingRepairs;
                 continue;
             }
-            if (!GenesisRoute_Clear(gGenesisWorldTestStats.mapSeed, (u16)x, (u16)y,
-                                   sTerrainW, sTerrainH, TallNeighbors(l, x, y, old)))
-                continue;
             next = GenesisRoute_ReplaceGrass(old, METATILE_General_TallGrass,
                                              METATILE_General_Grass, MAPGRID_METATILE_ID_MASK,
                                              MAPGRID_COLLISION_MASK);
