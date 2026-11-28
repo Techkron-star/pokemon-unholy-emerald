@@ -33,6 +33,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
 
+      - name: Validar gramática de rutas en host
+        run: |
+          cc -std=c99 -Wall -Wextra -Werror -O2 -DGENESIS_HOST -Iinclude src/genesis/genesis_core.c src/genesis/genesis_route.c tools/genesis/genesis_route_test.c -o /tmp/genesis-route-test
+          /tmp/genesis-route-test
       - name: Compilar
         run: make -j$(nproc) -O all
 
