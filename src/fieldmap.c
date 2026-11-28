@@ -139,6 +139,7 @@ void InitMap(void)
     InitMapLayoutData(&gMapHeader);
     SetOccupiedSecretBaseEntranceMetatiles(gMapHeader.events);
     RunOnLoadMapScript();
+    G2_ReconcileCurrentModules();
 }
 
 void InitMapFromSavedGame(void)
@@ -149,6 +150,7 @@ void InitMapFromSavedGame(void)
     LoadSavedMapView();
     RunOnLoadMapScript();
     UpdateTVScreensOnMap(gBackupMapLayout.width, gBackupMapLayout.height);
+    G2_ReconcileCurrentModules();
 }
 
 void InitBattlePyramidMap(bool8 setPlayerPosition)
@@ -588,6 +590,7 @@ static void LoadSavedMapView(void)
     width = gBackupMapLayout.width;
     x = gSaveBlock1Ptr->pos.x;
     y = gSaveBlock1Ptr->pos.y;
+    G2_PrepareSavedView(x, y, mapView, MAP_OFFSET_W, MAP_OFFSET_H);
     for (i = y; i < y + MAP_OFFSET_H; i++)
     {
         if (i == y && i != 0)
@@ -600,6 +603,7 @@ static void LoadSavedMapView(void)
         for (j = x; j < x + MAP_OFFSET_W; j++)
         {
             if ((restoreGenerated || !GenesisWorldTest_IsGeneratedCell(j, i))
+                && G2_ShouldRestoreSavedCell(j, i, *mapView)
                 && !SkipCopyingMetatileFromSavedMap(&sBackupMapData[j + width * i], width, yMode))
                 sBackupMapData[j + width * i] = *mapView;
             mapView++;

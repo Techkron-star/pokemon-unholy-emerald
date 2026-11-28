@@ -269,7 +269,7 @@ $(GENESIS_BAKED_HEADER): $(GENESIS_BAKED_INPUTS)
 	python3 tools/genesis/genesis_bake.py --output $@
 
 GENESIS2_HEADER := $(INCLUDE_DIRS)/genesis2/assets.generated.h
-GENESIS2_INPUTS := $(wildcard tools/genesis/*.py data/maps/*/map.json data/layouts/*/map.bin) data/maps/map_groups.json data/layouts/layouts.json data/tilesets/primary/general/metatile_attributes.bin
+GENESIS2_INPUTS := $(wildcard tools/genesis/*.py data/maps/*/map.json data/maps/*/scripts.inc data/layouts/*/map.bin data/tilesets/primary/general/palettes/*.pal) data/maps/map_groups.json data/layouts/layouts.json data/tilesets/primary/general/metatile_attributes.bin data/tilesets/primary/general/metatiles.bin data/tilesets/primary/general/tiles.png
 AUTO_GEN_TARGETS += $(GENESIS2_HEADER)
 $(GENESIS2_HEADER): $(GENESIS2_INPUTS)
 	python3 tools/genesis/genesis2_assets.py --output $@ --manifest $(BUILD_DIR)/genesis2-assets.json

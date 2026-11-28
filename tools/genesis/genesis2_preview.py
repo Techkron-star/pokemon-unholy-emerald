@@ -82,7 +82,7 @@ if __name__=='__main__':
     tiles=atlas(root,layout)
     a.output.mkdir(parents=True,exist_ok=True)
     exporter=a.output/'export'
-    subprocess.run(['cc','-O2','-std=c99','-Iinclude','src/genesis2/world.c',
+    subprocess.run(['cc','-O2','-std=c99','-Iinclude','src/genesis2/world.c','src/genesis2/topology.c',
                     'tools/genesis/genesis2_export.c','-o',str(exporter)],check=True)
     native=render(m['native'],m['width'],m['height'],tiles)
     native.save(a.output/'original.png')

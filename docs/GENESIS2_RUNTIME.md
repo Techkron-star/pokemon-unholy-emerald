@@ -2,7 +2,8 @@
 
 Implementación experimental sobre P19 / PR #139 (`04d3cec`). Esta entrega
 resuelve el ciclo de vida de generación y caché del catálogo terrestre seguro.
-**No completa el compositor de estructuras ni toda la especificación 2.0.**
+**La etapa siguiente incorpora un compositor piloto en Ruta 102:** véase
+[GENESIS2_TOPOLOGY.md](GENESIS2_TOPOLOGY.md). La especificación 2.0 completa sigue en desarrollo.
 
 ## Comportamiento
 
@@ -52,7 +53,7 @@ asignaciones por visita: el pool de las 14 rutas se reutiliza en el siguiente
 inicio/carga. El catálogo ocupa 33.160 celdas: 66.320 bytes de tilemaps y hasta
 132.640 bytes de índices dispersos, más descriptores. No toca VRAM ni DMA3.
 
-Cada mapa se valida entero antes de READY. El catálogo actual solo transforma
+Cada mapa se valida entero antes de READY. El catálogo base de esta etapa solo transforma
 suelo pasable conocido y conserva exactamente colisión/elevación. Agua, puentes,
 saltos, escaleras, gates HM, scripts y eventos no se modifican. Esa invariancia
 preserva el movimiento existente; **no demuestra topología procedural nueva**.
@@ -81,7 +82,7 @@ tramo de instrucciones en el núcleo; los tiempos físicos Android siguen pendie
 
 ## Pendiente de la especificación completa
 
-Catálogo de módulos auténticos multimetatile, nuevos bosques/acantilados/orillas,
+Ampliar el catálogo piloto de módulos auténticos, nuevos bosques/acantilados/orillas,
 plan espacial materializado con nuevas gramáticas/topología y movimiento dirigido,
 biomas sin arte preparado (tundra, etc.), cave/ocean pipelines, deltas SAVX compartidos,
 100 previews nativos de módulos y QA física Android a 1×/3×. No usar la existencia

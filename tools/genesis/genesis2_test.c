@@ -19,9 +19,14 @@ int main(int argc, char **argv)
     struct G2_World a, b;
     struct G2_Entry ea[COUNT], eb[COUNT];
     unsigned char *sa = malloc(bytes + 4), *sb = malloc(bytes + 4);
-    unsigned seed, i, diverse = 0;
+    unsigned seed, i, diverse = 0, modules = 0;
     uint32_t baseline[COUNT];
     assert(sa && sb && bytes);
+    {
+        struct G2_Map invalid = sG2Maps[0];
+        invalid.width=65521; invalid.height=65522;
+        assert(!G2_MapValid(&invalid) && !G2_StorageBytes(&invalid,1));
+    }
     assert(!G2_Begin(&a, sG2Maps, (uint32_t)COUNT, ea, sa, bytes - 1, 1));
     assert(!G2_Begin(&a, sG2Maps, (uint32_t)COUNT, ea, sa + 1, bytes, 1));
     assert(!G2_Begin(&a, NULL, 0, ea, sa, bytes, 1));
@@ -45,6 +50,7 @@ int main(int argc, char **argv)
             uint32_t k, n = (uint32_t)m->width * m->height;
             assert(G2_FindReady(&a,m->mapId,m->layoutId,m->width,m->height) == &ea[i]);
             assert(!G2_FindReady(&a,m->mapId,m->layoutId,m->width+1,m->height));
+            modules += ea[i].plan.placementCount;
             if (!seed) baseline[i] = ea[i].crc;
             else if (ea[i].crc != baseline[i]) ++diverse;
             for (k = 0; k < ea[i].changed; ++k)
@@ -58,9 +64,13 @@ int main(int argc, char **argv)
             for (k = 0; k < n; ++k)
             {
                 uint16_t old = m->native[k], now = ea[i].tiles[k];
-                assert((old & ~G2_ID_MASK) == (now & ~G2_ID_MASK));
+                assert((old & 0xF000u) == (now & 0xF000u));
+                if ((old & ~G2_ID_MASK) != (now & ~G2_ID_MASK))
+                    assert(G2_ModuleCellValid(m,&ea[i],k,now));
                 if (!(m->editable[k/8] & (1u << (k%8)))) assert(now == old);
             }
+            if (ea[i].encounterAnchor != G2_NO_NODE)
+                assert(ea[i].tiles[ea[i].encounterAnchor] == m->native[ea[i].encounterAnchor]);
         }
         if (seed < 10)
         {
@@ -75,10 +85,13 @@ int main(int argc, char **argv)
                 const struct G2_Map *m = &sG2Maps[i];
                 assert(G2_FindReady(&b,m->mapId,m->layoutId,m->width,m->height));
                 assert(ea[i].crc == eb[i].crc && ea[i].fingerprint == eb[i].fingerprint);
+                assert(ea[i].plan.digest == eb[i].plan.digest);
+                assert(ea[i].plan.placementCount == eb[i].plan.placementCount);
             }
         }
     }
     if (seeds > 1) assert(diverse);
+    if (seeds >= 100) assert(modules);
     for (i = 0; i < 4; ++i) assert(sa[bytes+i] == 0xA5 && sb[bytes+i] == 0xA5);
     for (i = 0; i <= 12; ++i)
     {
@@ -88,6 +101,6 @@ int main(int argc, char **argv)
     /* Shared geographical point sampled through unrelated local origins. */
     assert(G2_Climate(77,-200+250,34+19,7) == G2_Climate(77,100-50,70-17,7));
     free(sa); free(sb);
-    printf("PASS Genesis2: %u seeds x %zu native routes; bounds, budgets, movement, protection, determinism, failure\n",seeds,COUNT);
+    printf("PASS Genesis2: %u seeds x %zu native routes; %u complete modules; bounds, budgets, protection, determinism, failure\n",seeds,COUNT,modules);
     return 0;
 }
