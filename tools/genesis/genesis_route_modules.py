@@ -215,14 +215,14 @@ def generate(seed, zones, anchors, gates=(), branches=None, profile="balanced"):
 
 
 def generate_biome_route(seed, map_id, width, height, zones, anchors,
-                         gates=(), domain="land", eligible=None, dominant=None):
+                         gates=(), domain="land", eligible=None, dominant=None, origin=None):
     """Precompute the environment, then preserve abstract progression sockets.
 
     The renderer must validate native movement; e.g. land archipelagos
     require a dry bridge/causeway at every ordinary land socket.
     """
     environment = assign_biomes(seed, map_id, width, height, domain,
-                                eligible=eligible, dominant=dominant)
+                                eligible=eligible, dominant=dominant, origin=origin)
     if environment["mode"] == "native":
         return environment
     if any(not (0 <= x < width and 0 <= y < height)
@@ -237,7 +237,9 @@ def generate_biome_route(seed, map_id, width, height, zones, anchors,
     by_coord = {(c["x"], c["y"]): c for c in environment["cells"]}
     for module in plan["modules"]:
         cell = by_coord[module["x"], module["y"]]
-        module["biome"] = cell["biome"]
+        module["biome"] = cell["visual_biome"]
+        module["blend"] = cell["blend"]
+        module["ecotone"] = cell["ecotone"]
         module["motif"] = cell["corridor"]
         module["movement_domain"] = domain
     environment["route"] = plan
@@ -255,13 +257,13 @@ def demo(seed, profile="balanced"):
                     [((6, 4), (7, 4), 1)], profile=profile)
 
 
-def biome_demo(seed, map_id, domain, dominant=None):
+def biome_demo(seed, map_id, domain, dominant=None, origin=None):
     left = {(x, y) for x in range(7) for y in range(9)}
     right = {(x, y) for x in range(7, 14) for y in range(9)}
     return generate_biome_route(seed, map_id, 14, 9,
                                 {"west": left, "east": right},
                                 {"west": [(0, 4)], "east": [(13, 4), (11, 8)]},
-                                [((6, 4), (7, 4), 1)], domain, dominant=dominant)
+                                [((6, 4), (7, 4), 1)], domain, dominant=dominant, origin=origin)
 
 
 def selftest():
@@ -324,10 +326,11 @@ if __name__ == "__main__":
     parser.add_argument("--map-id", type=int, default=101)
     parser.add_argument("--domain", choices=("land", "water", "cave", "city", "town", "interior", "scripted"), default="land")
     parser.add_argument("--dominant", help="debug override for dominant biome")
+    parser.add_argument("--origin", nargs=2, type=int, metavar=("X", "Y"))
     args = parser.parse_args()
     if args.selftest:
         selftest()
     elif args.profile is not None:
         print(json.dumps(demo(args.seed, args.profile), indent=2))
     else:
-        print(json.dumps(biome_demo(args.seed, args.map_id, args.domain, args.dominant), indent=2))
+        print(json.dumps(biome_demo(args.seed, args.map_id, args.domain, args.dominant, args.origin), indent=2))
