@@ -255,6 +255,13 @@ CHROMATIC_REGION_TOOL := $(MISC_TOOL_DIR)/unholy_chromatic_regions.py
 CHROMATIC_REGION_ASSETS := $(shell find graphics/pokemon -type f \( -name 'normal.pal' -o -name 'shiny.pal' -o -name 'normal_gba.pal' -o -name 'shiny_gba.pal' -o -name 'front*.png' -o -name 'anim_front*.png' -o -name 'back*.png' \))
 AUTO_GEN_TARGETS += $(CHROMATIC_REGION_HEADER)
 
+GENESIS_BAKED_HEADER := $(INCLUDE_DIRS)/genesis_baked.generated.h
+GENESIS_BAKED_INPUTS := $(wildcard tools/genesis/*.py data/maps/Route*/map.json data/layouts/Route*/map.bin) data/layouts/layouts.json data/tilesets/primary/general/metatile_attributes.bin
+AUTO_GEN_TARGETS += $(GENESIS_BAKED_HEADER)
+
+$(GENESIS_BAKED_HEADER): $(GENESIS_BAKED_INPUTS)
+	python3 tools/genesis/genesis_bake.py --output $@
+
 $(CHROMATIC_REGION_HEADER): $(CHROMATIC_REGION_TOOL) $(CHROMATIC_REGION_ASSETS)
 	python3 $(CHROMATIC_REGION_TOOL) --output $@ --report $(BUILD_DIR)/chromatic-coverage.json
 
@@ -474,6 +481,8 @@ $(C_BUILDDIR)/move_relearner.o: $(C_SUBDIR)/move_relearner.c $(DATA_SRC_SUBDIR)/
 $(C_BUILDDIR)/pokemon.o: $(C_SUBDIR)/pokemon.c $(DATA_SRC_SUBDIR)/pokemon/teachable_learnsets.h
 $(C_BUILDDIR)/unholy_natural_tones.o: $(C_SUBDIR)/unholy_natural_tones.c $(CHROMATIC_REGION_HEADER)
 $(C_BUILDDIR)/unholy_natural_tones.d: $(C_SUBDIR)/unholy_natural_tones.c $(CHROMATIC_REGION_HEADER)
+$(C_BUILDDIR)/genesis/genesis_world_test.o: $(C_SUBDIR)/genesis/genesis_world_test.c $(GENESIS_BAKED_HEADER)
+$(C_BUILDDIR)/genesis/genesis_world_test.d: $(C_SUBDIR)/genesis/genesis_world_test.c $(GENESIS_BAKED_HEADER)
 
 # As a side effect, they're evaluated immediately instead of when the rule is invoked.
 # It doesn't look like $(shell) can be deferred so there might not be a better way (Icedude_907: there is soon).

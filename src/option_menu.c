@@ -311,7 +311,8 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiTheme = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 1 : 0;
         gTasks[taskId].tLanguageSpanish = gSaveBlock2Ptr->optionsLanguageSpanish;
-        gTasks[taskId].tGenesisTerrain = GenesisRoute_Profile(gSaveBlock2Ptr->optionsGenesisTerrain);
+        gTasks[taskId].tGenesisTerrain = gSaveBlock2Ptr->optionsGenesisTerrain == GENESIS_TERRAIN_NATIVE
+                                          ? GENESIS_TERRAIN_NATIVE : GENESIS_TERRAIN_BALANCED;
 
         DrawAllOptionMenuChoices(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
@@ -637,34 +638,24 @@ static void Language_DrawChoices(u8 selection)
 
 static u8 GenesisTerrain_ProcessInput(u8 selection)
 {
-    if (JOY_NEW(DPAD_RIGHT))
+    if (JOY_NEW(DPAD_LEFT | DPAD_RIGHT))
     {
-        selection = selection + 1 == GENESIS_TERRAIN_COUNT ? 0 : selection + 1;
-        sArrowPressed = TRUE;
-    }
-    else if (JOY_NEW(DPAD_LEFT))
-    {
-        selection = selection ? selection - 1 : GENESIS_TERRAIN_COUNT - 1;
+        selection = selection == GENESIS_TERRAIN_NATIVE ? GENESIS_TERRAIN_BALANCED : GENESIS_TERRAIN_NATIVE;
         sArrowPressed = TRUE;
     }
     return selection;
 }
 
-static const u8 *const sTerrainEn[GENESIS_TERRAIN_COUNT] = {
-        COMPOUND_STRING("BALANCED"), COMPOUND_STRING("FOREST"),
-        COMPOUND_STRING("PLAINS"), COMPOUND_STRING("TRAILS"),
-        COMPOUND_STRING("CLEARINGS"), COMPOUND_STRING("ORIGINAL"),
-    };
-static const u8 *const sTerrainEs[GENESIS_TERRAIN_COUNT] = {
-        COMPOUND_STRING("MIXTO"), COMPOUND_STRING("BOSQUE"),
-        COMPOUND_STRING("LLANURA"), COMPOUND_STRING("SENDAS"),
-        COMPOUND_STRING("CLAROS"), COMPOUND_STRING("ORIGINAL"),
-    };
+static const u8 sTerrainAutoEn[] = _("AUTO");
+static const u8 sTerrainAutoEs[] = _("AUTO");
+static const u8 sTerrainOriginal[] = _("ORIGINAL");
+
 static void GenesisTerrain_DrawChoices(u8 selection)
 {
-    selection = GenesisRoute_Profile(selection);
+    const u8 *text = selection == GENESIS_TERRAIN_NATIVE ? sTerrainOriginal
+                    : (sPreviewSpanish ? sTerrainAutoEs : sTerrainAutoEn);
     FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_GENESIS, 102, OPTION_ROW_HEIGHT);
-    DrawOptionMenuChoice((sPreviewSpanish ? sTerrainEs : sTerrainEn)[selection], 117, YPOS_GENESIS, 1);
+    DrawOptionMenuChoice(text, 117, YPOS_GENESIS, 1);
 }
 
 static u8 FrameType_ProcessInput(u8 selection)
