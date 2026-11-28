@@ -1,4 +1,5 @@
 #include "global.h"
+#include "genesis2/runtime.h"
 #include "clock.h"
 #include "new_game.h"
 #include "random.h"
@@ -179,6 +180,7 @@ void NewGameInitData(void)
     ClearFrontierRecord();
     ClearSav1();
     ClearSav3();
+    G2_CommitNewGame();
     ClearAllMail();
     gSaveBlock2Ptr->specialSaveWarpFlags = 0;
     gSaveBlock2Ptr->gcnLinkFlags = 0;

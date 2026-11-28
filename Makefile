@@ -29,6 +29,12 @@ KEEP_TEMPS  ?= 0
 FILE_NAME := poke$(BUILD_NAME)
 BUILD_DIR := build
 
+# Explicit extended cartridge. Ordinary builds still detect and fall back.
+ifeq ($(GBAX),1)
+  TITLE := GBAX RAM64$(subst x, ,xx)
+  GAME_CODE := GBAX
+endif
+
 # Compares the ROM to a checksum of the original - only makes sense using when non-modern
 COMPARE     ?= 0
 # Executes the Test Runner System that checks that all mechanics work as expected
@@ -262,6 +268,12 @@ AUTO_GEN_TARGETS += $(GENESIS_BAKED_HEADER)
 $(GENESIS_BAKED_HEADER): $(GENESIS_BAKED_INPUTS)
 	python3 tools/genesis/genesis_bake.py --output $@
 
+GENESIS2_HEADER := $(INCLUDE_DIRS)/genesis2/assets.generated.h
+GENESIS2_INPUTS := $(wildcard tools/genesis/*.py data/maps/*/map.json data/layouts/*/map.bin) data/maps/map_groups.json data/layouts/layouts.json data/tilesets/primary/general/metatile_attributes.bin
+AUTO_GEN_TARGETS += $(GENESIS2_HEADER)
+$(GENESIS2_HEADER): $(GENESIS2_INPUTS)
+	python3 tools/genesis/genesis2_assets.py --output $@ --manifest $(BUILD_DIR)/genesis2-assets.json
+
 $(CHROMATIC_REGION_HEADER): $(CHROMATIC_REGION_TOOL) $(CHROMATIC_REGION_ASSETS)
 	python3 $(CHROMATIC_REGION_TOOL) --output $@ --report $(BUILD_DIR)/chromatic-coverage.json
 
@@ -483,6 +495,7 @@ $(C_BUILDDIR)/unholy_natural_tones.o: $(C_SUBDIR)/unholy_natural_tones.c $(CHROM
 $(C_BUILDDIR)/unholy_natural_tones.d: $(C_SUBDIR)/unholy_natural_tones.c $(CHROMATIC_REGION_HEADER)
 $(C_BUILDDIR)/genesis/genesis_world_test.o: $(C_SUBDIR)/genesis/genesis_world_test.c $(GENESIS_BAKED_HEADER)
 $(C_BUILDDIR)/genesis/genesis_world_test.d: $(C_SUBDIR)/genesis/genesis_world_test.c $(GENESIS_BAKED_HEADER)
+$(C_BUILDDIR)/genesis2/runtime.o $(C_BUILDDIR)/genesis2/runtime.d: $(GENESIS2_HEADER)
 
 # As a side effect, they're evaluated immediately instead of when the rule is invoked.
 # It doesn't look like $(shell) can be deferred so there might not be a better way (Icedude_907: there is soon).

@@ -11,6 +11,7 @@
 #define UNHOLY_SAVE4_VERSION       1
 #define UNHOLY_SAVE4_HORIZON_OFFSET 512 // activity record ends before this offset
 #define UNHOLY_SAVE4_WALLET_OFFSET 1024 // independent from Horizon stock
+#define UNHOLY_SAVE4_GENESIS_OFFSET 1040 // 16-byte versioned world identity; no cached maps
 #define UNHOLY_SAVE4_COFRADIA_OFFSET 1088 // after the wallet record
 #define UNHOLY_SAVE4_PAYLOAD_BYTES 1608 // 4 bytes reserved for CRC32
 

@@ -23,6 +23,16 @@ build/genesis_demo: $(SRCS) $(HEADERS) genesis_demo.c | build
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(SRCS) genesis_demo.c -o $@
 demo: build/genesis_demo
 	./build/genesis_demo $(SEED) $(BIOME)
+
+.PHONY: genesis2-test genesis2-asan
+../../include/genesis2/assets.generated.h: genesis2_assets.py genesis_bake.py genesis_puzzles.py
+	cd ../.. && python3 tools/genesis/genesis2_assets.py --output include/genesis2/assets.generated.h --manifest build/genesis2-assets.json
+genesis2-test: ../../include/genesis2/assets.generated.h | build
+	$(CC) $(CFLAGS) -I../../include ../../src/genesis2/world.c genesis2_test.c -o build/genesis2_test
+	./build/genesis2_test 1000
+genesis2-asan: ../../include/genesis2/assets.generated.h | build
+	$(CC) $(CFLAGS) -g -fno-omit-frame-pointer -fsanitize=address,undefined -fno-sanitize-recover=all -no-pie -I../../include ../../src/genesis2/world.c genesis2_test.c -o build/genesis2_asan
+	./build/genesis2_asan 1000
 .PHONY: native-test
 native-test: | build
 	$(CC) -Inative_mock -I../../include $(CFLAGS) $(SRCS) genesis_native_test.c -o build/genesis_native_test

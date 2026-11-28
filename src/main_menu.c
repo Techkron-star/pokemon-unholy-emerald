@@ -1,4 +1,5 @@
 #include "global.h"
+#include "genesis2/runtime.h"
 #include "trainer_pokemon_sprites.h"
 #include "bg.h"
 #include "constants/rgb.h"
@@ -552,9 +553,27 @@ enum
 static void CB2_MainMenu(void)
 {
     RunTasks();
+    G2_RuntimeTick();
     AnimateSprites();
     BuildOamBuffer();
     UpdatePaletteFade();
+}
+
+static void Task_GenesisContinue(u8 taskId)
+{
+    if (G2_RuntimeComplete() && !gPaletteFade.active)
+    {
+        if (!gTasks[taskId].data[0])
+        {
+            gTasks[taskId].data[0] = 1;
+            BeginNormalPaletteFade(PALETTES_ALL, 0, 0, 16, RGB_BLACK);
+        }
+        else
+        {
+            SetMainCallback2(CB2_ContinueSavedGame);
+            DestroyTask(taskId);
+        }
+    }
 }
 
 static void VBlankCB_MainMenu(void)
@@ -1096,8 +1115,26 @@ static void Task_HandleMainMenuAPressed(u8 taskId)
         case ACTION_CONTINUE:
             gPlttBufferUnfaded[0] = RGB_BLACK;
             gPlttBufferFaded[0] = RGB_BLACK;
-            SetMainCallback2(CB2_ContinueSavedGame);
-            DestroyTask(taskId);
+            G2_LoadWorld();
+            if (G2_RuntimeComplete())
+            {
+                SetMainCallback2(CB2_ContinueSavedGame);
+                DestroyTask(taskId);
+            }
+            else
+            {
+                DrawStdWindowFrame(0, FALSE);
+                FillWindowPixelBuffer(0, PIXEL_FILL(1));
+                AddTextPrinterParameterized(0, FONT_NORMAL,
+                    gSaveBlock2Ptr->optionsLanguageSpanish
+                        ? COMPOUND_STRING("Preparando mundo...")
+                        : COMPOUND_STRING("Preparing world..."), 0, 1, TEXT_SKIP_DRAW, NULL);
+                PutWindowTilemap(0);
+                CopyWindowToVram(0, COPYWIN_FULL);
+                gTasks[taskId].data[0] = 0;
+                BeginNormalPaletteFade(PALETTES_ALL, 0, 16, 0, RGB_BLACK);
+                gTasks[taskId].func = Task_GenesisContinue;
+            }
             break;
         case ACTION_OPTION:
             gMain.savedCallback = CB2_ReinitMainMenu;
@@ -1296,6 +1333,7 @@ static void HighlightSelectedMainMenuItem(enum PartyMenuType menuType, u8 select
 
 static void Task_NewGameBirchSpeech_Init(u8 taskId)
 {
+    G2_StartNewGame();
     SetGpuReg(REG_OFFSET_DISPCNT, 0);
     SetGpuReg(REG_OFFSET_DISPCNT, DISPCNT_OBJ_ON | DISPCNT_OBJ_1D_MAP);
     InitBgFromTemplate(&sBirchBgTemplate);
@@ -1809,7 +1847,7 @@ static void Task_NewGameBirchSpeech_FadePlayerToWhite(u8 taskId)
 
 static void Task_NewGameBirchSpeech_Cleanup(u8 taskId)
 {
-    if (!gPaletteFade.active)
+    if (!gPaletteFade.active && G2_RuntimeComplete())
     {
         FreeAllWindowBuffers();
         FreeAndDestroyMonPicSprite(gTasks[taskId].tLotadSpriteId);
