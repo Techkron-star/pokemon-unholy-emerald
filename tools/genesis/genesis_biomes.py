@@ -8,6 +8,7 @@ seam contracts must remain intact. This module requests motifs, not GBA tile IDs
 import argparse
 import json
 import random
+from genesis_climate import blend, quantize, climate, climate_weights
 
 VERSION = 1
 # Weights are experimental, not tied to original Hoenn climate.
@@ -78,7 +79,7 @@ def rng_for(seed, map_id):
 
 
 def assign(seed, map_id, width, height, domain="land", eligible=None,
-           homogeneous=None, dominant=None):
+           homogeneous=None, dominant=None, origin=None):
     """Assign each module-sized coordinate an environmental patch and motif.
 
     eligible is the renderer's supported biome set. Empty -> native fallback.
@@ -97,7 +98,13 @@ def assign(seed, map_id, width, height, domain="land", eligible=None,
     if not choices:
         return {"version": VERSION, "mode": "native", "map_id": map_id}
     if dominant is None:
-        dominant = rng.choices(choices, [catalog[n][0] for n in choices])[0]
+        weights = [catalog[n][0] for n in choices]
+        if origin is not None:
+            regional = climate_weights(climate(seed, origin[0]+width//2,
+                                               origin[1]+height//2), choices)
+            # Retain a chance of unusual maps while favoring shared regional climate.
+            weights = [w*(.05+regional[n]) for n,w in zip(choices,weights)]
+        dominant = rng.choices(choices, weights)[0]
     elif dominant not in choices:
         raise ValueError("unsupported dominant biome")
     related = [n for n in RELATED.get(dominant, ()) if n in choices]
@@ -118,15 +125,21 @@ def assign(seed, map_id, width, height, domain="land", eligible=None,
             index = min(range(len(centers)), key=lambda i: (
                 abs(x-centers[i][0]) + abs(y-centers[i][1])-centers[i][3], i))
             name = centers[index][2]
+            sample, weights = blend(seed, x, y, width, height, centers, choices, origin)
+            mixture = quantize(weights)
+            visual = next(iter(mixture))
             cells.append({"x": x, "y": y, "biome": name, "patch": index,
-                          "background": catalog[name][1],
-                          "corridor": catalog[name][2],
-                          "landmark": catalog[name][3]})
+                          "visual_biome": visual, "blend": mixture,
+                          "ecotone": len(mixture) > 1,
+                          "climate": [round(v, 4) for v in sample],
+                          "background": catalog[visual][1],
+                          "corridor": catalog[visual][2],
+                          "landmark": catalog[visual][3]})
     # A generated secondary region might be swallowed by the dominant bias.
     active = sorted({cell["patch"] for cell in cells})
     return {"version": VERSION, "mode": "single" if len(active)==1 else "mosaic",
             "map_id": map_id, "domain": domain, "dominant": dominant,
-            "width": width, "height": height, "cells": cells}
+            "width": width, "height": height, "origin": origin, "cells": cells}
 
 
 def selftest():
@@ -160,6 +173,15 @@ def selftest():
     assert assign(0, 0, 20, 20, eligible=set())["mode"] == "native"
     desert = assign(1, 101, 20, 20, dominant="desert", homogeneous=True)
     assert {c["biome"] for c in desert["cells"]} == {"desert"}
+    assert all(c["blend"] == {"desert":255} for c in desert["cells"])
+    for seed in range(16):
+        a = assign(seed, 101, 16, 16, origin=(0,0))
+        b = assign(seed, 102, 16, 16, origin=(15,0))
+        for y in range(16):
+            left, right = a["cells"][y*16+15], b["cells"][y*16]
+            assert left["blend"] == right["blend"]
+            assert left["climate"] == right["climate"]
+            assert sum(left["blend"].values()) == 255
     print("Genesis biomes: 1536 map seeds; coherent patches and native fallback")
 
 
@@ -171,10 +193,11 @@ if __name__ == "__main__":
     parser.add_argument("--height", type=int, default=10)
     parser.add_argument("--domain", choices=sorted(set(CATALOG)|NATIVE), default="land")
     parser.add_argument("--dominant")
+    parser.add_argument("--origin", nargs=2, type=int, metavar=("X", "Y"))
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
     if args.selftest:
         selftest()
     else:
         print(json.dumps(assign(args.seed, args.map_id, args.width, args.height,
-                                args.domain, dominant=args.dominant), indent=2))
+                                args.domain, dominant=args.dominant, origin=args.origin), indent=2))
