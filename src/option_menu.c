@@ -4,6 +4,7 @@
 #include "event_data.h"
 #include "constants/flags.h"
 #include "option_menu.h"
+#include "genesis_route_first.h"
 #include "bg.h"
 #include "gpu_regs.h"
 #include "international_string_util.h"
@@ -30,6 +31,7 @@
 #define tWindowFrameType data[6]
 #define tUiTheme data[7]
 #define tLanguageSpanish data[8]
+#define tGenesisTerrain data[9]
 
 enum
 {
@@ -41,6 +43,7 @@ enum
     MENUITEM_FRAMETYPE,
     MENUITEM_UITHEME,
     MENUITEM_LANGUAGE,
+    MENUITEM_GENESIS,
     MENUITEM_CANCEL,
     MENUITEM_COUNT,
 };
@@ -60,6 +63,7 @@ enum
 #define YPOS_FRAMETYPE    (MENUITEM_FRAMETYPE * OPTION_ROW_HEIGHT)
 #define YPOS_UITHEME      (MENUITEM_UITHEME * OPTION_ROW_HEIGHT)
 #define YPOS_LANGUAGE     (MENUITEM_LANGUAGE * OPTION_ROW_HEIGHT)
+#define YPOS_GENESIS      (MENUITEM_GENESIS * OPTION_ROW_HEIGHT)
 
 static void Task_OptionMenuFadeIn(u8 taskId);
 static void Task_OptionMenuProcessInput(u8 taskId);
@@ -80,6 +84,8 @@ static u8 UiTheme_ProcessInput(u8 selection);
 static void UiTheme_DrawChoices(u8 selection);
 static u8 Language_ProcessInput(u8 selection);
 static void Language_DrawChoices(u8 selection);
+static u8 GenesisTerrain_ProcessInput(u8 selection);
+static void GenesisTerrain_DrawChoices(u8 selection);
 static void DrawAllOptionMenuChoices(u8 taskId);
 static u8 ButtonMode_ProcessInput(u8 selection);
 static void ButtonMode_DrawChoices(u8 selection);
@@ -134,6 +140,7 @@ static const u8 *const sOptionMenuItemsNamesEnglish[MENUITEM_COUNT] =
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("FRAME"),
     [MENUITEM_UITHEME]     = COMPOUND_STRING("THEME"),
     [MENUITEM_LANGUAGE]    = COMPOUND_STRING("LANGUAGE"),
+    [MENUITEM_GENESIS]     = COMPOUND_STRING("TERRAIN"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("CANCEL"),
 };
 
@@ -147,6 +154,7 @@ static const u8 *const sOptionMenuItemsNamesSpanish[MENUITEM_COUNT] =
     [MENUITEM_FRAMETYPE]   = COMPOUND_STRING("MARCO"),
     [MENUITEM_UITHEME]     = COMPOUND_STRING("TEMA"),
     [MENUITEM_LANGUAGE]    = COMPOUND_STRING("IDIOMA"),
+    [MENUITEM_GENESIS]     = COMPOUND_STRING("TERRENO"),
     [MENUITEM_CANCEL]      = COMPOUND_STRING("SALIR"),
 };
 
@@ -164,9 +172,9 @@ static const struct WindowTemplate sOptionMenuWinTemplates[] =
     [WIN_OPTIONS] = {
         .bg = 0,
         .tilemapLeft = 2,
-        .tilemapTop = 5,
+        .tilemapTop = 4,
         .width = 26,
-        .height = 14,
+        .height = 15,
         .paletteNum = 1,
         .baseBlock = 0x36
     },
@@ -303,6 +311,7 @@ void CB2_InitOptionMenu(void)
         gTasks[taskId].tWindowFrameType = gSaveBlock2Ptr->optionsWindowFrameType;
         gTasks[taskId].tUiTheme = FlagGet(FLAG_UNHOLY_UI_DAYLIGHT) ? 1 : 0;
         gTasks[taskId].tLanguageSpanish = gSaveBlock2Ptr->optionsLanguageSpanish;
+        gTasks[taskId].tGenesisTerrain = GenesisRoute_Profile(gSaveBlock2Ptr->optionsGenesisTerrain);
 
         DrawAllOptionMenuChoices(taskId);
         HighlightOptionMenuItem(gTasks[taskId].tMenuSelection);
@@ -406,6 +415,12 @@ static void Task_OptionMenuProcessInput(u8 taskId)
             if (previousOption != gTasks[taskId].tWindowFrameType)
                 FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
             break;
+        case MENUITEM_GENESIS:
+            previousOption = gTasks[taskId].tGenesisTerrain;
+            gTasks[taskId].tGenesisTerrain = GenesisTerrain_ProcessInput(previousOption);
+            if (previousOption != gTasks[taskId].tGenesisTerrain)
+                GenesisTerrain_DrawChoices(gTasks[taskId].tGenesisTerrain);
+            break;
         case MENUITEM_LANGUAGE:
             previousOption = gTasks[taskId].tLanguageSpanish;
             gTasks[taskId].tLanguageSpanish = Language_ProcessInput(previousOption);
@@ -437,6 +452,7 @@ static void Task_OptionMenuSave(u8 taskId)
     gSaveBlock2Ptr->optionsButtonMode = gTasks[taskId].tButtonMode;
     gSaveBlock2Ptr->optionsWindowFrameType = gTasks[taskId].tWindowFrameType;
     gSaveBlock2Ptr->optionsLanguageSpanish = gTasks[taskId].tLanguageSpanish;
+    gSaveBlock2Ptr->optionsGenesisTerrain = gTasks[taskId].tGenesisTerrain;
     if (gTasks[taskId].tUiTheme)
         FlagSet(FLAG_UNHOLY_UI_DAYLIGHT);
     else
@@ -459,7 +475,7 @@ static void Task_OptionMenuFadeOut(u8 taskId)
 static void HighlightOptionMenuItem(u8 index)
 {
     SetGpuReg(REG_OFFSET_WIN0H, WIN_RANGE(16, DISPLAY_WIDTH - 16));
-    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 40, index * OPTION_ROW_HEIGHT + 40 + OPTION_ROW_HEIGHT));
+    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 32, index * OPTION_ROW_HEIGHT + 32 + OPTION_ROW_HEIGHT));
 }
 
 static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
@@ -472,7 +488,7 @@ static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
         text += GetExtCtrlCodeLength(*text);
     }
     u32 font = GetFontIdToFit(text, FONT_SMALL, 0, 208 - x);
-    AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y + 1, 0, 0,
+    AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y, 0, 0,
         colors, TEXT_SKIP_DRAW, text);
     FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(style ? 7 : 1), x, y + OPTION_ROW_HEIGHT - 1,
         min(208 - x, GetStringWidth(font, text, 0)), 1);
@@ -619,6 +635,38 @@ static void Language_DrawChoices(u8 selection)
                          117, YPOS_LANGUAGE, 1);
 }
 
+static u8 GenesisTerrain_ProcessInput(u8 selection)
+{
+    if (JOY_NEW(DPAD_RIGHT))
+    {
+        selection = selection + 1 == GENESIS_TERRAIN_COUNT ? 0 : selection + 1;
+        sArrowPressed = TRUE;
+    }
+    else if (JOY_NEW(DPAD_LEFT))
+    {
+        selection = selection ? selection - 1 : GENESIS_TERRAIN_COUNT - 1;
+        sArrowPressed = TRUE;
+    }
+    return selection;
+}
+
+static const u8 *const sTerrainEn[GENESIS_TERRAIN_COUNT] = {
+        COMPOUND_STRING("BALANCED"), COMPOUND_STRING("FOREST"),
+        COMPOUND_STRING("PLAINS"), COMPOUND_STRING("TRAILS"),
+        COMPOUND_STRING("CLEARINGS"), COMPOUND_STRING("ORIGINAL"),
+    };
+static const u8 *const sTerrainEs[GENESIS_TERRAIN_COUNT] = {
+        COMPOUND_STRING("MIXTO"), COMPOUND_STRING("BOSQUE"),
+        COMPOUND_STRING("LLANURA"), COMPOUND_STRING("SENDAS"),
+        COMPOUND_STRING("CLAROS"), COMPOUND_STRING("ORIGINAL"),
+    };
+static void GenesisTerrain_DrawChoices(u8 selection)
+{
+    selection = GenesisRoute_Profile(selection);
+    FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_GENESIS, 102, OPTION_ROW_HEIGHT);
+    DrawOptionMenuChoice((sPreviewSpanish ? sTerrainEs : sTerrainEn)[selection], 117, YPOS_GENESIS, 1);
+}
+
 static u8 FrameType_ProcessInput(u8 selection)
 {
     if (JOY_NEW(DPAD_RIGHT))
@@ -728,7 +776,7 @@ static void DrawOptionMenuTexts(void)
 
     FillWindowPixelBuffer(WIN_OPTIONS, PIXEL_FILL(1));
     for (i = 0; i < MENUITEM_COUNT; i++)
-        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, (i * OPTION_ROW_HEIGHT) + 1, 94, names[i]);
+        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, i * OPTION_ROW_HEIGHT, 94, names[i]);
     CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
 }
 
@@ -743,6 +791,7 @@ static void DrawAllOptionMenuChoices(u8 taskId)
     FrameType_DrawChoices(gTasks[taskId].tWindowFrameType);
     UiTheme_DrawChoices(gTasks[taskId].tUiTheme);
     Language_DrawChoices(gTasks[taskId].tLanguageSpanish);
+    GenesisTerrain_DrawChoices(gTasks[taskId].tGenesisTerrain);
 }
 
 #define TILE_TOP_CORNER_L 0x1A2
@@ -767,12 +816,9 @@ static void DrawBgWindowFrames(void)
     FillBgTilemapBufferRect(1, TILE_BOT_EDGE,      2,  3, 27,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_R, 28,  3,  1,  1,  7);
 
-    // Draw options list window frame
-    FillBgTilemapBufferRect(1, TILE_TOP_CORNER_L,  1,  4,  1,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_TOP_EDGE,      2,  4, 26,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_TOP_CORNER_R, 28,  4,  1,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_LEFT_EDGE,     1,  5,  1, 18,  7);
-    FillBgTilemapBufferRect(1, TILE_RIGHT_EDGE,   28,  5,  1, 18,  7);
+    // The title bottom frame is also the list divider; ten 12px rows fit.
+    FillBgTilemapBufferRect(1, TILE_LEFT_EDGE,     1,  4,  1, 15,  7);
+    FillBgTilemapBufferRect(1, TILE_RIGHT_EDGE,   28,  4,  1, 15,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_L,  1, 19,  1,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_EDGE,      2, 19, 26,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_R, 28, 19,  1,  1,  7);

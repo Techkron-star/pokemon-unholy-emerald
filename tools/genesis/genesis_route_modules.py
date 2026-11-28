@@ -14,6 +14,11 @@ from collections import deque
 
 DIR = ((0, -1, 1, 2), (0, 1, 2, 1), (-1, 0, 4, 8), (1, 0, 8, 4))
 VERSION = 1
+# Module-planning presets only: native visual catalog is a later phase.
+PROFILES = {"balanced": (4, 1, 6), "forest": (2, 2, 5),
+            "plains": (6, 1, 1), "trails": (8, 1, 3),
+            "clearings": (5, 1, 4), "mountain": (3, 3, 6),
+            "coastal": (3, 1, 4), "swamp": (2, 2, 6)}
 
 
 def neighbors(p):
@@ -22,7 +27,7 @@ def neighbors(p):
         yield (x + dx, y + dy), bit, opposite
 
 
-def route_to_tree(start, tree, allowed, rng):
+def route_to_tree(start, tree, allowed, rng, cost_min=1, cost_max=6):
     """Random positive edge costs; a shortest path in the weighted grid."""
     if start in tree:
         return [start]
@@ -42,7 +47,7 @@ def route_to_tree(start, tree, allowed, rng):
         for q, _, _ in neighbors(p):
             if q not in allowed:
                 continue
-            new = cost + rng.randint(1, 6)
+            new = cost + rng.randint(cost_min, cost_max)
             if new < costs.get(q, float("inf")):
                 costs[q] = new
                 prev[q] = p
@@ -59,11 +64,11 @@ def add_edge(ports, p, q):
     raise ValueError("noncardinal connection")
 
 
-def component(seed, allowed, anchors, branches):
+def component(seed, allowed, anchors, branches, cost_min=1, cost_max=6):
     rng = random.Random(seed)
     ports = {anchors[0]: 0}
     for anchor in anchors[1:]:
-        path = route_to_tree(anchor, ports, allowed, rng)
+        path = route_to_tree(anchor, ports, allowed, rng, cost_min, cost_max)
         for p, q in zip(path, path[1:]):
             add_edge(ports, p, q)
     # Optional dead ends, deliberately not bridges across progression gates.
@@ -153,7 +158,12 @@ def validate(zones, anchors, gates, ports):
         state = (state - 1) & used
 
 
-def generate(seed, zones, anchors, gates=(), branches=4):
+def generate(seed, zones, anchors, gates=(), branches=None, profile="balanced"):
+    if profile not in PROFILES:
+        raise ValueError("unknown terrain profile")
+    default_branches, cost_min, cost_max = PROFILES[profile]
+    if branches is None:
+        branches = default_branches
     if not zones or set(zones) != set(anchors) or not 0 <= branches <= 64:
         raise ValueError("invalid route definition")
     if not 0 <= seed <= 0xFFFFFFFF:
@@ -183,7 +193,7 @@ def generate(seed, zones, anchors, gates=(), branches=4):
     ports = {}
     for i, z in enumerate(sorted(zones)):
         ports.update(component((seed << 16) ^ (VERSION << 8) ^ i,
-                               zones[z], anchors[z], branches))
+                               zones[z], anchors[z], branches, cost_min, cost_max))
     validate(zones, anchors, gates, ports)
     # Exact socket masks are mandatory. Variant is a catalog lookup key,
     # not a license to substitute an incompatible module or change sockets.
@@ -198,12 +208,12 @@ def generate(seed, zones, anchors, gates=(), branches=4):
         modules.append({"x": p[0], "y": p[1], "zone": owner[p],
                         "ports": mask, "gate_ports": gate_mask,
                         "variant": motifs.randrange(4)})
-    return {"version": VERSION, "seed": seed, "modules": modules,
+    return {"version": VERSION, "seed": seed, "profile": profile, "modules": modules,
             "gates": [{"from": p, "to": q, "requires": req}
                       for p, q, req in gates]}
 
 
-def demo(seed):
+def demo(seed, profile="balanced"):
     # A synthetic land route with a river/cliff barrier, one fixed gate,
     # and two entrances. A separate native adapter must extract real zones.
     left = {(x, y) for x in range(7) for y in range(9)}
@@ -211,7 +221,7 @@ def demo(seed):
     left -= {(3, 3), (3, 4), (4, 3)}
     return generate(seed, {"west": left, "east": right},
                     {"west": [(0, 4)], "east": [(13, 4), (11, 8)]},
-                    [((6, 4), (7, 4), 1)])
+                    [((6, 4), (7, 4), 1)], profile=profile)
 
 
 def selftest():
@@ -223,6 +233,11 @@ def selftest():
                                for m in plan["modules"]))
         assert all(0 <= m["variant"] < 4 for m in plan["modules"])
     assert len(fingerprints) >= 240, "insufficient topology variation"
+    for profile in PROFILES:
+        for seed in range(32):
+            plan = demo(seed, profile)
+            assert plan == demo(seed, profile)
+            assert plan["profile"] == profile
     for zones, anchors, gates in (
         ({"a": {(0, 0), (2, 0)}}, {"a": [(0, 0), (2, 0)]}, ()),
         ({"a": {(0, 0)}, "b": {(0, 0)}},
@@ -257,8 +272,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=lambda s: int(s, 0), default=1)
     parser.add_argument("--selftest", action="store_true")
+    parser.add_argument("--profile", choices=PROFILES, default="balanced")
     args = parser.parse_args()
     if args.selftest:
         selftest()
     else:
-        print(json.dumps(demo(args.seed), indent=2))
+        print(json.dumps(demo(args.seed, args.profile), indent=2))

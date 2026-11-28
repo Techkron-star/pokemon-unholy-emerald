@@ -107,6 +107,7 @@ static void SetDefaultOptions(void)
     gSaveBlock2Ptr->optionsBattleSceneOff = FALSE;
     gSaveBlock2Ptr->regionMapZoom = FALSE;
     gSaveBlock2Ptr->optionsLanguageSpanish = TRUE;
+    gSaveBlock2Ptr->optionsGenesisTerrain = 0;
 }
 
 static void ClearPokedexFlags(void)
