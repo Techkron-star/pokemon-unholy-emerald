@@ -5,6 +5,8 @@
 int main(void)
 {
     u32 seed, x, y, entry, changed = 0;
+    u32 totals[GENESIS_TERRAIN_COUNT] = {0};
+    u8 p;
     for (entry = 0; entry < 65536u; ++entry)
     {
         u16 next = GenesisRoute_ReplaceGrass((u16)entry, 0x00D, 0x001, 0x03FF, 0x0C00);
@@ -28,7 +30,18 @@ int main(void)
                 assert(clear == GenesisRoute_Clear(seed, x, y, 64, 32, 8));
                 assert(!GenesisRoute_Clear(seed, x, y, 64, 32, 2));
                 changed += clear;
+                for (p = 0; p < GENESIS_TERRAIN_COUNT; ++p)
+                {
+                    u8 need = GenesisRoute_Intent(seed, x, y, 64, 32, p);
+                    assert(need == 0 || need == 3 || need == 6);
+                    totals[p] += need != 0;
+                }
             }
+    assert(totals[GENESIS_TERRAIN_NATIVE] == 0);
+    assert(totals[GENESIS_TERRAIN_FOREST] < totals[GENESIS_TERRAIN_BALANCED]);
+    assert(totals[GENESIS_TERRAIN_PLAINS] > totals[GENESIS_TERRAIN_BALANCED]);
+    assert(totals[GENESIS_TERRAIN_BALANCED] == changed);
+    assert(GenesisRoute_Profile(7) == GENESIS_TERRAIN_BALANCED);
     assert(changed > 0 && changed < 128u * 64u * 64u);
     printf("Route-first: 65536 metatile contracts, 524288 deterministic samples, %u cleared\n", changed);
     return 0;
