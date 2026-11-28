@@ -33,6 +33,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends binutils-arm-none-eabi gcc-arm-none-eabi libnewlib-arm-none-eabi libpng-dev python3
 
+      - name: Verificar generador de rutas seguro
+        run: |
+          cc -DGENESIS_HOST -std=c99 -O2 -Wall -Wextra -Werror -Iinclude tools/genesis/genesis_route_first_test.c src/genesis/genesis_core.c -o /tmp/genesis-route-first
+          /tmp/genesis-route-first
+
       - name: Compilar
         run: make -j$(nproc) -O all
 
