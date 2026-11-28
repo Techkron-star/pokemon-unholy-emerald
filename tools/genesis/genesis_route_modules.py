@@ -12,6 +12,7 @@ import json
 import random
 from collections import deque
 from genesis_biomes import assign as assign_biomes
+from genesis_puzzles import mark_environment, module_mask
 
 DIR = ((0, -1, 1, 2), (0, 1, 2, 1), (-1, 0, 4, 8), (1, 0, 8, 4))
 VERSION = 1
@@ -215,12 +216,25 @@ def generate(seed, zones, anchors, gates=(), branches=None, profile="balanced"):
 
 
 def generate_biome_route(seed, map_id, width, height, zones, anchors,
-                         gates=(), domain="land", eligible=None, dominant=None, origin=None):
+                         gates=(), domain="land", eligible=None, dominant=None, origin=None,
+                         puzzle_policy=None, module_size=1, native_dimensions=None):
     """Precompute the environment, then preserve abstract progression sockets.
 
     The renderer must validate native movement; e.g. land archipelagos
     require a dry bridge/causeway at every ordinary land socket.
     """
+    locked = set()
+    if puzzle_policy is not None:
+        if puzzle_policy["mode"] == "native":
+            return {"mode": "native", "map_id": map_id, "reason": "puzzle review"}
+        if puzzle_policy["mode"] == "partial":
+            if native_dimensions is None:
+                raise ValueError("native dimensions required for puzzle mask")
+            locked = module_mask(puzzle_policy["locked"], *native_dimensions, module_size)
+            if any(p in locked for cells in zones.values() for p in cells):
+                # Native puzzle interiors are opaque to the procedural graph.
+                # The adapter must supply separate exterior movement zones.
+                raise ValueError("procedural zone intersects immutable puzzle module")
     environment = assign_biomes(seed, map_id, width, height, domain,
                                 eligible=eligible, dominant=dominant, origin=origin)
     if environment["mode"] == "native":
@@ -243,7 +257,7 @@ def generate_biome_route(seed, map_id, width, height, zones, anchors,
         module["motif"] = cell["corridor"]
         module["movement_domain"] = domain
     environment["route"] = plan
-    return environment
+    return mark_environment(environment, locked)
 
 
 def demo(seed, profile="balanced"):
@@ -300,6 +314,17 @@ def selftest():
             assert all(m["movement_domain"] == domain for m in world["route"]["modules"])
             assert all(m["motif"] for m in world["route"]["modules"])
     assert biome_demo(0, 101, "city")["mode"] == "native"
+    # A partial map has an opaque native core; exterior planning never edits it.
+    policy = {"mode": "partial", "locked": {(2, 2)}}
+    zones = {"outside": {(0, 0), (1, 0), (2, 0)}}
+    anchors = {"outside": [(0, 0), (2, 0)]}
+    plan = generate_biome_route(1, 1, 4, 4, zones, anchors,
+                                puzzle_policy=policy, native_dimensions=(4, 4))
+    assert plan["cells"][10]["native"] is True
+    assert plan["protected_modules"] == [[2, 2]]
+    assert all((m["x"], m["y"]) != (2, 2) for m in plan["route"]["modules"])
+    assert generate_biome_route(1, 1, 4, 4, zones, anchors,
+                                puzzle_policy={"mode": "native"})["mode"] == "native"
     # One-way gates remain directional and closed without the capability.
     graph = {0: [(1, 1)], 1: []}
     assert reachable(0, graph, 0) == {0}
