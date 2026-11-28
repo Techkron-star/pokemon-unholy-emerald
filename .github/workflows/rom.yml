@@ -39,7 +39,9 @@ jobs:
           /tmp/genesis-route-first
 
       - name: Verificar topologia de modulos Genesis
-        run: python3 tools/genesis/genesis_route_modules.py --selftest
+        run: |
+          python3 tools/genesis/genesis_biomes.py --selftest
+          python3 tools/genesis/genesis_route_modules.py --selftest
 
       - name: Compilar
         run: make -j$(nproc) -O all

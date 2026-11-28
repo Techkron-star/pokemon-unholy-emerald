@@ -11,6 +11,7 @@ import heapq
 import json
 import random
 from collections import deque
+from genesis_biomes import assign as assign_biomes
 
 DIR = ((0, -1, 1, 2), (0, 1, 2, 1), (-1, 0, 4, 8), (1, 0, 8, 4))
 VERSION = 1
@@ -213,6 +214,36 @@ def generate(seed, zones, anchors, gates=(), branches=None, profile="balanced"):
                       for p, q, req in gates]}
 
 
+def generate_biome_route(seed, map_id, width, height, zones, anchors,
+                         gates=(), domain="land", eligible=None, dominant=None):
+    """Precompute the environment, then preserve abstract progression sockets.
+
+    The renderer must validate native movement; e.g. land archipelagos
+    require a dry bridge/causeway at every ordinary land socket.
+    """
+    environment = assign_biomes(seed, map_id, width, height, domain,
+                                eligible=eligible, dominant=dominant)
+    if environment["mode"] == "native":
+        return environment
+    if any(not (0 <= x < width and 0 <= y < height)
+           for cells in zones.values() for x, y in cells):
+        raise ValueError("traversal zone outside map")
+    name = environment["dominant"]
+    aliases = {"jungle": "forest", "desert": "plains", "tundra": "plains",
+               "wetland": "swamp", "archipelago": "coastal", "coast": "coastal",
+               "badlands": "mountain", "volcanic": "mountain"}
+    profile = aliases.get(name, name if name in PROFILES else "balanced")
+    plan = generate(seed, zones, anchors, gates, profile=profile)
+    by_coord = {(c["x"], c["y"]): c for c in environment["cells"]}
+    for module in plan["modules"]:
+        cell = by_coord[module["x"], module["y"]]
+        module["biome"] = cell["biome"]
+        module["motif"] = cell["corridor"]
+        module["movement_domain"] = domain
+    environment["route"] = plan
+    return environment
+
+
 def demo(seed, profile="balanced"):
     # A synthetic land route with a river/cliff barrier, one fixed gate,
     # and two entrances. A separate native adapter must extract real zones.
@@ -222,6 +253,15 @@ def demo(seed, profile="balanced"):
     return generate(seed, {"west": left, "east": right},
                     {"west": [(0, 4)], "east": [(13, 4), (11, 8)]},
                     [((6, 4), (7, 4), 1)], profile=profile)
+
+
+def biome_demo(seed, map_id, domain, dominant=None):
+    left = {(x, y) for x in range(7) for y in range(9)}
+    right = {(x, y) for x in range(7, 14) for y in range(9)}
+    return generate_biome_route(seed, map_id, 14, 9,
+                                {"west": left, "east": right},
+                                {"west": [(0, 4)], "east": [(13, 4), (11, 8)]},
+                                [((6, 4), (7, 4), 1)], domain, dominant=dominant)
 
 
 def selftest():
@@ -251,6 +291,13 @@ def selftest():
             pass
         else:
             raise AssertionError("invalid route accepted")
+    for domain in ("land", "water", "cave"):
+        for seed in range(32):
+            world = biome_demo(seed, 101, domain)
+            assert world == biome_demo(seed, 101, domain)
+            assert all(m["movement_domain"] == domain for m in world["route"]["modules"])
+            assert all(m["motif"] for m in world["route"]["modules"])
+    assert biome_demo(0, 101, "city")["mode"] == "native"
     # One-way gates remain directional and closed without the capability.
     graph = {0: [(1, 1)], 1: []}
     assert reachable(0, graph, 0) == {0}
@@ -272,9 +319,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=lambda s: int(s, 0), default=1)
     parser.add_argument("--selftest", action="store_true")
-    parser.add_argument("--profile", choices=PROFILES, default="balanced")
+    parser.add_argument("--profile", choices=PROFILES, default=None,
+                        help="legacy route topology preset; omit for automatic biomes")
+    parser.add_argument("--map-id", type=int, default=101)
+    parser.add_argument("--domain", choices=("land", "water", "cave", "city", "town", "interior", "scripted"), default="land")
+    parser.add_argument("--dominant", help="debug override for dominant biome")
     args = parser.parse_args()
     if args.selftest:
         selftest()
-    else:
+    elif args.profile is not None:
         print(json.dumps(demo(args.seed, args.profile), indent=2))
+    else:
+        print(json.dumps(biome_demo(args.seed, args.map_id, args.domain, args.dominant), indent=2))
