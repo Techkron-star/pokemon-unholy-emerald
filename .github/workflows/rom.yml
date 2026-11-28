@@ -41,6 +41,8 @@ jobs:
       - name: Verificar topologia de modulos Genesis
         run: |
           python3 tools/genesis/genesis_climate.py
+          python3 tools/genesis/genesis_puzzles.py
+          python3 tools/genesis/genesis_puzzles.py --audit . > /tmp/genesis-puzzle-audit.json
           python3 tools/genesis/genesis_biomes.py --selftest
           python3 tools/genesis/genesis_route_modules.py --selftest
 
