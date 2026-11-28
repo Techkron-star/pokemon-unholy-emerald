@@ -54,7 +54,7 @@ enum
     WIN_OPTIONS
 };
 
-#define OPTION_ROW_HEIGHT 11
+#define OPTION_ROW_HEIGHT 12
 #define YPOS_TEXTSPEED    (MENUITEM_TEXTSPEED * OPTION_ROW_HEIGHT)
 #define YPOS_BATTLESCENE  (MENUITEM_BATTLESCENE * OPTION_ROW_HEIGHT)
 #define YPOS_BATTLESTYLE  (MENUITEM_BATTLESTYLE * OPTION_ROW_HEIGHT)
@@ -172,9 +172,9 @@ static const struct WindowTemplate sOptionMenuWinTemplates[] =
     [WIN_OPTIONS] = {
         .bg = 0,
         .tilemapLeft = 2,
-        .tilemapTop = 5,
+        .tilemapTop = 4,
         .width = 26,
-        .height = 14,
+        .height = 15,
         .paletteNum = 1,
         .baseBlock = 0x36
     },
@@ -475,7 +475,7 @@ static void Task_OptionMenuFadeOut(u8 taskId)
 static void HighlightOptionMenuItem(u8 index)
 {
     SetGpuReg(REG_OFFSET_WIN0H, WIN_RANGE(16, DISPLAY_WIDTH - 16));
-    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 40, index * OPTION_ROW_HEIGHT + 40 + OPTION_ROW_HEIGHT));
+    SetGpuReg(REG_OFFSET_WIN0V, WIN_RANGE(index * OPTION_ROW_HEIGHT + 32, index * OPTION_ROW_HEIGHT + 32 + OPTION_ROW_HEIGHT));
 }
 
 static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
@@ -488,7 +488,7 @@ static void DrawOptionMenuChoice(const u8 *text, u8 x, u8 y, u8 style)
         text += GetExtCtrlCodeLength(*text);
     }
     u32 font = GetFontIdToFit(text, FONT_SMALL, 0, 208 - x);
-    AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y + 1, 0, 0,
+    AddTextPrinterParameterized4(WIN_OPTIONS, font, x, y, 0, 0,
         colors, TEXT_SKIP_DRAW, text);
     FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(style ? 7 : 1), x, y + OPTION_ROW_HEIGHT - 1,
         min(208 - x, GetStringWidth(font, text, 0)), 1);
@@ -650,21 +650,21 @@ static u8 GenesisTerrain_ProcessInput(u8 selection)
     return selection;
 }
 
-static void GenesisTerrain_DrawChoices(u8 selection)
-{
-    static const u8 *const en[GENESIS_TERRAIN_COUNT] = {
+static const u8 *const sTerrainEn[GENESIS_TERRAIN_COUNT] = {
         COMPOUND_STRING("BALANCED"), COMPOUND_STRING("FOREST"),
         COMPOUND_STRING("PLAINS"), COMPOUND_STRING("TRAILS"),
         COMPOUND_STRING("CLEARINGS"), COMPOUND_STRING("ORIGINAL"),
     };
-    static const u8 *const es[GENESIS_TERRAIN_COUNT] = {
+static const u8 *const sTerrainEs[GENESIS_TERRAIN_COUNT] = {
         COMPOUND_STRING("MIXTO"), COMPOUND_STRING("BOSQUE"),
         COMPOUND_STRING("LLANURA"), COMPOUND_STRING("SENDAS"),
         COMPOUND_STRING("CLAROS"), COMPOUND_STRING("ORIGINAL"),
     };
+static void GenesisTerrain_DrawChoices(u8 selection)
+{
     selection = GenesisRoute_Profile(selection);
     FillWindowPixelRect(WIN_OPTIONS, PIXEL_FILL(1), 104, YPOS_GENESIS, 102, OPTION_ROW_HEIGHT);
-    DrawOptionMenuChoice((sPreviewSpanish ? es : en)[selection], 117, YPOS_GENESIS, 1);
+    DrawOptionMenuChoice((sPreviewSpanish ? sTerrainEs : sTerrainEn)[selection], 117, YPOS_GENESIS, 1);
 }
 
 static u8 FrameType_ProcessInput(u8 selection)
@@ -776,7 +776,7 @@ static void DrawOptionMenuTexts(void)
 
     FillWindowPixelBuffer(WIN_OPTIONS, PIXEL_FILL(1));
     for (i = 0; i < MENUITEM_COUNT; i++)
-        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, (i * OPTION_ROW_HEIGHT) + 1, 94, names[i]);
+        UnholyUi_Print(WIN_OPTIONS, FONT_SMALL, 8, i * OPTION_ROW_HEIGHT, 94, names[i]);
     CopyWindowToVram(WIN_OPTIONS, COPYWIN_FULL);
 }
 
@@ -816,12 +816,9 @@ static void DrawBgWindowFrames(void)
     FillBgTilemapBufferRect(1, TILE_BOT_EDGE,      2,  3, 27,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_R, 28,  3,  1,  1,  7);
 
-    // Draw options list window frame
-    FillBgTilemapBufferRect(1, TILE_TOP_CORNER_L,  1,  4,  1,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_TOP_EDGE,      2,  4, 26,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_TOP_CORNER_R, 28,  4,  1,  1,  7);
-    FillBgTilemapBufferRect(1, TILE_LEFT_EDGE,     1,  5,  1, 18,  7);
-    FillBgTilemapBufferRect(1, TILE_RIGHT_EDGE,   28,  5,  1, 18,  7);
+    // The title bottom frame is also the list divider; ten 12px rows fit.
+    FillBgTilemapBufferRect(1, TILE_LEFT_EDGE,     1,  4,  1, 15,  7);
+    FillBgTilemapBufferRect(1, TILE_RIGHT_EDGE,   28,  4,  1, 15,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_L,  1, 19,  1,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_EDGE,      2, 19, 26,  1,  7);
     FillBgTilemapBufferRect(1, TILE_BOT_CORNER_R, 28, 19,  1,  1,  7);
